@@ -1,0 +1,186 @@
+# Requirements: SEO Management Platform
+
+**Defined:** 2026-03-31
+**Core Value:** A team member or client can open the platform and immediately see the SEO health of any site — positions, recent changes, pending tasks — without switching between GSC, spreadsheets, and WP admin.
+
+## v1 Requirements
+
+### Authentication & Access Control
+
+- [ ] **AUTH-01**: User can log in with email and password and stay logged in across sessions (JWT, 24h expiry)
+- [ ] **AUTH-02**: Admin can create, edit, and deactivate user accounts with roles (admin / manager / client)
+- [ ] **AUTH-03**: Manager sees only their own projects; client sees only their assigned projects (403 on others)
+- [ ] **AUTH-04**: Admin can generate invite links that register a new client account bound to a specific project
+- [ ] **AUTH-05**: All user actions are logged to audit_log (entity type, entity id, action, user, timestamp)
+
+### Site Management
+
+- [ ] **SITE-01**: Admin can add a WordPress site (name, URL, WP Application Password) and verify the connection
+- [ ] **SITE-02**: Admin can remove or disable a site; associated jobs stop without crashing other sites
+- [ ] **SITE-03**: WP Application Passwords are stored Fernet-encrypted; never logged or exposed in responses
+- [ ] **SITE-04**: User can view connection status for all sites on a management page
+
+### Crawler
+
+- [ ] **CRAWL-01**: System can crawl a WordPress site with Playwright, collecting: URL, title, H1, meta description, HTTP status, page depth, incoming internal link count
+- [ ] **CRAWL-02**: Crawler detects page type (category / article / landing / product) from URL patterns and content
+- [ ] **CRAWL-03**: Crawler detects presence of TOC, schema.org markup, noindex, and internal links per page
+- [ ] **CRAWL-04**: Each crawl saves a snapshot; system computes a diff vs. previous crawl (SEO fields + first 500 chars of content) stored as JSON in page_snapshots
+- [ ] **CRAWL-05**: User can view a change feed filtered by: SEO fields changed / content changed / new pages / status changes
+- [ ] **CRAWL-06**: Crawl schedule (daily / weekly / manual) is configurable from UI without application restart (using redbeat + PostgreSQL-backed schedule storage)
+- [ ] **CRAWL-07**: System auto-creates a project task when a crawl finds a 404 or a page that lost indexation
+- [ ] **CRAWL-08**: Crawler uses configurable delay between requests (CRAWLER_DELAY_MS env var) and respects a max-pages limit
+- [ ] **CRAWL-09**: Sitemap.xml is parsed first to seed URL discovery before recursive crawling
+
+### Keyword & Position Tracking
+
+- [ ] **RANK-01**: User can import keywords from CSV (Key Collector format) and XLSX (Topvisor format) without errors for batches up to 500 keywords
+- [ ] **RANK-02**: User can manually add individual keywords with frequency, region, and engine fields
+- [ ] **RANK-03**: System integrates with Google Search Console via OAuth 2.0 to fetch positions, clicks, CTR, and impressions
+- [ ] **RANK-04**: System integrates with Yandex Webmaster (API token) and/or DataForSEO (login/password) for position data
+- [ ] **RANK-05**: DataForSEO is used as the primary SERP data source; Playwright-based parsing is the fallback for cost saving at low volume (<50 queries/day without proxy)
+- [ ] **RANK-06**: Playwright SERP parser rotates User-Agent strings and uses configurable delays to reduce ban risk
+- [ ] **RANK-07**: Position history is stored in keyword_positions with monthly range partitioning on checked_at (must be set in Iteration 3 migration — not retrofittable)
+- [ ] **RANK-08**: Position table UI shows keyword, current position, delta vs. previous check (arrow + colour), URL, engine, geo, device
+- [ ] **RANK-09**: User can view a 90-day position history chart per keyword (Chart.js)
+- [ ] **RANK-10**: User can filter positions by: top-3 / top-10 / top-100, engine, region, cluster
+- [ ] **RANK-11**: System sends a Telegram alert when a keyword drops by a configurable threshold (e.g. −5 positions)
+- [ ] **RANK-12**: Position checks run on a configurable Celery Beat schedule (daily / weekly / manual)
+- [ ] **RANK-13**: Keyword volume data is sourced from DataForSEO Keywords Data endpoint (for brief generation estimates)
+
+### Semantics & Clustering
+
+- [ ] **SEM-01**: User can cluster keywords manually (drag-and-drop into named clusters)
+- [ ] **SEM-02**: System can auto-cluster keywords by SERP intersection (keywords sharing ≥N results in top-10)
+- [ ] **SEM-03**: User can map a keyword (or cluster) to a page URL
+- [ ] **SEM-04**: System detects cannibalization: keywords mapped to 2+ pages both ranking in top-100
+- [ ] **SEM-05**: User can export the full keyword list with clusters and page mappings to CSV
+- [ ] **SEM-06**: System detects keywords with no mapped page and auto-creates a "missing page" task in the project
+
+### WordPress Content Pipeline
+
+- [ ] **WPC-01**: User can fetch the list of pages/posts for a site from WP REST API with filters: status, type, TOC present, schema.org present
+- [ ] **WPC-02**: System identifies pages missing TOC and/or schema.org Article markup
+- [ ] **WPC-03**: Celery processes each page: download full HTML via Playwright, detect H2–H3 structure, generate TOC as HTML block, inject JSON-LD schema.org Article (headline, datePublished, author)
+- [ ] **WPC-04**: System finds relevant internal pages from DB by keyword overlap and inserts a link block into the page content
+- [ ] **WPC-05**: System updates SEO title and meta description via Yoast/RankMath post_meta through WP REST API
+- [ ] **WPC-06**: A diff view (before/after, changed blocks only) is shown and must be approved before content is pushed to WP
+- [ ] **WPC-07**: User can trigger batch processing for all pages in a category; batches run without blocking the UI
+- [ ] **WPC-08**: Every WP content job is stored in wp_content_jobs with status, diff_json, processed_at; user can view history and roll back to previous content
+- [ ] **WPC-09**: User can create a new WP post from the platform (title, content, keywords, publish date)
+
+### SEO Projects & Tasks
+
+- [ ] **PROJ-01**: User can create a project linked to a site and a client; project has name, description, status
+- [ ] **PROJ-02**: User can view and manage tasks on a Kanban board (To Do / In Progress / Done) with drag-and-drop status changes
+- [ ] **PROJ-03**: System auto-creates tasks for: missing pages, cannibalized pages, pages without schema.org; tasks include context (keyword, URL, issue type)
+- [ ] **PROJ-04**: User can manually create, edit, assign, and set due dates for tasks
+- [ ] **PROJ-05**: Content plan rows link keyword → proposed title → status → planned date → WP post (once published)
+- [ ] **PROJ-06**: User can create a WP draft post from a content plan row in one click
+- [ ] **PROJ-07**: User can generate a page brief from a keyword cluster: H1–H3 structure, target keywords, volume estimate (template-based, no LLM)
+- [ ] **PROJ-08**: Brief is downloadable as HTML and PDF (WeasyPrint); brief can be linked to a task or content plan row
+
+### Dashboard & Reporting
+
+- [ ] **DASH-01**: Dashboard shows across all projects: top positions, tasks in progress, recent site changes; loads in <3s with 50 active projects
+- [ ] **DASH-02**: Manager/admin can generate a project report (position trends + task progress + site changes) as PDF and Excel
+- [ ] **DASH-03**: Reports can be scheduled for automatic delivery via Telegram and/or SMTP (Celery Beat)
+- [ ] **DASH-04**: Morning Telegram digest summarising project status is optionally configurable
+
+### Advertising Traffic
+
+- [ ] **ADS-01**: User can upload ad traffic data as CSV (source, date, sessions, conversions, cost)
+- [ ] **ADS-02**: User can compare two periods (before / after): table with % and absolute delta for sessions, conversions, CR%, cost-per-conversion
+- [ ] **ADS-03**: User can view a weekly/monthly traffic trend chart per source
+
+### Infrastructure & Operations
+
+- [ ] **INFRA-01**: `docker-compose up --build` starts the full stack (FastAPI + PostgreSQL + Redis + Celery Worker + Celery Beat) from scratch with no manual steps
+- [ ] **INFRA-02**: `GET /health` returns 200 with status of DB, Redis, and Celery; returns 503 if any component is down
+- [ ] **INFRA-03**: Rate limiting (slowapi) protects all API endpoints from overload
+- [ ] **INFRA-04**: Celery Flower or equivalent UI shows task queue status
+- [ ] **INFRA-05**: Logs use loguru in JSON format, DEBUG/INFO/ERROR levels, 10 MB rotation, 30-day retention
+- [ ] **INFRA-06**: All DB schema changes are managed through Alembic migrations; no direct schema edits in production
+- [ ] **INFRA-07**: Number of Celery workers is configurable in docker-compose without code changes
+- [ ] **INFRA-08**: Celery Beat schedule is persisted in PostgreSQL via redbeat (not local file; survives Redis flush and Docker restart)
+- [ ] **INFRA-09**: `WORKER_MAX_TASKS_PER_CHILD` is set to 50–100 for Playwright workers to prevent browser process memory leaks
+- [ ] **INFRA-10**: README covers deployment from zero to running in <30 minutes
+
+### Security
+
+- [ ] **SEC-01**: Passwords are hashed with bcrypt; plaintext passwords never stored or logged
+- [ ] **SEC-02**: WP Application Passwords are Fernet-encrypted at rest; decrypted only at call time, never logged
+- [ ] **SEC-03**: JWT tokens expire after 24h; refresh requires re-authentication
+- [ ] **SEC-04**: Role checks are enforced at both route level and service layer (not route-only)
+- [ ] **SEC-05**: HTTPS is enforced in production (Nginx/Caddy reverse proxy in docker-compose)
+
+## v2 Requirements
+
+### Extended Integrations
+
+- **INT-01**: GSC URL Inspection API — detect pages de-indexed in GSC without a noindex tag
+- **INT-02**: Direct integration with Google Ads API for ad traffic (currently CSV-only)
+- **INT-03**: Direct integration with Yandex Direct API for ad traffic
+- **INT-04**: Facebook Ads API integration for ad traffic
+
+### Semantics
+
+- **SEM-V2-01**: Keyword suggest via Google/Yandex (Playwright or API) to expand semantics
+- **SEM-V2-02**: Yandex Wordstat frequency data via API or Key Collector import
+
+### Content
+
+- **CONT-V2-01**: LLM-assisted brief generation (optional feature flag; template-based is default)
+- **CONT-V2-02**: Scheduled content plan reminders (email/Telegram when planned date approaches)
+
+### Platform
+
+- **PLAT-V2-01**: White-label branding (custom logo, colours per client view)
+- **PLAT-V2-02**: Two-factor authentication (TOTP)
+- **PLAT-V2-03**: In-app notification feed (in addition to Telegram/email)
+
+## Out of Scope
+
+| Feature | Reason |
+|---------|--------|
+| LLM content generation | Deterministic output preferred; adds API cost and non-determinism. Can be added as opt-in flag later without rearchitecting. |
+| Real-time SERP polling | Operationally unsustainable; scheduled checks are the right model at this scale |
+| Backlink crawling / index | Requires own crawler infrastructure; Ahrefs/Majestic do this better |
+| SPA / React / Vue frontend | Jinja2 + HTMX eliminates build toolchain; no heavy SPA needed |
+| Mobile app | Web-first; mobile browser works fine for read-only client views |
+| Competitor keyword gap analysis | Requires own SERP index; anti-feature at this scope |
+| Direct ad platform APIs (v1) | OAuth complexity; CSV upload covers 90% of use cases with zero maintenance |
+| Multi-locale SERP expansion | Out of initial scope; can be added to DataForSEO calls later |
+| Penalty detection | Too many false positives; out of scope |
+| SQLite | Not async-native; PostgreSQL from day one |
+| APScheduler | Celery + Redis is the correct scheduler for multi-worker setup |
+| Selenium | Playwright is faster, async-native, better headless support |
+
+## Traceability
+
+Populated during roadmap creation.
+
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| AUTH-01–05 | Phase 1 | Pending |
+| SITE-01–04 | Phase 1 | Pending |
+| INFRA-01, 06, 07, 10 | Phase 1 | Pending |
+| SEC-01–05 | Phase 1 | Pending |
+| CRAWL-01–09 | Phase 2 | Pending |
+| INFRA-08, 09 | Phase 2 | Pending |
+| RANK-01–13 | Phase 3 | Pending |
+| SEM-01–06 | Phase 3 | Pending |
+| WPC-01–09 | Phase 4 | Pending |
+| PROJ-01–08 | Phase 5 | Pending |
+| DASH-01–04 | Phase 6 | Pending |
+| ADS-01–03 | Phase 6 | Pending |
+| INFRA-02–05 | Phase 7 | Pending |
+
+**Coverage:**
+- v1 requirements: 60 total
+- Mapped to phases: 60
+- Unmapped: 0 ✓
+
+---
+*Requirements defined: 2026-03-31*
+*Last updated: 2026-03-31 after initial definition + research synthesis*
