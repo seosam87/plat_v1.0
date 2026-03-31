@@ -39,7 +39,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 4 plans
 
 Plans:
-- [ ] 01-01: Docker Compose stack — FastAPI + PostgreSQL 16 + Redis 7 + Celery 5.4 + Beat; env vars; lifespan pattern; async session with try/finally; Redis appendonly + maxmemory-policy; Celery result_expires=3600; three queues wired
+- [x] 01-01: Docker Compose stack — FastAPI + PostgreSQL 16 + Redis 7 + Celery 5.4 + Beat; env vars; lifespan pattern; async session with try/finally; Redis appendonly + maxmemory-policy; Celery result_expires=3600; three queues wired
 - [ ] 01-02: Alembic setup + users table migration; bcrypt password hashing; JWT issue/verify (24h expiry); login endpoint; current-user dependency
 - [ ] 01-03: Role model (admin / manager / client); admin user-management endpoints (create, edit, deactivate); role guard at route + service layer
 - [ ] 01-04: Audit log model + middleware; structured JSON logging with loguru (DEBUG/INFO/ERROR, 10 MB rotation, 30-day retention); Alembic migration baseline

@@ -95,13 +95,13 @@
 
 ### Infrastructure & Operations
 
-- [ ] **INFRA-01**: `docker-compose up --build` starts the full stack (FastAPI + PostgreSQL + Redis + Celery Worker + Celery Beat) from scratch with no manual steps
+- [x] **INFRA-01**: `docker-compose up --build` starts the full stack (FastAPI + PostgreSQL + Redis + Celery Worker + Celery Beat) from scratch with no manual steps
 - [ ] **INFRA-02**: `GET /health` returns 200 with status of DB, Redis, and Celery; returns 503 if any component is down
 - [ ] **INFRA-03**: Rate limiting (slowapi) protects all API endpoints from overload
 - [ ] **INFRA-04**: Celery Flower or equivalent UI shows task queue status
 - [ ] **INFRA-05**: Logs use loguru in JSON format, DEBUG/INFO/ERROR levels, 10 MB rotation, 30-day retention
-- [ ] **INFRA-06**: All DB schema changes are managed through Alembic migrations; no direct schema edits in production
-- [ ] **INFRA-07**: Number of Celery workers is configurable in docker-compose without code changes
+- [x] **INFRA-06**: All DB schema changes are managed through Alembic migrations; no direct schema edits in production
+- [x] **INFRA-07**: Number of Celery workers is configurable in docker-compose without code changes
 - [ ] **INFRA-08**: Celery Beat schedule is persisted in PostgreSQL via redbeat (not local file; survives Redis flush and Docker restart)
 - [ ] **INFRA-09**: `WORKER_MAX_TASKS_PER_CHILD` is set to 50–100 for Playwright workers to prevent browser process memory leaks
 - [ ] **INFRA-10**: README covers deployment from zero to running in <30 minutes
@@ -221,13 +221,13 @@
 | ADS-01 | Phase 10: Reports & Ads | Pending |
 | ADS-02 | Phase 10: Reports & Ads | Pending |
 | ADS-03 | Phase 10: Reports & Ads | Pending |
-| INFRA-01 | Phase 1: Stack & Auth | Pending |
+| INFRA-01 | Phase 1: Stack & Auth | Complete |
 | INFRA-02 | Phase 11: Hardening | Pending |
 | INFRA-03 | Phase 11: Hardening | Pending |
 | INFRA-04 | Phase 11: Hardening | Pending |
 | INFRA-05 | Phase 1: Stack & Auth | Pending |
-| INFRA-06 | Phase 1: Stack & Auth | Pending |
-| INFRA-07 | Phase 1: Stack & Auth | Pending |
+| INFRA-06 | Phase 1: Stack & Auth | Complete |
+| INFRA-07 | Phase 1: Stack & Auth | Complete |
 | INFRA-08 | Phase 4: Crawl Scheduling | Pending |
 | INFRA-09 | Phase 3: Crawler Core | Pending |
 | INFRA-10 | Phase 11: Hardening | Pending |
