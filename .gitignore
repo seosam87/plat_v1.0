@@ -1,0 +1,13 @@
+.env
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+logs/*.log
+celerybeat-schedule
+.coverage
+htmlcov/
+dist/
+*.egg-info/
+.mypy_cache/
+.ruff_cache/
