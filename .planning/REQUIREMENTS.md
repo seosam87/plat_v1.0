@@ -158,23 +158,84 @@
 
 ## Traceability
 
-Populated during roadmap creation.
-
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| AUTH-01–05 | Phase 1 | Pending |
-| SITE-01–04 | Phase 1 | Pending |
-| INFRA-01, 06, 07, 10 | Phase 1 | Pending |
-| SEC-01–05 | Phase 1 | Pending |
-| CRAWL-01–09 | Phase 2 | Pending |
-| INFRA-08, 09 | Phase 2 | Pending |
-| RANK-01–13 | Phase 3 | Pending |
-| SEM-01–06 | Phase 3 | Pending |
-| WPC-01–09 | Phase 4 | Pending |
-| PROJ-01–08 | Phase 5 | Pending |
-| DASH-01–04 | Phase 6 | Pending |
-| ADS-01–03 | Phase 6 | Pending |
-| INFRA-02–05 | Phase 7 | Pending |
+| AUTH-01 | Phase 1: Stack & Auth | Pending |
+| AUTH-02 | Phase 1: Stack & Auth | Pending |
+| AUTH-03 | Phase 11: Hardening | Pending |
+| AUTH-04 | Phase 11: Hardening | Pending |
+| AUTH-05 | Phase 1: Stack & Auth | Pending |
+| SITE-01 | Phase 2: Site Management | Pending |
+| SITE-02 | Phase 2: Site Management | Pending |
+| SITE-03 | Phase 2: Site Management | Pending |
+| SITE-04 | Phase 2: Site Management | Pending |
+| CRAWL-01 | Phase 3: Crawler Core | Pending |
+| CRAWL-02 | Phase 3: Crawler Core | Pending |
+| CRAWL-03 | Phase 3: Crawler Core | Pending |
+| CRAWL-04 | Phase 3: Crawler Core | Pending |
+| CRAWL-05 | Phase 3: Crawler Core | Pending |
+| CRAWL-06 | Phase 4: Crawl Scheduling | Pending |
+| CRAWL-07 | Phase 4: Crawl Scheduling | Pending |
+| CRAWL-08 | Phase 3: Crawler Core | Pending |
+| CRAWL-09 | Phase 3: Crawler Core | Pending |
+| RANK-01 | Phase 5: Keyword Import | Pending |
+| RANK-02 | Phase 5: Keyword Import | Pending |
+| RANK-03 | Phase 5: Keyword Import | Pending |
+| RANK-04 | Phase 5: Keyword Import | Pending |
+| RANK-05 | Phase 5: Keyword Import | Pending |
+| RANK-06 | Phase 5: Keyword Import | Pending |
+| RANK-07 | Phase 6: Position Tracking | Pending |
+| RANK-08 | Phase 6: Position Tracking | Pending |
+| RANK-09 | Phase 6: Position Tracking | Pending |
+| RANK-10 | Phase 6: Position Tracking | Pending |
+| RANK-11 | Phase 6: Position Tracking | Pending |
+| RANK-12 | Phase 5: Keyword Import | Pending |
+| RANK-13 | Phase 5: Keyword Import | Pending |
+| SEM-01 | Phase 7: Semantics | Pending |
+| SEM-02 | Phase 7: Semantics | Pending |
+| SEM-03 | Phase 7: Semantics | Pending |
+| SEM-04 | Phase 7: Semantics | Pending |
+| SEM-05 | Phase 7: Semantics | Pending |
+| SEM-06 | Phase 7: Semantics | Pending |
+| WPC-01 | Phase 8: WP Pipeline | Pending |
+| WPC-02 | Phase 8: WP Pipeline | Pending |
+| WPC-03 | Phase 8: WP Pipeline | Pending |
+| WPC-04 | Phase 8: WP Pipeline | Pending |
+| WPC-05 | Phase 8: WP Pipeline | Pending |
+| WPC-06 | Phase 8: WP Pipeline | Pending |
+| WPC-07 | Phase 8: WP Pipeline | Pending |
+| WPC-08 | Phase 8: WP Pipeline | Pending |
+| WPC-09 | Phase 8: WP Pipeline | Pending |
+| PROJ-01 | Phase 9: Projects & Tasks | Pending |
+| PROJ-02 | Phase 9: Projects & Tasks | Pending |
+| PROJ-03 | Phase 9: Projects & Tasks | Pending |
+| PROJ-04 | Phase 9: Projects & Tasks | Pending |
+| PROJ-05 | Phase 9: Projects & Tasks | Pending |
+| PROJ-06 | Phase 9: Projects & Tasks | Pending |
+| PROJ-07 | Phase 9: Projects & Tasks | Pending |
+| PROJ-08 | Phase 9: Projects & Tasks | Pending |
+| DASH-01 | Phase 10: Reports & Ads | Pending |
+| DASH-02 | Phase 10: Reports & Ads | Pending |
+| DASH-03 | Phase 10: Reports & Ads | Pending |
+| DASH-04 | Phase 10: Reports & Ads | Pending |
+| ADS-01 | Phase 10: Reports & Ads | Pending |
+| ADS-02 | Phase 10: Reports & Ads | Pending |
+| ADS-03 | Phase 10: Reports & Ads | Pending |
+| INFRA-01 | Phase 1: Stack & Auth | Pending |
+| INFRA-02 | Phase 11: Hardening | Pending |
+| INFRA-03 | Phase 11: Hardening | Pending |
+| INFRA-04 | Phase 11: Hardening | Pending |
+| INFRA-05 | Phase 1: Stack & Auth | Pending |
+| INFRA-06 | Phase 1: Stack & Auth | Pending |
+| INFRA-07 | Phase 1: Stack & Auth | Pending |
+| INFRA-08 | Phase 4: Crawl Scheduling | Pending |
+| INFRA-09 | Phase 3: Crawler Core | Pending |
+| INFRA-10 | Phase 11: Hardening | Pending |
+| SEC-01 | Phase 1: Stack & Auth | Pending |
+| SEC-02 | Phase 2: Site Management | Pending |
+| SEC-03 | Phase 1: Stack & Auth | Pending |
+| SEC-04 | Phase 1: Stack & Auth | Pending |
+| SEC-05 | Phase 11: Hardening | Pending |
 
 **Coverage:**
 - v1 requirements: 60 total
