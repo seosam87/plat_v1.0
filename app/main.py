@@ -16,7 +16,9 @@ from app.routers.admin import router as admin_router
 from app.routers.auth import router as auth_router
 from app.routers.crawl import router as crawl_router
 from app.routers.sites import router as sites_router
-from app.services.site_service import get_sites
+from app.services.schedule_service import get_all_schedules, upsert_schedule
+from app.services.site_service import get_site, get_sites
+from app.models.schedule import ScheduleType
 
 templates = Jinja2Templates(directory="app/templates")
 
@@ -45,7 +47,37 @@ app.include_router(crawl_router)
 @app.get("/ui/sites", response_class=HTMLResponse)
 async def ui_sites(request: Request, db: AsyncSession = Depends(get_db)) -> HTMLResponse:
     sites = await get_sites(db)
-    return templates.TemplateResponse(request, "sites/index.html", {"sites": sites})
+    all_schedules = await get_all_schedules(db)
+    schedules = {str(s.site_id): s.schedule_type.value for s in all_schedules}
+    return templates.TemplateResponse(
+        request, "sites/index.html", {"sites": sites, "schedules": schedules}
+    )
+
+
+@app.post("/ui/sites/{site_id}/schedule", response_class=HTMLResponse)
+async def ui_update_schedule(
+    site_id: str,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+) -> HTMLResponse:
+    """HTMX handler: update crawl schedule from the dropdown."""
+    import uuid
+
+    form = await request.form()
+    schedule_type_str = form.get("schedule_type", "manual")
+    schedule_type = ScheduleType(schedule_type_str)
+
+    site = await get_site(db, uuid.UUID(site_id))
+    if not site:
+        return HTMLResponse("Site not found", status_code=404)
+
+    schedule = await upsert_schedule(db, uuid.UUID(site_id), schedule_type)
+    await db.commit()
+
+    label = schedule.schedule_type.value
+    if label == "manual":
+        return HTMLResponse("")
+    return HTMLResponse(f'<span style="color:#059669">Saved</span>')
 
 
 @app.get("/")

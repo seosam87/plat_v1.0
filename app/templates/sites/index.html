@@ -15,6 +15,7 @@
         <th>URL</th>
         <th>WP Username</th>
         <th>Status</th>
+        <th>Schedule</th>
         <th>Active</th>
         <th>Actions</th>
       </tr>
@@ -30,6 +31,22 @@
             id="status-{{ site.id }}"
             class="badge badge-{{ site.connection_status }}"
           >{{ site.connection_status }}</span>
+        </td>
+        <td>
+          {% set sched = schedules.get(site.id|string, "manual") %}
+          <select
+            name="schedule_type"
+            class="schedule-select"
+            hx-post="/ui/sites/{{ site.id }}/schedule"
+            hx-target="#sched-badge-{{ site.id }}"
+            hx-swap="innerHTML"
+            hx-trigger="change"
+          >
+            <option value="manual" {% if sched == "manual" %}selected{% endif %}>Manual</option>
+            <option value="daily" {% if sched == "daily" %}selected{% endif %}>Daily</option>
+            <option value="weekly" {% if sched == "weekly" %}selected{% endif %}>Weekly</option>
+          </select>
+          <span id="sched-badge-{{ site.id }}" class="sched-confirm"></span>
         </td>
         <td>{{ "Yes" if site.is_active else "No" }}</td>
         <td>
@@ -75,4 +92,19 @@
   <p style="color:#6b7280">No sites added yet. <a href="/ui/sites/new">Add your first site.</a></p>
   {% endif %}
 </div>
+
+<style>
+  .schedule-select {
+    padding: .25rem .4rem;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    font-size: .85rem;
+    background: white;
+  }
+  .sched-confirm {
+    font-size: .75rem;
+    color: #059669;
+    margin-left: .3rem;
+  }
+</style>
 {% endblock %}
