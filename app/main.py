@@ -4,11 +4,12 @@ setup_logging()
 
 from contextlib import asynccontextmanager
 
-from fastapi import Depends, FastAPI, Request
-from fastapi.responses import HTMLResponse
+from fastapi import Depends, FastAPI, Form, Request
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.database import engine
 from app.dependencies import get_db
@@ -60,6 +61,35 @@ from slowapi.errors import RateLimitExceeded
 limiter = Limiter(key_func=get_remote_address, default_limits=["60/minute"])
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# ---- Cookie-based UI auth middleware ----
+
+PUBLIC_PATHS = {"/ui/login", "/health", "/docs", "/openapi.json", "/redoc", "/docs/oauth2-redirect"}
+
+
+class UIAuthMiddleware(BaseHTTPMiddleware):
+    """Redirect /ui/* requests to login page if no valid JWT cookie."""
+
+    async def dispatch(self, request: Request, call_next):
+        path = request.url.path
+        # Only protect UI routes
+        if not path.startswith("/ui") or path in PUBLIC_PATHS:
+            return await call_next(request)
+
+        token = request.cookies.get("access_token")
+        if token:
+            try:
+                from app.auth.jwt import decode_access_token
+                decode_access_token(token)
+                return await call_next(request)
+            except Exception:
+                pass
+
+        # No valid token — redirect to login
+        return RedirectResponse(f"/ui/login?next={path}", status_code=302)
+
+
+app.add_middleware(UIAuthMiddleware)
 
 app.include_router(health_router)
 app.include_router(auth_router)
@@ -371,8 +401,49 @@ async def ui_pipeline(site_id: str, request: Request, db: AsyncSession = Depends
     return templates.TemplateResponse(request, "pipeline/jobs.html", {"site_name": site.name, "site_id": str(site.id), "jobs": jobs_data})
 
 
+@app.get("/ui/login", response_class=HTMLResponse)
+async def login_page(request: Request, error: str = ""):
+    return templates.TemplateResponse(request, "login.html", {"error": error})
+
+
+@app.post("/ui/login")
+async def login_submit(
+    request: Request,
+    email: str = Form(...),
+    password: str = Form(...),
+    db: AsyncSession = Depends(get_db),
+):
+    """Authenticate and set JWT cookie."""
+    from app.auth.password import verify_password
+    from app.auth.jwt import create_access_token
+    from app.services.user_service import get_user_by_email
+
+    user = await get_user_by_email(db, email)
+    if not user or not verify_password(password, user.password_hash):
+        return templates.TemplateResponse(request, "login.html", {"error": "Incorrect email or password"}, status_code=401)
+    if not user.is_active:
+        return templates.TemplateResponse(request, "login.html", {"error": "Account deactivated"}, status_code=401)
+
+    token = create_access_token(str(user.id), user.role.value)
+    next_url = request.query_params.get("next", "/ui/dashboard")
+    response = RedirectResponse(next_url, status_code=302)
+    response.set_cookie(
+        key="access_token",
+        value=token,
+        httponly=True,
+        max_age=60 * 60 * 24,  # 24h
+        samesite="lax",
+    )
+    return response
+
+
+@app.get("/ui/logout")
+async def logout():
+    response = RedirectResponse("/ui/login", status_code=302)
+    response.delete_cookie("access_token")
+    return response
+
+
 @app.get("/")
 async def root():
-    """Redirect root to dashboard."""
-    from fastapi.responses import RedirectResponse
     return RedirectResponse("/ui/dashboard")
