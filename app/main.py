@@ -1396,6 +1396,7 @@ async def ui_clusters(site_id: str, request: Request, db: AsyncSession = Depends
         )).scalars().all()
         clusters_data.append({
             "id": str(c.id), "name": c.name, "target_url": c.target_url,
+            "intent": c.intent.value if hasattr(c.intent, "value") else c.intent,
             "keyword_count": len(keywords),
             "keywords": [{"phrase": kw.phrase, "frequency": kw.frequency} for kw in keywords],
         })

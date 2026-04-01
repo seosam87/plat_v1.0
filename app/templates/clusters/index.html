@@ -8,13 +8,13 @@
       <span style="color:#6b7280; margin-left:1rem">{{ clusters | length }} clusters</span>
     </div>
     <div style="display:flex; gap:.5rem">
-      <button class="btn btn-sm" style="background:#7c3aed;color:white"
-        hx-post="/clusters/sites/{{ site_id }}/auto-cluster"
-        hx-swap="none"
-        onclick="this.textContent='Clustering...'; this.disabled=true; setTimeout(()=>location.reload(), 3000)">
-        Auto-Cluster
-      </button>
+      <form style="display:inline-flex;gap:.25rem;align-items:center" hx-post="/clusters/sites/{{ site_id }}/auto-cluster" hx-swap="none"
+        onsubmit="this.querySelector('button').textContent='Clustering...'; this.querySelector('button').disabled=true; setTimeout(()=>location.reload(), 3000)">
+        <input type="number" name="min_shared" value="3" min="2" max="10" style="width:50px;padding:.25rem;border:1px solid #d1d5db;border-radius:4px;font-size:.8rem" title="Min shared URLs">
+        <button type="submit" class="btn btn-sm" style="background:#7c3aed;color:white">Auto-Cluster</button>
+      </form>
       <a href="/ui/cannibalization/{{ site_id }}" class="btn btn-sm" style="background:#dc2626;color:white">Cannibalization</a>
+      <a href="/clusters/sites/{{ site_id }}/intent-mismatches" class="btn btn-sm" style="background:#f59e0b;color:white">Intent ⚠</a>
       <a href="/clusters/sites/{{ site_id }}/export.csv" class="btn btn-sm" style="background:#059669;color:white">Export CSV</a>
     </div>
   </div>
@@ -34,6 +34,13 @@
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:.5rem">
       <div>
         <strong style="font-size:1.05rem">{{ c.name }}</strong>
+        <select style="margin-left:.5rem;padding:2px 4px;border:1px solid #d1d5db;border-radius:4px;font-size:.8rem"
+          onchange="fetch('/clusters/{{ c.id }}', {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({intent:this.value})})">
+          <option value="unknown" {% if c.intent == 'unknown' %}selected{% endif %}>—</option>
+          <option value="commercial" {% if c.intent == 'commercial' %}selected{% endif %}>💰 Коммерч.</option>
+          <option value="informational" {% if c.intent == 'informational' %}selected{% endif %}>📖 Информ.</option>
+          <option value="navigational" {% if c.intent == 'navigational' %}selected{% endif %}>🧭 Навигац.</option>
+        </select>
         {% if c.target_url %}
         <a href="{{ c.target_url }}" target="_blank" style="margin-left:.75rem; font-size:.85rem; color:#2563eb">{{ c.target_url }}</a>
         {% endif %}

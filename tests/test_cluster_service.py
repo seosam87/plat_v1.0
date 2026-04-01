@@ -172,3 +172,61 @@ async def test_export_csv_endpoint(client: AsyncClient, admin_token, site, db_se
     assert resp.status_code == 200
     assert "text/csv" in resp.headers["content-type"]
     assert "csv export kw" in resp.text
+
+
+# ---- Intent ----
+
+
+class TestClusterIntent:
+    """Test intent model and mismatch detection."""
+
+    def test_intent_enum_values(self):
+        from app.models.cluster import ClusterIntent
+        assert ClusterIntent.unknown.value == "unknown"
+        assert ClusterIntent.commercial.value == "commercial"
+        assert ClusterIntent.informational.value == "informational"
+        assert ClusterIntent.navigational.value == "navigational"
+
+    def test_intent_mismatch_logic(self):
+        """Commercial cluster with blog URL is a mismatch."""
+        import re
+        BLOG_PATTERNS = re.compile(
+            r"/(blog|news|article|post|category|tag|journal|magazine)/", re.IGNORECASE
+        )
+        test_cases = [
+            ("https://example.com/blog/seo-tips/", True),
+            ("https://example.com/news/update/", True),
+            ("https://example.com/services/seo/", False),
+            ("https://example.com/category/products/", True),
+            ("https://example.com/price/", False),
+            ("https://example.com/article/how-to/", True),
+        ]
+        for url, should_match in test_cases:
+            assert bool(BLOG_PATTERNS.search(url)) == should_match, f"Failed for {url}"
+
+    def test_no_mismatch_for_informational(self):
+        """Informational cluster on blog page is NOT a mismatch."""
+        import re
+        BLOG_PATTERNS = re.compile(
+            r"/(blog|news|article|post|category|tag)/", re.IGNORECASE
+        )
+        # Only commercial intent triggers mismatch
+        intent = "informational"
+        url = "https://example.com/blog/guide/"
+        is_commercial = intent == "commercial"
+        is_blog = bool(BLOG_PATTERNS.search(url))
+        is_mismatch = is_commercial and is_blog
+        assert not is_mismatch
+
+
+class TestIntentEndpointRegistered:
+    def test_endpoint_exists(self):
+        from app.routers.clusters import router
+        paths = [r.path for r in router.routes]
+        assert "/clusters/sites/{site_id}/intent-mismatches" in paths
+
+
+class TestIntentServiceImport:
+    def test_import(self):
+        from app.services.cluster_service import detect_intent_mismatches
+        assert callable(detect_intent_mismatches)

@@ -26,6 +26,7 @@ class ClusterCreate(BaseModel):
 class ClusterUpdate(BaseModel):
     name: str | None = None
     target_url: str | None = None
+    intent: str | None = None
 
 
 class AssignRequest(BaseModel):
@@ -42,7 +43,7 @@ async def create_cluster(
 ) -> dict:
     c = await cluster_service.create_cluster(db, site_id, payload.name, payload.target_url)
     await db.commit()
-    return {"id": str(c.id), "name": c.name, "target_url": c.target_url}
+    return {"id": str(c.id), "name": c.name, "target_url": c.target_url, "intent": c.intent.value}
 
 
 @router.get("/sites/{site_id}")
@@ -53,7 +54,7 @@ async def list_clusters(
 ) -> list[dict]:
     clusters = await cluster_service.list_clusters(db, site_id)
     return [
-        {"id": str(c.id), "name": c.name, "target_url": c.target_url}
+        {"id": str(c.id), "name": c.name, "target_url": c.target_url, "intent": c.intent.value}
         for c in clusters
     ]
 
@@ -68,9 +69,9 @@ async def update_cluster(
     c = await cluster_service.get_cluster(db, cluster_id)
     if not c:
         raise HTTPException(status_code=404, detail="Cluster not found")
-    c = await cluster_service.update_cluster(db, c, payload.name, payload.target_url)
+    c = await cluster_service.update_cluster(db, c, payload.name, payload.target_url, payload.intent)
     await db.commit()
-    return {"id": str(c.id), "name": c.name, "target_url": c.target_url}
+    return {"id": str(c.id), "name": c.name, "target_url": c.target_url, "intent": c.intent.value}
 
 
 @router.delete("/{cluster_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -118,6 +119,17 @@ async def cannibalization(
 ) -> dict:
     items = await cluster_service.detect_cannibalization(db, site_id)
     return {"cannibalization": items, "count": len(items)}
+
+
+@router.get("/sites/{site_id}/intent-mismatches")
+async def intent_mismatches(
+    site_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_admin),
+) -> dict:
+    """Find commercial clusters targeting informational pages."""
+    items = await cluster_service.detect_intent_mismatches(db, site_id)
+    return {"mismatches": items, "count": len(items)}
 
 
 @router.get("/sites/{site_id}/export.csv")

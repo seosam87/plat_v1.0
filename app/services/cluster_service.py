@@ -8,7 +8,7 @@ from loguru import logger
 from sqlalchemy import select, func, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.cluster import KeywordCluster
+from app.models.cluster import ClusterIntent, KeywordCluster
 from app.models.keyword import Keyword
 
 
@@ -38,12 +38,18 @@ async def get_cluster(db: AsyncSession, cluster_id: uuid.UUID) -> KeywordCluster
 
 
 async def update_cluster(
-    db: AsyncSession, cluster: KeywordCluster, name: str | None = None, target_url: str | None = None
+    db: AsyncSession,
+    cluster: KeywordCluster,
+    name: str | None = None,
+    target_url: str | None = None,
+    intent: str | None = None,
 ) -> KeywordCluster:
     if name is not None:
         cluster.name = name
     if target_url is not None:
         cluster.target_url = target_url
+    if intent is not None:
+        cluster.intent = ClusterIntent(intent)
     await db.flush()
     return cluster
 
@@ -174,3 +180,47 @@ async def detect_cannibalization(
         groups[kid]["pages"].append({"url": row.url, "position": row.position})
 
     return list(groups.values())
+
+
+# ---- Intent mismatch detection ----
+
+
+async def detect_intent_mismatches(
+    db: AsyncSession,
+    site_id: uuid.UUID,
+) -> list[dict]:
+    """Find commercial clusters whose target_url points to a blog/article page.
+
+    Heuristic: URL contains /blog/, /news/, /article/, /post/, /category/
+    patterns typical for informational content. A commercial cluster
+    landing on such a page is likely an SEO error.
+
+    Returns list of {cluster_id, cluster_name, intent, target_url, issue}.
+    """
+    import re
+
+    BLOG_PATTERNS = re.compile(
+        r"/(blog|news|article|post|category|tag|journal|magazine)/", re.IGNORECASE
+    )
+
+    result = await db.execute(
+        select(KeywordCluster).where(
+            KeywordCluster.site_id == site_id,
+            KeywordCluster.intent == ClusterIntent.commercial,
+            KeywordCluster.target_url.isnot(None),
+        )
+    )
+    clusters = result.scalars().all()
+
+    mismatches = []
+    for c in clusters:
+        if c.target_url and BLOG_PATTERNS.search(c.target_url):
+            mismatches.append({
+                "cluster_id": str(c.id),
+                "cluster_name": c.name,
+                "intent": c.intent.value,
+                "target_url": c.target_url,
+                "issue": "Коммерческий кластер ведёт на информационную страницу",
+            })
+
+    return mismatches
