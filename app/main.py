@@ -14,6 +14,8 @@ from app.database import engine
 from app.dependencies import get_db
 from app.routers.admin import router as admin_router
 from app.routers.auth import router as auth_router
+from app.routers.health import router as health_router
+from app.routers.invites import router as invites_router
 from app.routers.clusters import router as clusters_router
 from app.routers.crawl import router as crawl_router
 from app.routers.dataforseo import router as dataforseo_router
@@ -49,8 +51,19 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# Rate limiting
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+
+limiter = Limiter(key_func=get_remote_address, default_limits=["60/minute"])
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+app.include_router(health_router)
 app.include_router(auth_router)
 app.include_router(admin_router)
+app.include_router(invites_router)
 app.include_router(sites_router)
 app.include_router(clusters_router)
 app.include_router(crawl_router)
