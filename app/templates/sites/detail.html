@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block title %}{{ site.name }} — SEO Platform{% endblock %}
+{% block content %}
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem">
+  <h2 style="margin:0">{{ site.name }}</h2>
+  <a href="/ui/sites" class="btn btn-sm">&larr; All Sites</a>
+</div>
+
+<!-- Stats row -->
+<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); gap:1rem; margin-bottom:1.5rem">
+  <div class="card" style="text-align:center; padding:1rem">
+    <div style="font-size:1.75rem; font-weight:700; color:#2563eb">{{ keyword_count }}</div>
+    <div style="color:#6b7280; font-size:.85rem">Keywords</div>
+  </div>
+  <div class="card" style="text-align:center; padding:1rem">
+    <div style="font-size:1.75rem; font-weight:700; color:#059669">{{ crawl_count }}</div>
+    <div style="color:#6b7280; font-size:.85rem">Crawls</div>
+  </div>
+  <div class="card" style="text-align:center; padding:1rem">
+    <div style="font-size:1.75rem; font-weight:700; color:#7c3aed">{{ task_count }}</div>
+    <div style="color:#6b7280; font-size:.85rem">Open Tasks</div>
+  </div>
+  <div class="card" style="text-align:center; padding:1rem">
+    <span class="badge badge-{{ site.connection_status }}">{{ site.connection_status }}</span>
+    <div style="color:#6b7280; font-size:.85rem; margin-top:.25rem">Connection</div>
+  </div>
+</div>
+
+<!-- Quick actions -->
+<div class="card" style="margin-bottom:1.5rem">
+  <h3 style="margin:0 0 1rem">Quick Actions</h3>
+  <div style="display:flex; gap:.75rem; flex-wrap:wrap">
+    <a href="/ui/keywords/{{ site.id }}" class="btn btn-primary">Keywords</a>
+    <a href="/ui/positions/{{ site.id }}" class="btn" style="background:#7c3aed;color:white">Positions</a>
+    <a href="/ui/clusters/{{ site.id }}" class="btn" style="background:#0ea5e9;color:white">Clusters</a>
+    <a href="/ui/sites/{{ site.id }}/crawls" class="btn" style="background:#059669;color:white">Crawl History</a>
+    <a href="/ui/pipeline/{{ site.id }}" class="btn" style="background:#d97706;color:white">Content Pipeline</a>
+    <button class="btn btn-verify" hx-post="/sites/{{ site.id }}/verify" hx-swap="none"
+      onclick="this.textContent='Verifying...'; this.disabled=true; setTimeout(()=>location.reload(), 3000)">Verify Connection</button>
+    <button class="btn" style="background:#4f46e5;color:white" hx-post="/sites/{{ site.id }}/crawl" hx-swap="none"
+      onclick="this.textContent='Starting...'; this.disabled=true">Start Crawl</button>
+    <button class="btn" style="background:#7c3aed;color:white" hx-post="/positions/sites/{{ site.id }}/check" hx-swap="none"
+      onclick="this.textContent='Checking...'; this.disabled=true">Check Positions</button>
+  </div>
+</div>
+
+<!-- Schedules -->
+<div class="card" style="margin-bottom:1.5rem">
+  <h3 style="margin:0 0 1rem">Schedules</h3>
+  <div style="display:flex; gap:2rem; flex-wrap:wrap">
+    <div>
+      <label style="font-size:.85rem; color:#6b7280; display:block; margin-bottom:.25rem">Crawl Schedule</label>
+      <select hx-put="/ui/sites/{{ site.id }}/schedule" hx-target="#crawl-schedule-result" hx-swap="innerHTML"
+        hx-vals='js:{"schedule_type": event.target.value}'
+        name="schedule_type" style="padding:.4rem .75rem; border:1px solid #d1d5db; border-radius:4px">
+        {% for opt in ["manual", "daily", "weekly"] %}
+        <option value="{{ opt }}" {% if crawl_schedule == opt %}selected{% endif %}>{{ opt | capitalize }}</option>
+        {% endfor %}
+      </select>
+      <span id="crawl-schedule-result" style="margin-left:.5rem; font-size:.85rem"></span>
+    </div>
+    <div>
+      <label style="font-size:.85rem; color:#6b7280; display:block; margin-bottom:.25rem">Position Check Schedule</label>
+      <select id="pos-schedule-select" style="padding:.4rem .75rem; border:1px solid #d1d5db; border-radius:4px"
+        onchange="updatePosSchedule(this.value)">
+        {% for opt in ["manual", "daily", "weekly", "every_12h"] %}
+        <option value="{{ opt }}" {% if position_schedule == opt %}selected{% endif %}>{{ opt | replace('_', ' ') | capitalize }}</option>
+        {% endfor %}
+      </select>
+      <span id="pos-schedule-result" style="margin-left:.5rem; font-size:.85rem"></span>
+    </div>
+  </div>
+</div>
+
+<!-- Recent crawls -->
+{% if recent_crawls %}
+<div class="card">
+  <h3 style="margin:0 0 1rem">Recent Crawls</h3>
+  <table>
+    <thead>
+      <tr><th>Started</th><th>Status</th><th>Pages</th><th>Actions</th></tr>
+    </thead>
+    <tbody>
+      {% for c in recent_crawls %}
+      <tr>
+        <td style="font-size:.85rem">{{ c.started_at }}</td>
+        <td><span class="badge {% if c.status == 'done' %}badge-connected{% elif c.status == 'running' %}badge-unknown{% else %}badge-failed{% endif %}">{{ c.status }}</span></td>
+        <td>{{ c.pages_crawled }}</td>
+        <td><a href="/ui/crawls/{{ c.id }}" class="btn btn-sm">View</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+<script>
+async function updatePosSchedule(value) {
+  const resp = await fetch('/positions/sites/{{ site.id }}/schedule', {
+    method: 'PUT',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({schedule_type: value})
+  });
+  const el = document.getElementById('pos-schedule-result');
+  if (resp.ok) {
+    el.innerHTML = '<span style="color:#059669">Saved</span>';
+  } else {
+    el.innerHTML = '<span style="color:#dc2626">Error</span>';
+  }
+  setTimeout(() => el.innerHTML = '', 3000);
+}
+</script>
+{% endblock %}

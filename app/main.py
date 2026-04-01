@@ -381,7 +381,14 @@ async def ui_dashboard(request: Request, db: AsyncSession = Depends(get_db)) -> 
     projects = (await db.execute(
         sa_select(Project).order_by(Project.created_at.desc()).limit(20)
     )).scalars().all()
-    projects_data = [{"id": str(p.id), "name": p.name, "status": p.status.value} for p in projects]
+    sites = await get_sites(db)
+    site_map = {s.id: s.name for s in sites}
+    stats["sites"] = len(sites)
+    projects_data = [
+        {"id": str(p.id), "name": p.name, "status": p.status.value,
+         "site_id": str(p.site_id), "site_name": site_map.get(p.site_id, "—")}
+        for p in projects
+    ]
     return templates.TemplateResponse(request, "dashboard/index.html", {"stats": stats, "projects": projects_data})
 
 
@@ -909,6 +916,274 @@ async def ui_admin_assign_site_to_group(
 
     # Full page refresh for this group card (redirect)
     return RedirectResponse("/ui/admin/groups", status_code=303)
+
+
+# ---- Site Detail Page ----
+
+
+@app.get("/ui/sites/{site_id}/detail", response_class=HTMLResponse)
+async def ui_site_detail(site_id: str, request: Request, db: AsyncSession = Depends(get_db)) -> HTMLResponse:
+    import uuid as _uuid
+    from app.services.keyword_service import count_keywords
+    from app.services.schedule_service import get_schedule, get_position_schedule
+    from app.models.crawl import CrawlJob
+    from app.models.task import SeoTask, TaskStatus
+    from sqlalchemy import select as sa_select, func
+
+    site = await get_site(db, _uuid.UUID(site_id))
+    if not site:
+        return HTMLResponse("Site not found", status_code=404)
+
+    keyword_count = await count_keywords(db, _uuid.UUID(site_id))
+
+    crawl_count = (await db.execute(
+        sa_select(func.count()).select_from(CrawlJob).where(CrawlJob.site_id == _uuid.UUID(site_id))
+    )).scalar() or 0
+
+    task_count = (await db.execute(
+        sa_select(func.count()).select_from(SeoTask).where(
+            SeoTask.site_id == _uuid.UUID(site_id),
+            SeoTask.status.in_([TaskStatus.open, TaskStatus.assigned, TaskStatus.in_progress]),
+        )
+    )).scalar() or 0
+
+    crawl_sched = await get_schedule(db, _uuid.UUID(site_id))
+    pos_sched = await get_position_schedule(db, _uuid.UUID(site_id))
+
+    recent_crawls_rows = (await db.execute(
+        sa_select(CrawlJob).where(CrawlJob.site_id == _uuid.UUID(site_id))
+        .order_by(CrawlJob.started_at.desc().nullslast()).limit(5)
+    )).scalars().all()
+    recent_crawls = [
+        {"id": str(c.id), "status": c.status.value, "pages_crawled": c.pages_crawled,
+         "started_at": c.started_at.isoformat()[:16] if c.started_at else "—"}
+        for c in recent_crawls_rows
+    ]
+
+    return templates.TemplateResponse(request, "sites/detail.html", {
+        "site": {"id": str(site.id), "name": site.name, "url": site.url,
+                 "connection_status": site.connection_status.value},
+        "keyword_count": keyword_count,
+        "crawl_count": crawl_count,
+        "task_count": task_count,
+        "crawl_schedule": crawl_sched.schedule_type.value if crawl_sched else "manual",
+        "position_schedule": pos_sched.schedule_type.value if pos_sched else "manual",
+        "recent_crawls": recent_crawls,
+    })
+
+
+# ---- Keywords UI ----
+
+
+@app.get("/ui/keywords/{site_id}", response_class=HTMLResponse)
+async def ui_keywords(
+    site_id: str, request: Request, db: AsyncSession = Depends(get_db),
+    group_id: str | None = None, offset: int = 0,
+) -> HTMLResponse:
+    import uuid as _uuid
+    from app.services.keyword_service import list_keywords, count_keywords, list_groups
+    from app.models.cluster import KeywordCluster
+    from app.models.keyword import KeywordGroup
+    from sqlalchemy import select as sa_select
+
+    site = await get_site(db, _uuid.UUID(site_id))
+    if not site:
+        return HTMLResponse("Site not found", status_code=404)
+
+    gid = _uuid.UUID(group_id) if group_id else None
+    limit = 100
+    keywords = await list_keywords(db, _uuid.UUID(site_id), group_id=gid, limit=limit, offset=offset)
+    total = await count_keywords(db, _uuid.UUID(site_id))
+    groups = await list_groups(db, _uuid.UUID(site_id))
+
+    # Build lookups for group and cluster names
+    group_map = {g.id: g.name for g in groups}
+    cluster_ids = {kw.cluster_id for kw in keywords if kw.cluster_id}
+    cluster_map = {}
+    if cluster_ids:
+        clusters = (await db.execute(
+            sa_select(KeywordCluster).where(KeywordCluster.id.in_(cluster_ids))
+        )).scalars().all()
+        cluster_map = {c.id: c.name for c in clusters}
+
+    kw_data = [
+        {
+            "id": str(kw.id), "phrase": kw.phrase, "frequency": kw.frequency,
+            "engine": kw.engine.value if kw.engine else None, "region": kw.region,
+            "target_url": kw.target_url,
+            "group_name": group_map.get(kw.group_id, ""),
+            "cluster_name": cluster_map.get(kw.cluster_id, ""),
+        }
+        for kw in keywords
+    ]
+    groups_data = [{"id": str(g.id), "name": g.name} for g in groups]
+
+    return templates.TemplateResponse(request, "keywords/index.html", {
+        "site_name": site.name, "site_id": str(site.id),
+        "keywords": kw_data, "total": total, "groups": groups_data,
+        "group_id": group_id, "offset": offset, "limit": limit,
+    })
+
+
+@app.post("/ui/keywords/{site_id}/add", response_class=HTMLResponse)
+async def ui_add_keyword(
+    site_id: str, request: Request, db: AsyncSession = Depends(get_db),
+    phrase: str = Form(...), target_url: str = Form(""), group_id: str = Form(""),
+) -> HTMLResponse:
+    import uuid as _uuid
+    from app.services.keyword_service import add_keyword
+
+    gid = _uuid.UUID(group_id) if group_id else None
+    await add_keyword(db, _uuid.UUID(site_id), phrase, target_url=target_url or None, group_id=gid)
+    await db.commit()
+    return RedirectResponse(f"/ui/keywords/{site_id}", status_code=303)
+
+
+@app.delete("/ui/keywords/{keyword_id}", response_class=HTMLResponse)
+async def ui_delete_keyword(keyword_id: str, request: Request, db: AsyncSession = Depends(get_db)) -> HTMLResponse:
+    import uuid as _uuid
+    from app.services.keyword_service import get_keyword, delete_keyword
+
+    kw = await get_keyword(db, _uuid.UUID(keyword_id))
+    if kw:
+        await delete_keyword(db, kw)
+        await db.commit()
+    return HTMLResponse("")
+
+
+# ---- Projects UI ----
+
+
+@app.get("/ui/projects", response_class=HTMLResponse)
+async def ui_projects(request: Request, db: AsyncSession = Depends(get_db)) -> HTMLResponse:
+    from app.models.project import Project
+    from app.models.task import SeoTask, TaskStatus
+    from app.models.site import Site
+    from sqlalchemy import select as sa_select, func
+
+    projects = (await db.execute(
+        sa_select(Project).order_by(Project.created_at.desc())
+    )).scalars().all()
+
+    sites = await get_sites(db)
+    site_map = {s.id: s.name for s in sites}
+
+    projects_data = []
+    for p in projects:
+        open_tasks = (await db.execute(
+            sa_select(func.count()).select_from(SeoTask).where(
+                SeoTask.project_id == p.id,
+                SeoTask.status.in_([TaskStatus.open, TaskStatus.assigned]),
+            )
+        )).scalar() or 0
+        in_progress = (await db.execute(
+            sa_select(func.count()).select_from(SeoTask).where(
+                SeoTask.project_id == p.id,
+                SeoTask.status == TaskStatus.in_progress,
+            )
+        )).scalar() or 0
+
+        projects_data.append({
+            "id": str(p.id), "name": p.name, "status": p.status.value,
+            "site_id": str(p.site_id), "site_name": site_map.get(p.site_id, "—"),
+            "open_tasks": open_tasks, "in_progress_tasks": in_progress,
+            "created_at": p.created_at.isoformat() if p.created_at else "",
+        })
+
+    sites_data = [{"id": str(s.id), "name": s.name} for s in sites]
+    return templates.TemplateResponse(request, "projects/index.html", {
+        "projects": projects_data, "sites": sites_data,
+    })
+
+
+@app.post("/ui/projects/new", response_class=HTMLResponse)
+async def ui_create_project(
+    request: Request, db: AsyncSession = Depends(get_db),
+    name: str = Form(...), site_id: str = Form(...), description: str = Form(""),
+) -> HTMLResponse:
+    import uuid as _uuid
+    from app.models.project import Project
+
+    project = Project(
+        site_id=_uuid.UUID(site_id),
+        name=name,
+        description=description or None,
+    )
+    db.add(project)
+    await db.commit()
+    return RedirectResponse("/ui/projects", status_code=303)
+
+
+# ---- Clusters UI ----
+
+
+@app.get("/ui/clusters/{site_id}", response_class=HTMLResponse)
+async def ui_clusters(site_id: str, request: Request, db: AsyncSession = Depends(get_db)) -> HTMLResponse:
+    import uuid as _uuid
+    from app.services.cluster_service import list_clusters
+    from app.models.keyword import Keyword
+    from sqlalchemy import select as sa_select
+
+    site = await get_site(db, _uuid.UUID(site_id))
+    if not site:
+        return HTMLResponse("Site not found", status_code=404)
+
+    clusters = await list_clusters(db, _uuid.UUID(site_id))
+
+    clusters_data = []
+    for c in clusters:
+        keywords = (await db.execute(
+            sa_select(Keyword).where(Keyword.cluster_id == c.id).limit(30)
+        )).scalars().all()
+        clusters_data.append({
+            "id": str(c.id), "name": c.name, "target_url": c.target_url,
+            "keyword_count": len(keywords),
+            "keywords": [{"phrase": kw.phrase, "frequency": kw.frequency} for kw in keywords],
+        })
+
+    return templates.TemplateResponse(request, "clusters/index.html", {
+        "site_name": site.name, "site_id": str(site.id), "clusters": clusters_data,
+    })
+
+
+@app.post("/ui/clusters/{site_id}/new", response_class=HTMLResponse)
+async def ui_create_cluster(
+    site_id: str, request: Request, db: AsyncSession = Depends(get_db),
+    name: str = Form(...), target_url: str = Form(""),
+) -> HTMLResponse:
+    import uuid as _uuid
+    from app.services.cluster_service import create_cluster
+
+    await create_cluster(db, _uuid.UUID(site_id), name, target_url=target_url or None)
+    await db.commit()
+    return RedirectResponse(f"/ui/clusters/{site_id}", status_code=303)
+
+
+@app.delete("/ui/clusters/{cluster_id}", response_class=HTMLResponse)
+async def ui_delete_cluster(cluster_id: str, request: Request, db: AsyncSession = Depends(get_db)) -> HTMLResponse:
+    import uuid as _uuid
+    from app.services.cluster_service import get_cluster, delete_cluster
+
+    c = await get_cluster(db, _uuid.UUID(cluster_id))
+    if c:
+        await delete_cluster(db, c)
+        await db.commit()
+    return HTMLResponse("")
+
+
+@app.get("/ui/cannibalization/{site_id}", response_class=HTMLResponse)
+async def ui_cannibalization(site_id: str, request: Request, db: AsyncSession = Depends(get_db)) -> HTMLResponse:
+    import uuid as _uuid
+    from app.services.cluster_service import detect_cannibalization
+
+    site = await get_site(db, _uuid.UUID(site_id))
+    if not site:
+        return HTMLResponse("Site not found", status_code=404)
+
+    results = await detect_cannibalization(db, _uuid.UUID(site_id))
+    return templates.TemplateResponse(request, "clusters/cannibalization.html", {
+        "site_name": site.name, "site_id": str(site.id), "results": results,
+    })
 
 
 @app.get("/ui/login", response_class=HTMLResponse)

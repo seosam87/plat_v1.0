@@ -11,7 +11,7 @@ from app.models import audit_log  # noqa: F401
 from app.models import user  # noqa: F401
 from app.models.site import Site  # noqa: F401
 from app.models.crawl import CrawlJob, Page, PageSnapshot  # noqa: F401
-from app.models.schedule import CrawlSchedule  # noqa: F401
+from app.models.schedule import CrawlSchedule, PositionSchedule  # noqa: F401
 from app.models.task import SeoTask  # noqa: F401
 from app.models.keyword import Keyword, KeywordGroup  # noqa: F401
 from app.models.file_upload import FileUpload  # noqa: F401

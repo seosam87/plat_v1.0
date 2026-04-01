@@ -58,3 +58,59 @@ async def trigger_position_check(
         raise HTTPException(status_code=404, detail="Site not found")
     task = _check_positions_task.delay(str(site_id))
     return {"task_id": task.id, "site_id": str(site_id)}
+
+
+# ---- Position Schedule endpoints ----
+
+
+@router.get("/sites/{site_id}/schedule")
+async def get_position_schedule(
+    site_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_admin),
+) -> dict:
+    """Get position check schedule for a site."""
+    from app.services.schedule_service import get_position_schedule as _get_pos_schedule
+
+    schedule = await _get_pos_schedule(db, site_id)
+    if not schedule:
+        return {"site_id": str(site_id), "schedule_type": "manual", "is_active": False}
+    return {
+        "site_id": str(site_id),
+        "schedule_type": schedule.schedule_type.value,
+        "cron_expression": schedule.cron_expression,
+        "is_active": schedule.is_active,
+    }
+
+
+@router.put("/sites/{site_id}/schedule")
+async def update_position_schedule(
+    site_id: uuid.UUID,
+    body: dict,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_admin),
+) -> dict:
+    """Update position check schedule (manual / daily / weekly / every_12h)."""
+    from app.models.schedule import ScheduleType
+    from app.services.schedule_service import upsert_position_schedule
+    from app.services.site_service import get_site as _get_site
+
+    site = await _get_site(db, site_id)
+    if not site:
+        raise HTTPException(status_code=404, detail="Site not found")
+
+    schedule_type_str = body.get("schedule_type", "manual")
+    try:
+        schedule_type = ScheduleType(schedule_type_str)
+    except ValueError:
+        raise HTTPException(status_code=400, detail=f"Invalid schedule_type: {schedule_type_str}")
+
+    schedule = await upsert_position_schedule(db, site_id, schedule_type)
+    await db.commit()
+
+    return {
+        "site_id": str(site_id),
+        "schedule_type": schedule.schedule_type.value,
+        "cron_expression": schedule.cron_expression,
+        "is_active": schedule.is_active,
+    }

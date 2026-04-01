@@ -3,23 +3,27 @@
 {% block content %}
 <div class="card" style="margin-bottom:1.5rem">
   <h2 style="margin:0 0 1.5rem">Dashboard</h2>
-  <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:1rem">
-    <div style="background:#eff6ff; border-radius:8px; padding:1.5rem; text-align:center">
+  <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(170px, 1fr)); gap:1rem">
+    <a href="/ui/sites" style="text-decoration:none; background:#f0f9ff; border-radius:8px; padding:1.5rem; text-align:center; display:block">
+      <div style="font-size:2rem; font-weight:700; color:#0ea5e9">{{ stats.sites }}</div>
+      <div style="color:#6b7280; margin-top:.25rem">Sites</div>
+    </a>
+    <a href="/ui/projects" style="text-decoration:none; background:#eff6ff; border-radius:8px; padding:1.5rem; text-align:center; display:block">
       <div style="font-size:2rem; font-weight:700; color:#2563eb">{{ stats.projects }}</div>
       <div style="color:#6b7280; margin-top:.25rem">Projects</div>
-    </div>
+    </a>
     <div style="background:#f0fdf4; border-radius:8px; padding:1.5rem; text-align:center">
       <div style="font-size:2rem; font-weight:700; color:#059669">{{ stats.total_keywords }}</div>
       <div style="color:#6b7280; margin-top:.25rem">Keywords</div>
     </div>
-    <div style="background:#fef3c7; border-radius:8px; padding:1.5rem; text-align:center">
+    <a href="/ui/tasks?status=open" style="text-decoration:none; background:#fef3c7; border-radius:8px; padding:1.5rem; text-align:center; display:block">
       <div style="font-size:2rem; font-weight:700; color:#d97706">{{ stats.open_tasks }}</div>
       <div style="color:#6b7280; margin-top:.25rem">Open Tasks</div>
-    </div>
-    <div style="background:#ede9fe; border-radius:8px; padding:1.5rem; text-align:center">
+    </a>
+    <a href="/ui/tasks?status=in_progress" style="text-decoration:none; background:#ede9fe; border-radius:8px; padding:1.5rem; text-align:center; display:block">
       <div style="font-size:2rem; font-weight:700; color:#7c3aed">{{ stats.in_progress_tasks }}</div>
       <div style="color:#6b7280; margin-top:.25rem">In Progress</div>
-    </div>
+    </a>
   </div>
 </div>
 
@@ -28,12 +32,13 @@
   <h3 style="margin:0 0 1rem">Projects</h3>
   <table>
     <thead>
-      <tr><th>Name</th><th>Status</th><th>Actions</th></tr>
+      <tr><th>Name</th><th>Site</th><th>Status</th><th>Actions</th></tr>
     </thead>
     <tbody>
       {% for p in projects %}
       <tr>
         <td style="font-weight:500">{{ p.name }}</td>
+        <td style="font-size:.85rem">{{ p.site_name or '—' }}</td>
         <td><span class="badge {% if p.status == 'active' %}badge-connected{% elif p.status == 'paused' %}badge-unknown{% else %}badge-failed{% endif %}">{{ p.status }}</span></td>
         <td>
           <a href="/ui/projects/{{ p.id }}/kanban" class="btn btn-sm">Kanban</a>

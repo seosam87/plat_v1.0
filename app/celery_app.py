@@ -88,12 +88,16 @@ def restore_crawl_schedules(**kwargs):
     Ensures schedules survive Redis FLUSHALL and container restarts.
     """
     try:
-        from app.services.schedule_service import restore_schedules_from_db
+        from app.services.schedule_service import (
+            restore_schedules_from_db,
+            restore_position_schedules_from_db,
+        )
 
         restore_schedules_from_db()
+        restore_position_schedules_from_db()
     except Exception as exc:
         import logging
 
         logging.getLogger(__name__).warning(
-            "Failed to restore crawl schedules from DB: %s", exc
+            "Failed to restore schedules from DB: %s", exc
         )

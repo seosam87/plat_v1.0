@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}Projects — SEO Platform{% endblock %}
+{% block content %}
+<div class="card" style="margin-bottom:1.5rem">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem">
+    <h2 style="margin:0">Projects</h2>
+    <button class="btn btn-primary" onclick="document.getElementById('new-project-form').style.display='block'">+ New Project</button>
+  </div>
+
+  <!-- New project form (hidden by default) -->
+  <form id="new-project-form" method="POST" action="/ui/projects/new" style="display:none; margin-bottom:1.5rem; padding:1rem; background:#f9fafb; border-radius:8px">
+    <div style="display:flex; gap:.75rem; flex-wrap:wrap; align-items:end">
+      <div style="flex:1; min-width:200px">
+        <label style="font-size:.85rem; color:#6b7280; display:block; margin-bottom:.25rem">Project Name</label>
+        <input type="text" name="name" required style="width:100%; padding:.4rem .75rem; border:1px solid #d1d5db; border-radius:4px">
+      </div>
+      <div style="min-width:200px">
+        <label style="font-size:.85rem; color:#6b7280; display:block; margin-bottom:.25rem">Site</label>
+        <select name="site_id" required style="padding:.4rem .75rem; border:1px solid #d1d5db; border-radius:4px">
+          {% for s in sites %}
+          <option value="{{ s.id }}">{{ s.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div style="flex:1; min-width:200px">
+        <label style="font-size:.85rem; color:#6b7280; display:block; margin-bottom:.25rem">Description</label>
+        <input type="text" name="description" style="width:100%; padding:.4rem .75rem; border:1px solid #d1d5db; border-radius:4px">
+      </div>
+      <button type="submit" class="btn btn-primary">Create</button>
+      <button type="button" class="btn" onclick="this.closest('form').style.display='none'">Cancel</button>
+    </div>
+  </form>
+
+  {% if projects %}
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Site</th>
+        <th>Status</th>
+        <th>Tasks</th>
+        <th>Created</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in projects %}
+      <tr>
+        <td style="font-weight:500">{{ p.name }}</td>
+        <td>{{ p.site_name or '—' }}</td>
+        <td>
+          <span class="badge {% if p.status == 'active' %}badge-connected{% elif p.status == 'completed' %}badge-unknown{% else %}badge-failed{% endif %}">
+            {{ p.status }}
+          </span>
+        </td>
+        <td>
+          <span style="color:#059669">{{ p.open_tasks }}</span> open
+          / <span style="color:#2563eb">{{ p.in_progress_tasks }}</span> in progress
+        </td>
+        <td style="color:#6b7280; font-size:.85rem">{{ p.created_at[:10] if p.created_at else '' }}</td>
+        <td>
+          <a href="/ui/projects/{{ p.id }}/kanban" class="btn btn-sm btn-primary">Kanban</a>
+          <a href="/ui/projects/{{ p.id }}/plan" class="btn btn-sm" style="margin-left:.3rem">Plan</a>
+          {% if p.site_id %}
+          <a href="/ui/pipeline/{{ p.site_id }}" class="btn btn-sm" style="margin-left:.3rem; background:#7c3aed; color:white">Pipeline</a>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p style="color:#6b7280">No projects yet. Create one to start managing SEO tasks.</p>
+  {% endif %}
+</div>
+{% endblock %}

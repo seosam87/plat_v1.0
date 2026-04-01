@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Clusters — {{ site_name }} — SEO Platform{% endblock %}
+{% block content %}
+<div class="card" style="margin-bottom:1.5rem">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem">
+    <div>
+      <h2 style="margin:0; display:inline">Clusters: {{ site_name }}</h2>
+      <span style="color:#6b7280; margin-left:1rem">{{ clusters | length }} clusters</span>
+    </div>
+    <div style="display:flex; gap:.5rem">
+      <button class="btn btn-sm" style="background:#7c3aed;color:white"
+        hx-post="/clusters/sites/{{ site_id }}/auto-cluster"
+        hx-swap="none"
+        onclick="this.textContent='Clustering...'; this.disabled=true; setTimeout(()=>location.reload(), 3000)">
+        Auto-Cluster
+      </button>
+      <a href="/ui/cannibalization/{{ site_id }}" class="btn btn-sm" style="background:#dc2626;color:white">Cannibalization</a>
+      <a href="/clusters/sites/{{ site_id }}/export.csv" class="btn btn-sm" style="background:#059669;color:white">Export CSV</a>
+    </div>
+  </div>
+
+  <!-- Create cluster form -->
+  <form method="POST" action="/ui/clusters/{{ site_id }}/new" style="display:flex; gap:.5rem; margin-bottom:1.5rem">
+    <input type="text" name="name" placeholder="Cluster name" required
+      style="flex:1; min-width:200px; padding:.4rem .75rem; border:1px solid #d1d5db; border-radius:4px; font-size:.875rem">
+    <input type="text" name="target_url" placeholder="Target URL (optional)"
+      style="width:300px; padding:.4rem .75rem; border:1px solid #d1d5db; border-radius:4px; font-size:.875rem">
+    <button type="submit" class="btn btn-primary">Create Cluster</button>
+  </form>
+
+  {% if clusters %}
+  {% for c in clusters %}
+  <div style="background:#f9fafb; border-radius:8px; padding:1rem; margin-bottom:1rem">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:.5rem">
+      <div>
+        <strong style="font-size:1.05rem">{{ c.name }}</strong>
+        {% if c.target_url %}
+        <a href="{{ c.target_url }}" target="_blank" style="margin-left:.75rem; font-size:.85rem; color:#2563eb">{{ c.target_url }}</a>
+        {% endif %}
+        <span style="color:#6b7280; margin-left:.75rem; font-size:.85rem">{{ c.keyword_count }} keywords</span>
+      </div>
+      <div>
+        <button class="btn btn-sm" style="background:#991b1b;color:white"
+          hx-delete="/ui/clusters/{{ c.id }}" hx-target="closest div" hx-swap="outerHTML swap:200ms"
+          hx-confirm="Delete cluster '{{ c.name }}'?">&times;</button>
+      </div>
+    </div>
+    {% if c.keywords %}
+    <div style="display:flex; flex-wrap:wrap; gap:.4rem">
+      {% for kw in c.keywords %}
+      <span class="badge" style="background:#dbeafe; color:#1e40af">{{ kw.phrase }}{% if kw.frequency %} <small>({{ kw.frequency }})</small>{% endif %}</span>
+      {% endfor %}
+    </div>
+    {% else %}
+    <span style="color:#6b7280; font-size:.85rem">No keywords assigned</span>
+    {% endif %}
+  </div>
+  {% endfor %}
+  {% else %}
+  <p style="color:#6b7280">No clusters yet. Create one manually or run auto-clustering based on SERP data.</p>
+  {% endif %}
+</div>
+{% endblock %}

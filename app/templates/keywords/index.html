@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}Keywords — {{ site_name }} — SEO Platform{% endblock %}
+{% block content %}
+<div class="card" style="margin-bottom:1.5rem">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem">
+    <div>
+      <h2 style="margin:0; display:inline">Keywords: {{ site_name }}</h2>
+      <span style="color:#6b7280; margin-left:1rem">{{ total }} total</span>
+    </div>
+    <div style="display:flex; gap:.5rem">
+      <a href="/ui/positions/{{ site_id }}" class="btn btn-sm" style="background:#7c3aed;color:white">Positions</a>
+      <a href="/ui/clusters/{{ site_id }}" class="btn btn-sm" style="background:#0ea5e9;color:white">Clusters</a>
+      <a href="/ui/uploads" class="btn btn-sm" style="background:#059669;color:white">Import</a>
+    </div>
+  </div>
+
+  <!-- Group filter -->
+  {% if groups %}
+  <div style="display:flex; gap:.5rem; margin-bottom:1rem; flex-wrap:wrap; align-items:center">
+    <span style="font-size:.85rem; color:#6b7280">Group:</span>
+    <a href="/ui/keywords/{{ site_id }}" class="btn btn-sm {% if not group_id %}btn-primary{% endif %}">All</a>
+    {% for g in groups %}
+    <a href="/ui/keywords/{{ site_id }}?group_id={{ g.id }}" class="btn btn-sm {% if group_id == g.id %}btn-primary{% endif %}">{{ g.name }}</a>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- Add keyword form -->
+  <form method="POST" action="/ui/keywords/{{ site_id }}/add" style="display:flex; gap:.5rem; margin-bottom:1.5rem; flex-wrap:wrap">
+    <input type="text" name="phrase" placeholder="Keyword phrase" required
+      style="flex:1; min-width:200px; padding:.4rem .75rem; border:1px solid #d1d5db; border-radius:4px; font-size:.875rem">
+    <input type="text" name="target_url" placeholder="Target URL (optional)"
+      style="width:250px; padding:.4rem .75rem; border:1px solid #d1d5db; border-radius:4px; font-size:.875rem">
+    <select name="group_id" style="padding:.4rem .75rem; border:1px solid #d1d5db; border-radius:4px; font-size:.875rem">
+      <option value="">No group</option>
+      {% for g in groups %}
+      <option value="{{ g.id }}">{{ g.name }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit" class="btn btn-primary">Add</button>
+  </form>
+
+  {% if keywords %}
+  <table>
+    <thead>
+      <tr>
+        <th>Phrase</th>
+        <th>Frequency</th>
+        <th>Engine</th>
+        <th>Region</th>
+        <th>Group</th>
+        <th>Target URL</th>
+        <th>Cluster</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for kw in keywords %}
+      <tr id="kw-row-{{ kw.id }}">
+        <td style="font-weight:500">{{ kw.phrase }}</td>
+        <td>{{ kw.frequency if kw.frequency else '—' }}</td>
+        <td>{{ kw.engine or '—' }}</td>
+        <td>{{ kw.region or '—' }}</td>
+        <td>{{ kw.group_name or '—' }}</td>
+        <td style="max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">
+          {% if kw.target_url %}<a href="{{ kw.target_url }}" target="_blank">{{ kw.target_url }}</a>{% else %}—{% endif %}
+        </td>
+        <td>{{ kw.cluster_name or '—' }}</td>
+        <td>
+          <button class="btn btn-sm" style="background:#991b1b;color:white"
+            hx-delete="/ui/keywords/{{ kw.id }}"
+            hx-target="#kw-row-{{ kw.id }}" hx-swap="outerHTML swap:200ms"
+            hx-confirm="Delete keyword '{{ kw.phrase }}'?">&times;</button>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <!-- Pagination -->
+  {% if total > limit %}
+  <div style="margin-top:1rem; display:flex; gap:.5rem; justify-content:center">
+    {% if offset > 0 %}
+    <a href="?offset={{ offset - limit }}{% if group_id %}&group_id={{ group_id }}{% endif %}" class="btn btn-sm">&#8592; Prev</a>
+    {% endif %}
+    <span style="padding:.25rem .6rem; color:#6b7280; font-size:.85rem">
+      {{ offset + 1 }}–{{ [offset + limit, total] | min }} of {{ total }}
+    </span>
+    {% if offset + limit < total %}
+    <a href="?offset={{ offset + limit }}{% if group_id %}&group_id={{ group_id }}{% endif %}" class="btn btn-sm">Next &#8594;</a>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% else %}
+  <p style="color:#6b7280">No keywords yet. Add keywords manually above or <a href="/ui/uploads">import from file</a>.</p>
+  {% endif %}
+</div>
+{% endblock %}

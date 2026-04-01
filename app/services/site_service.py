@@ -61,6 +61,10 @@ async def update_site(
 
 async def delete_site(db: AsyncSession, site: Site, actor_id: uuid.UUID | None = None) -> None:
     await log_action(db, action="site.delete", user_id=actor_id, entity_type="site", entity_id=str(site.id))
+    # Clean up redbeat entries for both crawl and position schedules
+    from app.services.schedule_service import remove_redbeat_entry, remove_position_redbeat_entry
+    remove_redbeat_entry(site.id)
+    remove_position_redbeat_entry(site.id)
     await db.delete(site)
 
 

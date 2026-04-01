@@ -24,7 +24,7 @@
     <tbody>
       {% for site in sites %}
       <tr>
-        <td>{{ site.name }}</td>
+        <td><a href="/ui/sites/{{ site.id }}/detail" style="font-weight:500; color:#1e40af; text-decoration:none">{{ site.name }}</a></td>
         <td><a href="{{ site.url }}" target="_blank">{{ site.url }}</a></td>
         <td>
           {% set group_name = site_groups.get(site.site_group_id|string, '') if site_groups else '' %}
