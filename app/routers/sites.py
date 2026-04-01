@@ -11,6 +11,8 @@ from app.models.user import User
 from app.services import site_service
 from app.services import wp_service as wp_svc
 
+from app.tasks.crawl_tasks import crawl_site as _crawl_site_task
+
 router = APIRouter(prefix="/sites", tags=["sites"])
 
 
@@ -154,6 +156,20 @@ async def set_site_status(
             f"</tr>"
         )
     return SiteOut.model_validate(site)
+
+
+@router.post("/{site_id}/crawl", status_code=status.HTTP_202_ACCEPTED)
+async def trigger_crawl(
+    site_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_admin),
+) -> dict:
+    """Trigger an async crawl for a site. Returns 202 with task_id."""
+    site = await site_service.get_site(db, site_id)
+    if not site:
+        raise HTTPException(status_code=404, detail="Site not found")
+    task = _crawl_site_task.delay(str(site_id))
+    return {"task_id": task.id, "site_id": str(site_id)}
 
 
 @router.post("/{site_id}/verify", response_class=HTMLResponse)
