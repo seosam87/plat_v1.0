@@ -19,7 +19,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 4.1: Test Backfill** — INSERTED — unit tests for phases 1–4 service logic, crawl helpers, WP service, router gaps (completed 2026-04-01)
 - [x] **Phase 5: Keyword Import & File Parsers** — Keywords from Topvisor/KC/manual, SF import, GSC/DataForSEO/Yandex Webmaster APIs (completed 2026-04-01)
 - [x] **Phase 6: Position Tracking** — Position history with deltas, Chart.js, filters, Telegram drop alerts (completed 2026-04-01)
-- [ ] **Phase 7: Semantics** — User can cluster keywords, map them to pages, and see cannibalization flags
+- [x] **Phase 7: Semantics** — Keyword clusters, SERP auto-clustering, cannibalization, CSV export (completed 2026-04-01)
 - [ ] **Phase 8: WP Pipeline** — User can run the content enrichment pipeline with mandatory diff preview before any change goes live
 - [ ] **Phase 9: Projects & Tasks** — User can manage work on a Kanban board, plan content, and generate page briefs
 - [ ] **Phase 10: Reports & Ads** — User can view the dashboard, export reports, schedule delivery, and upload ad traffic data
@@ -152,9 +152,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 07-01: Cluster model + Alembic migration; manual cluster UI with drag-and-drop (HTMX + Sortable.js); keyword-to-cluster assignment; cluster CRUD endpoints
-- [ ] 07-02: SERP-intersection auto-clustering (keywords sharing ≥N results in top-10); keyword → page URL mapping model; cannibalization detection query (2+ pages ranked top-100 for same keyword); cannibalization flag in positions table UI
-- [ ] 07-03: Missing-page detector (keyword with no mapped page) → auto-create task in project; keyword list CSV export (keyword, cluster, mapped URL, volume, engine); SEM-06 + SEM-05 complete
+- [x] 07-01: Cluster model + Alembic migration; manual cluster UI with drag-and-drop (HTMX + Sortable.js); keyword-to-cluster assignment; cluster CRUD endpoints
+- [x] 07-02: SERP-intersection auto-clustering (keywords sharing ≥N results in top-10); keyword → page URL mapping model; cannibalization detection query (2+ pages ranked top-100 for same keyword); cannibalization flag in positions table UI
+- [x] 07-03: Missing-page detector (keyword with no mapped page) → auto-create task in project; keyword list CSV export (keyword, cluster, mapped URL, volume, engine); SEM-06 + SEM-05 complete
 
 ### Phase 8: WP Pipeline
 **Goal**: User can run the content enrichment pipeline (TOC generation, schema.org injection, internal linking) against any page, review a mandatory diff before anything is pushed to WordPress, and roll back to previous content from job history.
