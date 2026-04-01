@@ -14,7 +14,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [ ] **Phase 1: Stack & Auth** — Developer can start the full Docker stack and log in with role-based access
 - [x] **Phase 2: Site Management** — Admin can add, verify, and manage WordPress sites with encrypted credentials
-- [ ] **Phase 3: Crawler Core** — User can crawl a site, view per-page SEO data, and browse a snapshot diff feed
+- [x] **Phase 3: Crawler Core** — User can crawl a site, view per-page SEO data, and browse a snapshot diff feed (completed 2026-04-01)
 - [ ] **Phase 4: Crawl Scheduling** — User can configure crawl schedules from the UI without restarting the app, and auto-tasks appear for 404s
 - [ ] **Phase 5: Keyword Import** — User can import keywords and pull positions from GSC, Yandex Webmaster, and DataForSEO
 - [ ] **Phase 6: Position Tracking** — User can see position history, delta indicators, 90-day charts, and receive Telegram alerts on drops
@@ -233,7 +233,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 |-------|----------------|--------|-----------|
 | 1. Stack & Auth | 0/4 | Not started | - |
 | 2. Site Management | 0/3 | Not started | - |
-| 3. Crawler Core | 0/4 | Not started | - |
+| 3. Crawler Core | 0/4 | Complete    | 2026-04-01 |
 | 4. Crawl Scheduling | 0/3 | Not started | - |
 | 5. Keyword Import | 0/4 | Not started | - |
 | 6. Position Tracking | 0/3 | Not started | - |
