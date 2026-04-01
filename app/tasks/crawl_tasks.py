@@ -152,10 +152,15 @@ def crawl_site(self, site_id: str) -> dict:
                             if norm and _is_internal_link(base_url, norm) and norm not in visited:
                                 internal_links.append(norm)
 
-                    # Persist Page
+                    # Persist Page + PageSnapshot
+                    from app.models.crawl import PageSnapshot
+                    from app.services.diff_service import build_snapshot, compute_diff
+                    from sqlalchemy import select as sa_select
+
+                    page_id = uuid.uuid4()
                     with get_sync_db() as db:
                         page_row = Page(
-                            id=uuid.uuid4(),
+                            id=page_id,
                             site_id=uuid.UUID(site_id),
                             crawl_job_id=crawl_job_id,
                             url=url,
@@ -172,6 +177,43 @@ def crawl_site(self, site_id: str) -> dict:
                             crawled_at=datetime.now(timezone.utc),
                         )
                         db.add(page_row)
+                        db.flush()
+
+                        # Build snapshot data
+                        snap_data = build_snapshot(page_row)
+
+                        # Look up previous snapshot for the same (site_id, url)
+                        prev_page = db.execute(
+                            sa_select(Page)
+                            .where(
+                                Page.site_id == uuid.UUID(site_id),
+                                Page.url == url,
+                                Page.id != page_id,
+                            )
+                            .order_by(Page.crawled_at.desc())
+                            .limit(1)
+                        ).scalar_one_or_none()
+
+                        diff_data: dict | None = None
+                        if prev_page is not None:
+                            prev_snap = db.execute(
+                                sa_select(PageSnapshot)
+                                .where(PageSnapshot.page_id == prev_page.id)
+                                .order_by(PageSnapshot.created_at.desc())
+                                .limit(1)
+                            ).scalar_one_or_none()
+                            if prev_snap is not None:
+                                diff_data = compute_diff(prev_snap.snapshot_data, snap_data) or None
+
+                        snapshot_row = PageSnapshot(
+                            id=uuid.uuid4(),
+                            page_id=page_id,
+                            crawl_job_id=crawl_job_id,
+                            snapshot_data=snap_data,
+                            diff_data=diff_data,
+                            created_at=datetime.now(timezone.utc),
+                        )
+                        db.add(snapshot_row)
 
                     pages_crawled += 1
 

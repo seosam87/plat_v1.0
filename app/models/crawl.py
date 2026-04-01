@@ -12,7 +12,7 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
 )
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import JSON, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
@@ -89,5 +89,30 @@ class Page(Base):
     has_schema: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     has_noindex: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     crawled_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=datetime.utcnow
+    )
+
+
+class PageSnapshot(Base):
+    __tablename__ = "page_snapshots"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    page_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("pages.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    crawl_job_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("crawl_jobs.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    # Stores: title, h1, meta_description, http_status, content_preview
+    snapshot_data: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    # Stores {field: {"old": ..., "new": ...}} for changed fields; null if no diff
+    diff_data: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=datetime.utcnow
     )
