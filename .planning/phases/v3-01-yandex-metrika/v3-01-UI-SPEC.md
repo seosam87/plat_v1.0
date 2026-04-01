@@ -43,7 +43,7 @@ All spacing uses the existing 8-point base. Values are written as inline CSS in 
 
 Exceptions:
 - Touch targets for date inputs: min-height 36px (`.4rem .75rem` padding on inputs = ~36px total) — inherited from existing form pattern
-- Chart canvas: height is fixed at `300px` for chart modal; `200px` for site overview widget sparkline
+- Chart canvas: height is fixed at `300px` for chart modal; `80px` for site overview widget sparkline
 
 ---
 
@@ -53,11 +53,10 @@ All font sizes follow the existing codebase convention using `rem` units at a 16
 
 | Role | Size | CSS | Weight | Line Height | Usage |
 |------|------|-----|--------|-------------|-------|
-| Body | 14px | `font-size:.875rem` | 400 | 1.5 | Table cell text, form labels, descriptions |
-| Label / Meta | 13-14px | `font-size:.85rem` | 400 | 1.4 | Column headers (grey), secondary info |
+| Body / Label | 14px | `font-size:.875rem` | 400 | 1.5 | Table cell text, form labels, descriptions; use `color:#6b7280` for meta/secondary labels |
 | Subheading | 16px | `font-size:1rem` | 600 | 1.4 | Card section headings (h3) |
-| Heading | 20px | `font-size:1.25rem` | 700 | 1.2 | Page title (h2) |
-| Display metric | 28px | `font-size:1.75rem` | 700 | 1.1 | KPI numbers in stat cards (visits total, bounce rate) |
+| Heading | 20px | `font-size:1.25rem` | 600 | 1.2 | Page title (h2) |
+| Display metric | 28px | `font-size:1.75rem` | 600 | 1.1 | KPI numbers in stat cards (visits total, bounce rate) |
 
 Column header style (inherited from base.html `th`): `font-weight: 600; color: #6b7280; font-size: .875rem; text-transform: uppercase`
 
@@ -173,7 +172,7 @@ Settings integrated into the existing site detail page or as a separate modal tr
 [Metrika Settings section in .card]
   Label: "ID счётчика Метрики"   Input: text, placeholder "12345678"
   Label: "API-токен Метрики"     Input: password, placeholder "••••••••"
-  Button: "Сохранить" (btn-primary)
+  Button: "Сохранить настройки" (btn-primary)
   Status badge: показывает текущее состояние (настроен / не настроен)
 ```
 
@@ -194,7 +193,7 @@ All user-facing copy is in Russian (matching the user's language and existing Ru
 | **Compare button** | Сравнить периоды |
 | **Add event button** | Добавить событие |
 | **Delete event confirmation** | Удалить это событие? |
-| **Save settings button** | Сохранить |
+| **Save settings button** | Сохранить настройки |
 | **Widget title** | Трафик (органика) |
 | **Widget subtitle** | За последние 30 дней |
 | **Widget link** | Подробный трафик → |
