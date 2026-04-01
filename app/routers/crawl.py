@@ -103,6 +103,76 @@ async def list_crawl_pages(
 
 
 # ---------------------------------------------------------------------------
+# Analysis endpoints
+# ---------------------------------------------------------------------------
+
+
+@router.get("/crawls/{crawl_job_id}/analysis/duplicates")
+async def crawl_duplicates(
+    crawl_job_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_admin),
+) -> dict:
+    """Find duplicate titles and H1 headings in a crawl."""
+    from app.services.crawl_analysis_service import find_duplicate_titles, find_duplicate_h1
+
+    job = (await db.execute(select(CrawlJob).where(CrawlJob.id == crawl_job_id))).scalar_one_or_none()
+    if not job:
+        raise HTTPException(status_code=404, detail="Crawl job not found")
+    titles = await find_duplicate_titles(db, job.site_id, crawl_job_id)
+    h1s = await find_duplicate_h1(db, job.site_id, crawl_job_id)
+    return {"crawl_job_id": str(crawl_job_id), "duplicate_titles": titles, "duplicate_h1": h1s}
+
+
+@router.get("/crawls/{crawl_job_id}/analysis/orphans")
+async def crawl_orphans(
+    crawl_job_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_admin),
+) -> dict:
+    """Find orphan pages (no inbound internal links)."""
+    from app.services.crawl_analysis_service import find_orphan_pages
+
+    job = (await db.execute(select(CrawlJob).where(CrawlJob.id == crawl_job_id))).scalar_one_or_none()
+    if not job:
+        raise HTTPException(status_code=404, detail="Crawl job not found")
+    orphans = await find_orphan_pages(db, job.site_id, crawl_job_id)
+    return {"crawl_job_id": str(crawl_job_id), "count": len(orphans), "orphans": orphans}
+
+
+@router.get("/crawls/{crawl_job_id}/analysis/canonicals")
+async def crawl_canonicals(
+    crawl_job_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_admin),
+) -> dict:
+    """Find pages where canonical URL differs from page URL."""
+    from app.services.crawl_analysis_service import find_canonical_issues
+
+    job = (await db.execute(select(CrawlJob).where(CrawlJob.id == crawl_job_id))).scalar_one_or_none()
+    if not job:
+        raise HTTPException(status_code=404, detail="Crawl job not found")
+    issues = await find_canonical_issues(db, job.site_id, crawl_job_id)
+    return {"crawl_job_id": str(crawl_job_id), "count": len(issues), "issues": issues}
+
+
+@router.get("/crawls/{crawl_job_id}/analysis/completeness")
+async def crawl_completeness(
+    crawl_job_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_admin),
+) -> dict:
+    """SEO field completeness summary."""
+    from app.services.crawl_analysis_service import get_seo_completeness
+
+    job = (await db.execute(select(CrawlJob).where(CrawlJob.id == crawl_job_id))).scalar_one_or_none()
+    if not job:
+        raise HTTPException(status_code=404, detail="Crawl job not found")
+    completeness = await get_seo_completeness(db, job.site_id, crawl_job_id)
+    return {"crawl_job_id": str(crawl_job_id), **completeness}
+
+
+# ---------------------------------------------------------------------------
 # UI routes
 # ---------------------------------------------------------------------------
 

@@ -88,6 +88,7 @@ class Page(Base):
     has_toc: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     has_schema: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     has_noindex: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    canonical_url: Mapped[str | None] = mapped_column(String(2000), nullable=True)
     word_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
     inlinks_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
     crawled_at: Mapped[datetime] = mapped_column(

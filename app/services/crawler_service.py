@@ -79,6 +79,14 @@ def extract_seo_data(page) -> dict:
     )
     has_schema: bool = len(schema_scripts) > 0
 
+    # Canonical URL
+    canonical_el = page.query_selector("link[rel='canonical']")
+    canonical_url: str = (
+        canonical_el.get_attribute("href") or ""
+        if canonical_el
+        else ""
+    )
+
     # TOC detection — looks for id/class containing "toc" or "table-of-contents"
     toc_el = page.query_selector(
         "[id*='toc'], [class*='toc'], "
@@ -93,6 +101,7 @@ def extract_seo_data(page) -> dict:
         "has_noindex": has_noindex,
         "has_schema": has_schema,
         "has_toc": has_toc,
+        "canonical_url": canonical_url,
     }
 
 
