@@ -6,13 +6,13 @@ Expected columns (auto-detected):
 - Phrase: "Фраза", "Keyword", "Phrase"
 - Group: "Родительская группа", "Parent Group", "Группа"
 - Position Yandex: "Позиция [Yandex]", "Позиция [Яндекс]"
-- Position Google: "Позиция [Google]"
 - URL Yandex: "URL позиции [Yandex]", "URL позиции [Яндекс]"
-- URL Google: "URL позиции [Google]"
-- Frequency: "Частота [YW]", "Частота", "Frequency"
+
+Note: KC files in this project contain only Yandex data (no Google, no frequency).
+Groups support nesting via "Родительская группа" column.
 
 Output:
-- keywords: list of {phrase, group_name, frequency, positions: [{engine, position, url}]}
+- keywords: list of {phrase, group_name, position, url}
 """
 from __future__ import annotations
 
@@ -27,8 +27,8 @@ def parse_keycollector(path: str) -> dict:
             "keywords": [{
                 "phrase": str,
                 "group_name": str|None,
-                "frequency": int|None,
-                "positions": [{"engine": "yandex"|"google", "position": int|None, "url": str|None}],
+                "position": int|None,
+                "url": str|None,
             }],
             "groups": [str],  # unique group names found
             "row_count": int,
@@ -46,24 +46,14 @@ def parse_keycollector(path: str) -> dict:
     group_col = find_column(headers, [
         "родительская группа", "parent group", "группа", "group",
     ])
-    freq_col = find_column(headers, [
-        "частота [yw]", "частота", "frequency", "freq", "базовая частота",
+    pos_col = find_column(headers, [
+        "позиция [yandex]", "позиция [яндекс]", "position yandex", "позиция",
     ])
-    pos_ya_col = find_column(headers, [
-        "позиция [yandex]", "позиция [яндекс]", "position yandex",
-    ])
-    pos_google_col = find_column(headers, [
-        "позиция [google]", "position google",
-    ])
-    url_ya_col = find_column(headers, [
-        "url позиции [yandex]", "url позиции [яндекс]",
-    ])
-    url_google_col = find_column(headers, [
-        "url позиции [google]",
+    url_col = find_column(headers, [
+        "url позиции [yandex]", "url позиции [яндекс]", "url позиции",
     ])
 
     if phrase_col is None:
-        # Fallback: first column
         phrase_col = 0
 
     groups_seen: set[str] = set()
@@ -80,27 +70,14 @@ def parse_keycollector(path: str) -> dict:
         if group_name:
             groups_seen.add(group_name)
 
-        frequency = safe_int(_safe_get(row, freq_col) or "") if freq_col is not None else None
-
-        positions = []
-        # Yandex
-        if pos_ya_col is not None:
-            pos_val = safe_int(_safe_get(row, pos_ya_col) or "")
-            url_val = _safe_get(row, url_ya_col)
-            if pos_val is not None or url_val:
-                positions.append({"engine": "yandex", "position": pos_val, "url": url_val})
-        # Google
-        if pos_google_col is not None:
-            pos_val = safe_int(_safe_get(row, pos_google_col) or "")
-            url_val = _safe_get(row, url_google_col)
-            if pos_val is not None or url_val:
-                positions.append({"engine": "google", "position": pos_val, "url": url_val})
+        position = safe_int(_safe_get(row, pos_col) or "") if pos_col is not None else None
+        url = _safe_get(row, url_col)
 
         keywords.append({
             "phrase": phrase,
             "group_name": group_name,
-            "frequency": frequency,
-            "positions": positions,
+            "position": position,
+            "url": url,
         })
 
     return {

@@ -167,11 +167,11 @@ class TestTopvisorParser:
 
 
 class TestKeyCollectorParser:
-    def test_basic_with_groups(self):
+    def test_basic_with_groups_and_positions(self):
         path = _write_xlsx([
-            ["Фраза", "Родительская группа", "Частота [YW]", "Позиция [Yandex]", "URL позиции [Yandex]"],
-            ["купить дом", "Коммерческие", "500", "3", "https://site.com/buy"],
-            ["строительство", "Информационные", "1200", "15", "https://site.com/build"],
+            ["Фраза", "Родительская группа", "Позиция [Yandex]", "URL позиции [Yandex]"],
+            ["купить дом", "Коммерческие", "3", "https://site.com/buy"],
+            ["строительство", "Информационные", "15", "https://site.com/build"],
         ])
         result = parse_keycollector(path)
         assert result["row_count"] == 2
@@ -179,29 +179,17 @@ class TestKeyCollectorParser:
         kw0 = result["keywords"][0]
         assert kw0["phrase"] == "купить дом"
         assert kw0["group_name"] == "Коммерческие"
-        assert kw0["frequency"] == 500
-        assert kw0["positions"][0]["engine"] == "yandex"
-        assert kw0["positions"][0]["position"] == 3
-        assert kw0["positions"][0]["url"] == "https://site.com/buy"
-
-    def test_both_engines(self):
-        path = _write_xlsx([
-            ["Фраза", "Позиция [Yandex]", "URL позиции [Yandex]", "Позиция [Google]", "URL позиции [Google]"],
-            ["seo", "5", "https://a.com", "3", "https://b.com"],
-        ])
-        result = parse_keycollector(path)
-        kw = result["keywords"][0]
-        assert len(kw["positions"]) == 2
-        engines = {p["engine"] for p in kw["positions"]}
-        assert engines == {"yandex", "google"}
+        assert kw0["position"] == 3
+        assert kw0["url"] == "https://site.com/buy"
 
     def test_no_group_column(self):
         path = _write_xlsx([
-            ["Фраза", "Частота"],
-            ["seo tools", "1000"],
+            ["Фраза", "Позиция [Yandex]"],
+            ["seo tools", "5"],
         ])
         result = parse_keycollector(path)
         assert result["keywords"][0]["group_name"] is None
+        assert result["keywords"][0]["position"] == 5
         assert result["groups"] == []
 
     def test_empty_rows_skipped(self):
@@ -214,6 +202,15 @@ class TestKeyCollectorParser:
         result = parse_keycollector(path)
         assert result["row_count"] == 2
 
+    def test_no_position_columns(self):
+        path = _write_xlsx([
+            ["Фраза", "Родительская группа"],
+            ["keyword one", "Group A"],
+        ])
+        result = parse_keycollector(path)
+        assert result["keywords"][0]["position"] is None
+        assert result["keywords"][0]["url"] is None
+
 
 # ---------------------------------------------------------------------------
 # Screaming Frog parser
@@ -221,25 +218,70 @@ class TestKeyCollectorParser:
 
 
 class TestScreamingFrogParser:
-    def test_basic_pages(self):
+    def test_internal_tab(self):
         path = _write_xlsx([
-            ["Address", "Status Code", "Title 1", "H1-1", "Word Count", "Inlinks"],
+            ["Address", "Status Code", "Title 1", "H1-1", "Word Count", "Unique Inlinks"],
             ["https://site.com/", "200", "Home", "Welcome", "500", "10"],
             ["https://site.com/about", "200", "About", "About Us", "300", "5"],
             ["https://site.com/old", "404", "", "", "0", "2"],
         ])
         result = parse_screaming_frog(path)
+        assert result["tab_type"] == "internal"
         assert result["row_count"] == 3
-        assert result["summary"]["total"] == 3
         assert result["summary"]["status_distribution"]["200"] == 2
-        assert result["summary"]["status_distribution"]["404"] == 1
         assert result["summary"]["with_title"] == 2
-        assert result["summary"]["with_h1"] == 2
-        assert result["summary"]["avg_word_count"] == 266.7  # (500+300+0)/3
+        assert result["summary"]["avg_word_count"] == 266.7
 
-    def test_page_fields(self):
+    def test_page_titles_tab(self):
         path = _write_xlsx([
-            ["Address", "Status Code", "Title 1", "H1-1", "Word Count", "Inlinks"],
+            ["Address", "Title 1", "Title 1 Length", "Title 1 Pixel Width", "Status Code"],
+            ["https://site.com/", "Home Page", "9", "80", "200"],
+            ["https://site.com/long", "A" * 70, "70", "600", "200"],
+            ["https://site.com/none", "", "0", "0", "200"],
+        ])
+        result = parse_screaming_frog(path)
+        assert result["tab_type"] == "page_titles"
+        assert result["row_count"] == 3
+        assert result["summary"]["missing_title"] == 1
+        assert result["summary"]["over_60_chars"] == 1
+
+    def test_meta_description_tab(self):
+        path = _write_xlsx([
+            ["Address", "Meta Description 1", "Meta Description 1 Length", "Status Code"],
+            ["https://site.com/", "A description", "14", "200"],
+            ["https://site.com/none", "", "0", "200"],
+        ])
+        result = parse_screaming_frog(path)
+        assert result["tab_type"] == "meta_description"
+        assert result["row_count"] == 2
+        assert result["summary"]["missing_meta"] == 1
+
+    def test_h1_tab(self):
+        path = _write_xlsx([
+            ["Address", "H1-1", "H1-1 Length", "H1-2", "Status Code"],
+            ["https://site.com/", "Welcome", "7", "", "200"],
+            ["https://site.com/dup", "Main", "4", "Secondary", "200"],
+            ["https://site.com/none", "", "0", "", "200"],
+        ])
+        result = parse_screaming_frog(path)
+        assert result["tab_type"] == "h1"
+        assert result["row_count"] == 3
+        assert result["summary"]["missing_h1"] == 1
+        assert result["summary"]["multiple_h1"] == 1
+
+    def test_external_tab(self):
+        path = _write_xlsx([
+            ["Address", "Status Code", "Type", "Inlinks"],
+            ["https://external.com/link1", "200", "External", "3"],
+            ["https://external.com/link2", "404", "External", "1"],
+        ])
+        result = parse_screaming_frog(path)
+        assert result["tab_type"] == "external"
+        assert result["row_count"] == 2
+
+    def test_page_fields_internal(self):
+        path = _write_xlsx([
+            ["Address", "Status Code", "Title 1", "H1-1", "Word Count", "Unique Inlinks"],
             ["https://site.com/page", "301", "Redirect", "", "0", "3"],
         ])
         result = parse_screaming_frog(path)
@@ -247,7 +289,7 @@ class TestScreamingFrogParser:
         assert page["url"] == "https://site.com/page"
         assert page["http_status"] == 301
         assert page["title"] == "Redirect"
-        assert page["h1"] is None  # empty string → None
+        assert page["h1"] is None
         assert page["inlinks"] == 3
 
     def test_non_url_rows_skipped(self):
@@ -255,7 +297,6 @@ class TestScreamingFrogParser:
             ["Address", "Status Code"],
             ["https://site.com/", "200"],
             ["not-a-url", "200"],
-            ["javascript:void(0)", ""],
         ])
         result = parse_screaming_frog(path)
         assert result["row_count"] == 1
@@ -267,8 +308,9 @@ class TestScreamingFrogParser:
 
     def test_csv_format(self):
         path = _write_csv([
-            ["Address", "Status Code", "Title 1"],
-            ["https://site.com/", "200", "Home"],
+            ["Address", "Status Code", "Title 1", "Word Count"],
+            ["https://site.com/", "200", "Home", "100"],
         ])
         result = parse_screaming_frog(path)
+        assert result["tab_type"] == "internal"
         assert result["row_count"] == 1

@@ -88,6 +88,8 @@ class Page(Base):
     has_toc: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     has_schema: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     has_noindex: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    word_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    inlinks_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
     crawled_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=datetime.utcnow
     )

@@ -72,10 +72,12 @@ async def bulk_add_keywords(
     db: AsyncSession,
     site_id: uuid.UUID,
     rows: list[dict],
+    batch_size: int = 1000,
 ) -> int:
     """Insert multiple keywords from parsed file data.
 
     Each row dict may contain: phrase, frequency, region, engine, target_url, group_id.
+    Flushes in batches of `batch_size` to handle large imports (up to 100k rows).
     Returns count of inserted rows.
     """
     count = 0
@@ -94,7 +96,10 @@ async def bulk_add_keywords(
         )
         db.add(kw)
         count += 1
-    await db.flush()
+        if count % batch_size == 0:
+            await db.flush()
+    if count % batch_size != 0:
+        await db.flush()
     return count
 
 

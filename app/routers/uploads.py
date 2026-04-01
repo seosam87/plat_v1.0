@@ -108,14 +108,11 @@ async def _save_keywords(
         rows = []
         for kw in keywords:
             gname = kw.get("group_name")
-            # Use first position's URL as target_url
-            positions = kw.get("positions", [])
-            target_url = positions[0]["url"] if positions and positions[0].get("url") else None
             rows.append({
                 "phrase": kw["phrase"],
-                "frequency": kw.get("frequency"),
-                "target_url": target_url,
+                "target_url": kw.get("url"),
                 "group_id": group_map.get(gname),
+                "engine": "yandex",
             })
         return await keyword_service.bulk_add_keywords(db, site_id, rows)
 
