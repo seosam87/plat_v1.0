@@ -21,9 +21,9 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 6: Position Tracking** — Position history with deltas, Chart.js, filters, Telegram drop alerts (completed 2026-04-01)
 - [x] **Phase 7: Semantics** — Keyword clusters, SERP auto-clustering, cannibalization, CSV export (completed 2026-04-01)
 - [x] **Phase 8: WP Pipeline** — Content pipeline (TOC, schema.org, internal links), mandatory diff approval, rollback (completed 2026-04-01)
-- [ ] **Phase 9: Projects & Tasks** — User can manage work on a Kanban board, plan content, and generate page briefs
-- [ ] **Phase 10: Reports & Ads** — User can view the dashboard, export reports, schedule delivery, and upload ad traffic data
-- [ ] **Phase 11: Hardening** — Platform is rate-limited, fully RBAC-audited, observable, and deployable from README in <30 min
+- [x] **Phase 9: Projects & Tasks** — User can manage work on a Kanban board, plan content, and generate page briefs
+- [x] **Phase 10: Reports & Ads** — User can view the dashboard, export reports, schedule delivery, and upload ad traffic data
+- [x] **Phase 11: Hardening** — Platform is rate-limited, fully RBAC-audited, observable, and deployable from README in <30 min
 
 ## Phase Details
 
@@ -188,9 +188,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 09-01: Project model + Alembic migration (site, client link, name, description, status); task model (title, description, status, assignee, due date, issue context); project and task CRUD endpoints; project dashboard page
-- [ ] 09-02: Kanban board UI — To Do / In Progress / Done columns; HTMX drag-and-drop status updates; auto-task creation wiring for missing pages + cannibalization + no-schema triggers; manual task create/edit/assign/due-date
-- [ ] 09-03: Content plan model (keyword → title → status → date → WP post link); content plan UI; one-click WP draft creation from content plan row; template-based page brief generator (H1–H3 + keywords + volume); WeasyPrint PDF export; brief linked to task or content plan row
+- [x] 09-01: Project model + Alembic migration (site, client link, name, description, status); task model (title, description, status, assignee, due date, issue context); project and task CRUD endpoints; project dashboard page
+- [x] 09-02: Kanban board UI — To Do / In Progress / Done columns; HTMX drag-and-drop status updates; auto-task creation wiring for missing pages + cannibalization + no-schema triggers; manual task create/edit/assign/due-date
+- [x] 09-03: Content plan model (keyword → title → status → date → WP post link); content plan UI; one-click WP draft creation from content plan row; template-based page brief generator (H1–H3 + keywords + volume); WeasyPrint PDF export; brief linked to task or content plan row
 
 ### Phase 10: Reports & Ads
 **Goal**: User can view a live dashboard aggregating all projects, export project reports as PDF and Excel, schedule automatic delivery via Telegram or email, and upload/compare ad traffic data.
@@ -205,10 +205,10 @@ Plans:
 **Plans**: 4 plans
 
 Plans:
-- [ ] 10-01: Dashboard aggregation queries — Redis-cached (5-min TTL); CTEs/window functions for cross-project aggregation (avoid N+1 over sites); top positions, tasks in progress, recent changes widgets; EXPLAIN ANALYZE verification at 50 sites × 500 keywords
-- [ ] 10-02: Project report generation — WeasyPrint PDF (position trends, task progress, site changes); openpyxl Excel export; report download endpoints
-- [ ] 10-03: Scheduled report delivery — Celery Beat tasks for Telegram (Bot API) and SMTP; morning digest Telegram message; configurable schedule per project; retry=3 on delivery failures
-- [ ] 10-04: Ad traffic module — CSV upload (source, date, sessions, conversions, cost); ad_traffic model + Alembic migration; period comparison table (% + absolute delta); weekly/monthly trend chart per source (Chart.js)
+- [x] 10-01: Dashboard aggregation queries — Redis-cached (5-min TTL); CTEs/window functions for cross-project aggregation (avoid N+1 over sites); top positions, tasks in progress, recent changes widgets; EXPLAIN ANALYZE verification at 50 sites × 500 keywords
+- [x] 10-02: Project report generation — WeasyPrint PDF (position trends, task progress, site changes); openpyxl Excel export; report download endpoints
+- [x] 10-03: Scheduled report delivery — Celery Beat tasks for Telegram (Bot API) and SMTP; morning digest Telegram message; configurable schedule per project; retry=3 on delivery failures
+- [x] 10-04: Ad traffic module — CSV upload (source, date, sessions, conversions, cost); ad_traffic model + Alembic migration; period comparison table (% + absolute delta); weekly/monthly trend chart per source (Chart.js)
 
 ### Phase 11: Hardening
 **Goal**: Platform enforces rate limits on all endpoints, RBAC is audited at service layer, client invite links work, task queue is observable, health check covers all components, and the system is deployable from scratch in <30 minutes following the README.
@@ -224,10 +224,10 @@ Plans:
 **Plans**: 4 plans
 
 Plans:
-- [ ] 11-01: RBAC service-layer audit — review all service functions for role checks; add manager→own-projects guard and client→assigned-projects guard at service layer (not just routes); integration tests for 403 paths
-- [ ] 11-02: Client invite link system — generate signed URL (JWT or UUID token); registration endpoint that accepts token and auto-binds new client account to project; token expiry
-- [ ] 11-03: slowapi rate limiting on all API endpoints; `GET /health` endpoint (DB ping + Redis ping + Celery inspect ping + Beat schedule count assert); Celery Flower configured with basic auth in docker-compose; HTTPS via Nginx reverse proxy in docker-compose
-- [ ] 11-04: OpenAPI docs verified at `/docs`; README: prerequisites + clone + env setup + `docker-compose up --build` + first login; deploy walkthrough tested end-to-end; version pins locked in requirements.txt
+- [x] 11-01: RBAC service-layer audit — review all service functions for role checks; add manager→own-projects guard and client→assigned-projects guard at service layer (not just routes); integration tests for 403 paths
+- [x] 11-02: Client invite link system — generate signed URL (JWT or UUID token); registration endpoint that accepts token and auto-binds new client account to project; token expiry
+- [x] 11-03: slowapi rate limiting on all API endpoints; `GET /health` endpoint (DB ping + Redis ping + Celery inspect ping + Beat schedule count assert); Celery Flower configured with basic auth in docker-compose; HTTPS via Nginx reverse proxy in docker-compose
+- [x] 11-04: OpenAPI docs verified at `/docs`; README: prerequisites + clone + env setup + `docker-compose up --build` + first login; deploy walkthrough tested end-to-end; version pins locked in requirements.txt
 
 ## Progress
 
