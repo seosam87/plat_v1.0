@@ -18,7 +18,7 @@
 - [x] **SITE-01**: Admin can add a WordPress site (name, URL, WP Application Password) and verify the connection
 - [ ] **SITE-02**: Admin can remove or disable a site; associated jobs stop without crashing other sites
 - [x] **SITE-03**: WP Application Passwords are stored Fernet-encrypted; never logged or exposed in responses
-- [ ] **SITE-04**: User can view connection status for all sites on a management page
+- [x] **SITE-04**: User can view connection status for all sites on a management page
 
 ### Crawler
 
@@ -168,7 +168,7 @@
 | SITE-01 | Phase 2: Site Management | Complete |
 | SITE-02 | Phase 2: Site Management | Pending |
 | SITE-03 | Phase 2: Site Management | Complete |
-| SITE-04 | Phase 2: Site Management | Pending |
+| SITE-04 | Phase 2: Site Management | Complete |
 | CRAWL-01 | Phase 3: Crawler Core | Pending |
 | CRAWL-02 | Phase 3: Crawler Core | Pending |
 | CRAWL-03 | Phase 3: Crawler Core | Pending |
