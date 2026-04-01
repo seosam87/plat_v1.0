@@ -13,6 +13,7 @@ celery_app = Celery(
         "app.tasks.default_tasks",
         "app.tasks.position_tasks",
         "app.tasks.wp_content_tasks",
+        "app.tasks.metrika_tasks",
     ],
 )
 
