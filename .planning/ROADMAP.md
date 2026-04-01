@@ -95,24 +95,28 @@ Plans:
 - [x] 04-02: Crawl schedule UI — per-site schedule selector (daily / weekly / manual); HTMX form updates redbeat entry without restart; schedule stored in DB as source of truth
 - [x] 04-03: Auto-task creation from crawl results — 404 detection → task; lost-indexation detection (noindex flip vs. previous snapshot) → task; task model + Alembic migration; task linked to site and page URL
 
-### Phase 5: Keyword Import
-**Goal**: User can import keywords in bulk or manually, and the system pulls position data from Google Search Console, Yandex Webmaster, and DataForSEO — with DataForSEO as primary SERP source and Playwright as low-volume fallback.
+### Phase 5: Keyword Import & File Parsers
+**Goal**: User can import keywords from Topvisor/Key Collector/manual entry, import technical audit from Screaming Frog, and pull positions from GSC, Yandex Webmaster, and DataForSEO. All file imports track history and support real column formats from these tools.
 **Depends on**: Phase 4
 **Requirements**: RANK-01, RANK-02, RANK-03, RANK-04, RANK-05, RANK-06, RANK-12, RANK-13
 **Success Criteria** (what must be TRUE):
-  1. User can import up to 500 keywords from a Key Collector CSV or Topvisor XLSX without errors
-  2. User can manually add individual keywords with frequency, region, and engine fields
-  3. GSC OAuth 2.0 flow completes; platform fetches positions, clicks, CTR, and impressions from GSC Search Analytics
-  4. DataForSEO credentials (login/password from .env) are accepted and position queries return results
-  5. Yandex Webmaster API token is accepted; platform fetches position data (not scraping)
-  6. Playwright SERP parser rotates User-Agent strings and uses configurable delays; used only for <50 queries/day
-**Plans**: 4 plans
+  1. User can import keywords from a Key Collector XLSX/CSV (with keyword groups, positions, URLs) — groups preserved
+  2. User can import keywords from a Topvisor XLSX/CSV (keywords, frequency, position history by date columns)
+  3. User can import Screaming Frog XLSX/CSV as a technical audit (URL, status, title, H1, word count, inlinks) — saved as Page records
+  4. All imports tracked in file_uploads table with status; upload history visible in UI
+  5. User can manually add individual keywords with frequency, region, and engine fields
+  6. GSC OAuth 2.0 flow completes; platform fetches positions, clicks, CTR, and impressions
+  7. DataForSEO credentials accepted; position queries return results
+  8. Yandex Webmaster API token accepted; platform fetches position data
+  9. Playwright SERP parser with UA rotation, <50 req/day guard
+**Plans**: 5 plans
 
 Plans:
-- [ ] 05-01: Keyword model + Alembic migration (keyword, frequency, region, engine, project link); CSV (Key Collector) and XLSX (Topvisor) import — pandas parse, validation, bulk insert up to 500 rows; manual keyword entry form
-- [ ] 05-02: GSC integration — OAuth 2.0 flow with authlib; Search Analytics fetch (positions, clicks, CTR, impressions); token refresh; GSC credentials stored encrypted; pagination with `startRow` for large sites
-- [ ] 05-03: DataForSEO integration — SERP endpoint as primary; Keywords Data endpoint for volume/difficulty estimates; batch scheduling; retry=3; DataForSEO set as primary SERP source with Playwright as fallback
-- [ ] 05-04: Yandex Webmaster API integration (token-based, not scraping); Playwright SERP parser with User-Agent rotation, configurable delays, low-volume guard (<50 req/day without proxy); Celery Beat position check schedule (daily / weekly / manual)
+- [ ] 05-01: Keyword + KeywordGroup + FileUpload models, Alembic migration; keyword fields: phrase, frequency, region, engine, group_id, site_id; file_uploads: site_id, file_type, original_name, status, row_count, uploaded_at; manual keyword entry form + API
+- [ ] 05-02: File parsers — Topvisor (xlsx/csv: keywords, frequency, position history by date columns), Key Collector (xlsx/csv: keywords, parent group, positions, URLs), Screaming Frog (xlsx/csv: URL, status, title, H1, word count, inlinks → Page records); column auto-detection; upload UI with file type selector; upload history page; unit tests for each parser
+- [ ] 05-03: GSC integration — OAuth 2.0 flow with authlib; Search Analytics fetch (positions, clicks, CTR, impressions); token refresh; GSC credentials stored encrypted; pagination with `startRow` for large sites
+- [ ] 05-04: DataForSEO integration — SERP endpoint as primary; Keywords Data endpoint for volume/difficulty estimates; batch scheduling; retry=3; DataForSEO set as primary SERP source with Playwright as fallback
+- [ ] 05-05: Yandex Webmaster API integration (token-based, not scraping); Playwright SERP parser with User-Agent rotation, configurable delays, low-volume guard (<50 req/day without proxy); Celery Beat position check schedule (daily / weekly / manual)
 
 ### Phase 6: Position Tracking
 **Goal**: User can see current positions with delta indicators and colour coding, drill into a 90-day history chart per keyword, filter by engine/region/cluster/top-N, and receive Telegram alerts when a keyword drops.
