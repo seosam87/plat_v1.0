@@ -18,6 +18,7 @@ from app.routers.crawl import router as crawl_router
 from app.routers.dataforseo import router as dataforseo_router
 from app.routers.gsc import router as gsc_router
 from app.routers.keywords import router as keywords_router
+from app.routers.positions import router as positions_router
 from app.routers.sites import router as sites_router
 from app.routers.tasks import router as tasks_router
 from app.routers.uploads import router as uploads_router
@@ -50,6 +51,7 @@ app.include_router(sites_router)
 app.include_router(crawl_router)
 app.include_router(tasks_router)
 app.include_router(keywords_router)
+app.include_router(positions_router)
 app.include_router(uploads_router)
 app.include_router(gsc_router)
 app.include_router(dataforseo_router)
