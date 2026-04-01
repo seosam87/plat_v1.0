@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% block title %}Competitors — {{ site_name }}{% endblock %}
+{% block content %}
+<div class="card" style="margin-bottom:1.5rem">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem">
+    <div>
+      <h2 style="margin:0; display:inline">Competitors: {{ site_name }} <a class="help-trigger" onclick="openHelp()" title="Справка">?</a></h2>
+      <span style="color:#6b7280; margin-left:1rem">{{ competitors | length }} competitors</span>
+    </div>
+    <div style="display:flex; gap:.5rem">
+      <button class="btn btn-sm" style="background:#7c3aed;color:white" onclick="detectCompetitors()">Auto-Detect</button>
+    </div>
+  </div>
+
+  <!-- Add competitor form -->
+  <form method="POST" action="/ui/competitors/{{ site_id }}/add" style="display:flex; gap:.5rem; margin-bottom:1.5rem">
+    <input type="text" name="domain" placeholder="example.com" required
+      style="flex:1; min-width:200px; padding:.4rem .75rem; border:1px solid #d1d5db; border-radius:4px; font-size:.875rem">
+    <input type="text" name="name" placeholder="Name (optional)"
+      style="width:200px; padding:.4rem .75rem; border:1px solid #d1d5db; border-radius:4px; font-size:.875rem">
+    <button type="submit" class="btn btn-primary">Add</button>
+  </form>
+
+  {% if competitors %}
+  <table>
+    <thead>
+      <tr>
+        <th>Domain</th>
+        <th>Name</th>
+        <th>Notes</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for c in competitors %}
+      <tr id="comp-{{ c.id }}">
+        <td style="font-weight:500">{{ c.domain }}</td>
+        <td>{{ c.name }}</td>
+        <td style="font-size:.85rem; color:#6b7280; max-width:200px; overflow:hidden; text-overflow:ellipsis">{{ c.notes or '—' }}</td>
+        <td style="display:flex; gap:.25rem">
+          <button class="btn btn-sm" style="background:#2563eb;color:white"
+            onclick="comparePositions('{{ c.id }}', '{{ c.domain }}')">Compare</button>
+          <button class="btn btn-sm" style="background:#991b1b;color:white"
+            hx-delete="/ui/competitors/{{ c.id }}" hx-target="#comp-{{ c.id }}" hx-swap="outerHTML swap:200ms"
+            hx-confirm="Remove {{ c.domain }}?">&times;</button>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p style="color:#6b7280">No competitors yet. Add manually or run auto-detection from SERP data.</p>
+  {% endif %}
+</div>
+
+<!-- Compare modal -->
+<div id="compare-modal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,.5); z-index:100; justify-content:center; align-items:center">
+  <div style="background:white; border-radius:8px; padding:2rem; max-width:900px; width:95%; max-height:85vh; overflow-y:auto; position:relative">
+    <button onclick="document.getElementById('compare-modal').style.display='none'" style="position:absolute; top:.5rem; right:1rem; background:none; border:none; font-size:1.5rem; cursor:pointer">&times;</button>
+    <h3 id="compare-title" style="margin:0 0 1rem"></h3>
+    <div id="compare-result" style="color:#6b7280">Loading...</div>
+  </div>
+</div>
+
+<!-- Detect modal -->
+<div id="detect-modal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,.5); z-index:100; justify-content:center; align-items:center">
+  <div style="background:white; border-radius:8px; padding:2rem; max-width:700px; width:90%; max-height:80vh; overflow-y:auto; position:relative">
+    <button onclick="document.getElementById('detect-modal').style.display='none'" style="position:absolute; top:.5rem; right:1rem; background:none; border:none; font-size:1.5rem; cursor:pointer">&times;</button>
+    <h3 style="margin:0 0 1rem">Auto-Detected Competitors</h3>
+    <div id="detect-result" style="color:#6b7280">Loading...</div>
+  </div>
+</div>
+
+<script>
+async function comparePositions(compId, domain) {
+  document.getElementById('compare-modal').style.display = 'flex';
+  document.getElementById('compare-title').textContent = 'vs ' + domain;
+  document.getElementById('compare-result').innerHTML = 'Loading...';
+
+  const resp = await fetch('/competitors/sites/{{ site_id }}/compare/' + compId);
+  const data = await resp.json();
+  const rows = data.positions || [];
+
+  if (!rows.length) {
+    document.getElementById('compare-result').innerHTML = '<p>No shared keywords found in SERP data.</p>';
+    return;
+  }
+
+  let html = '<table><thead><tr><th>Keyword</th><th>Our Position</th><th>Competitor</th><th>Delta</th></tr></thead><tbody>';
+  rows.forEach(r => {
+    const ours = r.our_position != null ? r.our_position : '—';
+    const theirs = r.comp_position != null ? r.comp_position : '—';
+    let delta = '—';
+    if (r.delta != null && r.delta !== 0) {
+      delta = r.delta > 0
+        ? '<span style="color:#dc2626">we are ' + r.delta + ' behind</span>'
+        : '<span style="color:#059669">we are ' + Math.abs(r.delta) + ' ahead</span>';
+    } else if (r.delta === 0) { delta = '<span style="color:#6b7280">same</span>'; }
+    html += '<tr><td>' + (r.phrase || '') + '</td><td>' + ours + '</td><td>' + theirs + '</td><td>' + delta + '</td></tr>';
+  });
+  html += '</tbody></table>';
+  document.getElementById('compare-result').innerHTML = html;
+}
+
+async function detectCompetitors() {
+  document.getElementById('detect-modal').style.display = 'flex';
+  document.getElementById('detect-result').innerHTML = 'Analyzing SERP data...';
+
+  const resp = await fetch('/competitors/sites/{{ site_id }}/detect?min_shared=3');
+  const data = await resp.json();
+  const comps = data.competitors || [];
+
+  if (!comps.length) {
+    document.getElementById('detect-result').innerHTML = '<p>No competitors found. Need more SERP data.</p>';
+    return;
+  }
+
+  let html = '<table><thead><tr><th>Domain</th><th>Shared Keywords</th><th>Avg Position</th></tr></thead><tbody>';
+  comps.forEach(c => {
+    html += '<tr><td style="font-weight:500">' + c.domain + '</td><td>' + c.shared_keywords + '</td><td>' + c.avg_position + '</td></tr>';
+  });
+  html += '</tbody></table>';
+  html += '<p style="font-size:.85rem;color:#6b7280;margin-top:1rem">Add interesting domains manually using the form above.</p>';
+  document.getElementById('detect-result').innerHTML = html;
+}
+
+document.getElementById('compare-modal').addEventListener('click', function(e) { if (e.target === this) this.style.display = 'none'; });
+document.getElementById('detect-modal').addEventListener('click', function(e) { if (e.target === this) this.style.display = 'none'; });
+</script>
+{% endblock %}

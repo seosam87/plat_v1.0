@@ -146,6 +146,9 @@ app.include_router(dataforseo_router)
 app.include_router(wp_pipeline_router)
 app.include_router(yandex_router)
 
+from app.routers.competitors import router as competitors_router
+app.include_router(competitors_router)
+
 
 @app.get("/ui/sites", response_class=HTMLResponse)
 async def ui_sites(request: Request, db: AsyncSession = Depends(get_db)) -> HTMLResponse:
@@ -1040,6 +1043,57 @@ async def ui_admin_assign_site_to_group(
 
     # Full page refresh for this group card (redirect)
     return RedirectResponse("/ui/admin/groups", status_code=303)
+
+
+# ---- Competitors UI ----
+
+
+@app.get("/ui/competitors/{site_id}", response_class=HTMLResponse)
+async def ui_competitors(site_id: str, request: Request, db: AsyncSession = Depends(get_db)) -> HTMLResponse:
+    import uuid as _uuid
+    from app.services.competitor_service import list_competitors
+
+    site = await get_site(db, _uuid.UUID(site_id))
+    if not site:
+        return HTMLResponse("Site not found", status_code=404)
+
+    comps = await list_competitors(db, _uuid.UUID(site_id))
+    comps_data = [
+        {"id": str(c.id), "domain": c.domain, "name": c.name or c.domain, "notes": c.notes or ""}
+        for c in comps
+    ]
+
+    return templates.TemplateResponse(request, "competitors/index.html", {
+        "site_name": site.name, "site_id": str(site.id), "competitors": comps_data,
+    })
+
+
+@app.post("/ui/competitors/{site_id}/add", response_class=HTMLResponse)
+async def ui_add_competitor(
+    site_id: str, request: Request, db: AsyncSession = Depends(get_db),
+) -> HTMLResponse:
+    import uuid as _uuid
+    from app.services.competitor_service import create_competitor
+
+    form = await request.form()
+    domain = form.get("domain", "").strip()
+    name = form.get("name", "").strip() or None
+    if domain:
+        await create_competitor(db, _uuid.UUID(site_id), domain, name)
+        await db.commit()
+    return RedirectResponse(f"/ui/competitors/{site_id}", status_code=303)
+
+
+@app.delete("/ui/competitors/{competitor_id}", response_class=HTMLResponse)
+async def ui_delete_competitor(competitor_id: str, request: Request, db: AsyncSession = Depends(get_db)) -> HTMLResponse:
+    import uuid as _uuid
+    from app.services.competitor_service import get_competitor, delete_competitor
+
+    comp = await get_competitor(db, _uuid.UUID(competitor_id))
+    if comp:
+        await delete_competitor(db, comp)
+        await db.commit()
+    return HTMLResponse("")
 
 
 # ---- Admin: Password Change ----
