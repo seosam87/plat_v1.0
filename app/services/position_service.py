@@ -216,6 +216,199 @@ async def _get_previous_position(
     return result.scalar_one_or_none()
 
 
+async def get_position_distribution(
+    db: AsyncSession,
+    site_id: uuid.UUID,
+    engine: str | None = None,
+) -> dict:
+    """Count keywords in TOP-3, TOP-10, TOP-30, TOP-100, and not ranked.
+
+    Uses the latest position per keyword (DISTINCT ON).
+    Returns dict: {top3, top10, top30, top100, not_ranked, total}.
+    """
+    engine_filter = "AND kp.engine = :engine" if engine else ""
+    params: dict = {"site_id": site_id}
+    if engine:
+        params["engine"] = engine
+
+    query = text(f"""
+        WITH latest AS (
+            SELECT DISTINCT ON (kp.keyword_id, kp.engine)
+                kp.position
+            FROM keyword_positions kp
+            WHERE kp.site_id = :site_id {engine_filter}
+            ORDER BY kp.keyword_id, kp.engine, kp.checked_at DESC
+        )
+        SELECT
+            COUNT(*) FILTER (WHERE position IS NOT NULL AND position <= 3) AS top3,
+            COUNT(*) FILTER (WHERE position IS NOT NULL AND position <= 10) AS top10,
+            COUNT(*) FILTER (WHERE position IS NOT NULL AND position <= 30) AS top30,
+            COUNT(*) FILTER (WHERE position IS NOT NULL AND position <= 100) AS top100,
+            COUNT(*) FILTER (WHERE position IS NULL) AS not_ranked,
+            COUNT(*) AS total
+        FROM latest
+    """)
+    result = await db.execute(query, params)
+    row = result.mappings().one()
+    return dict(row)
+
+
+async def get_lost_gained_keywords(
+    db: AsyncSession,
+    site_id: uuid.UUID,
+    days: int = 7,
+    engine: str | None = None,
+    threshold: int = 10,
+) -> dict:
+    """Find keywords that entered or left the TOP-N over the last N days.
+
+    'gained': was not in top-threshold (or no data), now in top-threshold.
+    'lost': was in top-threshold, now out (or no recent data).
+    Returns dict with 'gained' and 'lost' lists of dicts.
+    """
+    engine_filter = "AND kp.engine = :engine" if engine else ""
+    params: dict = {"site_id": site_id, "days": days, "threshold": threshold}
+    if engine:
+        params["engine"] = engine
+
+    query = text(f"""
+        WITH recent AS (
+            SELECT DISTINCT ON (kp.keyword_id, kp.engine)
+                kp.keyword_id, kp.engine, kp.position, kp.checked_at
+            FROM keyword_positions kp
+            WHERE kp.site_id = :site_id
+              AND kp.checked_at >= NOW() - MAKE_INTERVAL(days => :days)
+              {engine_filter}
+            ORDER BY kp.keyword_id, kp.engine, kp.checked_at DESC
+        ),
+        previous AS (
+            SELECT DISTINCT ON (kp.keyword_id, kp.engine)
+                kp.keyword_id, kp.engine, kp.position
+            FROM keyword_positions kp
+            WHERE kp.site_id = :site_id
+              AND kp.checked_at < NOW() - MAKE_INTERVAL(days => :days)
+              {engine_filter}
+            ORDER BY kp.keyword_id, kp.engine, kp.checked_at DESC
+        )
+        SELECT
+            r.keyword_id, r.engine,
+            p.position AS old_position,
+            r.position AS new_position
+        FROM recent r
+        LEFT JOIN previous p ON r.keyword_id = p.keyword_id AND r.engine = p.engine
+        WHERE
+            (p.position IS NULL OR p.position > :threshold) AND r.position IS NOT NULL AND r.position <= :threshold
+            OR
+            (p.position IS NOT NULL AND p.position <= :threshold) AND (r.position IS NULL OR r.position > :threshold)
+    """)
+    result = await db.execute(query, params)
+    rows = result.mappings().all()
+
+    gained = []
+    lost = []
+    for r in rows:
+        item = {
+            "keyword_id": r["keyword_id"],
+            "engine": r["engine"],
+            "old_position": r["old_position"],
+            "new_position": r["new_position"],
+        }
+        new_pos = r["new_position"]
+        if new_pos is not None and new_pos <= threshold:
+            gained.append(item)
+        else:
+            lost.append(item)
+
+    return {"gained": gained, "lost": lost}
+
+
+async def compare_positions_by_date(
+    db: AsyncSession,
+    site_id: uuid.UUID,
+    date_a: str,
+    date_b: str,
+    engine: str | None = None,
+) -> list[dict]:
+    """Compare positions between two dates (YYYY-MM-DD).
+
+    Returns list of dicts: keyword_id, engine, position_a, position_b, delta.
+    """
+    engine_filter = "AND kp.engine = :engine" if engine else ""
+    params: dict = {"site_id": site_id, "date_a": date_a, "date_b": date_b}
+    if engine:
+        params["engine"] = engine
+
+    query = text(f"""
+        WITH pos_a AS (
+            SELECT DISTINCT ON (kp.keyword_id, kp.engine)
+                kp.keyword_id, kp.engine, kp.position, kp.url
+            FROM keyword_positions kp
+            WHERE kp.site_id = :site_id
+              AND kp.checked_at::date = :date_a::date
+              {engine_filter}
+            ORDER BY kp.keyword_id, kp.engine, kp.checked_at DESC
+        ),
+        pos_b AS (
+            SELECT DISTINCT ON (kp.keyword_id, kp.engine)
+                kp.keyword_id, kp.engine, kp.position, kp.url
+            FROM keyword_positions kp
+            WHERE kp.site_id = :site_id
+              AND kp.checked_at::date = :date_b::date
+              {engine_filter}
+            ORDER BY kp.keyword_id, kp.engine, kp.checked_at DESC
+        )
+        SELECT
+            COALESCE(a.keyword_id, b.keyword_id) AS keyword_id,
+            COALESCE(a.engine, b.engine) AS engine,
+            a.position AS position_a,
+            b.position AS position_b,
+            CASE
+                WHEN a.position IS NOT NULL AND b.position IS NOT NULL
+                    THEN a.position - b.position
+                ELSE NULL
+            END AS delta,
+            a.url AS url_a,
+            b.url AS url_b
+        FROM pos_a a
+        FULL OUTER JOIN pos_b b ON a.keyword_id = b.keyword_id AND a.engine = b.engine
+        ORDER BY COALESCE(b.position, 999) ASC
+    """)
+    result = await db.execute(query, params)
+    return [dict(r) for r in result.mappings().all()]
+
+
+async def get_positions_by_url(
+    db: AsyncSession,
+    site_id: uuid.UUID,
+    url_filter: str,
+    engine: str | None = None,
+    limit: int = 500,
+) -> list[dict]:
+    """Get latest positions filtered by ranking URL (substring match).
+
+    Returns list of position dicts for keywords ranking on the given URL.
+    """
+    engine_filter = "AND kp.engine = :engine" if engine else ""
+    params: dict = {"site_id": site_id, "url_filter": f"%{url_filter}%", "limit": limit}
+    if engine:
+        params["engine"] = engine
+
+    query = text(f"""
+        SELECT * FROM (
+            SELECT DISTINCT ON (kp.keyword_id, kp.engine)
+                kp.*
+            FROM keyword_positions kp
+            WHERE kp.site_id = :site_id {engine_filter}
+            ORDER BY kp.keyword_id, kp.engine, kp.checked_at DESC
+        ) latest
+        WHERE latest.url ILIKE :url_filter
+        ORDER BY latest.position ASC NULLS LAST
+        LIMIT :limit
+    """)
+    result = await db.execute(query, params)
+    return [dict(r) for r in result.mappings().all()]
+
+
 # ---- Sync version for Celery tasks ----
 
 def write_position_sync(

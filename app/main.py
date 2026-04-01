@@ -351,10 +351,17 @@ async def ui_positions(
     if not site:
         return HTMLResponse("Site not found", status_code=404)
 
+    from app.services.position_service import get_position_distribution, get_positions_by_url
+
     top_n_int = int(top_n) if top_n else None
-    rows = await get_latest_positions(
-        db, _uuid.UUID(site_id), engine=engine, top_n=top_n_int
-    )
+    url_filter = request.query_params.get("url", "")
+
+    if url_filter:
+        rows = await get_positions_by_url(db, _uuid.UUID(site_id), url_filter, engine=engine)
+    else:
+        rows = await get_latest_positions(
+            db, _uuid.UUID(site_id), engine=engine, top_n=top_n_int
+        )
 
     # Enrich with keyword phrase
     kw_ids = {r.get("keyword_id") for r in rows if r.get("keyword_id")}
@@ -368,6 +375,9 @@ async def ui_positions(
     for r in rows:
         r["phrase"] = kw_map.get(r.get("keyword_id"), "")
 
+    # Distribution summary
+    distribution = await get_position_distribution(db, _uuid.UUID(site_id), engine=engine)
+
     return templates.TemplateResponse(
         request, "positions/index.html",
         {
@@ -376,6 +386,8 @@ async def ui_positions(
             "positions": rows,
             "top_n": top_n,
             "engine": engine,
+            "url_filter": url_filter,
+            "distribution": distribution,
         },
     )
 

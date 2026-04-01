@@ -46,6 +46,65 @@ async def position_history(
     return {"keyword_id": str(keyword_id), "engine": engine, "days": days, "history": history}
 
 
+@router.get("/sites/{site_id}/distribution")
+async def position_distribution(
+    site_id: uuid.UUID,
+    engine: str | None = None,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_admin),
+) -> dict:
+    """Get keyword distribution across TOP-3/10/30/100."""
+    dist = await position_service.get_position_distribution(db, site_id, engine=engine)
+    return {"site_id": str(site_id), **dist}
+
+
+@router.get("/sites/{site_id}/lost-gained")
+async def lost_gained(
+    site_id: uuid.UUID,
+    days: int = 7,
+    engine: str | None = None,
+    threshold: int = 10,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_admin),
+) -> dict:
+    """Find keywords that entered or left the TOP-N."""
+    result = await position_service.get_lost_gained_keywords(
+        db, site_id, days=days, engine=engine, threshold=threshold
+    )
+    return {"site_id": str(site_id), "days": days, "threshold": threshold, **result}
+
+
+@router.get("/sites/{site_id}/compare")
+async def compare_dates(
+    site_id: uuid.UUID,
+    date_a: str,
+    date_b: str,
+    engine: str | None = None,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_admin),
+) -> dict:
+    """Compare positions between two dates."""
+    rows = await position_service.compare_positions_by_date(
+        db, site_id, date_a, date_b, engine=engine
+    )
+    return {"site_id": str(site_id), "date_a": date_a, "date_b": date_b, "count": len(rows), "positions": rows}
+
+
+@router.get("/sites/{site_id}/by-url")
+async def positions_by_url(
+    site_id: uuid.UUID,
+    url: str,
+    engine: str | None = None,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_admin),
+) -> dict:
+    """Get positions filtered by ranking URL."""
+    rows = await position_service.get_positions_by_url(
+        db, site_id, url, engine=engine
+    )
+    return {"site_id": str(site_id), "url_filter": url, "count": len(rows), "positions": rows}
+
+
 @router.post("/sites/{site_id}/check", status_code=status.HTTP_202_ACCEPTED)
 async def trigger_position_check(
     site_id: uuid.UUID,

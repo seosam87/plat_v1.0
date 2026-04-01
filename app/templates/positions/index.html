@@ -8,17 +8,56 @@
       onclick="this.textContent='Checking...'; this.disabled=true">Check Positions</button>
   </div>
 
+  <!-- Distribution bar -->
+  {% if distribution and distribution.total > 0 %}
+  <div style="margin-bottom:1.5rem">
+    <div style="display:flex; gap:1rem; font-size:.85rem; margin-bottom:.5rem">
+      <span style="color:#059669">&#9632; TOP-3: {{ distribution.top3 }}</span>
+      <span style="color:#2563eb">&#9632; TOP-10: {{ distribution.top10 }}</span>
+      <span style="color:#6b7280">&#9632; TOP-30: {{ distribution.top30 }}</span>
+      <span style="color:#f59e0b">&#9632; TOP-100: {{ distribution.top100 }}</span>
+      <span style="color:#dc2626">&#9632; Не в ТОП: {{ distribution.not_ranked }}</span>
+      <span style="color:#374151; margin-left:auto">Всего: {{ distribution.total }}</span>
+    </div>
+    {% set t = distribution.total %}
+    <div style="display:flex; height:8px; border-radius:4px; overflow:hidden; background:#e5e7eb">
+      {% if distribution.top3 > 0 %}<div style="width:{{ (distribution.top3 / t * 100)|round(1) }}%; background:#059669" title="TOP-3"></div>{% endif %}
+      {% if distribution.top10 - distribution.top3 > 0 %}<div style="width:{{ ((distribution.top10 - distribution.top3) / t * 100)|round(1) }}%; background:#2563eb" title="TOP 4-10"></div>{% endif %}
+      {% if distribution.top30 - distribution.top10 > 0 %}<div style="width:{{ ((distribution.top30 - distribution.top10) / t * 100)|round(1) }}%; background:#6b7280" title="TOP 11-30"></div>{% endif %}
+      {% if distribution.top100 - distribution.top30 > 0 %}<div style="width:{{ ((distribution.top100 - distribution.top30) / t * 100)|round(1) }}%; background:#f59e0b" title="TOP 31-100"></div>{% endif %}
+      {% if distribution.not_ranked > 0 %}<div style="width:{{ (distribution.not_ranked / t * 100)|round(1) }}%; background:#dc2626" title="Не ранжируется"></div>{% endif %}
+    </div>
+  </div>
+  {% endif %}
+
   <!-- Filters -->
-  <div style="display:flex; gap:.75rem; margin-bottom:1.5rem; flex-wrap:wrap; align-items:center">
+  <div style="display:flex; gap:.75rem; margin-bottom:1rem; flex-wrap:wrap; align-items:center">
     <label style="font-size:.85rem; color:#6b7280">Top:</label>
-    <a href="?top_n=" class="btn btn-sm {% if not top_n %}btn-primary{% endif %}">All</a>
-    <a href="?top_n=3" class="btn btn-sm {% if top_n == '3' %}btn-primary{% endif %}">Top 3</a>
-    <a href="?top_n=10" class="btn btn-sm {% if top_n == '10' %}btn-primary{% endif %}">Top 10</a>
-    <a href="?top_n=100" class="btn btn-sm {% if top_n == '100' %}btn-primary{% endif %}">Top 100</a>
+    <a href="?{% if engine %}engine={{ engine }}&{% endif %}top_n=" class="btn btn-sm {% if not top_n %}btn-primary{% endif %}">All</a>
+    <a href="?{% if engine %}engine={{ engine }}&{% endif %}top_n=3" class="btn btn-sm {% if top_n == '3' %}btn-primary{% endif %}">Top 3</a>
+    <a href="?{% if engine %}engine={{ engine }}&{% endif %}top_n=10" class="btn btn-sm {% if top_n == '10' %}btn-primary{% endif %}">Top 10</a>
+    <a href="?{% if engine %}engine={{ engine }}&{% endif %}top_n=100" class="btn btn-sm {% if top_n == '100' %}btn-primary{% endif %}">Top 100</a>
     <span style="margin-left:1rem; font-size:.85rem; color:#6b7280">Engine:</span>
-    <a href="?engine=" class="btn btn-sm {% if not engine %}btn-primary{% endif %}">All</a>
-    <a href="?engine=google" class="btn btn-sm {% if engine == 'google' %}btn-primary{% endif %}">Google</a>
-    <a href="?engine=yandex" class="btn btn-sm {% if engine == 'yandex' %}btn-primary{% endif %}">Yandex</a>
+    <a href="?{% if top_n %}top_n={{ top_n }}&{% endif %}engine=" class="btn btn-sm {% if not engine %}btn-primary{% endif %}">All</a>
+    <a href="?{% if top_n %}top_n={{ top_n }}&{% endif %}engine=google" class="btn btn-sm {% if engine == 'google' %}btn-primary{% endif %}">Google</a>
+    <a href="?{% if top_n %}top_n={{ top_n }}&{% endif %}engine=yandex" class="btn btn-sm {% if engine == 'yandex' %}btn-primary{% endif %}">Yandex</a>
+  </div>
+
+  <!-- URL filter -->
+  <div style="display:flex; gap:.5rem; margin-bottom:1rem; align-items:center">
+    <form method="GET" style="display:flex; gap:.5rem; align-items:center">
+      {% if engine %}<input type="hidden" name="engine" value="{{ engine }}">{% endif %}
+      {% if top_n %}<input type="hidden" name="top_n" value="{{ top_n }}">{% endif %}
+      <label style="font-size:.85rem; color:#6b7280">URL:</label>
+      <input type="text" name="url" value="{{ url_filter or '' }}" placeholder="Фильтр по URL (часть адреса)"
+        style="width:300px; padding:.4rem .6rem; border:1px solid #d1d5db; border-radius:4px; font-size:.85rem">
+      <button type="submit" class="btn btn-sm">Найти</button>
+      {% if url_filter %}<a href="?{% if engine %}engine={{ engine }}&{% endif %}{% if top_n %}top_n={{ top_n }}{% endif %}" class="btn btn-sm">Сбросить</a>{% endif %}
+    </form>
+    <span style="margin-left:auto; display:flex; gap:.5rem">
+      <button class="btn btn-sm" style="background:#7c3aed;color:white" onclick="document.getElementById('compare-modal').style.display='flex'">Сравнить даты</button>
+      <button class="btn btn-sm" style="background:#059669;color:white" onclick="loadLostGained()">Lost / Gained</button>
+    </span>
   </div>
 
   {% if positions %}
@@ -84,6 +123,31 @@
   </div>
 </div>
 
+<!-- Compare dates modal -->
+<div id="compare-modal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,.5); z-index:100; justify-content:center; align-items:center">
+  <div style="background:white; border-radius:8px; padding:2rem; max-width:900px; width:95%; max-height:85vh; overflow-y:auto; position:relative">
+    <button onclick="document.getElementById('compare-modal').style.display='none'" style="position:absolute; top:.5rem; right:1rem; background:none; border:none; font-size:1.5rem; cursor:pointer">&times;</button>
+    <h3 style="margin:0 0 1rem">Сравнение позиций по датам</h3>
+    <form onsubmit="loadCompare(event)" style="display:flex; gap:.5rem; margin-bottom:1rem; align-items:center">
+      <label style="font-size:.85rem">Дата A:</label>
+      <input type="date" id="compare-date-a" required style="padding:.3rem .5rem; border:1px solid #d1d5db; border-radius:4px">
+      <label style="font-size:.85rem; margin-left:.5rem">Дата B:</label>
+      <input type="date" id="compare-date-b" required style="padding:.3rem .5rem; border:1px solid #d1d5db; border-radius:4px">
+      <button type="submit" class="btn btn-sm btn-primary">Сравнить</button>
+    </form>
+    <div id="compare-result"></div>
+  </div>
+</div>
+
+<!-- Lost/Gained modal -->
+<div id="lg-modal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,.5); z-index:100; justify-content:center; align-items:center">
+  <div style="background:white; border-radius:8px; padding:2rem; max-width:700px; width:90%; max-height:80vh; overflow-y:auto; position:relative">
+    <button onclick="document.getElementById('lg-modal').style.display='none'" style="position:absolute; top:.5rem; right:1rem; background:none; border:none; font-size:1.5rem; cursor:pointer">&times;</button>
+    <h3 style="margin:0 0 1rem">Lost / Gained (7 дней, TOP-10)</h3>
+    <div id="lg-result" style="color:#6b7280">Загрузка...</div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
 let chartInstance = null;
@@ -134,6 +198,60 @@ function closeChart() {
 
 document.getElementById('chart-modal').addEventListener('click', function(e) {
   if (e.target === this) closeChart();
+});
+
+async function loadCompare(e) {
+  e.preventDefault();
+  const a = document.getElementById('compare-date-a').value;
+  const b = document.getElementById('compare-date-b').value;
+  const engine = '{{ engine or "" }}';
+  let url = '/positions/sites/{{ site_id }}/compare?date_a=' + a + '&date_b=' + b;
+  if (engine) url += '&engine=' + engine;
+  const resp = await fetch(url);
+  const data = await resp.json();
+  const rows = data.positions || [];
+  if (!rows.length) { document.getElementById('compare-result').innerHTML = '<p style="color:#6b7280">Нет данных за выбранные даты.</p>'; return; }
+  let html = '<table><thead><tr><th>Keyword</th><th>' + a + '</th><th>' + b + '</th><th>Delta</th></tr></thead><tbody>';
+  rows.forEach(r => {
+    const pa = r.position_a != null ? r.position_a : '—';
+    const pb = r.position_b != null ? r.position_b : '—';
+    let delta = '—';
+    if (r.delta != null && r.delta !== 0) {
+      delta = r.delta > 0 ? '<span style="color:#059669">&#9650; +' + r.delta + '</span>' : '<span style="color:#dc2626">&#9660; ' + r.delta + '</span>';
+    } else if (r.delta === 0) { delta = '<span style="color:#6b7280">=</span>'; }
+    html += '<tr><td>' + (r.keyword_id || '') + '</td><td>' + pa + '</td><td>' + pb + '</td><td>' + delta + '</td></tr>';
+  });
+  html += '</tbody></table>';
+  document.getElementById('compare-result').innerHTML = html;
+}
+
+async function loadLostGained() {
+  document.getElementById('lg-modal').style.display = 'flex';
+  document.getElementById('lg-result').innerHTML = 'Загрузка...';
+  const engine = '{{ engine or "" }}';
+  let url = '/positions/sites/{{ site_id }}/lost-gained?days=7&threshold=10';
+  if (engine) url += '&engine=' + engine;
+  const resp = await fetch(url);
+  const data = await resp.json();
+  let html = '';
+  if (data.gained && data.gained.length) {
+    html += '<h4 style="color:#059669; margin:0 0 .5rem">&#9650; Gained (вошли в TOP-10): ' + data.gained.length + '</h4><ul>';
+    data.gained.forEach(g => { html += '<li>' + g.keyword_id + ' — ' + (g.old_position || 'нет') + ' → <b>' + g.new_position + '</b></li>'; });
+    html += '</ul>';
+  } else { html += '<p style="color:#6b7280">Нет новых ключей в TOP-10.</p>'; }
+  if (data.lost && data.lost.length) {
+    html += '<h4 style="color:#dc2626; margin:1rem 0 .5rem">&#9660; Lost (выпали из TOP-10): ' + data.lost.length + '</h4><ul>';
+    data.lost.forEach(l => { html += '<li>' + l.keyword_id + ' — <b>' + l.old_position + '</b> → ' + (l.new_position || 'нет') + '</li>'; });
+    html += '</ul>';
+  } else { html += '<p style="color:#6b7280">Нет потерянных ключей из TOP-10.</p>'; }
+  document.getElementById('lg-result').innerHTML = html;
+}
+
+document.getElementById('compare-modal').addEventListener('click', function(e) {
+  if (e.target === this) this.style.display = 'none';
+});
+document.getElementById('lg-modal').addEventListener('click', function(e) {
+  if (e.target === this) this.style.display = 'none';
 });
 </script>
 {% endblock %}

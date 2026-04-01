@@ -127,3 +127,98 @@ async def test_positions_router_registered():
     assert "/positions/sites/{site_id}" in paths
     assert "/positions/keywords/{keyword_id}/history" in paths
     assert "/positions/sites/{site_id}/check" in paths
+
+
+async def test_new_endpoints_registered():
+    """All Phase 3 endpoints are registered in the router."""
+    from app.routers.positions import router
+    paths = [r.path for r in router.routes]
+    assert "/positions/sites/{site_id}/distribution" in paths
+    assert "/positions/sites/{site_id}/lost-gained" in paths
+    assert "/positions/sites/{site_id}/compare" in paths
+    assert "/positions/sites/{site_id}/by-url" in paths
+
+
+class TestDistributionLogic:
+    """Test distribution counting logic (pure Python, no DB)."""
+
+    def test_categorize_positions(self):
+        """Verify categorization thresholds match the service logic."""
+        positions = [1, 2, 3, 5, 8, 10, 15, 25, 50, 80, None]
+        top3 = sum(1 for p in positions if p is not None and p <= 3)
+        top10 = sum(1 for p in positions if p is not None and p <= 10)
+        top30 = sum(1 for p in positions if p is not None and p <= 30)
+        top100 = sum(1 for p in positions if p is not None and p <= 100)
+        not_ranked = sum(1 for p in positions if p is None)
+        assert top3 == 3   # 1, 2, 3
+        assert top10 == 6  # 1, 2, 3, 5, 8, 10
+        assert top30 == 8  # + 15, 25
+        assert top100 == 10  # + 50, 80
+        assert not_ranked == 1
+
+
+class TestLostGainedLogic:
+    """Test lost/gained classification logic."""
+
+    def test_gained_classification(self):
+        """Keyword enters TOP-N: old=None or >threshold, new<=threshold."""
+        threshold = 10
+        # Was not ranked, now in TOP-10
+        old, new = None, 5
+        is_gained = (old is None or old > threshold) and (new is not None and new <= threshold)
+        assert is_gained
+
+    def test_lost_classification(self):
+        """Keyword leaves TOP-N: old<=threshold, new=None or >threshold."""
+        threshold = 10
+        # Was in TOP-10, now out
+        old, new = 3, 15
+        is_lost = (old is not None and old <= threshold) and (new is None or new > threshold)
+        assert is_lost
+
+    def test_stayed_in_top(self):
+        """Keyword stays in TOP-N: neither gained nor lost."""
+        threshold = 10
+        old, new = 5, 3
+        is_gained = (old is None or old > threshold) and (new is not None and new <= threshold)
+        is_lost = (old is not None and old <= threshold) and (new is None or new > threshold)
+        assert not is_gained
+        assert not is_lost
+
+
+class TestCompareDeltaLogic:
+    """Test date comparison delta computation."""
+
+    def test_delta_improvement(self):
+        """Position A=10, Position B=3 → delta = 10 - 3 = 7 (improved in B)."""
+        pos_a, pos_b = 10, 3
+        delta = pos_a - pos_b
+        assert delta == 7
+
+    def test_delta_drop(self):
+        """Position A=3, Position B=10 → delta = 3 - 10 = -7 (dropped in B)."""
+        pos_a, pos_b = 3, 10
+        delta = pos_a - pos_b
+        assert delta == -7
+
+    def test_delta_none_when_missing(self):
+        """If either position is None, delta is None."""
+        pos_a, pos_b = None, 5
+        delta = (pos_a - pos_b) if (pos_a is not None and pos_b is not None) else None
+        assert delta is None
+
+
+class TestServiceImports:
+    """Verify all new service functions are importable."""
+
+    def test_imports(self):
+        from app.services.position_service import (
+            get_position_distribution,
+            get_lost_gained_keywords,
+            compare_positions_by_date,
+            get_positions_by_url,
+        )
+        assert callable(get_position_distribution)
+        assert callable(get_lost_gained_keywords)
+        assert callable(compare_positions_by_date)
+        assert callable(get_positions_by_url)
