@@ -1,0 +1,434 @@
+{% extends "base.html" %}
+{% block title %}Трафик — {{ site.name }} — SEO Platform{% endblock %}
+{% block content %}
+
+{# ─── Page header ─── #}
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem">
+  <h2 style="margin:0; font-size:1.25rem; font-weight:600">Трафик: {{ site.name }}</h2>
+  <button class="btn btn-verify"
+    hx-post="/metrika/{{ site.id }}/fetch"
+    hx-vals='{"date1": null, "date2": null}'
+    hx-swap="none"
+    onclick="this.textContent='Загрузка...'; this.disabled=true; scheduleReload()">
+    Загрузить данные Метрики
+  </button>
+</div>
+
+{# ─── Empty state: no counter configured ─── #}
+{% if not site.metrika_counter_id %}
+<div class="card" style="margin-bottom:1.5rem">
+  <p style="color:#6b7280; margin:0">
+    Счётчик Метрики не настроен. Добавьте ID счётчика и токен в настройках сайта.
+  </p>
+</div>
+
+{# ─── Empty state: counter set but no data ─── #}
+{% elif not daily_data %}
+<div class="card" style="margin-bottom:1.5rem">
+  <p style="color:#6b7280; margin:0">
+    Данные ещё не загружены. Нажмите «Загрузить данные Метрики».
+  </p>
+</div>
+
+{% else %}
+
+{# ─── KPI stats row ─── #}
+{% set last = daily_data[-1] if daily_data else {} %}
+{% set totals_visits = daily_data | sum(attribute='visits') %}
+{% set totals_bounce = last.get('bounce_rate', 0) if last else 0 %}
+{% set totals_depth  = last.get('page_depth', 0) if last else 0 %}
+{% set totals_dur    = last.get('avg_duration_seconds', 0) if last else 0 %}
+
+<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(160px,1fr)); gap:1rem; margin-bottom:1.5rem">
+
+  {# Визиты #}
+  <div class="card" style="text-align:center">
+    <div style="font-size:.875rem; color:#6b7280; margin-bottom:.5rem">Визиты</div>
+    <div style="font-size:1.75rem; font-weight:600; color:#2563eb">{{ totals_visits }}</div>
+  </div>
+
+  {# Отказы #}
+  <div class="card" style="text-align:center">
+    <div style="font-size:.875rem; color:#6b7280; margin-bottom:.5rem">Отказы</div>
+    {% if totals_bounce > 50 %}
+      {% set bounce_color = '#dc2626' %}
+    {% elif totals_bounce < 30 %}
+      {% set bounce_color = '#059669' %}
+    {% else %}
+      {% set bounce_color = '#6b7280' %}
+    {% endif %}
+    <div style="font-size:1.75rem; font-weight:600; color:{{ bounce_color }}">{{ totals_bounce }}%</div>
+  </div>
+
+  {# Глубина просмотра #}
+  <div class="card" style="text-align:center">
+    <div style="font-size:.875rem; color:#6b7280; margin-bottom:.5rem">Глубина просмотра</div>
+    <div style="font-size:1.75rem; font-weight:600; color:#7c3aed">{{ totals_depth }}</div>
+  </div>
+
+  {# Время на сайте #}
+  <div class="card" style="text-align:center">
+    <div style="font-size:.875rem; color:#6b7280; margin-bottom:.5rem">Время на сайте</div>
+    {% set dur_min = (totals_dur // 60) | int %}
+    {% set dur_sec = (totals_dur % 60) | int %}
+    <div style="font-size:1.75rem; font-weight:600; color:#0ea5e9">{{ dur_min }}м {{ dur_sec }}с</div>
+  </div>
+
+</div>
+
+{% endif %}
+
+{# ─── Traffic chart card ─── #}
+{% if site.metrika_counter_id %}
+<div class="card" style="margin-bottom:1.5rem">
+  <h3 style="margin:0 0 1rem; font-size:1rem; font-weight:600">График посещаемости</h3>
+  <canvas id="traffic-chart" style="height:300px"></canvas>
+
+  {# Date range pickers for chart #}
+  <div style="display:flex; gap:1rem; margin-top:1rem; align-items:center; flex-wrap:wrap">
+    <label style="font-size:.875rem; color:#6b7280">Период A:</label>
+    <input type="date" id="date_a_start" style="padding:.4rem .75rem; border:1px solid #d1d5db; border-radius:4px; font-size:.875rem">
+    <span style="font-size:.875rem; color:#6b7280">—</span>
+    <input type="date" id="date_a_end" style="padding:.4rem .75rem; border:1px solid #d1d5db; border-radius:4px; font-size:.875rem">
+
+    <label style="font-size:.875rem; color:#6b7280; margin-left:1rem">Период Б:</label>
+    <input type="date" id="date_b_start" style="padding:.4rem .75rem; border:1px solid #d1d5db; border-radius:4px; font-size:.875rem">
+    <span style="font-size:.875rem; color:#6b7280">—</span>
+    <input type="date" id="date_b_end" style="padding:.4rem .75rem; border:1px solid #d1d5db; border-radius:4px; font-size:.875rem">
+
+    <button class="btn btn-primary" onclick="fetchComparison()">Сравнить периоды</button>
+  </div>
+</div>
+
+{# ─── Event markers card ─── #}
+<div class="card" style="margin-bottom:1.5rem">
+  <h3 style="margin:0 0 1rem; font-size:1rem; font-weight:600">События на графике</h3>
+
+  <ul id="events-list" style="list-style:none; margin:0 0 1rem; padding:0">
+    {% for ev in events %}
+    <li style="display:flex; align-items:center; gap:.5rem; padding:.4rem 0; border-bottom:1px solid #e5e7eb">
+      <span style="width:12px; height:12px; border-radius:50%; background:{{ ev.color }}; display:inline-block"></span>
+      <span style="font-size:.875rem; color:#6b7280">{{ ev.event_date.strftime('%Y-%m-%d') if ev.event_date else '' }}</span>
+      <span style="font-size:.875rem">{{ ev.label }}</span>
+      <button class="btn btn-sm" style="margin-left:auto; background:#991b1b; color:white; font-size:.75rem"
+        hx-delete="/metrika/{{ site.id }}/events/{{ ev.id }}"
+        hx-confirm="Удалить это событие?"
+        hx-target="closest li"
+        hx-swap="outerHTML swap:200ms">Удалить</button>
+    </li>
+    {% endfor %}
+    {% if not events %}
+    <li style="padding:.5rem 0; color:#6b7280; font-size:.875rem">
+      Нет событий. Добавьте метку на графике, чтобы связать действие с изменением трафика.
+    </li>
+    {% endif %}
+  </ul>
+
+  {# Add event form #}
+  <form hx-post="/metrika/{{ site.id }}/events"
+        hx-target="#events-list"
+        hx-swap="innerHTML"
+        hx-encoding="multipart/form-data"
+        style="display:flex; gap:.5rem; align-items:center; flex-wrap:wrap; border-top:1px solid #e5e7eb; padding-top:1rem">
+    <label style="font-size:.875rem; color:#6b7280">Дата:</label>
+    <input type="date" name="event_date" required
+      style="padding:.4rem .75rem; border:1px solid #d1d5db; border-radius:4px; font-size:.875rem">
+
+    <label style="font-size:.875rem; color:#6b7280">Метка:</label>
+    <input type="text" name="label" required placeholder="Описание события"
+      style="padding:.4rem .75rem; border:1px solid #d1d5db; border-radius:4px; font-size:.875rem; min-width:180px">
+
+    <label style="font-size:.875rem; color:#6b7280">Цвет:</label>
+    <input type="color" name="color" value="#7c3aed"
+      style="width:40px; height:34px; border:1px solid #d1d5db; border-radius:4px; cursor:pointer; padding:2px">
+
+    <button type="submit" class="btn btn-primary">Добавить событие</button>
+  </form>
+</div>
+
+{# ─── Period comparison card ─── #}
+<div class="card" style="margin-bottom:1.5rem">
+  <h3 style="margin:0 0 1rem; font-size:1rem; font-weight:600">Сравнение периодов</h3>
+
+  <div style="display:flex; gap:.5rem; margin-bottom:1rem; flex-wrap:wrap">
+    <button class="btn btn-sm btn-primary" id="filter-all" onclick="filterRows('all')">Все страницы</button>
+    <button class="btn btn-sm" id="filter-new" onclick="filterRows('new')">Новые</button>
+    <button class="btn btn-sm" id="filter-lost" onclick="filterRows('lost')">Потери</button>
+  </div>
+
+  <div id="compare-result">
+    <p style="color:#6b7280; font-size:.875rem">
+      Нет данных за выбранный период. Выберите другие даты или загрузите данные.
+    </p>
+  </div>
+</div>
+
+{# ─── Metrika Settings section ─── #}
+<div class="card" style="margin-bottom:1.5rem">
+  <h3 style="margin:0 0 1rem; font-size:1rem; font-weight:600">Настройки Метрики</h3>
+  <div style="display:flex; flex-direction:column; gap:.75rem; max-width:480px">
+    <div>
+      <label style="font-size:.875rem; color:#6b7280; display:block; margin-bottom:.3rem">ID счётчика Метрики</label>
+      <input type="text" id="settings-counter-id"
+        value="{{ site.metrika_counter_id or '' }}"
+        placeholder="12345678"
+        style="width:100%; padding:.4rem .75rem; border:1px solid #d1d5db; border-radius:4px; font-size:.875rem; box-sizing:border-box">
+    </div>
+    <div>
+      <label style="font-size:.875rem; color:#6b7280; display:block; margin-bottom:.3rem">API-токен</label>
+      <input type="password" id="settings-token"
+        placeholder="••••••••"
+        style="width:100%; padding:.4rem .75rem; border:1px solid #d1d5db; border-radius:4px; font-size:.875rem; box-sizing:border-box">
+    </div>
+    <div style="display:flex; align-items:center; gap:1rem">
+      <button class="btn btn-primary" onclick="saveSettings()">Сохранить настройки</button>
+      <span id="settings-status">
+        {% if site.metrika_counter_id %}
+          <span class="badge badge-connected">Настроен</span>
+        {% else %}
+          <span class="badge badge-failed">Не настроен</span>
+        {% endif %}
+      </span>
+    </div>
+    <div id="settings-msg" style="font-size:.875rem"></div>
+  </div>
+</div>
+
+{% endif %}
+
+{# ─── CDN Scripts ─── #}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+
+<script>
+// ── Data from server ──────────────────────────────────────────────────────
+const dailyData = {{ daily_data | tojson }};
+const eventsData = {{ events | tojson(default=str) }};
+const siteId = "{{ site.id }}";
+
+// ── Build Chart.js annotation objects from events ─────────────────────────
+function buildAnnotations(events) {
+  const annotations = {};
+  (events || []).forEach((ev, idx) => {
+    const evDate = ev.event_date ? ev.event_date.slice(0, 10) : '';
+    if (!evDate) return;
+    annotations['event_' + idx] = {
+      type: 'line',
+      scaleID: 'x',
+      value: evDate,
+      borderColor: ev.color || '#7c3aed',
+      borderWidth: 2,
+      borderDash: [4, 4],
+      label: {
+        display: true,
+        content: ev.label || '',
+        position: 'start',
+        backgroundColor: 'rgba(0,0,0,0.75)',
+        color: '#ffffff',
+        font: { size: 11 },
+        padding: 4,
+        borderRadius: 4
+      }
+    };
+  });
+  return annotations;
+}
+
+// ── Initialize traffic chart ───────────────────────────────────────────────
+let trafficChart = null;
+
+function initChart() {
+  const canvas = document.getElementById('traffic-chart');
+  if (!canvas || !dailyData || !dailyData.length) return;
+
+  const labels = dailyData.map(d => d.date || '');
+  const visits = dailyData.map(d => d.visits || 0);
+
+  const ctx = canvas.getContext('2d');
+  trafficChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Визиты',
+        data: visits,
+        borderColor: '#4f46e5',
+        backgroundColor: 'rgba(79,70,229,0.1)',
+        fill: true,
+        tension: 0.3,
+        pointRadius: 2
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        annotation: {
+          annotations: buildAnnotations(eventsData)
+        }
+      },
+      scales: {
+        x: {
+          title: { display: true, text: 'Дата' }
+        },
+        y: {
+          beginAtZero: true,
+          title: { display: true, text: 'Визиты' }
+        }
+      }
+    }
+  });
+}
+
+document.addEventListener('DOMContentLoaded', initChart);
+
+// ── Period comparison ──────────────────────────────────────────────────────
+async function fetchComparison() {
+  const aStart = document.getElementById('date_a_start').value;
+  const aEnd   = document.getElementById('date_a_end').value;
+  const bStart = document.getElementById('date_b_start').value;
+  const bEnd   = document.getElementById('date_b_end').value;
+
+  if (!aStart || !aEnd || !bStart || !bEnd) {
+    alert('Заполните все четыре даты для сравнения периодов.');
+    return;
+  }
+
+  const url = '/metrika/' + siteId + '/compare'
+    + '?a_start=' + aStart + '&a_end=' + aEnd
+    + '&b_start=' + bStart + '&b_end=' + bEnd;
+
+  const resp = await fetch(url);
+  if (!resp.ok) {
+    document.getElementById('compare-result').innerHTML =
+      '<p style="color:#dc2626">Ошибка загрузки данных.</p>';
+    return;
+  }
+  const rows = await resp.json();
+  renderCompareTable(rows, aStart + '—' + aEnd, bStart + '—' + bEnd);
+}
+
+function renderCompareTable(rows, labelA, labelB) {
+  const container = document.getElementById('compare-result');
+  if (!rows || !rows.length) {
+    container.innerHTML = '<p style="color:#6b7280; font-size:.875rem">Нет данных за выбранный период. Выберите другие даты или загрузите данные.</p>';
+    return;
+  }
+
+  let html = '<table data-compare-table>';
+  html += '<thead><tr>'
+    + '<th>Страница</th>'
+    + '<th>Визиты (А)</th>'
+    + '<th>Визиты (Б)</th>'
+    + '<th>Дельта</th>'
+    + '<th>Отказы</th>'
+    + '<th>Глубина</th>'
+    + '<th>Длительность</th>'
+    + '</tr></thead><tbody>';
+
+  rows.forEach(r => {
+    let rowClass = '';
+    let deltaHtml = '';
+    if (r.is_new) {
+      deltaHtml = '<span class="badge badge-connected">Новая</span>';
+      rowClass = 'new-page';
+    } else if (r.is_lost) {
+      deltaHtml = '<span class="badge badge-failed">Потеря</span>';
+      rowClass = 'lost-page';
+    } else {
+      const d = r.delta || 0;
+      if (d > 0) {
+        deltaHtml = '<span style="color:#059669">▲ +' + d + '</span>';
+      } else if (d < 0) {
+        deltaHtml = '<span style="color:#dc2626">▼ ' + d + '</span>';
+      } else {
+        deltaHtml = '<span style="color:#6b7280">=</span>';
+      }
+    }
+
+    const dur = r.avg_duration_b || 0;
+    const durMin = Math.floor(dur / 60);
+    const durSec = Math.floor(dur % 60);
+    const durStr = durMin + 'м ' + durSec + 'с';
+
+    html += '<tr data-row-type="' + rowClass + '">'
+      + '<td style="max-width:300px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap"><a href="' + (r.page_url || '#') + '" target="_blank">' + (r.page_url || '—') + '</a></td>'
+      + '<td>' + (r.visits_a || 0) + '</td>'
+      + '<td>' + (r.visits_b || 0) + '</td>'
+      + '<td>' + deltaHtml + '</td>'
+      + '<td>' + (r.bounce_rate_b != null ? r.bounce_rate_b + '%' : '—') + '</td>'
+      + '<td>' + (r.page_depth_b != null ? r.page_depth_b : '—') + '</td>'
+      + '<td>' + durStr + '</td>'
+      + '</tr>';
+  });
+
+  html += '</tbody></table>';
+  container.innerHTML = html;
+
+  // Restore active filter
+  const activeFilter = document.querySelector('[data-filter-active]');
+  if (activeFilter) filterRows(activeFilter.dataset.filterActive);
+}
+
+// ── Row filter buttons ────────────────────────────────────────────────────
+function filterRows(type) {
+  ['all', 'new', 'lost'].forEach(t => {
+    const btn = document.getElementById('filter-' + t);
+    if (btn) {
+      btn.classList.toggle('btn-primary', t === type);
+      btn.removeAttribute('data-filter-active');
+    }
+  });
+  const activeBtn = document.getElementById('filter-' + type);
+  if (activeBtn) activeBtn.setAttribute('data-filter-active', type);
+
+  const table = document.querySelector('[data-compare-table]');
+  if (!table) return;
+
+  table.querySelectorAll('tbody tr').forEach(row => {
+    const rowType = row.dataset.rowType || '';
+    if (type === 'all') {
+      row.style.display = '';
+    } else if (type === 'new') {
+      row.style.display = rowType === 'new-page' ? '' : 'none';
+    } else if (type === 'lost') {
+      row.style.display = rowType === 'lost-page' ? '' : 'none';
+    }
+  });
+}
+
+// ── Settings save ─────────────────────────────────────────────────────────
+async function saveSettings() {
+  const counterId = document.getElementById('settings-counter-id').value.trim();
+  const token     = document.getElementById('settings-token').value.trim();
+  const msgEl     = document.getElementById('settings-msg');
+
+  if (!counterId || !token) {
+    msgEl.innerHTML = '<span style="color:#dc2626">Заполните ID счётчика и токен.</span>';
+    return;
+  }
+
+  const resp = await fetch('/metrika/' + siteId + '/settings', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ counter_id: counterId, token: token })
+  });
+
+  if (resp.ok) {
+    msgEl.innerHTML = '<span style="color:#059669">Настройки сохранены.</span>';
+    document.getElementById('settings-status').innerHTML =
+      '<span class="badge badge-connected">Настроен</span>';
+    setTimeout(() => location.reload(), 1500);
+  } else {
+    const err = await resp.json().catch(() => ({}));
+    msgEl.innerHTML = '<span style="color:#dc2626">Ошибка: ' + (err.detail || 'не удалось сохранить') + '</span>';
+  }
+}
+
+// ── Auto-reload after fetch task ──────────────────────────────────────────
+function scheduleReload() {
+  setTimeout(() => location.reload(), 5000);
+}
+</script>
+
+{% endblock %}
