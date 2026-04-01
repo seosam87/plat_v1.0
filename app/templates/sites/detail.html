@@ -26,6 +26,9 @@
   </div>
 </div>
 
+<!-- Metrika traffic widget -->
+<div hx-get="/metrika/{{ site.id }}/widget" hx-trigger="load" hx-swap="innerHTML" style="margin-bottom:1.5rem"></div>
+
 <!-- Quick actions -->
 <div class="card" style="margin-bottom:1.5rem">
   <h3 style="margin:0 0 1rem">Quick Actions</h3>
@@ -35,6 +38,7 @@
     <a href="/ui/clusters/{{ site.id }}" class="btn" style="background:#0ea5e9;color:white">Clusters</a>
     <a href="/ui/sites/{{ site.id }}/crawls" class="btn" style="background:#059669;color:white">Crawl History</a>
     <a href="/ui/pipeline/{{ site.id }}" class="btn" style="background:#d97706;color:white">Content Pipeline</a>
+    <a href="/ui/metrika/{{ site.id }}" class="btn" style="background:#0ea5e9;color:white">Трафик</a>
     <button class="btn btn-verify" hx-post="/sites/{{ site.id }}/verify" hx-swap="none"
       onclick="this.textContent='Verifying...'; this.disabled=true; setTimeout(()=>location.reload(), 3000)">Verify Connection</button>
     <button class="btn" style="background:#4f46e5;color:white" hx-post="/sites/{{ site.id }}/crawl" hx-swap="none"
