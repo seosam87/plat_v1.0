@@ -71,23 +71,49 @@ def create_post_sync(site: Site, title: str, content: str, status: str = "draft"
         return None
 
 
-async def verify_connection(site: Site) -> ConnectionStatus:
+async def detect_seo_plugin(client: httpx.AsyncClient, site: Site, auth_header: str) -> str:
+    """
+    Fetch one post from WP REST API and detect SEO plugin by response fields.
+    Returns 'yoast', 'rankmath', or 'unknown'.
+    """
+    url = site.url.rstrip("/") + "/wp-json/wp/v2/posts?per_page=1"
+    try:
+        resp = await client.get(url, headers={"Authorization": auth_header})
+        if resp.status_code != 200:
+            return "unknown"
+        posts = resp.json()
+        if not posts or not isinstance(posts, list):
+            return "unknown"
+        post = posts[0]
+        if "yoast_head" in post or "yoast_head_json" in post:
+            return "yoast"
+        if "rank_math_title" in post or "rank_math_description" in post:
+            return "rankmath"
+        return "unknown"
+    except (httpx.HTTPError, ValueError, KeyError):
+        return "unknown"
+
+
+async def verify_connection(site: Site) -> tuple[ConnectionStatus, str]:
     """
     Ping {site.url}/wp-json/wp/v2/users/me with WP Application Password auth.
-    Returns ConnectionStatus.connected on HTTP 200, ConnectionStatus.failed otherwise.
+    Returns (ConnectionStatus, seo_plugin).
+    On successful connection, also detects SEO plugin.
     Password is decrypted at call time and never logged.
     """
     password = get_decrypted_password(site)
     url = site.url.rstrip("/") + WP_VERIFY_PATH
     try:
         async with httpx.AsyncClient(timeout=REQUEST_TIMEOUT) as client:
-            resp = await client.get(
-                url,
-                headers={"Authorization": _basic_auth_header(site.wp_username, password)},
-            )
+            auth = _basic_auth_header(site.wp_username, password)
+            resp = await client.get(url, headers={"Authorization": auth})
         if resp.status_code == 200:
             logger.info("WP connection verified", site_id=str(site.id), url=site.url)
-            return ConnectionStatus.connected
+            async with httpx.AsyncClient(timeout=REQUEST_TIMEOUT) as client:
+                seo_plugin = await detect_seo_plugin(client, site, auth)
+            if seo_plugin != "unknown":
+                logger.info("SEO plugin detected", site_id=str(site.id), plugin=seo_plugin)
+            return ConnectionStatus.connected, seo_plugin
         else:
             logger.warning(
                 "WP connection failed",
@@ -95,7 +121,7 @@ async def verify_connection(site: Site) -> ConnectionStatus:
                 url=site.url,
                 status_code=resp.status_code,
             )
-            return ConnectionStatus.failed
+            return ConnectionStatus.failed, site.seo_plugin or "unknown"
     except (httpx.TimeoutException, httpx.ConnectError, httpx.RequestError) as exc:
         logger.warning("WP connection error", site_id=str(site.id), url=site.url, error=str(exc))
-        return ConnectionStatus.failed
+        return ConnectionStatus.failed, site.seo_plugin or "unknown"

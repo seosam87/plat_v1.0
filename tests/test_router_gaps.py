@@ -156,7 +156,7 @@ class TestSitesRouterGaps:
     async def test_verify_site_returns_badge(self, mock_verify, client: AsyncClient, admin_token, site):
         from app.models.site import ConnectionStatus
 
-        mock_verify.return_value = ConnectionStatus.connected
+        mock_verify.return_value = (ConnectionStatus.connected, "unknown")
         resp = await client.post(
             f"/sites/{site.id}/verify",
             headers={"Authorization": f"Bearer {admin_token}"},

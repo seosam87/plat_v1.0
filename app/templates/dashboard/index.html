@@ -2,7 +2,7 @@
 {% block title %}Dashboard — SEO Platform{% endblock %}
 {% block content %}
 <div class="card" style="margin-bottom:1.5rem">
-  <h2 style="margin:0 0 1.5rem">Dashboard</h2>
+  <h2 style="margin:0 0 1.5rem">Dashboard <a class="help-trigger" onclick="openHelp()" title="Справка">?</a></h2>
   <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(170px, 1fr)); gap:1rem">
     <a href="/ui/sites" style="text-decoration:none; background:#f0f9ff; border-radius:8px; padding:1.5rem; text-align:center; display:block">
       <div style="font-size:2rem; font-weight:700; color:#0ea5e9">{{ stats.sites }}</div>

@@ -3,7 +3,7 @@
 {% block content %}
 <div class="card">
   <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem">
-    <h2 style="margin:0">Positions: {{ site_name }}</h2>
+    <h2 style="margin:0">Positions: {{ site_name }} <a class="help-trigger" onclick="openHelp()" title="Справка">?</a></h2>
     <button class="btn btn-primary" hx-post="/positions/sites/{{ site_id }}/check" hx-swap="none"
       onclick="this.textContent='Checking...'; this.disabled=true">Check Positions</button>
   </div>

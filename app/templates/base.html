@@ -42,5 +42,10 @@
   <main>
     {% block content %}{% endblock %}
   </main>
+  {% if help_module %}
+  {% with hm=help_module %}
+  {% include "help/_modal.html" %}
+  {% endwith %}
+  {% endif %}
 </body>
 </html>

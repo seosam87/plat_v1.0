@@ -219,8 +219,10 @@ async def verify_site(
     site = await site_service.get_site(db, site_id)
     if not site:
         raise HTTPException(status_code=404, detail="Site not found")
-    new_status = await wp_svc.verify_connection(site)
+    new_status, seo_plugin = await wp_svc.verify_connection(site)
     await site_service.set_connection_status(db, site, new_status)
+    site.seo_plugin = seo_plugin
+    await db.commit()
     return HTMLResponse(_status_badge(str(site_id), new_status.value))
 
 

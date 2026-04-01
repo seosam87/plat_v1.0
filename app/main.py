@@ -35,7 +35,43 @@ from app.services.schedule_service import get_all_schedules, upsert_schedule
 from app.services.site_service import get_site, get_sites
 from app.models.schedule import ScheduleType
 
-templates = Jinja2Templates(directory="app/templates")
+_jinja_templates = Jinja2Templates(directory="app/templates")
+
+# Map URL prefixes to help module names
+_HELP_MODULE_MAP = {
+    "/ui/sites": "sites",
+    "/ui/keywords": "keywords",
+    "/ui/positions": "positions",
+    "/ui/crawls": "crawl",
+    "/ui/clusters": "clusters",
+    "/ui/cannibalization": "clusters",
+    "/ui/pipeline": "pipeline",
+    "/ui/projects": "projects",
+    "/ui/dashboard": "reports",
+    "/ui/uploads": "keywords",
+    "/ui/tasks": "projects",
+    "/ui/admin": "admin",
+}
+
+
+class _HelpAwareTemplates:
+    """Wrapper that auto-injects help_module into template context based on request URL."""
+
+    def __init__(self, jinja_templates: Jinja2Templates):
+        self._t = jinja_templates
+
+    def TemplateResponse(self, request, name, context=None, **kwargs):
+        ctx = dict(context or {})
+        if "help_module" not in ctx:
+            path = str(request.url.path)
+            for prefix, module in _HELP_MODULE_MAP.items():
+                if path.startswith(prefix):
+                    ctx["help_module"] = module
+                    break
+        return self._t.TemplateResponse(request, name, ctx, **kwargs)
+
+
+templates = _HelpAwareTemplates(_jinja_templates)
 
 
 @asynccontextmanager
@@ -916,6 +952,137 @@ async def ui_admin_assign_site_to_group(
 
     # Full page refresh for this group card (redirect)
     return RedirectResponse("/ui/admin/groups", status_code=303)
+
+
+# ---- Help System ----
+
+
+HELP_DIR = "app/templates/help"
+_VALID_MODULES = {
+    "sites", "keywords", "positions", "crawl", "clusters",
+    "pipeline", "datasources", "projects", "reports", "admin", "general",
+}
+
+
+@app.get("/ui/help/{module}", response_class=HTMLResponse)
+async def ui_help(module: str) -> HTMLResponse:
+    """Render a module help markdown file as HTML."""
+    import pathlib
+    if module not in _VALID_MODULES:
+        return HTMLResponse("<p>Неизвестный модуль.</p>", status_code=404)
+
+    md_path = pathlib.Path(HELP_DIR) / f"{module}.md"
+    if not md_path.exists():
+        return HTMLResponse(
+            f"<p style='color:#6b7280'>Справка для модуля <b>{module}</b> ещё не написана. "
+            f"Будет добавлена при проработке этого модуля.</p>"
+        )
+
+    md_text = md_path.read_text(encoding="utf-8")
+    # Simple markdown→HTML conversion (no external dependency)
+    html = _render_markdown(md_text)
+    return HTMLResponse(html)
+
+
+def _render_markdown(md: str) -> str:
+    """Minimal markdown to HTML renderer — handles headers, bold, lists, code, tables, hr."""
+    import re
+
+    lines = md.split("\n")
+    html_lines: list[str] = []
+    in_list = False
+    in_table = False
+    in_code = False
+
+    for line in lines:
+        stripped = line.strip()
+
+        # Fenced code blocks
+        if stripped.startswith("```"):
+            if in_code:
+                html_lines.append("</code></pre>")
+                in_code = False
+            else:
+                html_lines.append("<pre><code>")
+                in_code = True
+            continue
+        if in_code:
+            html_lines.append(line)
+            continue
+
+        # Close list if needed
+        if in_list and not stripped.startswith("- ") and not stripped.startswith("* ") and stripped:
+            html_lines.append("</ul>")
+            in_list = False
+
+        # Close table if needed
+        if in_table and not stripped.startswith("|"):
+            html_lines.append("</tbody></table>")
+            in_table = False
+
+        # Horizontal rule
+        if stripped in ("---", "***", "___"):
+            html_lines.append("<hr>")
+            continue
+
+        # Headers
+        if stripped.startswith("### "):
+            html_lines.append(f"<h3>{_inline(stripped[4:])}</h3>")
+            continue
+        if stripped.startswith("## "):
+            html_lines.append(f"<h2>{_inline(stripped[3:])}</h2>")
+            continue
+        if stripped.startswith("# "):
+            html_lines.append(f"<h1>{_inline(stripped[2:])}</h1>")
+            continue
+
+        # List items
+        if stripped.startswith("- ") or stripped.startswith("* "):
+            if not in_list:
+                html_lines.append("<ul>")
+                in_list = True
+            html_lines.append(f"<li>{_inline(stripped[2:])}</li>")
+            continue
+
+        # Table rows
+        if stripped.startswith("|"):
+            cells = [c.strip() for c in stripped.strip("|").split("|")]
+            # Skip separator row (|---|---|)
+            if all(set(c) <= {"-", ":", " "} for c in cells):
+                continue
+            if not in_table:
+                html_lines.append("<table><thead><tr>")
+                html_lines.append("".join(f"<th>{_inline(c)}</th>" for c in cells))
+                html_lines.append("</tr></thead><tbody>")
+                in_table = True
+            else:
+                html_lines.append("<tr>" + "".join(f"<td>{_inline(c)}</td>" for c in cells) + "</tr>")
+            continue
+
+        # Empty line
+        if not stripped:
+            html_lines.append("")
+            continue
+
+        # Paragraph
+        html_lines.append(f"<p>{_inline(stripped)}</p>")
+
+    if in_list:
+        html_lines.append("</ul>")
+    if in_table:
+        html_lines.append("</tbody></table>")
+
+    return "\n".join(html_lines)
+
+
+def _inline(text: str) -> str:
+    """Handle inline markdown: bold, italic, code, links."""
+    import re
+    text = re.sub(r"`([^`]+)`", r"<code>\1</code>", text)
+    text = re.sub(r"\*\*([^*]+)\*\*", r"<strong>\1</strong>", text)
+    text = re.sub(r"\*([^*]+)\*", r"<em>\1</em>", text)
+    text = re.sub(r"\[([^\]]+)\]\(([^)]+)\)", r'<a href="\2">\1</a>', text)
+    return text
 
 
 # ---- Site Detail Page ----

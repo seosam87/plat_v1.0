@@ -1,0 +1,69 @@
+<!-- Help modal component. Include in base.html when help_module is set. -->
+<div id="help-modal" data-module="{{ help_module }}"
+  style="display:none; position:fixed; top:0; left:0; right:0; bottom:0;
+         background:rgba(0,0,0,.45); z-index:200;
+         justify-content:center; align-items:flex-start; padding-top:5vh">
+  <div style="background:white; border-radius:10px; max-width:720px; width:92%;
+              max-height:85vh; overflow-y:auto; position:relative;
+              box-shadow:0 8px 30px rgba(0,0,0,.2)">
+    <div style="position:sticky; top:0; background:white; padding:1.25rem 1.5rem .75rem;
+                border-bottom:1px solid #e5e7eb; display:flex; justify-content:space-between;
+                align-items:center; border-radius:10px 10px 0 0">
+      <h3 style="margin:0; font-size:1.1rem; color:#1e40af">Справка</h3>
+      <button onclick="closeHelp()" style="background:none; border:none; font-size:1.5rem;
+              cursor:pointer; color:#6b7280; line-height:1">&times;</button>
+    </div>
+    <div id="help-content" style="padding:1.5rem; line-height:1.6; font-size:.92rem; color:#374151">
+      <p style="color:#6b7280">Загрузка...</p>
+    </div>
+  </div>
+</div>
+
+<style>
+  #help-modal .help-body h1 { font-size:1.2rem; font-weight:700; margin:1.25rem 0 .5rem; color:#111827; }
+  #help-modal .help-body h2 { font-size:1.05rem; font-weight:600; margin:1.1rem 0 .4rem; color:#1e40af; }
+  #help-modal .help-body h3 { font-size:.95rem; font-weight:600; margin:1rem 0 .4rem; color:#374151; }
+  #help-modal .help-body p { margin:.4rem 0; }
+  #help-modal .help-body ul, #help-modal .help-body ol { margin:.4rem 0 .4rem 1.25rem; }
+  #help-modal .help-body li { margin:.2rem 0; }
+  #help-modal .help-body code { background:#f3f4f6; padding:.1rem .35rem; border-radius:3px; font-size:.85em; }
+  #help-modal .help-body strong { color:#111827; }
+  #help-modal .help-body table { width:100%; border-collapse:collapse; margin:.75rem 0; font-size:.85rem; }
+  #help-modal .help-body th { text-align:left; padding:.5rem; border-bottom:2px solid #e5e7eb; color:#6b7280; font-weight:600; }
+  #help-modal .help-body td { padding:.5rem; border-bottom:1px solid #f3f4f6; }
+  #help-modal .help-body hr { border:none; border-top:1px solid #e5e7eb; margin:1rem 0; }
+  .help-trigger {
+    display:inline-flex; align-items:center; justify-content:center;
+    width:28px; height:28px; border-radius:50%; border:2px solid #93c5fd;
+    color:#2563eb; font-weight:700; font-size:.9rem; cursor:pointer;
+    background:white; transition:all .15s; text-decoration:none; margin-left:.75rem;
+  }
+  .help-trigger:hover { background:#eff6ff; border-color:#2563eb; }
+</style>
+
+<script>
+function openHelp() {
+  var modal = document.getElementById('help-modal');
+  modal.style.display = 'flex';
+  var mod = modal.dataset.module || 'general';
+  fetch('/ui/help/' + mod)
+    .then(function(r) { return r.text(); })
+    .then(function(html) {
+      document.getElementById('help-content').innerHTML = '<div class="help-body">' + html + '</div>';
+    })
+    .catch(function() {
+      document.getElementById('help-content').innerHTML = '<p style="color:#dc2626">Не удалось загрузить справку.</p>';
+    });
+}
+
+function closeHelp() {
+  document.getElementById('help-modal').style.display = 'none';
+}
+
+document.addEventListener('click', function(e) {
+  if (e.target === document.getElementById('help-modal')) closeHelp();
+});
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeHelp();
+});
+</script>
