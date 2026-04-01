@@ -123,6 +123,70 @@ async def ui_tasks(
     )
 
 
+@app.get("/ui/positions", response_class=HTMLResponse)
+async def ui_positions_select(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+) -> HTMLResponse:
+    """Show site selector for positions page."""
+    sites = await get_sites(db)
+    if not sites:
+        return templates.TemplateResponse(
+            request, "positions/index.html",
+            {"site_name": "—", "site_id": "", "positions": [], "top_n": None, "engine": None},
+        )
+    # Redirect to first site
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(f"/ui/positions/{sites[0].id}")
+
+
+@app.get("/ui/positions/{site_id}", response_class=HTMLResponse)
+async def ui_positions(
+    site_id: str,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    engine: str | None = None,
+    top_n: str | None = None,
+) -> HTMLResponse:
+    """Positions page for a site with filters."""
+    import uuid as _uuid
+    from app.services.position_service import get_latest_positions
+    from app.models.keyword import Keyword
+    from sqlalchemy import select as sa_select
+
+    site = await get_site(db, _uuid.UUID(site_id))
+    if not site:
+        return HTMLResponse("Site not found", status_code=404)
+
+    top_n_int = int(top_n) if top_n else None
+    rows = await get_latest_positions(
+        db, _uuid.UUID(site_id), engine=engine, top_n=top_n_int
+    )
+
+    # Enrich with keyword phrase
+    kw_ids = {r.get("keyword_id") for r in rows if r.get("keyword_id")}
+    kw_map = {}
+    if kw_ids:
+        kws = (await db.execute(
+            sa_select(Keyword).where(Keyword.id.in_(kw_ids))
+        )).scalars().all()
+        kw_map = {kw.id: kw.phrase for kw in kws}
+
+    for r in rows:
+        r["phrase"] = kw_map.get(r.get("keyword_id"), "")
+
+    return templates.TemplateResponse(
+        request, "positions/index.html",
+        {
+            "site_name": site.name,
+            "site_id": str(site.id),
+            "positions": rows,
+            "top_n": top_n,
+            "engine": engine,
+        },
+    )
+
+
 @app.get("/ui/uploads", response_class=HTMLResponse)
 async def ui_uploads(
     request: Request,

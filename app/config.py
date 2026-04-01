@@ -47,6 +47,11 @@ class Settings(BaseSettings):
     SERP_MAX_DAILY_REQUESTS: int = 50
     SERP_DELAY_MS: int = 3000
 
+    # Telegram alerts
+    TELEGRAM_BOT_TOKEN: str = ""
+    TELEGRAM_CHAT_ID: str = ""
+    POSITION_DROP_THRESHOLD: int = 5  # alert if keyword drops by this many positions
+
     # App
     DB_ECHO: bool = False
     LOG_LEVEL: str = "INFO"

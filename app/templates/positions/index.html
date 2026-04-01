@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+{% block title %}Positions — {{ site_name }} — SEO Platform{% endblock %}
+{% block content %}
+<div class="card">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem">
+    <h2 style="margin:0">Positions: {{ site_name }}</h2>
+    <button class="btn btn-primary" hx-post="/positions/sites/{{ site_id }}/check" hx-swap="none"
+      onclick="this.textContent='Checking...'; this.disabled=true">Check Positions</button>
+  </div>
+
+  <!-- Filters -->
+  <div style="display:flex; gap:.75rem; margin-bottom:1.5rem; flex-wrap:wrap; align-items:center">
+    <label style="font-size:.85rem; color:#6b7280">Top:</label>
+    <a href="?top_n=" class="btn btn-sm {% if not top_n %}btn-primary{% endif %}">All</a>
+    <a href="?top_n=3" class="btn btn-sm {% if top_n == '3' %}btn-primary{% endif %}">Top 3</a>
+    <a href="?top_n=10" class="btn btn-sm {% if top_n == '10' %}btn-primary{% endif %}">Top 10</a>
+    <a href="?top_n=100" class="btn btn-sm {% if top_n == '100' %}btn-primary{% endif %}">Top 100</a>
+    <span style="margin-left:1rem; font-size:.85rem; color:#6b7280">Engine:</span>
+    <a href="?engine=" class="btn btn-sm {% if not engine %}btn-primary{% endif %}">All</a>
+    <a href="?engine=google" class="btn btn-sm {% if engine == 'google' %}btn-primary{% endif %}">Google</a>
+    <a href="?engine=yandex" class="btn btn-sm {% if engine == 'yandex' %}btn-primary{% endif %}">Yandex</a>
+  </div>
+
+  {% if positions %}
+  <table>
+    <thead>
+      <tr>
+        <th>Keyword</th>
+        <th>Position</th>
+        <th>Delta</th>
+        <th>URL</th>
+        <th>Engine</th>
+        <th>Region</th>
+        <th>Chart</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in positions %}
+      <tr>
+        <td style="font-weight:500">{{ p.phrase or p.keyword_id }}</td>
+        <td>
+          {% if p.position %}
+            <span style="font-weight:700; {% if p.position <= 3 %}color:#059669{% elif p.position <= 10 %}color:#2563eb{% elif p.position <= 30 %}color:#6b7280{% else %}color:#dc2626{% endif %}">
+              {{ p.position }}
+            </span>
+          {% else %}—{% endif %}
+        </td>
+        <td>
+          {% if p.delta is not none and p.delta != 0 %}
+            {% if p.delta > 0 %}
+              <span style="color:#059669">&#9650; +{{ p.delta }}</span>
+            {% else %}
+              <span style="color:#dc2626">&#9660; {{ p.delta }}</span>
+            {% endif %}
+          {% elif p.delta == 0 %}
+            <span style="color:#6b7280">=</span>
+          {% else %}—{% endif %}
+        </td>
+        <td style="max-width:250px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">
+          {% if p.url %}<a href="{{ p.url }}" target="_blank">{{ p.url }}</a>{% else %}—{% endif %}
+        </td>
+        <td><span class="badge badge-unknown">{{ p.engine }}</span></td>
+        <td>{{ p.region or '—' }}</td>
+        <td>
+          <button class="btn btn-sm" onclick="showChart('{{ p.keyword_id }}', '{{ p.phrase or '' }}', '{{ p.engine }}')">
+            &#128200;
+          </button>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p style="color:#6b7280">No position data yet. Import keywords and run a position check.</p>
+  {% endif %}
+</div>
+
+<!-- Chart modal -->
+<div id="chart-modal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,.5); z-index:100; justify-content:center; align-items:center">
+  <div style="background:white; border-radius:8px; padding:2rem; max-width:800px; width:90%; max-height:80vh; position:relative">
+    <button onclick="closeChart()" style="position:absolute; top:.5rem; right:1rem; background:none; border:none; font-size:1.5rem; cursor:pointer">&times;</button>
+    <h3 id="chart-title" style="margin:0 0 1rem"></h3>
+    <canvas id="position-chart" height="300"></canvas>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+let chartInstance = null;
+
+async function showChart(keywordId, phrase, engine) {
+  document.getElementById('chart-modal').style.display = 'flex';
+  document.getElementById('chart-title').textContent = phrase + ' (' + engine + ')';
+
+  const resp = await fetch('/positions/keywords/' + keywordId + '/history?engine=' + engine + '&days=90');
+  const data = await resp.json();
+  const history = data.history || [];
+
+  const labels = history.map(h => h.checked_at ? h.checked_at.slice(0, 10) : '');
+  const positions = history.map(h => h.position);
+
+  if (chartInstance) chartInstance.destroy();
+
+  const ctx = document.getElementById('position-chart').getContext('2d');
+  chartInstance = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Position',
+        data: positions,
+        borderColor: '#4f46e5',
+        backgroundColor: 'rgba(79,70,229,.1)',
+        fill: true,
+        tension: 0.3,
+        pointRadius: 3,
+      }]
+    },
+    options: {
+      responsive: true,
+      scales: {
+        y: { reverse: true, beginAtZero: false, title: { display: true, text: 'Position' } },
+        x: { title: { display: true, text: 'Date' } }
+      },
+      plugins: { legend: { display: false } }
+    }
+  });
+}
+
+function closeChart() {
+  document.getElementById('chart-modal').style.display = 'none';
+  if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
+}
+
+document.getElementById('chart-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeChart();
+});
+</script>
+{% endblock %}

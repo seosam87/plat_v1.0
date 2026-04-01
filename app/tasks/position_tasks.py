@@ -55,8 +55,11 @@ def check_positions(self, site_id: str) -> dict:
     if written == 0:
         written = _check_via_serp_parser(site_id, keywords)
 
-    logger.info("Position check done", site_id=site_id, written=written)
-    return {"status": "done", "site_id": site_id, "positions_written": written}
+    # Check for position drops and send Telegram alerts
+    alerts_sent = _send_drop_alerts(site_id)
+
+    logger.info("Position check done", site_id=site_id, written=written, alerts=alerts_sent)
+    return {"status": "done", "site_id": site_id, "positions_written": written, "alerts_sent": alerts_sent}
 
 
 def _check_via_dataforseo(site_id: str, keywords) -> int:
@@ -152,3 +155,51 @@ def _check_via_serp_parser(site_id: str, keywords) -> int:
             written += 1
 
     return written
+
+
+def _send_drop_alerts(site_id: str) -> int:
+    """Check recent positions for drops exceeding threshold, send Telegram alerts."""
+    from app.config import settings
+    from app.services.telegram_service import is_configured, send_message_sync, format_position_drop_alert
+
+    if not is_configured():
+        return 0
+
+    threshold = settings.POSITION_DROP_THRESHOLD
+    from app.database import get_sync_db
+    from app.models.position import KeywordPosition
+    from app.models.keyword import Keyword
+    from app.models.site import Site
+    from sqlalchemy import select
+    from datetime import timedelta
+
+    alerts = 0
+    with get_sync_db() as db:
+        site = db.execute(select(Site).where(Site.id == uuid.UUID(site_id))).scalar_one_or_none()
+        if not site:
+            return 0
+
+        cutoff = datetime.now(timezone.utc) - timedelta(hours=1)
+        recent = db.execute(
+            select(KeywordPosition).where(
+                KeywordPosition.site_id == uuid.UUID(site_id),
+                KeywordPosition.checked_at >= cutoff,
+                KeywordPosition.delta != None,
+            )
+        ).scalars().all()
+
+        for pos in recent:
+            if pos.delta is not None and pos.delta < -threshold:
+                kw = db.execute(
+                    select(Keyword).where(Keyword.id == pos.keyword_id)
+                ).scalar_one_or_none()
+                keyword_text = kw.phrase if kw else str(pos.keyword_id)
+                msg = format_position_drop_alert(
+                    site.name, keyword_text,
+                    pos.previous_position, pos.position,
+                    url=pos.url,
+                )
+                if send_message_sync(msg):
+                    alerts += 1
+
+    return alerts
