@@ -43,6 +43,7 @@
             >Verify</button>
             <span id="spinner-{{ site.id }}" class="htmx-indicator">…</span>
           </form>
+          <a href="/ui/sites/{{ site.id }}/crawls" class="btn btn-sm" style="margin-left:.5rem">History</a>
           {% if site.is_active %}
           <form class="inline">
             <button

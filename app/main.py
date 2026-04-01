@@ -14,6 +14,7 @@ from app.database import engine
 from app.dependencies import get_db
 from app.routers.admin import router as admin_router
 from app.routers.auth import router as auth_router
+from app.routers.crawl import router as crawl_router
 from app.routers.sites import router as sites_router
 from app.services.site_service import get_sites
 
@@ -38,6 +39,7 @@ app = FastAPI(
 app.include_router(auth_router)
 app.include_router(admin_router)
 app.include_router(sites_router)
+app.include_router(crawl_router)
 
 
 @app.get("/ui/sites", response_class=HTMLResponse)

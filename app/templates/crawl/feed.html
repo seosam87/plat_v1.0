@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Change Feed — Crawl {{ job.id }}{% endblock %}
+{% block content %}
+<div class="card">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem">
+    <div>
+      <h2 style="margin:0">Change Feed</h2>
+      <p style="color:#6b7280; margin:.25rem 0 0">
+        Job {{ job.id }} &middot;
+        {{ job.status.value }} &middot;
+        {{ job.pages_crawled }} pages
+      </p>
+    </div>
+    <a href="/ui/sites/{{ job.site_id }}/crawls" class="btn btn-primary">← Crawl History</a>
+  </div>
+
+  <!-- Filter buttons -->
+  <div style="margin-bottom:1rem; display:flex; gap:.5rem; flex-wrap:wrap">
+    {% for f in ["all", "seo_changed", "content_changed", "new_pages", "status_changed"] %}
+    <button
+      class="btn btn-sm {% if filter == f %}btn-primary{% endif %}"
+      hx-get="/ui/crawls/{{ job.id }}?filter={{ f }}"
+      hx-target="#pages-tbody"
+      hx-swap="innerHTML"
+      hx-push-url="false"
+    >{{ f.replace("_", " ").title() }}</button>
+    {% endfor %}
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>URL</th>
+        <th>Title</th>
+        <th>Status</th>
+        <th>Type</th>
+        <th>Changes</th>
+        <th>Flags</th>
+      </tr>
+    </thead>
+    <tbody id="pages-tbody">
+      {% include "crawl/feed_rows.html" %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

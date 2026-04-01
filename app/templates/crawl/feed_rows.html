@@ -1,0 +1,41 @@
+{% for row in page_rows %}
+{% set page = row.page %}
+{% set snap = row.snap %}
+{% set diff = snap.diff_data if snap else None %}
+<tr>
+  <td style="max-width:300px;word-break:break-all">
+    <a href="{{ page.url }}" target="_blank">{{ page.url }}</a>
+  </td>
+  <td>{{ page.title or "—" }}</td>
+  <td>
+    {% if page.http_status %}
+      <span class="badge {% if page.http_status == 200 %}badge-connected{% elif page.http_status >= 400 %}badge-failed{% else %}badge-unknown{% endif %}">
+        {{ page.http_status }}
+      </span>
+    {% else %}—{% endif %}
+  </td>
+  <td>
+    <span class="badge badge-unknown">{{ page.page_type.value }}</span>
+  </td>
+  <td>
+    {% if diff %}
+      {% for field, change in diff.items() %}
+      <span class="badge badge-failed" title="{{ field }}: {{ change.old }} → {{ change.new }}">
+        {{ field }}
+      </span>
+      {% endfor %}
+    {% elif snap and snap.diff_data is none %}
+      <span class="badge badge-connected">new</span>
+    {% else %}
+      —
+    {% endif %}
+  </td>
+  <td>
+    {% if page.has_schema %}<span class="badge badge-connected" title="Schema.org">S</span>{% endif %}
+    {% if page.has_toc %}<span class="badge badge-connected" title="Table of Contents">TOC</span>{% endif %}
+    {% if page.has_noindex %}<span class="badge badge-failed" title="noindex">NI</span>{% endif %}
+  </td>
+</tr>
+{% else %}
+<tr><td colspan="6" style="color:#6b7280;text-align:center">No pages match this filter.</td></tr>
+{% endfor %}

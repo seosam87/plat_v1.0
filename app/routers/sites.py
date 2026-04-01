@@ -158,6 +158,36 @@ async def set_site_status(
     return SiteOut.model_validate(site)
 
 
+@router.get("/{site_id}/crawls")
+async def list_site_crawls(
+    site_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_admin),
+) -> list[dict]:
+    """Return all CrawlJob records for a site, newest first."""
+    from sqlalchemy import select as sa_select
+    from app.models.crawl import CrawlJob
+
+    result = await db.execute(
+        sa_select(CrawlJob)
+        .where(CrawlJob.site_id == site_id)
+        .order_by(CrawlJob.started_at.desc())
+    )
+    jobs = result.scalars().all()
+    return [
+        {
+            "id": str(job.id),
+            "site_id": str(job.site_id),
+            "status": job.status.value,
+            "started_at": job.started_at.isoformat() if job.started_at else None,
+            "finished_at": job.finished_at.isoformat() if job.finished_at else None,
+            "pages_crawled": job.pages_crawled,
+            "error_message": job.error_message,
+        }
+        for job in jobs
+    ]
+
+
 @router.post("/{site_id}/crawl", status_code=status.HTTP_202_ACCEPTED)
 async def trigger_crawl(
     site_id: uuid.UUID,
