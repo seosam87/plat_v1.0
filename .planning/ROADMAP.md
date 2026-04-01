@@ -16,6 +16,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 2: Site Management** — Admin can add, verify, and manage WordPress sites with encrypted credentials
 - [x] **Phase 3: Crawler Core** — User can crawl a site, view per-page SEO data, and browse a snapshot diff feed (completed 2026-04-01)
 - [x] **Phase 4: Crawl Scheduling** — User can configure crawl schedules from the UI without restarting the app, and auto-tasks appear for 404s (completed 2026-04-01)
+- [x] **Phase 4.1: Test Backfill** — INSERTED — unit tests for phases 1–4 service logic, crawl helpers, WP service, router gaps (completed 2026-04-01)
 - [ ] **Phase 5: Keyword Import** — User can import keywords and pull positions from GSC, Yandex Webmaster, and DataForSEO
 - [ ] **Phase 6: Position Tracking** — User can see position history, delta indicators, 90-day charts, and receive Telegram alerts on drops
 - [ ] **Phase 7: Semantics** — User can cluster keywords, map them to pages, and see cannibalization flags
