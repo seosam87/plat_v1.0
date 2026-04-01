@@ -521,6 +521,8 @@ async def ui_pipeline(site_id: str, request: Request, db: AsyncSession = Depends
     jobs_data = [
         {"id": str(j.id), "page_url": j.page_url, "status": j.status.value,
          "has_changes": j.diff_json.get("has_changes") if j.diff_json else None,
+         "added_lines": j.diff_json.get("added_lines", 0) if j.diff_json else 0,
+         "removed_lines": j.diff_json.get("removed_lines", 0) if j.diff_json else 0,
          "created_at": j.created_at.isoformat() if j.created_at else ""}
         for j in jobs
     ]

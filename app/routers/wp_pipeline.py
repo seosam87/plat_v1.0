@@ -175,6 +175,68 @@ async def batch_pipeline(
     return {"jobs_created": jobs_created, "site_id": str(site_id)}
 
 
+@router.get("/sites/{site_id}/history")
+async def page_history(
+    site_id: uuid.UUID,
+    url: str,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_admin),
+) -> list[dict]:
+    """All pipeline jobs for a specific page URL, newest first."""
+    result = await db.execute(
+        select(WpContentJob)
+        .where(WpContentJob.site_id == site_id, WpContentJob.page_url == url)
+        .order_by(WpContentJob.created_at.desc())
+    )
+    return [_job_to_dict(j) for j in result.scalars().all()]
+
+
+@router.post("/sites/{site_id}/bulk-approve")
+async def bulk_approve(
+    site_id: uuid.UUID,
+    body: dict,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_admin),
+) -> dict:
+    """Approve multiple jobs at once. Body: {job_ids: [str]}."""
+    job_ids = body.get("job_ids", [])
+    approved = 0
+    for jid in job_ids:
+        result = await db.execute(
+            select(WpContentJob).where(WpContentJob.id == uuid.UUID(jid))
+        )
+        job = result.scalar_one_or_none()
+        if job and job.status == JobStatus.awaiting_approval:
+            job.status = JobStatus.approved
+            approved += 1
+            push_to_wp.delay(str(job.id))
+    await db.commit()
+    return {"approved": approved}
+
+
+@router.post("/sites/{site_id}/bulk-reject")
+async def bulk_reject(
+    site_id: uuid.UUID,
+    body: dict,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_admin),
+) -> dict:
+    """Reject multiple jobs at once. Body: {job_ids: [str]}."""
+    job_ids = body.get("job_ids", [])
+    rejected = 0
+    for jid in job_ids:
+        result = await db.execute(
+            select(WpContentJob).where(WpContentJob.id == uuid.UUID(jid))
+        )
+        job = result.scalar_one_or_none()
+        if job and job.status == JobStatus.awaiting_approval:
+            job.status = JobStatus.failed
+            job.error_message = "Bulk rejected"
+            rejected += 1
+    await db.commit()
+    return {"rejected": rejected}
+
+
 def _job_to_dict(job: WpContentJob) -> dict:
     return {
         "id": str(job.id),

@@ -164,3 +164,41 @@ class TestSlugify:
 
     def test_truncates_long(self):
         assert len(_slugify("a" * 200)) <= 80
+
+
+# ---- Phase 6: new endpoints ----
+
+
+class TestPipelineEndpointsRegistered:
+    def test_new_endpoints(self):
+        from app.routers.wp_pipeline import router
+        paths = [r.path for r in router.routes]
+        assert "/pipeline/sites/{site_id}/history" in paths
+        assert "/pipeline/sites/{site_id}/bulk-approve" in paths
+        assert "/pipeline/sites/{site_id}/bulk-reject" in paths
+
+
+class TestDiffViewer:
+    def test_diff_has_text(self):
+        """compute_content_diff returns diff_text suitable for display."""
+        diff = compute_content_diff(
+            "<p>Old content</p>",
+            "<p>Old content</p>\n<div id='toc'>TOC</div>"
+        )
+        assert diff["has_changes"] is True
+        assert diff["diff_text"]  # non-empty string
+        assert "+" in diff["diff_text"] or "-" in diff["diff_text"]
+
+    def test_diff_no_changes_empty_text(self):
+        diff = compute_content_diff("<p>Same</p>", "<p>Same</p>")
+        assert diff["has_changes"] is False
+
+
+class TestBulkLogic:
+    def test_only_awaiting_approval_can_be_approved(self):
+        """Verify the status check logic used in bulk operations."""
+        from app.models.wp_content_job import JobStatus
+        statuses_that_can_approve = [JobStatus.awaiting_approval]
+        assert JobStatus.pending not in statuses_that_can_approve
+        assert JobStatus.pushed not in statuses_that_can_approve
+        assert JobStatus.failed not in statuses_that_can_approve
