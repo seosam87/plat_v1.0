@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+{% block title %}Site Groups — SEO Platform{% endblock %}
+{% block content %}
+<div class="card">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem">
+    <h2 style="margin:0">Site Groups & Access</h2>
+    <button class="btn btn-primary" onclick="document.getElementById('add-group-modal').style.display='flex'">+ New Group</button>
+  </div>
+
+  {% if groups %}
+  {% for g in groups %}
+  <div id="group-{{ g.id }}" class="card" style="margin-bottom:1rem;border:1px solid #e5e7eb;box-shadow:none">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem">
+      <div>
+        <h3 style="margin:0;font-size:1.1rem">{{ g.name }}</h3>
+        {% if g.description %}
+        <p style="margin:.25rem 0 0;color:#6b7280;font-size:.85rem">{{ g.description }}</p>
+        {% endif %}
+      </div>
+      <div style="display:flex;gap:.5rem">
+        <button class="btn btn-sm"
+                style="background:#4f46e5;color:white"
+                onclick="openEditGroupModal('{{ g.id }}','{{ g.name }}','{{ g.description or '' }}')"
+        >Edit</button>
+        <form class="inline">
+          <button class="btn btn-sm"
+                  style="background:#991b1b;color:white"
+                  hx-delete="/ui/admin/groups/{{ g.id }}"
+                  hx-target="#group-{{ g.id }}"
+                  hx-swap="outerHTML"
+                  hx-confirm="Delete group '{{ g.name }}'? Sites will be ungrouped."
+          >Delete</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Sites in group -->
+    <div style="margin-bottom:.75rem">
+      <strong style="font-size:.85rem;color:#374151">Sites:</strong>
+      {% set gsites = group_sites.get(g.id, []) %}
+      {% if gsites %}
+        {% for s in gsites %}
+        <span class="badge" style="background:#d1fae5;color:#065f46;margin-right:.25rem">{{ s.name }}</span>
+        {% endfor %}
+      {% else %}
+      <span style="color:#6b7280;font-size:.85rem">No sites assigned</span>
+      {% endif %}
+    </div>
+
+    <!-- Users in group -->
+    <div style="margin-bottom:.75rem">
+      <strong style="font-size:.85rem;color:#374151">Users:</strong>
+      <span id="group-users-{{ g.id }}">
+        {% set gusers = group_users.get(g.id, []) %}
+        {% if gusers %}
+          {% for u in gusers %}
+          <span class="badge" style="background:#dbeafe;color:#1e40af;margin-right:.25rem">
+            {{ u.username }}
+            <a href="#"
+               style="color:#1e40af;text-decoration:none;margin-left:.3rem;font-weight:bold"
+               hx-delete="/ui/admin/groups/{{ g.id }}/users/{{ u.id }}"
+               hx-target="#group-users-{{ g.id }}"
+               hx-swap="innerHTML"
+               hx-confirm="Remove '{{ u.username }}' from group '{{ g.name }}'?"
+            >&times;</a>
+          </span>
+          {% endfor %}
+        {% else %}
+        <span style="color:#6b7280;font-size:.85rem">No users assigned</span>
+        {% endif %}
+      </span>
+    </div>
+
+    <!-- Add user to group -->
+    <form class="inline" style="display:flex;gap:.5rem;align-items:center">
+      <select name="user_id" style="padding:.3rem .5rem;border:1px solid #d1d5db;border-radius:4px;font-size:.85rem;background:white">
+        {% for u in all_users %}
+        <option value="{{ u.id }}">{{ u.username }} ({{ u.role }})</option>
+        {% endfor %}
+      </select>
+      <button class="btn btn-sm"
+              style="background:#22c55e;color:white"
+              hx-post="/ui/admin/groups/{{ g.id }}/users"
+              hx-include="closest form"
+              hx-target="#group-users-{{ g.id }}"
+              hx-swap="innerHTML"
+      >Add User</button>
+    </form>
+
+    <!-- Assign site to group -->
+    <form class="inline" style="display:flex;gap:.5rem;align-items:center;margin-top:.5rem">
+      <select name="site_id" style="padding:.3rem .5rem;border:1px solid #d1d5db;border-radius:4px;font-size:.85rem;background:white">
+        {% for s in all_sites %}
+        <option value="{{ s.id }}">{{ s.name }}</option>
+        {% endfor %}
+      </select>
+      <button class="btn btn-sm"
+              style="background:#0ea5e9;color:white"
+              hx-post="/ui/admin/groups/{{ g.id }}/sites"
+              hx-target="#group-{{ g.id }}"
+              hx-swap="outerHTML"
+      >Assign Site</button>
+    </form>
+  </div>
+  {% endfor %}
+  {% else %}
+  <p style="color:#6b7280">No groups created yet.</p>
+  {% endif %}
+</div>
+
+<!-- Add Group Modal -->
+<div id="add-group-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;align-items:center;justify-content:center">
+  <div class="card" style="max-width:450px;width:100%">
+    <h3 style="margin-top:0">New Site Group</h3>
+    <form method="post" action="/ui/admin/groups">
+      <div style="margin-bottom:.8rem">
+        <label style="display:block;font-weight:600;margin-bottom:.2rem;font-size:.85rem">Name</label>
+        <input type="text" name="name" required style="width:100%;padding:.4rem;border:1px solid #d1d5db;border-radius:4px">
+      </div>
+      <div style="margin-bottom:1rem">
+        <label style="display:block;font-weight:600;margin-bottom:.2rem;font-size:.85rem">Description</label>
+        <textarea name="description" rows="2" style="width:100%;padding:.4rem;border:1px solid #d1d5db;border-radius:4px;resize:vertical"></textarea>
+      </div>
+      <div style="display:flex;gap:.5rem">
+        <button type="submit" class="btn btn-primary">Create</button>
+        <button type="button" class="btn" style="background:#e5e7eb;color:#374151" onclick="document.getElementById('add-group-modal').style.display='none'">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Edit Group Modal -->
+<div id="edit-group-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;align-items:center;justify-content:center">
+  <div class="card" style="max-width:450px;width:100%">
+    <h3 style="margin-top:0">Edit Group</h3>
+    <form id="edit-group-form" method="post" action="">
+      <div style="margin-bottom:.8rem">
+        <label style="display:block;font-weight:600;margin-bottom:.2rem;font-size:.85rem">Name</label>
+        <input type="text" name="name" id="edit-group-name" required style="width:100%;padding:.4rem;border:1px solid #d1d5db;border-radius:4px">
+      </div>
+      <div style="margin-bottom:1rem">
+        <label style="display:block;font-weight:600;margin-bottom:.2rem;font-size:.85rem">Description</label>
+        <textarea name="description" id="edit-group-desc" rows="2" style="width:100%;padding:.4rem;border:1px solid #d1d5db;border-radius:4px;resize:vertical"></textarea>
+      </div>
+      <div style="display:flex;gap:.5rem">
+        <button type="submit" class="btn btn-primary">Save</button>
+        <button type="button" class="btn" style="background:#e5e7eb;color:#374151" onclick="document.getElementById('edit-group-modal').style.display='none'">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% if error %}
+<div style="position:fixed;bottom:1rem;right:1rem;background:#fee2e2;color:#991b1b;padding:.75rem 1.25rem;border-radius:6px;box-shadow:0 2px 8px rgba(0,0,0,.15);z-index:200">
+  {{ error }}
+</div>
+{% endif %}
+
+<script>
+function openEditGroupModal(id, name, desc) {
+  document.getElementById('edit-group-name').value = name;
+  document.getElementById('edit-group-desc').value = desc;
+  document.getElementById('edit-group-form').action = '/ui/admin/groups/' + id + '/edit';
+  document.getElementById('edit-group-modal').style.display = 'flex';
+}
+</script>
+{% endblock %}

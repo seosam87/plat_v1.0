@@ -109,3 +109,26 @@ async def deactivate_user(
         entity_id=str(user.id),
     )
     return user
+
+
+async def activate_user(
+    db: AsyncSession, target_user_id: str, current_user: User
+) -> User:
+    """Admin only: re-activate a deactivated user."""
+    from app.services.audit_service import log_action
+
+    if current_user.role != UserRole.admin:
+        raise HTTPException(status_code=403, detail="Admin only")
+    user = await get_user_by_id(db, target_user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    user.is_active = True
+    await db.flush()
+    await log_action(
+        db,
+        action="user.activated",
+        user_id=current_user.id,
+        entity_type="user",
+        entity_id=str(user.id),
+    )
+    return user

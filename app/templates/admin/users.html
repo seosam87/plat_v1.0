@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+{% block title %}Users — SEO Platform{% endblock %}
+{% block content %}
+<div class="card">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem">
+    <h2 style="margin:0">User Management</h2>
+    <button class="btn btn-primary" onclick="document.getElementById('add-user-modal').style.display='flex'">+ Add User</button>
+  </div>
+
+  {% if users %}
+  <table>
+    <thead>
+      <tr>
+        <th>Username</th>
+        <th>Email</th>
+        <th>Role</th>
+        <th>Status</th>
+        <th>Groups</th>
+        <th>Created</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for u in users %}
+      <tr id="user-row-{{ u.id }}">
+        <td>{{ u.username }}</td>
+        <td>{{ u.email }}</td>
+        <td>
+          <span class="badge" style="
+            {% if u.role == 'admin' %}background:#fef3c7;color:#92400e
+            {% elif u.role == 'manager' %}background:#dbeafe;color:#1e40af
+            {% else %}background:#f3f4f6;color:#6b7280{% endif %}
+          ">{{ u.role }}</span>
+        </td>
+        <td>
+          {% if u.is_active %}
+          <span class="badge" style="background:#d1fae5;color:#065f46">Active</span>
+          {% else %}
+          <span class="badge" style="background:#fee2e2;color:#991b1b">Inactive</span>
+          {% endif %}
+        </td>
+        <td>
+          {% set ugroups = user_groups.get(u.id, []) %}
+          {% if ugroups %}
+            {% for g in ugroups %}
+            <span class="badge" style="background:#dbeafe;color:#1e40af;margin-right:.25rem">{{ g }}</span>
+            {% endfor %}
+          {% else %}
+          <span style="color:#6b7280">—</span>
+          {% endif %}
+        </td>
+        <td style="color:#6b7280;font-size:.85rem">{{ u.created_at[:10] if u.created_at else '' }}</td>
+        <td>
+          <button class="btn btn-sm"
+                  style="background:#4f46e5;color:white"
+                  onclick="openEditModal('{{ u.id }}','{{ u.username }}','{{ u.email }}','{{ u.role }}')"
+          >Edit</button>
+          {% if u.is_active %}
+          <form class="inline">
+            <button class="btn btn-sm"
+                    style="background:#ef4444;color:white;margin-left:.5rem"
+                    hx-post="/ui/admin/users/{{ u.id }}/deactivate"
+                    hx-target="#user-row-{{ u.id }}"
+                    hx-swap="outerHTML"
+                    hx-confirm="Deactivate user '{{ u.username }}'?"
+            >Deactivate</button>
+          </form>
+          {% else %}
+          <form class="inline">
+            <button class="btn btn-sm"
+                    style="background:#22c55e;color:white;margin-left:.5rem"
+                    hx-post="/ui/admin/users/{{ u.id }}/activate"
+                    hx-target="#user-row-{{ u.id }}"
+                    hx-swap="outerHTML"
+            >Activate</button>
+          </form>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p style="color:#6b7280">No users found.</p>
+  {% endif %}
+</div>
+
+<!-- Add User Modal -->
+<div id="add-user-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;align-items:center;justify-content:center">
+  <div class="card" style="max-width:450px;width:100%">
+    <h3 style="margin-top:0">Add User</h3>
+    <form method="post" action="/ui/admin/users">
+      <div style="margin-bottom:.8rem">
+        <label style="display:block;font-weight:600;margin-bottom:.2rem;font-size:.85rem">Username</label>
+        <input type="text" name="username" required style="width:100%;padding:.4rem;border:1px solid #d1d5db;border-radius:4px">
+      </div>
+      <div style="margin-bottom:.8rem">
+        <label style="display:block;font-weight:600;margin-bottom:.2rem;font-size:.85rem">Email</label>
+        <input type="email" name="email" required style="width:100%;padding:.4rem;border:1px solid #d1d5db;border-radius:4px">
+      </div>
+      <div style="margin-bottom:.8rem">
+        <label style="display:block;font-weight:600;margin-bottom:.2rem;font-size:.85rem">Password</label>
+        <input type="password" name="password" required minlength="8" style="width:100%;padding:.4rem;border:1px solid #d1d5db;border-radius:4px">
+      </div>
+      <div style="margin-bottom:1rem">
+        <label style="display:block;font-weight:600;margin-bottom:.2rem;font-size:.85rem">Role</label>
+        <select name="role" style="width:100%;padding:.4rem;border:1px solid #d1d5db;border-radius:4px;background:white">
+          <option value="client">Client</option>
+          <option value="manager">Manager</option>
+          <option value="admin">Admin</option>
+        </select>
+      </div>
+      <div style="display:flex;gap:.5rem">
+        <button type="submit" class="btn btn-primary">Create</button>
+        <button type="button" class="btn" style="background:#e5e7eb;color:#374151" onclick="document.getElementById('add-user-modal').style.display='none'">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Edit User Modal -->
+<div id="edit-user-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;align-items:center;justify-content:center">
+  <div class="card" style="max-width:450px;width:100%">
+    <h3 style="margin-top:0">Edit User</h3>
+    <form id="edit-user-form" method="post" action="">
+      <div style="margin-bottom:.8rem">
+        <label style="display:block;font-weight:600;margin-bottom:.2rem;font-size:.85rem">Username</label>
+        <input type="text" name="username" id="edit-username" required style="width:100%;padding:.4rem;border:1px solid #d1d5db;border-radius:4px">
+      </div>
+      <div style="margin-bottom:.8rem">
+        <label style="display:block;font-weight:600;margin-bottom:.2rem;font-size:.85rem">Email</label>
+        <input type="email" name="email" id="edit-email" required style="width:100%;padding:.4rem;border:1px solid #d1d5db;border-radius:4px">
+      </div>
+      <div style="margin-bottom:1rem">
+        <label style="display:block;font-weight:600;margin-bottom:.2rem;font-size:.85rem">Role</label>
+        <select name="role" id="edit-role" style="width:100%;padding:.4rem;border:1px solid #d1d5db;border-radius:4px;background:white">
+          <option value="client">Client</option>
+          <option value="manager">Manager</option>
+          <option value="admin">Admin</option>
+        </select>
+      </div>
+      <div style="display:flex;gap:.5rem">
+        <button type="submit" class="btn btn-primary">Save</button>
+        <button type="button" class="btn" style="background:#e5e7eb;color:#374151" onclick="document.getElementById('edit-user-modal').style.display='none'">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% if error %}
+<div style="position:fixed;bottom:1rem;right:1rem;background:#fee2e2;color:#991b1b;padding:.75rem 1.25rem;border-radius:6px;box-shadow:0 2px 8px rgba(0,0,0,.15);z-index:200">
+  {{ error }}
+</div>
+{% endif %}
+
+<script>
+function openEditModal(id, username, email, role) {
+  document.getElementById('edit-username').value = username;
+  document.getElementById('edit-email').value = email;
+  document.getElementById('edit-role').value = role;
+  document.getElementById('edit-user-form').action = '/ui/admin/users/' + id + '/edit';
+  document.getElementById('edit-user-modal').style.display = 'flex';
+}
+</script>
+{% endblock %}

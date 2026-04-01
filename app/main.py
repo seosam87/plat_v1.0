@@ -154,6 +154,50 @@ async def ui_sites(request: Request, db: AsyncSession = Depends(get_db)) -> HTML
     )
 
 
+@app.get("/ui/sites/new", response_class=HTMLResponse)
+async def ui_create_site_form(request: Request, db: AsyncSession = Depends(get_db)) -> HTMLResponse:
+    from app.services.site_group_service import list_groups
+    groups = await list_groups(db)
+    return templates.TemplateResponse(request, "sites/create.html", {"error": None, "groups": groups, "form_data": {}})
+
+
+@app.post("/ui/sites/new", response_class=HTMLResponse)
+async def ui_create_site(
+    request: Request,
+    name: str = Form(...),
+    url: str = Form(...),
+    wp_username: str = Form(...),
+    app_password: str = Form(...),
+    site_group_id: str = Form(""),
+    db: AsyncSession = Depends(get_db),
+) -> HTMLResponse:
+    from app.auth.jwt import decode_access_token
+    from app.services.user_service import get_user_by_id
+    from app.services.site_service import create_site
+    from app.services.site_group_service import assign_site_to_group, list_groups
+
+    token = request.cookies.get("access_token", "")
+    try:
+        payload = decode_access_token(token)
+        user = await get_user_by_id(db, payload.get("sub", ""))
+    except Exception:
+        return RedirectResponse("/ui/login", status_code=302)
+
+    form_data = {"name": name, "url": url, "wp_username": wp_username, "site_group_id": site_group_id}
+
+    try:
+        site = await create_site(db, name=name, url=url, wp_username=wp_username,
+                                 app_password=app_password, actor_id=user.id)
+        if site_group_id:
+            import uuid as _uuid
+            await assign_site_to_group(db, site.id, _uuid.UUID(site_group_id))
+    except Exception as e:
+        groups = await list_groups(db)
+        return templates.TemplateResponse(request, "sites/create.html",
+                                          {"error": str(e), "groups": groups, "form_data": form_data}, status_code=400)
+    return RedirectResponse("/ui/sites", status_code=303)
+
+
 @app.post("/ui/sites/{site_id}/schedule", response_class=HTMLResponse)
 async def ui_update_schedule(
     site_id: str,
@@ -178,6 +222,33 @@ async def ui_update_schedule(
     if label == "manual":
         return HTMLResponse("")
     return HTMLResponse(f'<span style="color:#059669">Saved</span>')
+
+
+@app.delete("/ui/sites/{site_id}", response_class=HTMLResponse)
+async def ui_delete_site(
+    site_id: str,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+) -> HTMLResponse:
+    """HTMX handler: delete a site and return empty response to remove the row."""
+    import uuid as _uuid
+    from app.auth.jwt import decode_access_token
+    from app.services.user_service import get_user_by_id
+    from app.services.site_service import delete_site
+
+    token = request.cookies.get("access_token", "")
+    try:
+        payload = decode_access_token(token)
+        user = await get_user_by_id(db, payload.get("sub", ""))
+    except Exception:
+        return HTMLResponse("Unauthorized", status_code=401)
+
+    site = await get_site(db, _uuid.UUID(site_id))
+    if not site:
+        return HTMLResponse("Site not found", status_code=404)
+
+    await delete_site(db, site, actor_id=user.id)
+    return HTMLResponse("")
 
 
 @app.get("/ui/tasks", response_class=HTMLResponse)
@@ -399,6 +470,445 @@ async def ui_pipeline(site_id: str, request: Request, db: AsyncSession = Depends
         for j in jobs
     ]
     return templates.TemplateResponse(request, "pipeline/jobs.html", {"site_name": site.name, "site_id": str(site.id), "jobs": jobs_data})
+
+
+# ---- Admin: User Management UI ----
+
+
+async def _get_current_user_from_cookie(request: Request, db: AsyncSession):
+    """Extract current user from JWT cookie. Returns None on failure."""
+    from app.auth.jwt import decode_access_token
+    from app.services.user_service import get_user_by_id
+
+    token = request.cookies.get("access_token", "")
+    if not token:
+        return None
+    try:
+        payload = decode_access_token(token)
+        return await get_user_by_id(db, payload.get("sub", ""))
+    except Exception:
+        return None
+
+
+@app.get("/ui/admin/users", response_class=HTMLResponse)
+async def ui_admin_users(request: Request, db: AsyncSession = Depends(get_db)) -> HTMLResponse:
+    from app.services.user_service import list_users
+    from app.services.site_group_service import list_groups, get_user_group_ids, get_group
+
+    user = await _get_current_user_from_cookie(request, db)
+    if not user or user.role.value != "admin":
+        return RedirectResponse("/ui/dashboard", status_code=302)
+
+    users = await list_users(db, user)
+    groups = await list_groups(db)
+    group_map = {g.id: g.name for g in groups}
+
+    # Build user -> group names mapping
+    user_groups: dict[str, list[str]] = {}
+    for u in users:
+        gids = await get_user_group_ids(db, u.id)
+        user_groups[str(u.id)] = [group_map.get(gid, "?") for gid in gids]
+
+    users_data = [
+        {
+            "id": str(u.id),
+            "username": u.username,
+            "email": u.email,
+            "role": u.role.value,
+            "is_active": u.is_active,
+            "created_at": u.created_at.isoformat() if u.created_at else "",
+        }
+        for u in users
+    ]
+    return templates.TemplateResponse(
+        request, "admin/users.html",
+        {"users": users_data, "user_groups": user_groups, "error": None},
+    )
+
+
+@app.post("/ui/admin/users", response_class=HTMLResponse)
+async def ui_admin_create_user(
+    request: Request,
+    username: str = Form(...),
+    email: str = Form(...),
+    password: str = Form(...),
+    role: str = Form("client"),
+    db: AsyncSession = Depends(get_db),
+) -> HTMLResponse:
+    from app.auth.password import hash_password
+    from app.services.user_service import create_user
+    from app.models.user import UserRole
+
+    user = await _get_current_user_from_cookie(request, db)
+    if not user or user.role.value != "admin":
+        return RedirectResponse("/ui/dashboard", status_code=302)
+
+    try:
+        await create_user(db, username=username, email=email,
+                          password_hash=hash_password(password), role=UserRole(role))
+        await db.commit()
+    except Exception as e:
+        return RedirectResponse(f"/ui/admin/users?error={e}", status_code=303)
+    return RedirectResponse("/ui/admin/users", status_code=303)
+
+
+@app.post("/ui/admin/users/{user_id}/edit", response_class=HTMLResponse)
+async def ui_admin_edit_user(
+    user_id: str,
+    request: Request,
+    username: str = Form(...),
+    email: str = Form(...),
+    role: str = Form(...),
+    db: AsyncSession = Depends(get_db),
+) -> HTMLResponse:
+    from app.services.user_service import update_user
+    from app.models.user import UserRole
+
+    current_user = await _get_current_user_from_cookie(request, db)
+    if not current_user or current_user.role.value != "admin":
+        return RedirectResponse("/ui/dashboard", status_code=302)
+
+    try:
+        await update_user(db, target_user_id=user_id, current_user=current_user,
+                          username=username, email=email, role=UserRole(role))
+        await db.commit()
+    except Exception as e:
+        return RedirectResponse(f"/ui/admin/users?error={e}", status_code=303)
+    return RedirectResponse("/ui/admin/users", status_code=303)
+
+
+@app.post("/ui/admin/users/{user_id}/deactivate", response_class=HTMLResponse)
+async def ui_admin_deactivate_user(
+    user_id: str, request: Request, db: AsyncSession = Depends(get_db),
+) -> HTMLResponse:
+    from app.services.user_service import deactivate_user, get_user_by_id
+    from app.services.site_group_service import get_user_group_ids, list_groups
+
+    current_user = await _get_current_user_from_cookie(request, db)
+    if not current_user or current_user.role.value != "admin":
+        return HTMLResponse("Forbidden", status_code=403)
+
+    await deactivate_user(db, user_id, current_user)
+    await db.commit()
+
+    # Return updated row for HTMX swap
+    u = await get_user_by_id(db, user_id)
+    groups = await list_groups(db)
+    group_map = {g.id: g.name for g in groups}
+    gids = await get_user_group_ids(db, u.id)
+    user_group_names = [group_map.get(gid, "?") for gid in gids]
+
+    return _render_user_row(u, user_group_names)
+
+
+@app.post("/ui/admin/users/{user_id}/activate", response_class=HTMLResponse)
+async def ui_admin_activate_user(
+    user_id: str, request: Request, db: AsyncSession = Depends(get_db),
+) -> HTMLResponse:
+    from app.services.user_service import activate_user, get_user_by_id
+    from app.services.site_group_service import get_user_group_ids, list_groups
+
+    current_user = await _get_current_user_from_cookie(request, db)
+    if not current_user or current_user.role.value != "admin":
+        return HTMLResponse("Forbidden", status_code=403)
+
+    await activate_user(db, user_id, current_user)
+    await db.commit()
+
+    u = await get_user_by_id(db, user_id)
+    groups = await list_groups(db)
+    group_map = {g.id: g.name for g in groups}
+    gids = await get_user_group_ids(db, u.id)
+    user_group_names = [group_map.get(gid, "?") for gid in gids]
+
+    return _render_user_row(u, user_group_names)
+
+
+def _render_user_row(u, group_names: list[str]) -> HTMLResponse:
+    """Return a single <tr> for HTMX partial swap."""
+    role_style = {
+        "admin": "background:#fef3c7;color:#92400e",
+        "manager": "background:#dbeafe;color:#1e40af",
+        "client": "background:#f3f4f6;color:#6b7280",
+    }
+    status_badge = (
+        '<span class="badge" style="background:#d1fae5;color:#065f46">Active</span>'
+        if u.is_active
+        else '<span class="badge" style="background:#fee2e2;color:#991b1b">Inactive</span>'
+    )
+    groups_html = ""
+    if group_names:
+        groups_html = " ".join(
+            f'<span class="badge" style="background:#dbeafe;color:#1e40af;margin-right:.25rem">{g}</span>'
+            for g in group_names
+        )
+    else:
+        groups_html = '<span style="color:#6b7280">\u2014</span>'
+
+    toggle_btn = ""
+    uid = str(u.id)
+    if u.is_active:
+        toggle_btn = (
+            f'<form class="inline">'
+            f'<button class="btn btn-sm" style="background:#ef4444;color:white;margin-left:.5rem"'
+            f' hx-post="/ui/admin/users/{uid}/deactivate"'
+            f' hx-target="#user-row-{uid}" hx-swap="outerHTML"'
+            f' hx-confirm="Deactivate user \'{u.username}\'?">Deactivate</button></form>'
+        )
+    else:
+        toggle_btn = (
+            f'<form class="inline">'
+            f'<button class="btn btn-sm" style="background:#22c55e;color:white;margin-left:.5rem"'
+            f' hx-post="/ui/admin/users/{uid}/activate"'
+            f' hx-target="#user-row-{uid}" hx-swap="outerHTML"'
+            f'>Activate</button></form>'
+        )
+
+    created = u.created_at.isoformat()[:10] if u.created_at else ""
+
+    html = (
+        f'<tr id="user-row-{uid}">'
+        f'<td>{u.username}</td>'
+        f'<td>{u.email}</td>'
+        f'<td><span class="badge" style="{role_style.get(u.role.value, "")}">{u.role.value}</span></td>'
+        f'<td>{status_badge}</td>'
+        f'<td>{groups_html}</td>'
+        f'<td style="color:#6b7280;font-size:.85rem">{created}</td>'
+        f'<td>'
+        f'<button class="btn btn-sm" style="background:#4f46e5;color:white"'
+        f" onclick=\"openEditModal('{uid}','{u.username}','{u.email}','{u.role.value}')\">"
+        f'Edit</button>'
+        f'{toggle_btn}'
+        f'</td></tr>'
+    )
+    return HTMLResponse(html)
+
+
+# ---- Admin: Site Groups UI ----
+
+
+@app.get("/ui/admin/groups", response_class=HTMLResponse)
+async def ui_admin_groups(request: Request, db: AsyncSession = Depends(get_db)) -> HTMLResponse:
+    from app.services.site_group_service import list_groups, get_group_users
+    from app.services.user_service import list_users, get_user_by_id
+    from app.models.site import Site
+    from sqlalchemy import select as sa_select
+
+    current_user = await _get_current_user_from_cookie(request, db)
+    if not current_user or current_user.role.value != "admin":
+        return RedirectResponse("/ui/dashboard", status_code=302)
+
+    groups = await list_groups(db)
+    all_users_list = await list_users(db, current_user)
+    all_sites = (await db.execute(
+        sa_select(Site).order_by(Site.name)
+    )).scalars().all()
+
+    # Build group -> users mapping
+    group_users: dict[str, list] = {}
+    for g in groups:
+        uids = await get_group_users(db, g.id)
+        users_in_group = []
+        for uid in uids:
+            u = await get_user_by_id(db, str(uid))
+            if u:
+                users_in_group.append({"id": str(u.id), "username": u.username})
+        group_users[str(g.id)] = users_in_group
+
+    # Build group -> sites mapping
+    group_sites: dict[str, list] = {}
+    for g in groups:
+        sites_in = [s for s in all_sites if s.site_group_id and str(s.site_group_id) == str(g.id)]
+        group_sites[str(g.id)] = [{"id": str(s.id), "name": s.name} for s in sites_in]
+
+    groups_data = [
+        {"id": str(g.id), "name": g.name, "description": g.description or ""}
+        for g in groups
+    ]
+    all_users_data = [
+        {"id": str(u.id), "username": u.username, "role": u.role.value}
+        for u in all_users_list
+    ]
+    all_sites_data = [{"id": str(s.id), "name": s.name} for s in all_sites]
+
+    return templates.TemplateResponse(
+        request, "admin/groups.html",
+        {
+            "groups": groups_data,
+            "group_users": group_users,
+            "group_sites": group_sites,
+            "all_users": all_users_data,
+            "all_sites": all_sites_data,
+            "error": None,
+        },
+    )
+
+
+@app.post("/ui/admin/groups", response_class=HTMLResponse)
+async def ui_admin_create_group(
+    request: Request,
+    name: str = Form(...),
+    description: str = Form(""),
+    db: AsyncSession = Depends(get_db),
+) -> HTMLResponse:
+    from app.services.site_group_service import create_group
+
+    current_user = await _get_current_user_from_cookie(request, db)
+    if not current_user or current_user.role.value != "admin":
+        return RedirectResponse("/ui/dashboard", status_code=302)
+
+    try:
+        await create_group(db, name=name, description=description or None)
+        await db.commit()
+    except Exception as e:
+        return RedirectResponse(f"/ui/admin/groups?error={e}", status_code=303)
+    return RedirectResponse("/ui/admin/groups", status_code=303)
+
+
+@app.post("/ui/admin/groups/{group_id}/edit", response_class=HTMLResponse)
+async def ui_admin_edit_group(
+    group_id: str,
+    request: Request,
+    name: str = Form(...),
+    description: str = Form(""),
+    db: AsyncSession = Depends(get_db),
+) -> HTMLResponse:
+    import uuid as _uuid
+    from app.services.site_group_service import get_group, update_group
+
+    current_user = await _get_current_user_from_cookie(request, db)
+    if not current_user or current_user.role.value != "admin":
+        return RedirectResponse("/ui/dashboard", status_code=302)
+
+    g = await get_group(db, _uuid.UUID(group_id))
+    if not g:
+        return RedirectResponse("/ui/admin/groups", status_code=303)
+
+    await update_group(db, g, name=name, description=description or None)
+    await db.commit()
+    return RedirectResponse("/ui/admin/groups", status_code=303)
+
+
+@app.delete("/ui/admin/groups/{group_id}", response_class=HTMLResponse)
+async def ui_admin_delete_group(
+    group_id: str, request: Request, db: AsyncSession = Depends(get_db),
+) -> HTMLResponse:
+    import uuid as _uuid
+    from app.services.site_group_service import get_group, delete_group
+
+    current_user = await _get_current_user_from_cookie(request, db)
+    if not current_user or current_user.role.value != "admin":
+        return HTMLResponse("Forbidden", status_code=403)
+
+    g = await get_group(db, _uuid.UUID(group_id))
+    if g:
+        await delete_group(db, g)
+        await db.commit()
+    return HTMLResponse("")
+
+
+@app.post("/ui/admin/groups/{group_id}/users", response_class=HTMLResponse)
+async def ui_admin_add_user_to_group(
+    group_id: str, request: Request, db: AsyncSession = Depends(get_db),
+) -> HTMLResponse:
+    import uuid as _uuid
+    from app.services.site_group_service import assign_user_to_group, get_group_users, get_group
+    from app.services.user_service import get_user_by_id
+
+    current_user = await _get_current_user_from_cookie(request, db)
+    if not current_user or current_user.role.value != "admin":
+        return HTMLResponse("Forbidden", status_code=403)
+
+    form = await request.form()
+    user_id = form.get("user_id", "")
+    if not user_id:
+        return HTMLResponse("Missing user_id", status_code=400)
+
+    gid = _uuid.UUID(group_id)
+    uid = _uuid.UUID(str(user_id))
+
+    # Check not already assigned
+    existing = await get_group_users(db, gid)
+    if uid not in existing:
+        await assign_user_to_group(db, uid, gid)
+        await db.commit()
+
+    # Return updated user badges for HTMX
+    g = await get_group(db, gid)
+    user_ids = await get_group_users(db, gid)
+    html_parts = []
+    for uid in user_ids:
+        u = await get_user_by_id(db, str(uid))
+        if u:
+            html_parts.append(
+                f'<span class="badge" style="background:#dbeafe;color:#1e40af;margin-right:.25rem">'
+                f'{u.username}'
+                f'<a href="#" style="color:#1e40af;text-decoration:none;margin-left:.3rem;font-weight:bold"'
+                f' hx-delete="/ui/admin/groups/{group_id}/users/{u.id}"'
+                f' hx-target="#group-users-{group_id}" hx-swap="innerHTML"'
+                f' hx-confirm="Remove \'{u.username}\' from group \'{g.name}\'?"'
+                f'>&times;</a></span>'
+            )
+    return HTMLResponse(" ".join(html_parts) if html_parts else '<span style="color:#6b7280;font-size:.85rem">No users assigned</span>')
+
+
+@app.delete("/ui/admin/groups/{group_id}/users/{user_id}", response_class=HTMLResponse)
+async def ui_admin_remove_user_from_group(
+    group_id: str, user_id: str, request: Request, db: AsyncSession = Depends(get_db),
+) -> HTMLResponse:
+    import uuid as _uuid
+    from app.services.site_group_service import remove_user_from_group, get_group_users, get_group
+    from app.services.user_service import get_user_by_id
+
+    current_user = await _get_current_user_from_cookie(request, db)
+    if not current_user or current_user.role.value != "admin":
+        return HTMLResponse("Forbidden", status_code=403)
+
+    gid = _uuid.UUID(group_id)
+    uid = _uuid.UUID(user_id)
+    await remove_user_from_group(db, uid, gid)
+    await db.commit()
+
+    # Return updated user badges
+    g = await get_group(db, gid)
+    user_ids = await get_group_users(db, gid)
+    html_parts = []
+    for uid in user_ids:
+        u = await get_user_by_id(db, str(uid))
+        if u:
+            html_parts.append(
+                f'<span class="badge" style="background:#dbeafe;color:#1e40af;margin-right:.25rem">'
+                f'{u.username}'
+                f'<a href="#" style="color:#1e40af;text-decoration:none;margin-left:.3rem;font-weight:bold"'
+                f' hx-delete="/ui/admin/groups/{group_id}/users/{u.id}"'
+                f' hx-target="#group-users-{group_id}" hx-swap="innerHTML"'
+                f' hx-confirm="Remove \'{u.username}\' from group \'{g.name if g else ""}\'?"'
+                f'>&times;</a></span>'
+            )
+    return HTMLResponse(" ".join(html_parts) if html_parts else '<span style="color:#6b7280;font-size:.85rem">No users assigned</span>')
+
+
+@app.post("/ui/admin/groups/{group_id}/sites", response_class=HTMLResponse)
+async def ui_admin_assign_site_to_group(
+    group_id: str, request: Request, db: AsyncSession = Depends(get_db),
+) -> HTMLResponse:
+    import uuid as _uuid
+    from app.services.site_group_service import assign_site_to_group
+
+    current_user = await _get_current_user_from_cookie(request, db)
+    if not current_user or current_user.role.value != "admin":
+        return HTMLResponse("Forbidden", status_code=403)
+
+    form = await request.form()
+    site_id = form.get("site_id", "")
+    if not site_id:
+        return HTMLResponse("Missing site_id", status_code=400)
+
+    await assign_site_to_group(db, _uuid.UUID(str(site_id)), _uuid.UUID(group_id))
+    await db.commit()
+
+    # Full page refresh for this group card (redirect)
+    return RedirectResponse("/ui/admin/groups", status_code=303)
 
 
 @app.get("/ui/login", response_class=HTMLResponse)

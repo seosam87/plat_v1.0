@@ -88,6 +88,16 @@
             >Enable</button>
           </form>
           {% endif %}
+          <form class="inline">
+            <button
+              class="btn btn-sm"
+              style="background:#991b1b;color:white;margin-left:.5rem"
+              hx-delete="/ui/sites/{{ site.id }}"
+              hx-target="closest tr"
+              hx-swap="outerHTML swap:200ms"
+              hx-confirm="Delete site '{{ site.name }}'? This cannot be undone. All keywords, positions, crawl history and tasks for this site will be lost."
+            >Delete</button>
+          </form>
         </td>
       </tr>
       {% endfor %}
