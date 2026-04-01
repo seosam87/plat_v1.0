@@ -16,6 +16,7 @@ from app.routers.admin import router as admin_router
 from app.routers.auth import router as auth_router
 from app.routers.crawl import router as crawl_router
 from app.routers.sites import router as sites_router
+from app.routers.tasks import router as tasks_router
 from app.services.schedule_service import get_all_schedules, upsert_schedule
 from app.services.site_service import get_site, get_sites
 from app.models.schedule import ScheduleType
@@ -42,6 +43,7 @@ app.include_router(auth_router)
 app.include_router(admin_router)
 app.include_router(sites_router)
 app.include_router(crawl_router)
+app.include_router(tasks_router)
 
 
 @app.get("/ui/sites", response_class=HTMLResponse)
@@ -78,6 +80,35 @@ async def ui_update_schedule(
     if label == "manual":
         return HTMLResponse("")
     return HTMLResponse(f'<span style="color:#059669">Saved</span>')
+
+
+@app.get("/ui/tasks", response_class=HTMLResponse)
+async def ui_tasks(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    status: str | None = None,
+) -> HTMLResponse:
+    from app.models.task import SeoTask, TaskStatus
+    from sqlalchemy import select as sa_select
+
+    query = sa_select(SeoTask).order_by(SeoTask.created_at.desc())
+    if status:
+        query = query.where(SeoTask.status == TaskStatus(status))
+    result = await db.execute(query)
+    tasks_list = result.scalars().all()
+    tasks_data = [
+        {
+            "task_type": t.task_type.value,
+            "url": t.url,
+            "title": t.title,
+            "status": t.status.value,
+            "created_at": t.created_at.isoformat() if t.created_at else "",
+        }
+        for t in tasks_list
+    ]
+    return templates.TemplateResponse(
+        request, "tasks/index.html", {"tasks": tasks_data, "status_filter": status}
+    )
 
 
 @app.get("/")

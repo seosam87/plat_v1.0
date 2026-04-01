@@ -242,6 +242,12 @@ def crawl_site(self, site_id: str) -> dict:
             job.pages_crawled = pages_crawled
             job.finished_at = datetime.now(timezone.utc)
 
+        # Auto-create SEO tasks for 404s and lost-indexation pages
+        with get_sync_db() as db:
+            from app.services.task_service import create_auto_tasks
+
+            create_auto_tasks(db, uuid.UUID(site_id), crawl_job_id)
+
         logger.info(
             "crawl_site finished",
             site_id=site_id,

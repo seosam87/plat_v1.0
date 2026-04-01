@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}SEO Tasks — SEO Platform{% endblock %}
+{% block content %}
+<div class="card">
+  <h2 style="margin:0 0 1.5rem">SEO Tasks</h2>
+
+  <div style="margin-bottom:1rem; display:flex; gap:.5rem">
+    <a href="/ui/tasks" class="btn btn-sm {% if not status_filter %}btn-primary{% endif %}">All</a>
+    <a href="/ui/tasks?status=open" class="btn btn-sm {% if status_filter == 'open' %}btn-primary{% endif %}">Open</a>
+    <a href="/ui/tasks?status=in_progress" class="btn btn-sm {% if status_filter == 'in_progress' %}btn-primary{% endif %}">In Progress</a>
+    <a href="/ui/tasks?status=resolved" class="btn btn-sm {% if status_filter == 'resolved' %}btn-primary{% endif %}">Resolved</a>
+  </div>
+
+  {% if tasks %}
+  <table>
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>URL</th>
+        <th>Title</th>
+        <th>Status</th>
+        <th>Created</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for task in tasks %}
+      <tr>
+        <td>
+          <span class="badge {% if task.task_type == 'page_404' %}badge-failed{% else %}badge-unknown{% endif %}">
+            {{ task.task_type }}
+          </span>
+        </td>
+        <td style="max-width:300px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">
+          <a href="{{ task.url }}" target="_blank">{{ task.url }}</a>
+        </td>
+        <td>{{ task.title }}</td>
+        <td>
+          <span class="badge {% if task.status == 'open' %}badge-failed{% elif task.status == 'resolved' %}badge-connected{% else %}badge-unknown{% endif %}">
+            {{ task.status }}
+          </span>
+        </td>
+        <td>{{ task.created_at[:10] if task.created_at else '' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p style="color:#6b7280">No tasks found. Tasks are auto-created when crawls detect 404s or lost indexation.</p>
+  {% endif %}
+</div>
+{% endblock %}
