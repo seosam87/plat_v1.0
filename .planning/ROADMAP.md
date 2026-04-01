@@ -15,7 +15,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 1: Stack & Auth** — Developer can start the full Docker stack and log in with role-based access
 - [x] **Phase 2: Site Management** — Admin can add, verify, and manage WordPress sites with encrypted credentials
 - [x] **Phase 3: Crawler Core** — User can crawl a site, view per-page SEO data, and browse a snapshot diff feed (completed 2026-04-01)
-- [ ] **Phase 4: Crawl Scheduling** — User can configure crawl schedules from the UI without restarting the app, and auto-tasks appear for 404s
+- [x] **Phase 4: Crawl Scheduling** — User can configure crawl schedules from the UI without restarting the app, and auto-tasks appear for 404s (completed 2026-04-01)
 - [ ] **Phase 5: Keyword Import** — User can import keywords and pull positions from GSC, Yandex Webmaster, and DataForSEO
 - [ ] **Phase 6: Position Tracking** — User can see position history, delta indicators, 90-day charts, and receive Telegram alerts on drops
 - [ ] **Phase 7: Semantics** — User can cluster keywords, map them to pages, and see cannibalization flags
@@ -90,9 +90,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 04-01: redbeat 2.2 integration — PostgreSQL-backed schedule storage; Beat startup loads schedules from DB; health check asserts N active schedules; redbeat configured in Celery Beat service
-- [ ] 04-02: Crawl schedule UI — per-site schedule selector (daily / weekly / manual); HTMX form updates redbeat entry without restart; schedule stored in DB as source of truth
-- [ ] 04-03: Auto-task creation from crawl results — 404 detection → task; lost-indexation detection (noindex flip vs. previous snapshot) → task; task model + Alembic migration; task linked to site and page URL
+- [x] 04-01: redbeat 2.2 integration — PostgreSQL-backed schedule storage; Beat startup loads schedules from DB; redbeat configured in Celery Beat service
+- [x] 04-02: Crawl schedule UI — per-site schedule selector (daily / weekly / manual); HTMX form updates redbeat entry without restart; schedule stored in DB as source of truth
+- [x] 04-03: Auto-task creation from crawl results — 404 detection → task; lost-indexation detection (noindex flip vs. previous snapshot) → task; task model + Alembic migration; task linked to site and page URL
 
 ### Phase 5: Keyword Import
 **Goal**: User can import keywords in bulk or manually, and the system pulls position data from Google Search Console, Yandex Webmaster, and DataForSEO — with DataForSEO as primary SERP source and Playwright as low-volume fallback.
