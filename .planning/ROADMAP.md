@@ -18,7 +18,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 4: Crawl Scheduling** — User can configure crawl schedules from the UI without restarting the app, and auto-tasks appear for 404s (completed 2026-04-01)
 - [x] **Phase 4.1: Test Backfill** — INSERTED — unit tests for phases 1–4 service logic, crawl helpers, WP service, router gaps (completed 2026-04-01)
 - [x] **Phase 5: Keyword Import & File Parsers** — Keywords from Topvisor/KC/manual, SF import, GSC/DataForSEO/Yandex Webmaster APIs (completed 2026-04-01)
-- [ ] **Phase 6: Position Tracking** — User can see position history, delta indicators, 90-day charts, and receive Telegram alerts on drops
+- [x] **Phase 6: Position Tracking** — Position history with deltas, Chart.js, filters, Telegram drop alerts (completed 2026-04-01)
 - [ ] **Phase 7: Semantics** — User can cluster keywords, map them to pages, and see cannibalization flags
 - [ ] **Phase 8: WP Pipeline** — User can run the content enrichment pipeline with mandatory diff preview before any change goes live
 - [ ] **Phase 9: Projects & Tasks** — User can manage work on a Kanban board, plan content, and generate page briefs
@@ -134,9 +134,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 06-01: `keyword_positions` Alembic migration — monthly range-partitioned table on `checked_at`; partition management; indexes on (keyword_id, engine, checked_at); this migration runs before any position write
-- [ ] 06-02: Position writer service — stores DataForSEO/GSC/Yandex results into `keyword_positions`; delta computation vs. previous check; Celery Beat schedule for automated checks
-- [ ] 06-03: Position table UI — keyword + position + delta arrow + colour indicator + URL + engine/geo/device columns; filter controls (top-N / engine / region / cluster); 90-day Chart.js chart per keyword; Telegram alert task (configurable drop threshold, retry=3)
+- [x] 06-01: `keyword_positions` Alembic migration — monthly range-partitioned table on `checked_at`; partition management; indexes on (keyword_id, engine, checked_at); this migration runs before any position write
+- [x] 06-02: Position writer service — stores DataForSEO/GSC/Yandex results into `keyword_positions`; delta computation vs. previous check; Celery Beat schedule for automated checks
+- [x] 06-03: Position table UI — keyword + position + delta arrow + colour indicator + URL + engine/geo/device columns; filter controls (top-N / engine / region / cluster); 90-day Chart.js chart per keyword; Telegram alert task (configurable drop threshold, retry=3)
 
 ### Phase 7: Semantics
 **Goal**: User can cluster keywords manually or via SERP intersection, map clusters to target pages, see cannibalization warnings, export the full keyword list, and have the system auto-create tasks for keywords with no mapped page.
