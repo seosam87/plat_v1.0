@@ -17,7 +17,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 3: Crawler Core** — User can crawl a site, view per-page SEO data, and browse a snapshot diff feed (completed 2026-04-01)
 - [x] **Phase 4: Crawl Scheduling** — User can configure crawl schedules from the UI without restarting the app, and auto-tasks appear for 404s (completed 2026-04-01)
 - [x] **Phase 4.1: Test Backfill** — INSERTED — unit tests for phases 1–4 service logic, crawl helpers, WP service, router gaps (completed 2026-04-01)
-- [ ] **Phase 5: Keyword Import** — User can import keywords and pull positions from GSC, Yandex Webmaster, and DataForSEO
+- [x] **Phase 5: Keyword Import & File Parsers** — Keywords from Topvisor/KC/manual, SF import, GSC/DataForSEO/Yandex Webmaster APIs (completed 2026-04-01)
 - [ ] **Phase 6: Position Tracking** — User can see position history, delta indicators, 90-day charts, and receive Telegram alerts on drops
 - [ ] **Phase 7: Semantics** — User can cluster keywords, map them to pages, and see cannibalization flags
 - [ ] **Phase 8: WP Pipeline** — User can run the content enrichment pipeline with mandatory diff preview before any change goes live
@@ -112,11 +112,11 @@ Plans:
 **Plans**: 5 plans
 
 Plans:
-- [ ] 05-01: Keyword + KeywordGroup + FileUpload models, Alembic migration; keyword fields: phrase, frequency, region, engine, group_id, site_id; file_uploads: site_id, file_type, original_name, status, row_count, uploaded_at; manual keyword entry form + API
-- [ ] 05-02: File parsers — Topvisor (xlsx/csv: keywords, frequency, position history by date columns), Key Collector (xlsx/csv: keywords, parent group, positions, URLs), Screaming Frog (xlsx/csv: URL, status, title, H1, word count, inlinks → Page records); column auto-detection; upload UI with file type selector; upload history page; unit tests for each parser
-- [ ] 05-03: GSC integration — OAuth 2.0 flow with authlib; Search Analytics fetch (positions, clicks, CTR, impressions); token refresh; GSC credentials stored encrypted; pagination with `startRow` for large sites
-- [ ] 05-04: DataForSEO integration — SERP endpoint as primary; Keywords Data endpoint for volume/difficulty estimates; batch scheduling; retry=3; DataForSEO set as primary SERP source with Playwright as fallback
-- [ ] 05-05: Yandex Webmaster API integration (token-based, not scraping); Playwright SERP parser with User-Agent rotation, configurable delays, low-volume guard (<50 req/day without proxy); Celery Beat position check schedule (daily / weekly / manual)
+- [x] 05-01: Keyword + KeywordGroup + FileUpload models, Alembic migration; keyword fields: phrase, frequency, region, engine, group_id, site_id; file_uploads: site_id, file_type, original_name, status, row_count, uploaded_at; manual keyword entry form + API
+- [x] 05-02: File parsers — Topvisor (xlsx/csv: keywords, frequency, position history by date columns), Key Collector (xlsx/csv: keywords, parent group, positions, URLs), Screaming Frog (xlsx/csv: URL, status, title, H1, word count, inlinks → Page records); column auto-detection; upload UI with file type selector; upload history page; unit tests for each parser
+- [x] 05-03: GSC integration — OAuth 2.0 flow with authlib; Search Analytics fetch (positions, clicks, CTR, impressions); token refresh; GSC credentials stored encrypted; pagination with `startRow` for large sites
+- [x] 05-04: DataForSEO integration — SERP endpoint as primary; Keywords Data endpoint for volume/difficulty estimates; batch scheduling; retry=3; DataForSEO set as primary SERP source with Playwright as fallback
+- [x] 05-05: Yandex Webmaster API integration (token-based, not scraping); Playwright SERP parser with User-Agent rotation, configurable delays, low-volume guard (<50 req/day without proxy); Celery Beat position check schedule (daily / weekly / manual)
 
 ### Phase 6: Position Tracking
 **Goal**: User can see current positions with delta indicators and colour coding, drill into a 90-day history chart per keyword, filter by engine/region/cluster/top-N, and receive Telegram alerts when a keyword drops.
