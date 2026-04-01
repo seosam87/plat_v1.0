@@ -1,7 +1,7 @@
 ---
 phase: v3-01
 slug: v3-01-yandex-metrika
-status: draft
+status: approved
 design_system: tailwind-inline
 created: 2026-04-01
 ---
