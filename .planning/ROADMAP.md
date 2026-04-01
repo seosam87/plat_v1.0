@@ -20,7 +20,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 5: Keyword Import & File Parsers** — Keywords from Topvisor/KC/manual, SF import, GSC/DataForSEO/Yandex Webmaster APIs (completed 2026-04-01)
 - [x] **Phase 6: Position Tracking** — Position history with deltas, Chart.js, filters, Telegram drop alerts (completed 2026-04-01)
 - [x] **Phase 7: Semantics** — Keyword clusters, SERP auto-clustering, cannibalization, CSV export (completed 2026-04-01)
-- [ ] **Phase 8: WP Pipeline** — User can run the content enrichment pipeline with mandatory diff preview before any change goes live
+- [x] **Phase 8: WP Pipeline** — Content pipeline (TOC, schema.org, internal links), mandatory diff approval, rollback (completed 2026-04-01)
 - [ ] **Phase 9: Projects & Tasks** — User can manage work on a Kanban board, plan content, and generate page briefs
 - [ ] **Phase 10: Reports & Ads** — User can view the dashboard, export reports, schedule delivery, and upload ad traffic data
 - [ ] **Phase 11: Hardening** — Platform is rate-limited, fully RBAC-audited, observable, and deployable from README in <30 min
@@ -170,10 +170,10 @@ Plans:
 **Plans**: 4 plans
 
 Plans:
-- [ ] 08-01: WP page list fetch (WP REST API, filters: status/type/TOC/schema); `wp_content_jobs` model + Alembic migration (status, diff_json, processed_at, rollback payload); Yoast vs RankMath plugin detection per site (`seo_plugin` field on site model)
-- [ ] 08-02: Celery `wp` queue pipeline task — download full HTML via Playwright; H2–H3 structure detection; TOC HTML block generation; JSON-LD schema.org Article injection (headline, datePublished, author); WP rate-limit handling (exponential backoff on 429/403)
-- [ ] 08-03: Internal linking — find relevant pages from DB by keyword overlap; insert link block into content; Yoast/RankMath post_meta write via WP REST API; diff_json computation (before/after changed blocks)
-- [ ] 08-04: Diff preview UI (mandatory approval gate before push); batch processing by category (HTMX progress bar); job history UI with rollback action; one-click new WP post creation from platform
+- [x] 08-01: WP page list fetch (WP REST API, filters: status/type/TOC/schema); `wp_content_jobs` model + Alembic migration (status, diff_json, processed_at, rollback payload); Yoast vs RankMath plugin detection per site (`seo_plugin` field on site model)
+- [x] 08-02: Celery `wp` queue pipeline task — download full HTML via Playwright; H2–H3 structure detection; TOC HTML block generation; JSON-LD schema.org Article injection (headline, datePublished, author); WP rate-limit handling (exponential backoff on 429/403)
+- [x] 08-03: Internal linking — find relevant pages from DB by keyword overlap; insert link block into content; Yoast/RankMath post_meta write via WP REST API; diff_json computation (before/after changed blocks)
+- [x] 08-04: Diff preview UI (mandatory approval gate before push); batch processing by category (HTMX progress bar); job history UI with rollback action; one-click new WP post creation from platform
 
 ### Phase 9: Projects & Tasks
 **Goal**: User can create SEO projects, manage tasks on a Kanban board, build a content plan, create WP draft posts in one click, and generate downloadable page briefs from keyword clusters.
