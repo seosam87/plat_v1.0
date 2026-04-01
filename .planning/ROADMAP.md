@@ -13,7 +13,7 @@ Starting from a blank VPS, we build in strict dependency order: database and aut
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [ ] **Phase 1: Stack & Auth** — Developer can start the full Docker stack and log in with role-based access
-- [ ] **Phase 2: Site Management** — Admin can add, verify, and manage WordPress sites with encrypted credentials
+- [x] **Phase 2: Site Management** — Admin can add, verify, and manage WordPress sites with encrypted credentials
 - [ ] **Phase 3: Crawler Core** — User can crawl a site, view per-page SEO data, and browse a snapshot diff feed
 - [ ] **Phase 4: Crawl Scheduling** — User can configure crawl schedules from the UI without restarting the app, and auto-tasks appear for 404s
 - [ ] **Phase 5: Keyword Import** — User can import keywords and pull positions from GSC, Yandex Webmaster, and DataForSEO
@@ -58,7 +58,7 @@ Plans:
 Plans:
 - [x] 02-01: Site model + Alembic migration; Fernet encryption service for WP credentials (encrypt on write, decrypt at call time only); site CRUD endpoints
 - [x] 02-02: WP REST API connection verification (ping `/wp/v2/users/me` with Application Password); connection status stored on site model; site management UI page (Jinja2 + HTMX)
-- [ ] 02-03: Site disable/enable logic; Celery task guard (skip tasks for disabled sites without crash); basic WP post/page CRUD via WP REST API
+- [x] 02-03: Site disable/enable logic; Celery task guard (skip tasks for disabled sites without crash); basic WP post/page CRUD via WP REST API
 
 ### Phase 3: Crawler Core
 **Goal**: System can crawl a WordPress site using Playwright, capture per-page SEO signals, save snapshots with JSON diffs vs. the previous crawl, and let users browse a filterable change feed.
