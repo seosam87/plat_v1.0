@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}{{ project_name }} — Kanban{% endblock %}
+{% block content %}
+<div class="card">
+  <h2 style="margin:0 0 1.5rem">{{ project_name }} — Tasks</h2>
+  <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:1rem">
+    {% for col_status, col_label in [("open", "To Do"), ("in_progress", "In Progress"), ("resolved", "Done")] %}
+    <div style="background:#f9fafb; border-radius:8px; padding:1rem; min-height:200px">
+      <h3 style="margin:0 0 1rem; color:#6b7280; font-size:.9rem; text-transform:uppercase">{{ col_label }} ({{ tasks[col_status]|length }})</h3>
+      {% for task in tasks[col_status] %}
+      <div class="task-card" style="background:white; border:1px solid #e5e7eb; border-radius:6px; padding:.75rem; margin-bottom:.5rem">
+        <div style="font-weight:500; margin-bottom:.25rem">{{ task.title }}</div>
+        {% if task.task_type %}
+        <span class="badge {% if task.task_type == 'page_404' %}badge-failed{% else %}badge-unknown{% endif %}" style="font-size:.7rem">{{ task.task_type }}</span>
+        {% endif %}
+        {% if task.due_date %}
+        <span style="font-size:.75rem; color:#6b7280; margin-left:.3rem">Due: {{ task.due_date }}</span>
+        {% endif %}
+        <div style="margin-top:.5rem; display:flex; gap:.3rem">
+          {% if col_status == "open" %}
+          <button class="btn btn-sm" style="background:#3b82f6;color:white"
+            hx-patch="/projects/tasks/{{ task.id }}" hx-vals='{"status":"in_progress"}'
+            hx-target="closest .card" hx-swap="outerHTML"
+            hx-headers='{"Content-Type":"application/json"}'>Start</button>
+          {% elif col_status == "in_progress" %}
+          <button class="btn btn-sm" style="background:#059669;color:white"
+            hx-patch="/projects/tasks/{{ task.id }}" hx-vals='{"status":"resolved"}'
+            hx-target="closest .card" hx-swap="outerHTML"
+            hx-headers='{"Content-Type":"application/json"}'>Done</button>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}
