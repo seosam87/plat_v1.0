@@ -12,3 +12,5 @@ dist/
 .mypy_cache/
 .ruff_cache/
 uploads/
+backups/
+.env.prod

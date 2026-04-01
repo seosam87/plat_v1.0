@@ -13,3 +13,7 @@ logs/*.log
 .ruff_cache
 README.md
 CLAUDE.md
+.env.prod
+.env.prod.example
+backups
+nginx
