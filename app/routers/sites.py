@@ -8,7 +8,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth.dependencies import require_admin
 from app.dependencies import get_db
 from app.models.user import User
-from app.services import site_service
+from app.models.schedule import ScheduleType
+from app.services import schedule_service, site_service
 from app.services import wp_service as wp_svc
 
 from app.tasks.crawl_tasks import crawl_site as _crawl_site_task
@@ -28,6 +29,10 @@ class SiteUpdate(BaseModel):
     url: str | None = None
     wp_username: str | None = None
     app_password: str | None = None
+
+
+class ScheduleUpdate(BaseModel):
+    schedule_type: ScheduleType
 
 
 class SiteOut(BaseModel):
@@ -214,3 +219,56 @@ async def verify_site(
     new_status = await wp_svc.verify_connection(site)
     await site_service.set_connection_status(db, site, new_status)
     return HTMLResponse(_status_badge(str(site_id), new_status.value))
+
+
+# ---- Crawl schedule endpoints ----
+
+
+@router.get("/{site_id}/schedule")
+async def get_schedule(
+    site_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_admin),
+) -> dict:
+    schedule = await schedule_service.get_schedule(db, site_id)
+    if not schedule:
+        return {"site_id": str(site_id), "schedule_type": "manual", "is_active": True}
+    return {
+        "site_id": str(schedule.site_id),
+        "schedule_type": schedule.schedule_type.value,
+        "cron_expression": schedule.cron_expression,
+        "is_active": schedule.is_active,
+    }
+
+
+@router.put("/{site_id}/schedule")
+async def update_schedule(
+    site_id: uuid.UUID,
+    payload: ScheduleUpdate,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+) -> dict:
+    site = await site_service.get_site(db, site_id)
+    if not site:
+        raise HTTPException(status_code=404, detail="Site not found")
+    schedule = await schedule_service.upsert_schedule(
+        db, site_id, payload.schedule_type
+    )
+    await db.commit()
+
+    result = {
+        "site_id": str(schedule.site_id),
+        "schedule_type": schedule.schedule_type.value,
+        "cron_expression": schedule.cron_expression,
+        "is_active": schedule.is_active,
+    }
+
+    # HTMX response: return updated badge
+    if request.headers.get("HX-Request"):
+        label = schedule.schedule_type.value
+        css = "badge-connected" if label != "manual" else "badge-unknown"
+        return HTMLResponse(
+            f'<span class="badge {css}">{label}</span>'
+        )
+    return result

@@ -1,5 +1,5 @@
 from celery import Celery
-from celery.signals import worker_process_init, worker_process_shutdown
+from celery.signals import beat_init, worker_process_init, worker_process_shutdown
 
 from app.config import settings
 
@@ -77,3 +77,21 @@ def shutdown_playwright_browser(**kwargs):
 def get_browser():
     """Return the process-level Playwright Browser (or None if not initialised)."""
     return _browser
+
+
+@beat_init.connect
+def restore_crawl_schedules(**kwargs):
+    """Restore crawl schedules from PostgreSQL on Beat startup.
+
+    Ensures schedules survive Redis FLUSHALL and container restarts.
+    """
+    try:
+        from app.services.schedule_service import restore_schedules_from_db
+
+        restore_schedules_from_db()
+    except Exception as exc:
+        import logging
+
+        logging.getLogger(__name__).warning(
+            "Failed to restore crawl schedules from DB: %s", exc
+        )
