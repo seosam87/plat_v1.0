@@ -15,9 +15,9 @@
 
 ### Site Management
 
-- [ ] **SITE-01**: Admin can add a WordPress site (name, URL, WP Application Password) and verify the connection
+- [x] **SITE-01**: Admin can add a WordPress site (name, URL, WP Application Password) and verify the connection
 - [ ] **SITE-02**: Admin can remove or disable a site; associated jobs stop without crashing other sites
-- [ ] **SITE-03**: WP Application Passwords are stored Fernet-encrypted; never logged or exposed in responses
+- [x] **SITE-03**: WP Application Passwords are stored Fernet-encrypted; never logged or exposed in responses
 - [ ] **SITE-04**: User can view connection status for all sites on a management page
 
 ### Crawler
@@ -109,7 +109,7 @@
 ### Security
 
 - [ ] **SEC-01**: Passwords are hashed with bcrypt; plaintext passwords never stored or logged
-- [ ] **SEC-02**: WP Application Passwords are Fernet-encrypted at rest; decrypted only at call time, never logged
+- [x] **SEC-02**: WP Application Passwords are Fernet-encrypted at rest; decrypted only at call time, never logged
 - [ ] **SEC-03**: JWT tokens expire after 24h; refresh requires re-authentication
 - [ ] **SEC-04**: Role checks are enforced at both route level and service layer (not route-only)
 - [ ] **SEC-05**: HTTPS is enforced in production (Nginx/Caddy reverse proxy in docker-compose)
@@ -165,9 +165,9 @@
 | AUTH-03 | Phase 11: Hardening | Pending |
 | AUTH-04 | Phase 11: Hardening | Pending |
 | AUTH-05 | Phase 1: Stack & Auth | Pending |
-| SITE-01 | Phase 2: Site Management | Pending |
+| SITE-01 | Phase 2: Site Management | Complete |
 | SITE-02 | Phase 2: Site Management | Pending |
-| SITE-03 | Phase 2: Site Management | Pending |
+| SITE-03 | Phase 2: Site Management | Complete |
 | SITE-04 | Phase 2: Site Management | Pending |
 | CRAWL-01 | Phase 3: Crawler Core | Pending |
 | CRAWL-02 | Phase 3: Crawler Core | Pending |
@@ -232,7 +232,7 @@
 | INFRA-09 | Phase 3: Crawler Core | Pending |
 | INFRA-10 | Phase 11: Hardening | Pending |
 | SEC-01 | Phase 1: Stack & Auth | Pending |
-| SEC-02 | Phase 2: Site Management | Pending |
+| SEC-02 | Phase 2: Site Management | Complete |
 | SEC-03 | Phase 1: Stack & Auth | Pending |
 | SEC-04 | Phase 1: Stack & Auth | Pending |
 | SEC-05 | Phase 11: Hardening | Pending |

@@ -56,7 +56,7 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 02-01: Site model + Alembic migration; Fernet encryption service for WP credentials (encrypt on write, decrypt at call time only); site CRUD endpoints
+- [x] 02-01: Site model + Alembic migration; Fernet encryption service for WP credentials (encrypt on write, decrypt at call time only); site CRUD endpoints
 - [ ] 02-02: WP REST API connection verification (ping `/wp/v2/users/me` with Application Password); connection status stored on site model; site management UI page (Jinja2 + HTMX)
 - [ ] 02-03: Site disable/enable logic; Celery task guard (skip tasks for disabled sites without crash); basic WP post/page CRUD via WP REST API
 
