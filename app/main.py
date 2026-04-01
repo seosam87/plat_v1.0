@@ -478,6 +478,8 @@ async def ui_dashboard(request: Request, db: AsyncSession = Depends(get_db)) -> 
     from app.models.project import Project
     from sqlalchemy import select as sa_select
 
+    from app.services.report_service import site_overview
+
     stats = await dashboard_summary(db)
     projects = (await db.execute(
         sa_select(Project).order_by(Project.created_at.desc()).limit(20)
@@ -490,7 +492,26 @@ async def ui_dashboard(request: Request, db: AsyncSession = Depends(get_db)) -> 
          "site_id": str(p.site_id), "site_name": site_map.get(p.site_id, "—")}
         for p in projects
     ]
-    return templates.TemplateResponse(request, "dashboard/index.html", {"stats": stats, "projects": projects_data})
+
+    # Per-site overview for dashboard table
+    sites_overview = []
+    for s in sites[:20]:
+        try:
+            ov = await site_overview(db, s.id)
+            sites_overview.append({
+                "id": str(s.id), "name": s.name,
+                "keyword_count": ov["keyword_count"],
+                "top3": ov["distribution"].get("top3", 0),
+                "top10": ov["distribution"].get("top10", 0),
+                "top30": ov["distribution"].get("top30", 0),
+                "open_tasks": ov["open_tasks"],
+            })
+        except Exception:
+            sites_overview.append({"id": str(s.id), "name": s.name, "keyword_count": 0, "top3": 0, "top10": 0, "top30": 0, "open_tasks": 0})
+
+    return templates.TemplateResponse(request, "dashboard/index.html", {
+        "stats": stats, "projects": projects_data, "sites_overview": sites_overview,
+    })
 
 
 @app.get("/ui/projects/{project_id}/kanban", response_class=HTMLResponse)

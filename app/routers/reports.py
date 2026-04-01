@@ -26,6 +26,16 @@ async def dashboard(db: AsyncSession = Depends(get_db), _: User = Depends(requir
     return await report_service.dashboard_summary(db)
 
 
+@router.get("/sites/{site_id}/overview")
+async def site_overview(
+    site_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_admin),
+) -> dict:
+    """Aggregated site overview: positions, keywords, tasks, top movers."""
+    return await report_service.site_overview(db, site_id)
+
+
 @router.get("/projects/{project_id}/excel")
 async def export_excel(
     project_id: uuid.UUID,

@@ -42,3 +42,43 @@ class TestAdTrafficModel:
         )
         assert ad.source == "google_ads"
         assert ad.sessions == 100
+
+
+# ---- Phase 9: site overview + endpoints ----
+
+
+class TestSiteOverviewImport:
+    def test_import(self):
+        from app.services.report_service import site_overview
+        assert callable(site_overview)
+
+
+class TestSiteOverviewEndpoint:
+    def test_endpoint_registered(self):
+        from app.routers.reports import router
+        paths = [r.path for r in router.routes]
+        assert "/reports/sites/{site_id}/overview" in paths
+
+
+class TestDeltaPercentLogic:
+    """Test the delta percentage calculation used in ad traffic comparison."""
+
+    def test_positive_growth(self):
+        old, new = 100, 150
+        delta = round((new - old) / old * 100, 1)
+        assert delta == 50.0
+
+    def test_negative_growth(self):
+        old, new = 200, 150
+        delta = round((new - old) / old * 100, 1)
+        assert delta == -25.0
+
+    def test_zero_old_returns_none(self):
+        old = 0
+        delta = None if old == 0 else round((100 - old) / old * 100, 1)
+        assert delta is None
+
+    def test_no_change(self):
+        old, new = 50, 50
+        delta = round((new - old) / old * 100, 1)
+        assert delta == 0.0

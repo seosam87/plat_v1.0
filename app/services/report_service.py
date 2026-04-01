@@ -34,6 +34,75 @@ async def dashboard_summary(db: AsyncSession) -> dict:
     }
 
 
+async def site_overview(db: AsyncSession, site_id) -> dict:
+    """Aggregated overview for a single site: positions, keywords, tasks, crawls."""
+    import uuid
+    from app.models.crawl import CrawlJob
+    from app.models.site import Site
+
+    sid = uuid.UUID(str(site_id))
+
+    keyword_count = (await db.execute(
+        select(func.count()).select_from(Keyword).where(Keyword.site_id == sid)
+    )).scalar_one()
+
+    open_tasks = (await db.execute(
+        select(func.count()).select_from(SeoTask).where(
+            SeoTask.site_id == sid, SeoTask.status == TaskStatus.open
+        )
+    )).scalar_one()
+
+    crawl_count = (await db.execute(
+        select(func.count()).select_from(CrawlJob).where(CrawlJob.site_id == sid)
+    )).scalar_one()
+
+    # Position distribution
+    dist_result = await db.execute(text("""
+        WITH latest AS (
+            SELECT DISTINCT ON (kp.keyword_id, kp.engine)
+                kp.position
+            FROM keyword_positions kp
+            WHERE kp.site_id = :sid
+            ORDER BY kp.keyword_id, kp.engine, kp.checked_at DESC
+        )
+        SELECT
+            COUNT(*) FILTER (WHERE position IS NOT NULL AND position <= 3) AS top3,
+            COUNT(*) FILTER (WHERE position IS NOT NULL AND position <= 10) AS top10,
+            COUNT(*) FILTER (WHERE position IS NOT NULL AND position <= 30) AS top30,
+            COUNT(*) FILTER (WHERE position IS NOT NULL AND position <= 100) AS top100,
+            COUNT(*) FILTER (WHERE position IS NULL) AS not_ranked,
+            COUNT(*) AS total
+        FROM latest
+    """), {"sid": sid})
+    dist_row = dist_result.mappings().one_or_none()
+    distribution = dict(dist_row) if dist_row else {"top3": 0, "top10": 0, "top30": 0, "top100": 0, "not_ranked": 0, "total": 0}
+
+    # Top movers (biggest delta in last 7 days)
+    movers_result = await db.execute(text("""
+        SELECT DISTINCT ON (kp.keyword_id)
+            kp.keyword_id, k.phrase, kp.position, kp.delta, kp.engine
+        FROM keyword_positions kp
+        JOIN keywords k ON k.id = kp.keyword_id
+        WHERE kp.site_id = :sid
+          AND kp.delta IS NOT NULL
+          AND kp.checked_at >= NOW() - INTERVAL '7 days'
+        ORDER BY kp.keyword_id, kp.checked_at DESC
+    """), {"sid": sid})
+    all_movers = [dict(r) for r in movers_result.mappings().all()]
+
+    gainers = sorted([m for m in all_movers if m["delta"] and m["delta"] > 0], key=lambda x: -x["delta"])[:5]
+    losers = sorted([m for m in all_movers if m["delta"] and m["delta"] < 0], key=lambda x: x["delta"])[:5]
+
+    return {
+        "keyword_count": keyword_count,
+        "open_tasks": open_tasks,
+        "crawl_count": crawl_count,
+        "distribution": distribution,
+        "top_gainers": gainers,
+        "top_losers": losers,
+    }
+
+
 def generate_excel_report(
     project_name: str,
     keywords: list[dict],

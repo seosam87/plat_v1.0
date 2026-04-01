@@ -27,6 +27,34 @@
   </div>
 </div>
 
+<!-- Sites quick overview -->
+{% if sites_overview %}
+<div class="card" style="margin-bottom:1.5rem">
+  <h3 style="margin:0 0 1rem">Sites Overview</h3>
+  <table>
+    <thead>
+      <tr><th>Site</th><th>Keywords</th><th>TOP-3</th><th>TOP-10</th><th>TOP-30</th><th>Open Tasks</th><th>Actions</th></tr>
+    </thead>
+    <tbody>
+      {% for s in sites_overview %}
+      <tr>
+        <td style="font-weight:500"><a href="/ui/sites/{{ s.id }}/detail">{{ s.name }}</a></td>
+        <td>{{ s.keyword_count }}</td>
+        <td style="color:#059669; font-weight:700">{{ s.top3 }}</td>
+        <td style="color:#2563eb; font-weight:700">{{ s.top10 }}</td>
+        <td>{{ s.top30 }}</td>
+        <td>{{ s.open_tasks }}</td>
+        <td>
+          <a href="/ui/positions/{{ s.id }}" class="btn btn-sm">Positions</a>
+          <a href="/ui/keywords/{{ s.id }}" class="btn btn-sm" style="margin-left:.25rem">Keywords</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
 {% if projects %}
 <div class="card">
   <h3 style="margin:0 0 1rem">Projects</h3>
