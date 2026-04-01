@@ -235,6 +235,89 @@ async def ui_uploads(
     )
 
 
+@app.get("/ui/dashboard", response_class=HTMLResponse)
+async def ui_dashboard(request: Request, db: AsyncSession = Depends(get_db)) -> HTMLResponse:
+    from app.services.report_service import dashboard_summary
+    from app.models.project import Project
+    from sqlalchemy import select as sa_select
+
+    stats = await dashboard_summary(db)
+    projects = (await db.execute(
+        sa_select(Project).order_by(Project.created_at.desc()).limit(20)
+    )).scalars().all()
+    projects_data = [{"id": str(p.id), "name": p.name, "status": p.status.value} for p in projects]
+    return templates.TemplateResponse(request, "dashboard/index.html", {"stats": stats, "projects": projects_data})
+
+
+@app.get("/ui/projects/{project_id}/kanban", response_class=HTMLResponse)
+async def ui_kanban(project_id: str, request: Request, db: AsyncSession = Depends(get_db)) -> HTMLResponse:
+    import uuid as _uuid
+    from app.models.project import Project
+    from app.models.task import SeoTask
+    from sqlalchemy import select as sa_select
+
+    project = (await db.execute(sa_select(Project).where(Project.id == _uuid.UUID(project_id)))).scalar_one_or_none()
+    if not project:
+        return HTMLResponse("Project not found", status_code=404)
+    tasks = (await db.execute(
+        sa_select(SeoTask).where(SeoTask.project_id == _uuid.UUID(project_id)).order_by(SeoTask.created_at)
+    )).scalars().all()
+    grouped = {"open": [], "in_progress": [], "resolved": []}
+    for t in tasks:
+        grouped.setdefault(t.status.value, []).append({
+            "id": str(t.id), "title": t.title, "task_type": t.task_type.value,
+            "due_date": t.due_date.isoformat() if t.due_date else None,
+        })
+    return templates.TemplateResponse(request, "projects/kanban.html", {"project_name": project.name, "tasks": grouped})
+
+
+@app.get("/ui/projects/{project_id}/plan", response_class=HTMLResponse)
+async def ui_plan(project_id: str, request: Request, db: AsyncSession = Depends(get_db)) -> HTMLResponse:
+    import uuid as _uuid
+    from app.models.project import Project
+    from app.models.content_plan import ContentPlanItem
+    from sqlalchemy import select as sa_select
+
+    project = (await db.execute(sa_select(Project).where(Project.id == _uuid.UUID(project_id)))).scalar_one_or_none()
+    if not project:
+        return HTMLResponse("Project not found", status_code=404)
+    items = (await db.execute(
+        sa_select(ContentPlanItem).where(ContentPlanItem.project_id == _uuid.UUID(project_id))
+        .order_by(ContentPlanItem.planned_date.asc().nullslast())
+    )).scalars().all()
+    items_data = [
+        {"id": str(i.id), "proposed_title": i.proposed_title, "status": i.status.value,
+         "planned_date": i.planned_date.isoformat() if i.planned_date else None,
+         "wp_post_id": i.wp_post_id, "wp_post_url": i.wp_post_url, "notes": i.notes}
+        for i in items
+    ]
+    return templates.TemplateResponse(request, "projects/plan.html", {"project_name": project.name, "items": items_data})
+
+
+@app.get("/ui/pipeline/{site_id}", response_class=HTMLResponse)
+async def ui_pipeline(site_id: str, request: Request, db: AsyncSession = Depends(get_db)) -> HTMLResponse:
+    import uuid as _uuid
+    from app.models.wp_content_job import WpContentJob
+    from sqlalchemy import select as sa_select
+
+    site = await get_site(db, _uuid.UUID(site_id))
+    if not site:
+        return HTMLResponse("Site not found", status_code=404)
+    jobs = (await db.execute(
+        sa_select(WpContentJob).where(WpContentJob.site_id == _uuid.UUID(site_id))
+        .order_by(WpContentJob.created_at.desc()).limit(50)
+    )).scalars().all()
+    jobs_data = [
+        {"id": str(j.id), "page_url": j.page_url, "status": j.status.value,
+         "has_changes": j.diff_json.get("has_changes") if j.diff_json else None,
+         "created_at": j.created_at.isoformat() if j.created_at else ""}
+        for j in jobs
+    ]
+    return templates.TemplateResponse(request, "pipeline/jobs.html", {"site_name": site.name, "site_id": str(site.id), "jobs": jobs_data})
+
+
 @app.get("/")
 async def root():
-    return {"status": "ok", "service": "SEO Management Platform"}
+    """Redirect root to dashboard."""
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse("/ui/dashboard")

@@ -10,6 +10,19 @@ from app.database import Base
 from app.models import audit_log  # noqa: F401
 from app.models import user  # noqa: F401
 from app.models.site import Site  # noqa: F401
+from app.models.crawl import CrawlJob, Page, PageSnapshot  # noqa: F401
+from app.models.schedule import CrawlSchedule  # noqa: F401
+from app.models.task import SeoTask  # noqa: F401
+from app.models.keyword import Keyword, KeywordGroup  # noqa: F401
+from app.models.file_upload import FileUpload  # noqa: F401
+from app.models.position import KeywordPosition  # noqa: F401
+from app.models.oauth_token import OAuthToken  # noqa: F401
+from app.models.cluster import KeywordCluster  # noqa: F401
+from app.models.wp_content_job import WpContentJob  # noqa: F401
+from app.models.project import Project  # noqa: F401
+from app.models.content_plan import ContentPlanItem  # noqa: F401
+from app.models.ad_traffic import AdTraffic  # noqa: F401
+from app.models.invite import InviteLink  # noqa: F401
 
 config = context.config
 

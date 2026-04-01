@@ -34,13 +34,16 @@ services:
 
   api:
     build: .
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    command: >
+      sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
     env_file: .env
     ports:
       - "8000:8000"
     volumes:
       - ./app:/app/app
+      - ./alembic:/app/alembic
       - ./logs:/app/logs
+      - uploads_data:/app/uploads
     depends_on:
       postgres:
         condition: service_healthy
@@ -96,8 +99,25 @@ services:
     depends_on:
       redis:
         condition: service_healthy
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  flower:
+    build: .
+    command: >
+      celery -A app.celery_app flower
+      --port=5555
+      --basic_auth=${FLOWER_BASIC_AUTH:-admin:changeme}
+    env_file: .env
+    ports:
+      - "5555:5555"
+    depends_on:
+      redis:
+        condition: service_healthy
     restart: unless-stopped
 
 volumes:
   postgres_data:
   redis_data:
+  uploads_data:

@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Pipeline Jobs — {{ site_name }}{% endblock %}
+{% block content %}
+<div class="card">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem">
+    <h2 style="margin:0">Content Pipeline: {{ site_name }}</h2>
+    <button class="btn btn-primary"
+      hx-post="/pipeline/sites/{{ site_id }}/batch" hx-swap="none"
+      onclick="this.textContent='Running...'; this.disabled=true">Run Batch Pipeline</button>
+  </div>
+
+  {% if jobs %}
+  <table>
+    <thead>
+      <tr>
+        <th>Page URL</th>
+        <th>Status</th>
+        <th>Changes</th>
+        <th>Created</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for job in jobs %}
+      <tr>
+        <td style="max-width:300px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">
+          <a href="{{ job.page_url }}" target="_blank">{{ job.page_url }}</a>
+        </td>
+        <td>
+          <span class="badge {% if job.status == 'pushed' %}badge-connected{% elif job.status == 'awaiting_approval' %}badge-unknown{% elif job.status == 'failed' %}badge-failed{% else %}badge-unknown{% endif %}">
+            {{ job.status }}
+          </span>
+        </td>
+        <td>{% if job.has_changes %}Yes{% elif job.has_changes == false %}No{% else %}—{% endif %}</td>
+        <td>{{ job.created_at[:16] if job.created_at else '' }}</td>
+        <td>
+          {% if job.status == 'awaiting_approval' %}
+          <button class="btn btn-sm" style="background:#059669;color:white"
+            hx-post="/pipeline/jobs/{{ job.id }}/approve" hx-swap="none"
+            onclick="this.textContent='Approved'; this.disabled=true">Approve</button>
+          <button class="btn btn-sm" style="background:#dc2626;color:white; margin-left:.3rem"
+            hx-post="/pipeline/jobs/{{ job.id }}/reject" hx-swap="none">Reject</button>
+          {% elif job.status == 'pushed' %}
+          <button class="btn btn-sm" style="background:#d97706;color:white"
+            hx-post="/pipeline/jobs/{{ job.id }}/rollback" hx-swap="none"
+            hx-confirm="Rollback to original content?">Rollback</button>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p style="color:#6b7280">No pipeline jobs yet. Run batch pipeline or trigger individual pages.</p>
+  {% endif %}
+</div>
+{% endblock %}

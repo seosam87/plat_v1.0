@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Content Plan — {{ project_name }}{% endblock %}
+{% block content %}
+<div class="card">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem">
+    <h2 style="margin:0">Content Plan: {{ project_name }}</h2>
+  </div>
+
+  {% if items %}
+  <table>
+    <thead>
+      <tr>
+        <th>Title</th>
+        <th>Status</th>
+        <th>Planned Date</th>
+        <th>WP Post</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in items %}
+      <tr>
+        <td style="font-weight:500">{{ item.proposed_title }}</td>
+        <td>
+          <span class="badge {% if item.status == 'published' %}badge-connected{% elif item.status == 'writing' %}badge-unknown{% else %}badge-failed{% endif %}">{{ item.status }}</span>
+        </td>
+        <td>{{ item.planned_date or '—' }}</td>
+        <td>
+          {% if item.wp_post_url %}
+            <a href="{{ item.wp_post_url }}" target="_blank">Post #{{ item.wp_post_id }}</a>
+          {% elif item.wp_post_id %}
+            Draft #{{ item.wp_post_id }}
+          {% else %}
+            <button class="btn btn-sm btn-primary"
+              hx-post="/projects/plan/{{ item.id }}/create-draft"
+              hx-swap="outerHTML">Create Draft</button>
+          {% endif %}
+        </td>
+        <td>{{ item.notes or '' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p style="color:#6b7280">No content plan items yet.</p>
+  {% endif %}
+</div>
+{% endblock %}

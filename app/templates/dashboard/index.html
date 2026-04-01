@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — SEO Platform{% endblock %}
+{% block content %}
+<div class="card" style="margin-bottom:1.5rem">
+  <h2 style="margin:0 0 1.5rem">Dashboard</h2>
+  <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:1rem">
+    <div style="background:#eff6ff; border-radius:8px; padding:1.5rem; text-align:center">
+      <div style="font-size:2rem; font-weight:700; color:#2563eb">{{ stats.projects }}</div>
+      <div style="color:#6b7280; margin-top:.25rem">Projects</div>
+    </div>
+    <div style="background:#f0fdf4; border-radius:8px; padding:1.5rem; text-align:center">
+      <div style="font-size:2rem; font-weight:700; color:#059669">{{ stats.total_keywords }}</div>
+      <div style="color:#6b7280; margin-top:.25rem">Keywords</div>
+    </div>
+    <div style="background:#fef3c7; border-radius:8px; padding:1.5rem; text-align:center">
+      <div style="font-size:2rem; font-weight:700; color:#d97706">{{ stats.open_tasks }}</div>
+      <div style="color:#6b7280; margin-top:.25rem">Open Tasks</div>
+    </div>
+    <div style="background:#ede9fe; border-radius:8px; padding:1.5rem; text-align:center">
+      <div style="font-size:2rem; font-weight:700; color:#7c3aed">{{ stats.in_progress_tasks }}</div>
+      <div style="color:#6b7280; margin-top:.25rem">In Progress</div>
+    </div>
+  </div>
+</div>
+
+{% if projects %}
+<div class="card">
+  <h3 style="margin:0 0 1rem">Projects</h3>
+  <table>
+    <thead>
+      <tr><th>Name</th><th>Status</th><th>Actions</th></tr>
+    </thead>
+    <tbody>
+      {% for p in projects %}
+      <tr>
+        <td style="font-weight:500">{{ p.name }}</td>
+        <td><span class="badge {% if p.status == 'active' %}badge-connected{% elif p.status == 'paused' %}badge-unknown{% else %}badge-failed{% endif %}">{{ p.status }}</span></td>
+        <td>
+          <a href="/ui/projects/{{ p.id }}/kanban" class="btn btn-sm">Kanban</a>
+          <a href="/ui/projects/{{ p.id }}/plan" class="btn btn-sm" style="margin-left:.3rem">Plan</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+{% endblock %}
