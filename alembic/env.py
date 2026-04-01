@@ -9,6 +9,7 @@ from alembic import context
 from app.database import Base
 from app.models import audit_log  # noqa: F401
 from app.models import user  # noqa: F401
+from app.models.site import Site  # noqa: F401
 
 config = context.config
 
