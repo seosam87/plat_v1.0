@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}Upload Data — SEO Platform{% endblock %}
+{% block content %}
+<div class="card">
+  <h2 style="margin:0 0 1.5rem">Upload Data</h2>
+
+  <form
+    method="post"
+    enctype="multipart/form-data"
+    action=""
+    id="upload-form"
+    hx-post=""
+    hx-target="#upload-result"
+    hx-swap="innerHTML"
+    hx-encoding="multipart/form-data"
+    style="display:flex; gap:1rem; align-items:end; flex-wrap:wrap; margin-bottom:2rem"
+  >
+    <div>
+      <label style="display:block; font-size:.85rem; color:#6b7280; margin-bottom:.3rem">Site</label>
+      <select name="site_id" required style="padding:.4rem .6rem; border:1px solid #d1d5db; border-radius:4px">
+        {% for site in sites %}
+        <option value="{{ site.id }}">{{ site.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label style="display:block; font-size:.85rem; color:#6b7280; margin-bottom:.3rem">Type</label>
+      <select name="file_type" required style="padding:.4rem .6rem; border:1px solid #d1d5db; border-radius:4px">
+        <option value="topvisor">Topvisor</option>
+        <option value="key_collector">Key Collector</option>
+        <option value="screaming_frog">Screaming Frog</option>
+      </select>
+    </div>
+    <div>
+      <label style="display:block; font-size:.85rem; color:#6b7280; margin-bottom:.3rem">File (.xlsx or .csv)</label>
+      <input type="file" name="file" accept=".xlsx,.csv,.tsv" required>
+    </div>
+    <button type="submit" class="btn btn-primary">Upload & Parse</button>
+  </form>
+
+  <div id="upload-result"></div>
+
+  <h3 style="margin-top:2rem">Upload History</h3>
+  {% if uploads %}
+  <table>
+    <thead>
+      <tr>
+        <th>File</th>
+        <th>Type</th>
+        <th>Status</th>
+        <th>Rows</th>
+        <th>Uploaded</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for u in uploads %}
+      <tr>
+        <td>{{ u.original_name }}</td>
+        <td><span class="badge badge-unknown">{{ u.file_type }}</span></td>
+        <td>
+          <span class="badge {% if u.status == 'done' %}badge-connected{% elif u.status == 'failed' %}badge-failed{% else %}badge-unknown{% endif %}">
+            {{ u.status }}
+          </span>
+        </td>
+        <td>{{ u.row_count or '—' }}</td>
+        <td>{{ u.uploaded_at[:16] if u.uploaded_at else '' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p style="color:#6b7280">No uploads yet.</p>
+  {% endif %}
+</div>
+{% endblock %}

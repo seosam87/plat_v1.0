@@ -18,6 +18,7 @@ from app.routers.crawl import router as crawl_router
 from app.routers.sites import router as sites_router
 from app.routers.keywords import router as keywords_router
 from app.routers.tasks import router as tasks_router
+from app.routers.uploads import router as uploads_router
 from app.services.schedule_service import get_all_schedules, upsert_schedule
 from app.services.site_service import get_site, get_sites
 from app.models.schedule import ScheduleType
@@ -46,6 +47,7 @@ app.include_router(sites_router)
 app.include_router(crawl_router)
 app.include_router(tasks_router)
 app.include_router(keywords_router)
+app.include_router(uploads_router)
 
 
 @app.get("/ui/sites", response_class=HTMLResponse)
@@ -110,6 +112,33 @@ async def ui_tasks(
     ]
     return templates.TemplateResponse(
         request, "tasks/index.html", {"tasks": tasks_data, "status_filter": status}
+    )
+
+
+@app.get("/ui/uploads", response_class=HTMLResponse)
+async def ui_uploads(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+) -> HTMLResponse:
+    from app.models.file_upload import FileUpload
+    from sqlalchemy import select as sa_select
+
+    sites = await get_sites(db)
+    uploads = (await db.execute(
+        sa_select(FileUpload).order_by(FileUpload.uploaded_at.desc()).limit(50)
+    )).scalars().all()
+    uploads_data = [
+        {
+            "original_name": u.original_name,
+            "file_type": u.file_type.value,
+            "status": u.status.value,
+            "row_count": u.row_count,
+            "uploaded_at": u.uploaded_at.isoformat() if u.uploaded_at else "",
+        }
+        for u in uploads
+    ]
+    return templates.TemplateResponse(
+        request, "uploads/index.html", {"sites": sites, "uploads": uploads_data}
     )
 
 
