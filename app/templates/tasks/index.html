@@ -2,21 +2,53 @@
 {% block title %}SEO Tasks — SEO Platform{% endblock %}
 {% block content %}
 <div class="card">
-  <h2 style="margin:0 0 1.5rem">SEO Tasks</h2>
+  <h2 style="margin:0 0 1rem">SEO Tasks <a class="help-trigger" onclick="openHelp()" title="Справка">?</a></h2>
 
-  <div style="margin-bottom:1rem; display:flex; gap:.5rem">
-    <a href="/ui/tasks" class="btn btn-sm {% if not status_filter %}btn-primary{% endif %}">All</a>
-    <a href="/ui/tasks?status=open" class="btn btn-sm {% if status_filter == 'open' %}btn-primary{% endif %}">Open</a>
-    <a href="/ui/tasks?status=in_progress" class="btn btn-sm {% if status_filter == 'in_progress' %}btn-primary{% endif %}">In Progress</a>
-    <a href="/ui/tasks?status=resolved" class="btn btn-sm {% if status_filter == 'resolved' %}btn-primary{% endif %}">Resolved</a>
-  </div>
+  <!-- Filters -->
+  <form method="GET" action="/ui/tasks" style="display:flex; gap:.5rem; margin-bottom:1rem; flex-wrap:wrap; align-items:center">
+    <label style="font-size:.85rem; color:#6b7280">Status:</label>
+    <select name="status" style="padding:.3rem .5rem; border:1px solid #d1d5db; border-radius:4px; font-size:.85rem">
+      <option value="">All</option>
+      {% for s in ["open", "assigned", "in_progress", "review", "resolved"] %}
+      <option value="{{ s }}" {% if status_filter == s %}selected{% endif %}>{{ s | replace('_', ' ') | capitalize }}</option>
+      {% endfor %}
+    </select>
+
+    <label style="font-size:.85rem; color:#6b7280; margin-left:.5rem">Site:</label>
+    <select name="site_id" style="padding:.3rem .5rem; border:1px solid #d1d5db; border-radius:4px; font-size:.85rem">
+      <option value="">All</option>
+      {% for s in all_sites %}
+      <option value="{{ s.id }}" {% if site_filter == s.id %}selected{% endif %}>{{ s.name }}</option>
+      {% endfor %}
+    </select>
+
+    <label style="font-size:.85rem; color:#6b7280; margin-left:.5rem">Type:</label>
+    <select name="task_type" style="padding:.3rem .5rem; border:1px solid #d1d5db; border-radius:4px; font-size:.85rem">
+      <option value="">All</option>
+      {% for t in ["page_404", "lost_indexation", "missing_page", "cannibalization", "manual"] %}
+      <option value="{{ t }}" {% if type_filter == t %}selected{% endif %}>{{ t }}</option>
+      {% endfor %}
+    </select>
+
+    <label style="font-size:.85rem; color:#6b7280; margin-left:.5rem">Priority:</label>
+    <select name="priority" style="padding:.3rem .5rem; border:1px solid #d1d5db; border-radius:4px; font-size:.85rem">
+      <option value="">All</option>
+      {% for p in ["p1", "p2", "p3", "p4"] %}
+      <option value="{{ p }}" {% if priority_filter == p %}selected{% endif %}>{{ p | upper }}</option>
+      {% endfor %}
+    </select>
+
+    <button type="submit" class="btn btn-sm btn-primary" style="margin-left:.5rem">Filter</button>
+    <a href="/ui/tasks" class="btn btn-sm">Reset</a>
+  </form>
 
   {% if tasks %}
   <table>
     <thead>
       <tr>
+        <th>Priority</th>
         <th>Type</th>
-        <th>URL</th>
+        <th>Site</th>
         <th>Title</th>
         <th>Status</th>
         <th>Created</th>
@@ -26,26 +58,31 @@
       {% for task in tasks %}
       <tr>
         <td>
+          <span style="font-weight:700; {% if task.priority == 'p1' %}color:#dc2626{% elif task.priority == 'p2' %}color:#f59e0b{% elif task.priority == 'p3' %}color:#6b7280{% else %}color:#d1d5db{% endif %}">
+            {{ task.priority | upper }}
+          </span>
+        </td>
+        <td>
           <span class="badge {% if task.task_type == 'page_404' %}badge-failed{% else %}badge-unknown{% endif %}">
             {{ task.task_type }}
           </span>
         </td>
+        <td style="font-size:.85rem">{{ task.site_name }}</td>
         <td style="max-width:300px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">
-          <a href="{{ task.url }}" target="_blank">{{ task.url }}</a>
+          {{ task.title }}
         </td>
-        <td>{{ task.title }}</td>
         <td>
           <span class="badge {% if task.status == 'open' %}badge-failed{% elif task.status == 'resolved' %}badge-connected{% else %}badge-unknown{% endif %}">
             {{ task.status }}
           </span>
         </td>
-        <td>{{ task.created_at[:10] if task.created_at else '' }}</td>
+        <td style="font-size:.85rem">{{ task.created_at[:10] if task.created_at else '' }}</td>
       </tr>
       {% endfor %}
     </tbody>
   </table>
   {% else %}
-  <p style="color:#6b7280">No tasks found. Tasks are auto-created when crawls detect 404s or lost indexation.</p>
+  <p style="color:#6b7280">No tasks found.</p>
   {% endif %}
 </div>
 {% endblock %}

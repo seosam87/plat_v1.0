@@ -174,3 +174,40 @@ async def test_create_assigned_task(client: AsyncClient, admin_token, project, m
     assert resp.status_code == 201
     assert resp.json()["status"] == "assigned"
     assert resp.json()["assignee_id"] == str(manager.id)
+
+
+# ---- Phase 8: Priority + Filters ----
+
+
+class TestTaskPriority:
+    def test_priority_enum(self):
+        from app.models.task import TaskPriority
+        assert TaskPriority.p1.value == "p1"
+        assert TaskPriority.p2.value == "p2"
+        assert TaskPriority.p3.value == "p3"
+        assert TaskPriority.p4.value == "p4"
+
+    def test_priority_in_task_update_schema(self):
+        from app.routers.projects import TaskUpdate
+        update = TaskUpdate(priority="p1")
+        assert update.priority == "p1"
+
+    def test_priority_ordering_logic(self):
+        """P1 is highest priority, P4 is lowest."""
+        from app.models.task import TaskPriority
+        priorities = [TaskPriority.p4, TaskPriority.p1, TaskPriority.p3, TaskPriority.p2]
+        sorted_p = sorted(priorities, key=lambda p: p.value)
+        assert sorted_p[0] == TaskPriority.p1
+        assert sorted_p[-1] == TaskPriority.p4
+
+
+class TestTaskFilters:
+    def test_task_types_complete(self):
+        from app.models.task import TaskType
+        expected = {"page_404", "lost_indexation", "missing_page", "cannibalization", "manual"}
+        assert {t.value for t in TaskType} == expected
+
+    def test_task_statuses_complete(self):
+        from app.models.task import TaskStatus
+        expected = {"open", "assigned", "in_progress", "review", "resolved"}
+        assert {t.value for t in TaskStatus} == expected

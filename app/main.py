@@ -292,27 +292,56 @@ async def ui_tasks(
     request: Request,
     db: AsyncSession = Depends(get_db),
     status: str | None = None,
+    site_id: str | None = None,
+    task_type: str | None = None,
+    priority: str | None = None,
 ) -> HTMLResponse:
-    from app.models.task import SeoTask, TaskStatus
+    from app.models.task import SeoTask, TaskStatus, TaskType, TaskPriority
+    from app.models.site import Site
     from sqlalchemy import select as sa_select
+    import uuid as _uuid
 
-    query = sa_select(SeoTask).order_by(SeoTask.created_at.desc())
+    query = sa_select(SeoTask).order_by(SeoTask.created_at.desc()).limit(200)
     if status:
         query = query.where(SeoTask.status == TaskStatus(status))
+    if site_id:
+        query = query.where(SeoTask.site_id == _uuid.UUID(site_id))
+    if task_type:
+        query = query.where(SeoTask.task_type == TaskType(task_type))
+    if priority:
+        query = query.where(SeoTask.priority == TaskPriority(priority))
     result = await db.execute(query)
     tasks_list = result.scalars().all()
+
+    # Site name lookup
+    site_ids = {t.site_id for t in tasks_list}
+    site_map = {}
+    if site_ids:
+        sites = (await db.execute(sa_select(Site).where(Site.id.in_(site_ids)))).scalars().all()
+        site_map = {s.id: s.name for s in sites}
+
+    # All sites for filter dropdown
+    all_sites = await get_sites(db)
+
     tasks_data = [
         {
             "task_type": t.task_type.value,
             "url": t.url,
             "title": t.title,
             "status": t.status.value,
+            "priority": t.priority.value if hasattr(t, "priority") and t.priority else "p3",
+            "site_name": site_map.get(t.site_id, ""),
+            "site_id": str(t.site_id),
             "created_at": t.created_at.isoformat() if t.created_at else "",
         }
         for t in tasks_list
     ]
     return templates.TemplateResponse(
-        request, "tasks/index.html", {"tasks": tasks_data, "status_filter": status}
+        request, "tasks/index.html", {
+            "tasks": tasks_data, "status_filter": status,
+            "site_filter": site_id, "type_filter": task_type, "priority_filter": priority,
+            "all_sites": [{"id": str(s.id), "name": s.name} for s in all_sites],
+        }
     )
 
 
@@ -1165,15 +1194,31 @@ async def ui_site_detail(site_id: str, request: Request, db: AsyncSession = Depe
         for c in recent_crawls_rows
     ]
 
+    # Recent open tasks for widget
+    recent_tasks = (await db.execute(
+        sa_select(SeoTask).where(
+            SeoTask.site_id == _uuid.UUID(site_id),
+            SeoTask.status.in_([TaskStatus.open, TaskStatus.assigned, TaskStatus.in_progress]),
+        ).order_by(SeoTask.created_at.desc()).limit(5)
+    )).scalars().all()
+    recent_tasks_data = [
+        {"title": t.title, "task_type": t.task_type.value, "status": t.status.value,
+         "priority": t.priority.value if hasattr(t, "priority") and t.priority else "p3",
+         "url": t.url}
+        for t in recent_tasks
+    ]
+
     return templates.TemplateResponse(request, "sites/detail.html", {
         "site": {"id": str(site.id), "name": site.name, "url": site.url,
-                 "connection_status": site.connection_status.value},
+                 "connection_status": site.connection_status.value,
+                 "seo_plugin": site.seo_plugin or "unknown"},
         "keyword_count": keyword_count,
         "crawl_count": crawl_count,
         "task_count": task_count,
         "crawl_schedule": crawl_sched.schedule_type.value if crawl_sched else "manual",
         "position_schedule": pos_sched.schedule_type.value if pos_sched else "manual",
         "recent_crawls": recent_crawls,
+        "recent_tasks": recent_tasks_data,
     })
 
 

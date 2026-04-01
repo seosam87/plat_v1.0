@@ -17,6 +17,13 @@ class TaskType(str, PyEnum):
     manual = "manual"
 
 
+class TaskPriority(str, PyEnum):
+    p1 = "p1"  # Critical
+    p2 = "p2"  # High
+    p3 = "p3"  # Medium
+    p4 = "p4"  # Low
+
+
 class TaskStatus(str, PyEnum):
     open = "open"
     assigned = "assigned"
@@ -61,6 +68,9 @@ class SeoTask(Base):
         UUID(as_uuid=True),
         ForeignKey("users.id", ondelete="SET NULL"),
         nullable=True,
+    )
+    priority: Mapped[TaskPriority] = mapped_column(
+        SAEnum(TaskPriority), nullable=False, default=TaskPriority.p3
     )
     due_date: Mapped[datetime | None] = mapped_column(Date, nullable=True)
     created_at: Mapped[datetime] = mapped_column(

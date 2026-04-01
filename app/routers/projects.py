@@ -101,6 +101,7 @@ async def project_tasks(
 
 class TaskUpdate(BaseModel):
     status: str | None = None
+    priority: str | None = None
     assignee_id: uuid.UUID | None = None
     due_date: date | None = None
 
@@ -115,6 +116,9 @@ async def update_task(
         raise HTTPException(status_code=404, detail="Task not found")
     if payload.status:
         task.status = TaskStatus(payload.status)
+    if payload.priority:
+        from app.models.task import TaskPriority
+        task.priority = TaskPriority(payload.priority)
     if payload.assignee_id is not None:
         task.assignee_id = payload.assignee_id
     if payload.due_date is not None:
