@@ -85,9 +85,9 @@ def upgrade() -> None:
 
     # Pre-create partitions for current and next 3 months
     op.execute("SELECT create_kp_partition(CURRENT_DATE)")
-    op.execute("SELECT create_kp_partition(CURRENT_DATE + INTERVAL '1 month')")
-    op.execute("SELECT create_kp_partition(CURRENT_DATE + INTERVAL '2 months')")
-    op.execute("SELECT create_kp_partition(CURRENT_DATE + INTERVAL '3 months')")
+    op.execute("SELECT create_kp_partition((CURRENT_DATE + INTERVAL '1 month')::DATE)")
+    op.execute("SELECT create_kp_partition((CURRENT_DATE + INTERVAL '2 months')::DATE)")
+    op.execute("SELECT create_kp_partition((CURRENT_DATE + INTERVAL '3 months')::DATE)")
 
 
 def downgrade() -> None:
