@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Audit Log — Admin{% endblock %}
+{% block content %}
+<div class="card">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem">
+    <h2 style="margin:0">Audit Log <a class="help-trigger" onclick="openHelp()" title="Справка">?</a></h2>
+    <div style="display:flex; gap:.5rem">
+      <a href="/ui/admin/users" class="btn btn-sm">Users</a>
+      <a href="/ui/admin/groups" class="btn btn-sm">Groups</a>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <form method="GET" action="/ui/admin/audit" style="display:flex; gap:.5rem; margin-bottom:1rem; flex-wrap:wrap; align-items:center">
+    <label style="font-size:.85rem; color:#6b7280">Action:</label>
+    <select name="action" style="padding:.3rem .5rem; border:1px solid #d1d5db; border-radius:4px; font-size:.85rem">
+      <option value="">All</option>
+      {% for a in all_actions %}
+      <option value="{{ a }}" {% if action_filter == a %}selected{% endif %}>{{ a }}</option>
+      {% endfor %}
+    </select>
+
+    <label style="font-size:.85rem; color:#6b7280; margin-left:.5rem">User:</label>
+    <select name="user_id" style="padding:.3rem .5rem; border:1px solid #d1d5db; border-radius:4px; font-size:.85rem">
+      <option value="">All</option>
+      {% for u in all_users %}
+      <option value="{{ u.id }}" {% if user_filter == u.id %}selected{% endif %}>{{ u.username }}</option>
+      {% endfor %}
+    </select>
+
+    <button type="submit" class="btn btn-sm btn-primary" style="margin-left:.5rem">Filter</button>
+    <a href="/ui/admin/audit" class="btn btn-sm">Reset</a>
+  </form>
+
+  {% if logs %}
+  <table>
+    <thead>
+      <tr>
+        <th>Time</th>
+        <th>User</th>
+        <th>Action</th>
+        <th>Entity</th>
+        <th>Detail</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for l in logs %}
+      <tr>
+        <td style="font-size:.8rem; white-space:nowrap">{{ l.created_at[:16] }}</td>
+        <td style="font-size:.85rem">{{ l.username }}</td>
+        <td><span class="badge badge-unknown">{{ l.action }}</span></td>
+        <td style="font-size:.85rem">
+          {% if l.entity_type %}{{ l.entity_type }}{% if l.entity_id %}: {{ l.entity_id[:8] }}…{% endif %}{% else %}—{% endif %}
+        </td>
+        <td style="font-size:.8rem; max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">{{ l.detail or '—' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p style="color:#6b7280">No audit records found.</p>
+  {% endif %}
+</div>
+{% endblock %}

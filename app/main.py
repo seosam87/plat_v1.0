@@ -1042,6 +1042,126 @@ async def ui_admin_assign_site_to_group(
     return RedirectResponse("/ui/admin/groups", status_code=303)
 
 
+# ---- Admin: Password Change ----
+
+
+@app.post("/ui/admin/users/{user_id}/password", response_class=HTMLResponse)
+async def ui_admin_change_password(
+    user_id: str, request: Request, db: AsyncSession = Depends(get_db),
+) -> HTMLResponse:
+    import uuid as _uuid
+    from app.auth.password import hash_password
+    from app.models.user import User
+    from app.services.audit_service import log_action
+    from sqlalchemy import select as sa_select
+
+    current_user = await _get_current_user_from_cookie(request, db)
+    if not current_user or current_user.role.value != "admin":
+        return HTMLResponse("Forbidden", status_code=403)
+
+    form = await request.form()
+    new_password = form.get("new_password", "")
+    if len(new_password) < 8:
+        return HTMLResponse("Password must be at least 8 characters", status_code=400)
+
+    user = (await db.execute(
+        sa_select(User).where(User.id == _uuid.UUID(user_id))
+    )).scalar_one_or_none()
+    if not user:
+        return HTMLResponse("User not found", status_code=404)
+
+    user.password_hash = hash_password(new_password)
+    await log_action(db, action="user.password_changed", user_id=current_user.id,
+                     entity_type="user", entity_id=str(user.id))
+    await db.commit()
+    return RedirectResponse("/ui/admin/users", status_code=303)
+
+
+# ---- Admin: System Settings ----
+
+
+@app.get("/ui/admin/settings", response_class=HTMLResponse)
+async def ui_admin_settings(request: Request, db: AsyncSession = Depends(get_db)) -> HTMLResponse:
+    from app.config import settings as app_settings
+
+    current_user = await _get_current_user_from_cookie(request, db)
+    if not current_user or current_user.role.value != "admin":
+        return RedirectResponse("/ui/dashboard", status_code=303)
+
+    settings_data = {
+        "crawler_delay_ms": app_settings.CRAWLER_DELAY_MS,
+        "crawler_max_pages": app_settings.CRAWLER_MAX_PAGES,
+        "serp_max_daily": app_settings.SERP_MAX_DAILY_REQUESTS,
+        "serp_delay_ms": app_settings.SERP_DELAY_MS,
+        "gsc_configured": bool(app_settings.GSC_CLIENT_ID),
+        "yandex_configured": bool(app_settings.YANDEX_WEBMASTER_TOKEN),
+        "dataforseo_configured": bool(app_settings.DATAFORSEO_LOGIN and app_settings.DATAFORSEO_PASSWORD),
+    }
+
+    return templates.TemplateResponse(request, "admin/settings.html", {"settings": settings_data})
+
+
+# ---- Admin: Audit Log UI ----
+
+
+@app.get("/ui/admin/audit", response_class=HTMLResponse)
+async def ui_admin_audit(
+    request: Request, db: AsyncSession = Depends(get_db),
+    action: str | None = None, user_id: str | None = None,
+) -> HTMLResponse:
+    import uuid as _uuid
+    from app.models.audit_log import AuditLog
+    from app.models.user import User
+    from sqlalchemy import select as sa_select
+
+    current_user = await _get_current_user_from_cookie(request, db)
+    if not current_user or current_user.role.value != "admin":
+        return RedirectResponse("/ui/dashboard", status_code=303)
+
+    query = sa_select(AuditLog).order_by(AuditLog.created_at.desc()).limit(200)
+    if action:
+        query = query.where(AuditLog.action == action)
+    if user_id:
+        query = query.where(AuditLog.user_id == _uuid.UUID(user_id))
+
+    logs = (await db.execute(query)).scalars().all()
+
+    # User name lookup
+    uid_set = {l.user_id for l in logs if l.user_id}
+    user_map = {}
+    if uid_set:
+        users = (await db.execute(sa_select(User).where(User.id.in_(uid_set)))).scalars().all()
+        user_map = {u.id: u.username for u in users}
+
+    # Distinct actions for filter
+    actions_result = await db.execute(
+        sa_select(AuditLog.action).distinct().order_by(AuditLog.action)
+    )
+    all_actions = [r[0] for r in actions_result]
+
+    all_users = (await db.execute(sa_select(User).order_by(User.username))).scalars().all()
+
+    logs_data = [
+        {
+            "action": l.action,
+            "username": user_map.get(l.user_id, "system"),
+            "entity_type": l.entity_type or "",
+            "entity_id": l.entity_id or "",
+            "detail": str(l.detail_json)[:100] if l.detail_json else "",
+            "created_at": l.created_at.isoformat()[:19] if l.created_at else "",
+        }
+        for l in logs
+    ]
+
+    return templates.TemplateResponse(request, "admin/audit.html", {
+        "logs": logs_data,
+        "action_filter": action,
+        "user_filter": user_id,
+        "all_actions": all_actions,
+        "all_users": [{"id": str(u.id), "username": u.username} for u in all_users],
+    })
+
+
 # ---- Help System ----
 
 

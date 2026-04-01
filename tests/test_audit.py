@@ -88,3 +88,35 @@ async def test_deactivate_writes_audit_row(client: AsyncClient, db_session: Asyn
         select(AuditLog).where(AuditLog.action == "user.deactivated")
     )
     assert result.scalars().first() is not None
+
+
+# ---- Phase 10: new admin routes ----
+
+
+class TestAdminRoutesRegistered:
+    def test_audit_route(self):
+        from app.main import app
+        paths = [r.path for r in app.routes]
+        assert "/ui/admin/audit" in paths
+
+    def test_settings_route(self):
+        from app.main import app
+        paths = [r.path for r in app.routes]
+        assert "/ui/admin/settings" in paths
+
+    def test_password_change_route(self):
+        from app.main import app
+        paths = [r.path for r in app.routes]
+        assert "/ui/admin/users/{user_id}/password" in paths
+
+
+class TestAuditLogModel:
+    def test_model_fields(self):
+        log = AuditLog(
+            action="test.action",
+            entity_type="test",
+            entity_id="abc-123",
+            detail_json={"key": "value"},
+        )
+        assert log.action == "test.action"
+        assert log.detail_json["key"] == "value"

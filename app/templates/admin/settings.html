@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}System Settings — Admin{% endblock %}
+{% block content %}
+<div class="card" style="margin-bottom:1.5rem">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem">
+    <h2 style="margin:0">System Settings <a class="help-trigger" onclick="openHelp()" title="Справка">?</a></h2>
+    <div style="display:flex; gap:.5rem">
+      <a href="/ui/admin/users" class="btn btn-sm">Users</a>
+      <a href="/ui/admin/groups" class="btn btn-sm">Groups</a>
+      <a href="/ui/admin/audit" class="btn btn-sm">Audit Log</a>
+    </div>
+  </div>
+
+  <!-- Crawler Settings -->
+  <h3 style="margin:0 0 1rem; color:#374151">Crawler</h3>
+  <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(250px, 1fr)); gap:1rem; margin-bottom:2rem">
+    <div style="border:1px solid #e5e7eb; border-radius:8px; padding:1rem">
+      <div style="font-size:.85rem; color:#6b7280; margin-bottom:.25rem">Default Mode</div>
+      <div style="font-weight:600">httpx + BeautifulSoup</div>
+      <div style="font-size:.8rem; color:#9ca3af; margin-top:.25rem">Playwright доступен через API: use_playwright=true</div>
+    </div>
+    <div style="border:1px solid #e5e7eb; border-radius:8px; padding:1rem">
+      <div style="font-size:.85rem; color:#6b7280; margin-bottom:.25rem">Delay between pages</div>
+      <div style="font-weight:600">{{ settings.crawler_delay_ms }} ms</div>
+    </div>
+    <div style="border:1px solid #e5e7eb; border-radius:8px; padding:1rem">
+      <div style="font-size:.85rem; color:#6b7280; margin-bottom:.25rem">Max pages per crawl</div>
+      <div style="font-weight:600">{{ settings.crawler_max_pages }}</div>
+    </div>
+  </div>
+
+  <!-- SERP Parser Settings -->
+  <h3 style="margin:0 0 1rem; color:#374151">SERP Parser</h3>
+  <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(250px, 1fr)); gap:1rem; margin-bottom:2rem">
+    <div style="border:1px solid #e5e7eb; border-radius:8px; padding:1rem">
+      <div style="font-size:.85rem; color:#6b7280; margin-bottom:.25rem">Daily request limit</div>
+      <div style="font-weight:600">{{ settings.serp_max_daily }}</div>
+    </div>
+    <div style="border:1px solid #e5e7eb; border-radius:8px; padding:1rem">
+      <div style="font-size:.85rem; color:#6b7280; margin-bottom:.25rem">Delay between requests</div>
+      <div style="font-weight:600">{{ settings.serp_delay_ms }} ms</div>
+    </div>
+  </div>
+
+  <!-- External Integrations Status -->
+  <h3 style="margin:0 0 1rem; color:#374151">External Integrations</h3>
+  <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(250px, 1fr)); gap:1rem; margin-bottom:2rem">
+    <div style="border:1px solid #e5e7eb; border-radius:8px; padding:1rem">
+      <div style="display:flex; justify-content:space-between; align-items:center">
+        <span>Google Search Console</span>
+        <span class="badge {% if settings.gsc_configured %}badge-connected{% else %}badge-unknown{% endif %}">
+          {{ 'configured' if settings.gsc_configured else 'not set' }}
+        </span>
+      </div>
+    </div>
+    <div style="border:1px solid #e5e7eb; border-radius:8px; padding:1rem">
+      <div style="display:flex; justify-content:space-between; align-items:center">
+        <span>Yandex Webmaster</span>
+        <span class="badge {% if settings.yandex_configured %}badge-connected{% else %}badge-unknown{% endif %}">
+          {{ 'configured' if settings.yandex_configured else 'not set' }}
+        </span>
+      </div>
+    </div>
+    <div style="border:1px solid #e5e7eb; border-radius:8px; padding:1rem">
+      <div style="display:flex; justify-content:space-between; align-items:center">
+        <span>DataForSEO</span>
+        <span class="badge {% if settings.dataforseo_configured %}badge-connected{% else %}badge-unknown{% endif %}">
+          {{ 'configured' if settings.dataforseo_configured else 'not set' }}
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <p style="font-size:.85rem; color:#9ca3af">Настройки задаются через переменные окружения (.env). Для изменения значений обновите .env и перезапустите сервис.</p>
+</div>
+{% endblock %}
