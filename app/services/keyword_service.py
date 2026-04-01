@@ -73,34 +73,101 @@ async def bulk_add_keywords(
     site_id: uuid.UUID,
     rows: list[dict],
     batch_size: int = 1000,
+    on_duplicate: str = "skip",
 ) -> int:
     """Insert multiple keywords from parsed file data.
 
     Each row dict may contain: phrase, frequency, region, engine, target_url, group_id.
     Flushes in batches of `batch_size` to handle large imports (up to 100k rows).
-    Returns count of inserted rows.
+
+    on_duplicate controls behaviour when a keyword with the same phrase already exists
+    for this site:
+      - "skip"    — ignore the duplicate row (default)
+      - "update"  — update non-null fields from the new row
+      - "replace" — delete old keyword and insert new one
+    Returns count of inserted/updated rows.
     """
+    existing_map: dict[str, Keyword] = {}
+    if on_duplicate in ("skip", "update", "replace"):
+        result = await db.execute(
+            select(Keyword).where(Keyword.site_id == site_id)
+        )
+        for kw in result.scalars().all():
+            existing_map[kw.phrase] = kw
+
     count = 0
     for row in rows:
         phrase = (row.get("phrase") or "").strip()
         if not phrase:
             continue
-        kw = Keyword(
-            site_id=site_id,
-            phrase=phrase.lower(),
-            frequency=row.get("frequency"),
-            region=row.get("region"),
-            engine=SearchEngine(row["engine"]) if row.get("engine") else None,
-            target_url=row.get("target_url"),
-            group_id=row.get("group_id"),
-        )
-        db.add(kw)
-        count += 1
+        normalized = phrase.lower()
+
+        existing = existing_map.get(normalized)
+        if existing:
+            if on_duplicate == "skip":
+                continue
+            elif on_duplicate == "update":
+                if row.get("frequency") is not None:
+                    existing.frequency = row["frequency"]
+                if row.get("region"):
+                    existing.region = row["region"]
+                if row.get("engine"):
+                    existing.engine = SearchEngine(row["engine"])
+                if row.get("target_url"):
+                    existing.target_url = row["target_url"]
+                if row.get("group_id"):
+                    existing.group_id = row["group_id"]
+                count += 1
+            elif on_duplicate == "replace":
+                await db.delete(existing)
+                new_kw = Keyword(
+                    site_id=site_id,
+                    phrase=normalized,
+                    frequency=row.get("frequency"),
+                    region=row.get("region"),
+                    engine=SearchEngine(row["engine"]) if row.get("engine") else None,
+                    target_url=row.get("target_url"),
+                    group_id=row.get("group_id"),
+                )
+                db.add(new_kw)
+                existing_map[normalized] = new_kw
+                count += 1
+        else:
+            kw = Keyword(
+                site_id=site_id,
+                phrase=normalized,
+                frequency=row.get("frequency"),
+                region=row.get("region"),
+                engine=SearchEngine(row["engine"]) if row.get("engine") else None,
+                target_url=row.get("target_url"),
+                group_id=row.get("group_id"),
+            )
+            db.add(kw)
+            existing_map[normalized] = kw
+            count += 1
+
         if count % batch_size == 0:
             await db.flush()
     if count % batch_size != 0:
         await db.flush()
     return count
+
+
+async def update_keyword(
+    db: AsyncSession,
+    keyword: Keyword,
+    target_url: str | None = None,
+    group_id: uuid.UUID | None = None,
+    clear_group: bool = False,
+) -> Keyword:
+    """Update keyword fields. Set clear_group=True to remove group assignment."""
+    if target_url is not None:
+        keyword.target_url = target_url or None
+    if clear_group:
+        keyword.group_id = None
+    elif group_id is not None:
+        keyword.group_id = group_id
+    return keyword
 
 
 async def list_keywords(

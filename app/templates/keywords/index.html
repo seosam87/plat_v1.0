@@ -61,9 +61,23 @@
         <td>{{ kw.frequency if kw.frequency else '—' }}</td>
         <td>{{ kw.engine or '—' }}</td>
         <td>{{ kw.region or '—' }}</td>
-        <td>{{ kw.group_name or '—' }}</td>
-        <td style="max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">
-          {% if kw.target_url %}<a href="{{ kw.target_url }}" target="_blank">{{ kw.target_url }}</a>{% else %}—{% endif %}
+        <td>
+          <select style="padding:2px 4px;border:1px solid #d1d5db;border-radius:4px;font-size:.8rem"
+            hx-patch="/ui/keywords/{{ kw.id }}" hx-target="#kw-row-{{ kw.id }}" hx-swap="outerHTML"
+            hx-include="this" name="group_id">
+            <option value="">—</option>
+            {% for g in groups %}
+            <option value="{{ g.id }}" {% if kw.group_id and g.id == kw.group_id %}selected{% endif %}>{{ g.name }}</option>
+            {% endfor %}
+          </select>
+        </td>
+        <td>
+          <form style="display:flex;gap:4px" hx-patch="/ui/keywords/{{ kw.id }}" hx-target="#kw-row-{{ kw.id }}" hx-swap="outerHTML">
+            <input type="text" name="target_url" value="{{ kw.target_url or '' }}"
+              style="width:150px;padding:2px 4px;border:1px solid #d1d5db;border-radius:4px;font-size:.8rem"
+              placeholder="Target URL">
+            <button type="submit" class="btn btn-sm" style="padding:2px 8px;font-size:.75rem">OK</button>
+          </form>
         </td>
         <td>{{ kw.cluster_name or '—' }}</td>
         <td>

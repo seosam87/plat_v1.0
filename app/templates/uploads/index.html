@@ -32,6 +32,14 @@
       </select>
     </div>
     <div>
+      <label style="display:block; font-size:.85rem; color:#6b7280; margin-bottom:.3rem">Дубликаты</label>
+      <select name="on_duplicate" style="padding:.4rem .6rem; border:1px solid #d1d5db; border-radius:4px">
+        <option value="skip">Пропустить</option>
+        <option value="update">Обновить</option>
+        <option value="replace">Заменить</option>
+      </select>
+    </div>
+    <div>
       <label style="display:block; font-size:.85rem; color:#6b7280; margin-bottom:.3rem">File (.xlsx or .csv)</label>
       <input type="file" name="file" accept=".xlsx,.csv,.tsv" required>
     </div>

@@ -22,10 +22,14 @@ async def upload_file(
     site_id: uuid.UUID,
     file_type: str = Form(...),
     file: UploadFile = File(...),
+    on_duplicate: str = Form("skip"),
     db: AsyncSession = Depends(get_db),
     _: User = Depends(require_admin),
 ) -> dict:
-    """Upload a file for parsing. Saves file, parses, and stores results."""
+    """Upload a file for parsing. Saves file, parses, and stores results.
+
+    on_duplicate: skip | update | replace (default: skip)
+    """
     site = await get_site(db, site_id)
     if not site:
         raise HTTPException(status_code=404, detail="Site not found")
@@ -49,8 +53,11 @@ async def upload_file(
 
     # Save parsed keywords/groups to DB if applicable
     imported_count = 0
+    if on_duplicate not in ("skip", "update", "replace"):
+        on_duplicate = "skip"
+
     if ft in (FileType.topvisor, FileType.key_collector):
-        imported_count = await _save_keywords(db, site_id, ft, result)
+        imported_count = await _save_keywords(db, site_id, ft, result, on_duplicate)
 
     await db.commit()
 
@@ -90,6 +97,7 @@ async def _save_keywords(
     site_id: uuid.UUID,
     file_type: FileType,
     result: dict,
+    on_duplicate: str = "skip",
 ) -> int:
     """Save parsed keywords (and groups for KC) into DB. Returns count."""
     keywords = result.get("keywords", [])
@@ -114,7 +122,7 @@ async def _save_keywords(
                 "group_id": group_map.get(gname),
                 "engine": "yandex",
             })
-        return await keyword_service.bulk_add_keywords(db, site_id, rows)
+        return await keyword_service.bulk_add_keywords(db, site_id, rows, on_duplicate=on_duplicate)
 
     elif file_type == FileType.topvisor:
         rows = [
@@ -125,7 +133,7 @@ async def _save_keywords(
             }
             for kw in keywords
         ]
-        return await keyword_service.bulk_add_keywords(db, site_id, rows)
+        return await keyword_service.bulk_add_keywords(db, site_id, rows, on_duplicate=on_duplicate)
 
     return 0
 

@@ -117,6 +117,57 @@ async def test_bulk_add_keywords(db_session, site):
     assert total == 2
 
 
+async def test_bulk_add_skip_duplicates(db_session, site):
+    from app.services.keyword_service import bulk_add_keywords, count_keywords
+    rows = [{"phrase": "dedup test", "frequency": 100}]
+    await bulk_add_keywords(db_session, site.id, rows, on_duplicate="skip")
+    # Import same phrase again with skip
+    count = await bulk_add_keywords(db_session, site.id, rows, on_duplicate="skip")
+    assert count == 0  # skipped
+    total = await count_keywords(db_session, site.id)
+    assert total == 1
+
+
+async def test_bulk_add_update_duplicates(db_session, site):
+    from app.services.keyword_service import bulk_add_keywords, list_keywords
+    rows = [{"phrase": "update test", "frequency": 100}]
+    await bulk_add_keywords(db_session, site.id, rows, on_duplicate="skip")
+    # Update with new frequency
+    rows2 = [{"phrase": "update test", "frequency": 999, "target_url": "https://new.url"}]
+    count = await bulk_add_keywords(db_session, site.id, rows2, on_duplicate="update")
+    assert count == 1
+    kws = await list_keywords(db_session, site.id)
+    kw = [k for k in kws if k.phrase == "update test"][0]
+    assert kw.frequency == 999
+    assert kw.target_url == "https://new.url"
+
+
+async def test_bulk_add_replace_duplicates(db_session, site):
+    from app.services.keyword_service import bulk_add_keywords, list_keywords
+    rows = [{"phrase": "replace test", "frequency": 100, "target_url": "https://old.url"}]
+    await bulk_add_keywords(db_session, site.id, rows, on_duplicate="skip")
+    # Replace with new data (no target_url)
+    rows2 = [{"phrase": "replace test", "frequency": 555}]
+    count = await bulk_add_keywords(db_session, site.id, rows2, on_duplicate="replace")
+    assert count == 1
+    kws = await list_keywords(db_session, site.id)
+    kw = [k for k in kws if k.phrase == "replace test"][0]
+    assert kw.frequency == 555
+    assert kw.target_url is None  # replaced, not merged
+
+
+async def test_update_keyword(db_session, site):
+    from app.services.keyword_service import add_keyword, update_keyword, get_or_create_group
+    kw = await add_keyword(db_session, site.id, phrase="edit me")
+    group = await get_or_create_group(db_session, site.id, "TestGroup")
+    updated = await update_keyword(db_session, kw, target_url="https://example.com", group_id=group.id)
+    assert updated.target_url == "https://example.com"
+    assert updated.group_id == group.id
+    # Clear group
+    updated2 = await update_keyword(db_session, kw, clear_group=True)
+    assert updated2.group_id is None
+
+
 async def test_get_or_create_group(db_session, site):
     from app.services.keyword_service import get_or_create_group
     g1 = await get_or_create_group(db_session, site.id, "Commercial")

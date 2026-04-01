@@ -1178,6 +1178,7 @@ async def ui_keywords(
             "id": str(kw.id), "phrase": kw.phrase, "frequency": kw.frequency,
             "engine": kw.engine.value if kw.engine else None, "region": kw.region,
             "target_url": kw.target_url,
+            "group_id": str(kw.group_id) if kw.group_id else None,
             "group_name": group_map.get(kw.group_id, ""),
             "cluster_name": cluster_map.get(kw.cluster_id, ""),
         }
@@ -1216,6 +1217,85 @@ async def ui_delete_keyword(keyword_id: str, request: Request, db: AsyncSession 
         await delete_keyword(db, kw)
         await db.commit()
     return HTMLResponse("")
+
+
+@app.patch("/ui/keywords/{keyword_id}", response_class=HTMLResponse)
+async def ui_update_keyword(
+    keyword_id: str, request: Request, db: AsyncSession = Depends(get_db),
+    target_url: str = Form(None), group_id: str = Form(None),
+) -> HTMLResponse:
+    import uuid as _uuid
+    from app.services.keyword_service import get_keyword, update_keyword, list_groups
+    from app.models.cluster import KeywordCluster
+    from sqlalchemy import select as sa_select
+
+    kw = await get_keyword(db, _uuid.UUID(keyword_id))
+    if not kw:
+        return HTMLResponse("Not found", status_code=404)
+
+    # Determine group update
+    clear_group = group_id == ""
+    gid = _uuid.UUID(group_id) if group_id and group_id != "" else None
+
+    await update_keyword(
+        db, kw,
+        target_url=target_url if target_url is not None else None,
+        group_id=gid,
+        clear_group=clear_group,
+    )
+    await db.commit()
+
+    # Build updated row HTML
+    groups = await list_groups(db, kw.site_id)
+    group_map = {g.id: g.name for g in groups}
+    group_name = group_map.get(kw.group_id, "")
+    cluster_name = ""
+    if kw.cluster_id:
+        cl = (await db.execute(
+            sa_select(KeywordCluster).where(KeywordCluster.id == kw.cluster_id)
+        )).scalar_one_or_none()
+        cluster_name = cl.name if cl else ""
+
+    groups_options = ''.join(
+        f'<option value="{g.id}" {"selected" if g.id == kw.group_id else ""}>{g.name}</option>'
+        for g in groups
+    )
+
+    engine_val = kw.engine.value if kw.engine else "—"
+    target_display = (
+        f'<a href="{kw.target_url}" target="_blank" style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block">{kw.target_url}</a>'
+        if kw.target_url else "—"
+    )
+
+    return HTMLResponse(
+        f'<tr id="kw-row-{kw.id}">'
+        f'<td style="font-weight:500">{kw.phrase}</td>'
+        f'<td>{kw.frequency if kw.frequency else "—"}</td>'
+        f'<td>{engine_val}</td>'
+        f'<td>{kw.region or "—"}</td>'
+        f'<td>'
+        f'<select style="padding:2px 4px;border:1px solid #d1d5db;border-radius:4px;font-size:.8rem"'
+        f' hx-patch="/ui/keywords/{kw.id}" hx-target="#kw-row-{kw.id}" hx-swap="outerHTML"'
+        f' hx-include="this" name="group_id">'
+        f'<option value="">—</option>{groups_options}</select>'
+        f'</td>'
+        f'<td>'
+        f'<form style="display:flex;gap:4px" hx-patch="/ui/keywords/{kw.id}" hx-target="#kw-row-{kw.id}" hx-swap="outerHTML">'
+        f'<input type="text" name="target_url" value="{kw.target_url or ""}"'
+        f' style="width:150px;padding:2px 4px;border:1px solid #d1d5db;border-radius:4px;font-size:.8rem"'
+        f' placeholder="Target URL">'
+        f'<button type="submit" class="btn btn-sm" style="padding:2px 8px;font-size:.75rem">OK</button>'
+        f'</form>'
+        f'</td>'
+        f'<td>{cluster_name or "—"}</td>'
+        f'<td>'
+        f'<button class="btn btn-sm" style="background:#991b1b;color:white"'
+        f' hx-delete="/ui/keywords/{kw.id}"'
+        f' hx-target="#kw-row-{kw.id}" hx-swap="outerHTML swap:200ms"'
+        f' hx-confirm="Delete keyword \'{kw.phrase}\'?">&times;</button>'
+        f'</td>'
+        f'</tr>'
+    )
 
 
 # ---- Projects UI ----
