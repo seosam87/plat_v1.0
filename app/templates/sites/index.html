@@ -13,6 +13,7 @@
       <tr>
         <th>Name</th>
         <th>URL</th>
+        <th>Group</th>
         <th>WP Username</th>
         <th>Status</th>
         <th>Schedule</th>
@@ -25,6 +26,10 @@
       <tr>
         <td>{{ site.name }}</td>
         <td><a href="{{ site.url }}" target="_blank">{{ site.url }}</a></td>
+        <td>
+          {% set group_name = site_groups.get(site.site_group_id|string, '') if site_groups else '' %}
+          <span class="badge badge-unknown" style="{% if group_name %}background:#dbeafe;color:#1e40af{% endif %}">{{ group_name or '—' }}</span>
+        </td>
         <td>{{ site.wp_username }}</td>
         <td>
           <span

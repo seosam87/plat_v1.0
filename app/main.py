@@ -24,6 +24,7 @@ from app.routers.keywords import router as keywords_router
 from app.routers.positions import router as positions_router
 from app.routers.projects import router as projects_router
 from app.routers.reports import router as reports_router
+from app.routers.site_groups import router as site_groups_router
 from app.routers.sites import router as sites_router
 from app.routers.tasks import router as tasks_router
 from app.routers.uploads import router as uploads_router
@@ -64,6 +65,7 @@ app.include_router(health_router)
 app.include_router(auth_router)
 app.include_router(admin_router)
 app.include_router(invites_router)
+app.include_router(site_groups_router)
 app.include_router(sites_router)
 app.include_router(clusters_router)
 app.include_router(crawl_router)
@@ -81,11 +83,44 @@ app.include_router(yandex_router)
 
 @app.get("/ui/sites", response_class=HTMLResponse)
 async def ui_sites(request: Request, db: AsyncSession = Depends(get_db)) -> HTMLResponse:
-    sites = await get_sites(db)
+    from app.services.site_group_service import get_accessible_sites
+    from app.auth.dependencies import get_current_user
+    from app.models.user import User as UserModel
+
+    # Try to get current user from token for access filtering
+    user = None
+    auth_header = request.headers.get("authorization", "")
+    cookie_token = request.cookies.get("access_token", "")
+    token = ""
+    if auth_header.startswith("Bearer "):
+        token = auth_header[7:]
+    elif cookie_token:
+        token = cookie_token
+
+    if token:
+        try:
+            from app.auth.jwt import decode_access_token
+            from app.services.user_service import get_user_by_id
+            payload = decode_access_token(token)
+            user = await get_user_by_id(db, payload.get("sub", ""))
+        except Exception:
+            pass
+
+    if user:
+        sites = await get_accessible_sites(db, user)
+    else:
+        sites = await get_sites(db)
+
     all_schedules = await get_all_schedules(db)
     schedules = {str(s.site_id): s.schedule_type.value for s in all_schedules}
+
+    # Load group names for display
+    from app.services.site_group_service import list_groups
+    groups = await list_groups(db)
+    site_groups = {str(g.id): g.name for g in groups}
+
     return templates.TemplateResponse(
-        request, "sites/index.html", {"sites": sites, "schedules": schedules}
+        request, "sites/index.html", {"sites": sites, "schedules": schedules, "site_groups": site_groups}
     )
 
 

@@ -42,6 +42,7 @@ class SiteOut(BaseModel):
     wp_username: str
     connection_status: str
     is_active: bool
+    site_group_id: uuid.UUID | None = None
 
     model_config = {"from_attributes": True}
 
@@ -66,9 +67,11 @@ async def create_site(
 @router.get("", response_model=list[SiteOut])
 async def list_sites(
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(require_admin),
+    current_user: User = Depends(require_admin),
 ) -> list[SiteOut]:
-    sites = await site_service.get_sites(db)
+    from app.services.site_group_service import get_accessible_sites
+
+    sites = await get_accessible_sites(db, current_user)
     return [SiteOut.model_validate(s) for s in sites]
 
 
