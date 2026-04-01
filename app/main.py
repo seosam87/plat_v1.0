@@ -16,6 +16,7 @@ from app.routers.admin import router as admin_router
 from app.routers.auth import router as auth_router
 from app.routers.crawl import router as crawl_router
 from app.routers.sites import router as sites_router
+from app.routers.keywords import router as keywords_router
 from app.routers.tasks import router as tasks_router
 from app.services.schedule_service import get_all_schedules, upsert_schedule
 from app.services.site_service import get_site, get_sites
@@ -44,6 +45,7 @@ app.include_router(admin_router)
 app.include_router(sites_router)
 app.include_router(crawl_router)
 app.include_router(tasks_router)
+app.include_router(keywords_router)
 
 
 @app.get("/ui/sites", response_class=HTMLResponse)
