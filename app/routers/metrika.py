@@ -16,6 +16,7 @@ from app.dependencies import get_db
 from app.models.site import Site
 from app.models.user import User
 from app.services import metrika_service
+from app.services import site_service
 from app.services.crypto_service import encrypt
 from app.tasks.metrika_tasks import fetch_metrika_data
 
@@ -55,6 +56,102 @@ async def _get_site_or_404(db: AsyncSession, site_id: uuid.UUID) -> Site:
 # ---------------------------------------------------------------------------
 # Endpoints
 # ---------------------------------------------------------------------------
+
+
+@router.get("/{site_id}/widget", response_class=HTMLResponse)
+async def metrika_widget(
+    site_id: uuid.UUID,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+) -> HTMLResponse:
+    """HTMX partial: traffic summary widget for site overview."""
+    site = await site_service.get_site(db, site_id)
+    if not site or not site.metrika_counter_id:
+        return HTMLResponse("")  # hidden entirely if not configured
+
+    date_to = date.today()
+    date_from = date_to - timedelta(days=30)
+
+    daily = await metrika_service.get_daily_traffic(db, site_id, date_from, date_to)
+
+    if not daily:
+        # Configured but no data fetched yet
+        return templates.TemplateResponse(
+            request,
+            "metrika/_widget.html",
+            {"site": site, "has_data": False, "totals": None, "sparkline_data": []},
+        )
+
+    # Compute 30-day totals
+    total_visits = sum(d["visits"] for d in daily)
+    avg_bounce = round(sum(d.get("bounce_rate") or 0 for d in daily) / max(len(daily), 1), 1)
+    avg_depth = round(sum(d.get("page_depth") or 0 for d in daily) / max(len(daily), 1), 1)
+    avg_dur = int(sum(d.get("avg_duration_seconds") or 0 for d in daily) / max(len(daily), 1))
+
+    totals = {
+        "visits": total_visits,
+        "bounce_rate": avg_bounce,
+        "page_depth": avg_depth,
+        "avg_duration_seconds": avg_dur,
+    }
+    sparkline_data = [d["visits"] for d in daily]
+
+    return templates.TemplateResponse(
+        request,
+        "metrika/_widget.html",
+        {"site": site, "has_data": True, "totals": totals, "sparkline_data": sparkline_data},
+    )
+
+
+@router.get("/ui/metrika", response_class=HTMLResponse)
+async def ui_metrika_redirect(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_admin),
+) -> HTMLResponse:
+    """Redirect /ui/metrika to the first site's traffic page."""
+    from fastapi.responses import RedirectResponse
+    sites = await site_service.get_sites(db)
+    if not sites:
+        return HTMLResponse("<p>Нет сайтов. Сначала добавьте сайт.</p>", status_code=200)
+    return RedirectResponse(f"/ui/metrika/{sites[0].id}")
+
+
+@router.get("/ui/metrika/{site_id}", response_class=HTMLResponse)
+async def ui_metrika_page(
+    site_id: uuid.UUID,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_admin),
+) -> HTMLResponse:
+    """Render the Metrika traffic dashboard page at /ui/metrika/{site_id}."""
+    site = await site_service.get_site(db, site_id)
+    if not site:
+        return HTMLResponse("Site not found", status_code=404)
+
+    daily_data: list[dict] = []
+    page_data: list[dict] = []
+    events: list = []
+
+    if site.metrika_counter_id:
+        date_to = date.today() - timedelta(days=1)
+        date_from = date_to - timedelta(days=29)
+
+        daily_data = await metrika_service.get_daily_traffic(db, site_id, date_from, date_to)
+        page_data = await metrika_service.get_page_traffic(db, site_id, date_from, date_to)
+        events = await metrika_service.get_events(db, site_id)
+
+    return templates.TemplateResponse(
+        request,
+        "metrika/index.html",
+        {
+            "site": site,
+            "daily_data": daily_data,
+            "page_data": page_data,
+            "events": events,
+        },
+    )
 
 
 @router.get("/{site_id}", response_class=HTMLResponse)
