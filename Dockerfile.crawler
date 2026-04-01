@@ -1,0 +1,13 @@
+FROM mcr.microsoft.com/playwright/python:v1.47.0-jammy
+
+WORKDIR /app
+
+# Install app dependencies on top of the Playwright base image
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY . .
+
+RUN mkdir -p logs
+
+CMD celery -A app.celery_app worker --loglevel=info --queues=crawl --concurrency=2 --max-tasks-per-child=50

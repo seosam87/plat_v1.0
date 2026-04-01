@@ -27,6 +27,10 @@ class Settings(BaseSettings):
     # Generate with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
     FERNET_KEY: str
 
+    # Crawler
+    CRAWLER_DELAY_MS: int = 500
+    CRAWLER_MAX_PAGES: int = 500
+
     # App
     DB_ECHO: bool = False
     LOG_LEVEL: str = "INFO"

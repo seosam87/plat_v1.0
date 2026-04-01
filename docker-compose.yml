@@ -53,8 +53,28 @@ services:
     command: >
       celery -A app.celery_app worker
       --loglevel=info
-      --queues=crawl,wp,default
+      --queues=wp,default
       --concurrency=${CELERY_WORKER_CONCURRENCY:-8}
+      --max-tasks-per-child=50
+    env_file: .env
+    volumes:
+      - ./logs:/app/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  crawler:
+    build:
+      context: .
+      dockerfile: Dockerfile.crawler
+    command: >
+      celery -A app.celery_app worker
+      --loglevel=info
+      --queues=crawl
+      --concurrency=2
       --max-tasks-per-child=50
     env_file: .env
     volumes:
