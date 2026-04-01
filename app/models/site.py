@@ -35,6 +35,8 @@ class Site(Base):
         nullable=True,
     )
     seo_plugin: Mapped[str | None] = mapped_column(String(50), nullable=True, default="unknown")
+    metrika_counter_id: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    metrika_token: Mapped[str | None] = mapped_column(Text, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=datetime.utcnow, nullable=False
