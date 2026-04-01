@@ -23,6 +23,7 @@ from app.routers.positions import router as positions_router
 from app.routers.sites import router as sites_router
 from app.routers.tasks import router as tasks_router
 from app.routers.uploads import router as uploads_router
+from app.routers.wp_pipeline import router as wp_pipeline_router
 from app.routers.yandex import router as yandex_router
 from app.services.schedule_service import get_all_schedules, upsert_schedule
 from app.services.site_service import get_site, get_sites
@@ -57,6 +58,7 @@ app.include_router(positions_router)
 app.include_router(uploads_router)
 app.include_router(gsc_router)
 app.include_router(dataforseo_router)
+app.include_router(wp_pipeline_router)
 app.include_router(yandex_router)
 
 

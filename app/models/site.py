@@ -29,6 +29,7 @@ class Site(Base):
     connection_status: Mapped[ConnectionStatus] = mapped_column(
         SAEnum(ConnectionStatus), nullable=False, default=ConnectionStatus.unknown
     )
+    seo_plugin: Mapped[str | None] = mapped_column(String(50), nullable=True, default="unknown")
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=datetime.utcnow, nullable=False

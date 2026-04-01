@@ -12,6 +12,7 @@ celery_app = Celery(
         "app.tasks.wp_tasks",
         "app.tasks.default_tasks",
         "app.tasks.position_tasks",
+        "app.tasks.wp_content_tasks",
     ],
 )
 
