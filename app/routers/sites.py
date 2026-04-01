@@ -1,6 +1,7 @@
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -8,6 +9,7 @@ from app.auth.dependencies import require_admin
 from app.dependencies import get_db
 from app.models.user import User
 from app.services import site_service
+from app.services import wp_service as wp_svc
 
 router = APIRouter(prefix="/sites", tags=["sites"])
 
@@ -106,3 +108,26 @@ async def delete_site(
     if not site:
         raise HTTPException(status_code=404, detail="Site not found")
     await site_service.delete_site(db, site, actor_id=current_user.id)
+
+
+def _status_badge(site_id: str, connection_status: str) -> str:
+    css_classes = {"connected": "badge-connected", "failed": "badge-failed", "unknown": "badge-unknown"}
+    css_class = css_classes.get(connection_status, "badge-unknown")
+    return (
+        f'<span id="status-{site_id}" class="badge {css_class}">'
+        f"{connection_status}</span>"
+    )
+
+
+@router.post("/{site_id}/verify", response_class=HTMLResponse)
+async def verify_site(
+    site_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_admin),
+) -> HTMLResponse:
+    site = await site_service.get_site(db, site_id)
+    if not site:
+        raise HTTPException(status_code=404, detail="Site not found")
+    new_status = await wp_svc.verify_connection(site)
+    await site_service.set_connection_status(db, site, new_status)
+    return HTMLResponse(_status_badge(str(site_id), new_status.value))
