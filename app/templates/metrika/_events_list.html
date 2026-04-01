@@ -1,0 +1,17 @@
+{% for ev in events %}
+<li style="display:flex; align-items:center; gap:.5rem; padding:.4rem 0; border-bottom:1px solid #e5e7eb">
+  <span style="width:12px; height:12px; border-radius:50%; background:{{ ev.color }}; display:inline-block"></span>
+  <span style="font-size:.875rem; color:#6b7280">{{ ev.event_date.strftime('%Y-%m-%d') if ev.event_date else '' }}</span>
+  <span style="font-size:.875rem">{{ ev.label }}</span>
+  <button class="btn btn-sm" style="margin-left:auto; background:#991b1b; color:white; font-size:.75rem"
+    hx-delete="/metrika/{{ site_id }}/events/{{ ev.id }}"
+    hx-confirm="Удалить это событие?"
+    hx-target="closest li"
+    hx-swap="outerHTML swap:200ms">Удалить</button>
+</li>
+{% endfor %}
+{% if not events %}
+<li style="padding:.5rem 0; color:#6b7280; font-size:.875rem">
+  Нет событий. Добавьте метку на графике, чтобы связать действие с изменением трафика.
+</li>
+{% endif %}
