@@ -1,0 +1,15 @@
+.git
+.claude
+.planning
+.env
+.env.example
+__pycache__
+*.pyc
+.pytest_cache
+.coverage
+htmlcov
+logs/*.log
+.mypy_cache
+.ruff_cache
+README.md
+CLAUDE.md
