@@ -23,6 +23,10 @@ class Settings(BaseSettings):
     # Celery
     CELERY_WORKER_CONCURRENCY: int = 8
 
+    # Fernet key for WP Application Password encryption
+    # Generate with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+    FERNET_KEY: str
+
     # App
     DB_ECHO: bool = False
     LOG_LEVEL: str = "INFO"
