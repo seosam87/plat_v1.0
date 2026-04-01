@@ -427,6 +427,61 @@ async def ui_positions(
     )
 
 
+@app.get("/ui/metrika", response_class=HTMLResponse)
+async def ui_metrika_select(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+) -> HTMLResponse:
+    """Redirect /ui/metrika to the first site's Metrika traffic page."""
+    from fastapi.responses import RedirectResponse
+    sites = await get_sites(db)
+    if not sites:
+        return templates.TemplateResponse(
+            request, "metrika/index.html",
+            {"site": None, "daily_data": [], "page_data": [], "events": []},
+        )
+    return RedirectResponse(f"/ui/metrika/{sites[0].id}")
+
+
+@app.get("/ui/metrika/{site_id}", response_class=HTMLResponse)
+async def ui_metrika(
+    site_id: str,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+) -> HTMLResponse:
+    """Metrika traffic dashboard page for a site."""
+    import uuid as _uuid
+    from app.services import metrika_service as _metrika_service
+    from datetime import date as _date, timedelta as _timedelta
+
+    site = await get_site(db, _uuid.UUID(site_id))
+    if not site:
+        return HTMLResponse("Site not found", status_code=404)
+
+    daily_data: list[dict] = []
+    page_data: list[dict] = []
+    events: list = []
+
+    if site.metrika_counter_id:
+        date_to = _date.today() - _timedelta(days=1)
+        date_from = date_to - _timedelta(days=29)
+
+        daily_data = await _metrika_service.get_daily_traffic(db, _uuid.UUID(site_id), date_from, date_to)
+        page_data = await _metrika_service.get_page_traffic(db, _uuid.UUID(site_id), date_from, date_to)
+        events = await _metrika_service.get_events(db, _uuid.UUID(site_id))
+
+    return templates.TemplateResponse(
+        request,
+        "metrika/index.html",
+        {
+            "site": site,
+            "daily_data": daily_data,
+            "page_data": page_data,
+            "events": events,
+        },
+    )
+
+
 @app.get("/ui/uploads", response_class=HTMLResponse)
 async def ui_uploads(
     request: Request,

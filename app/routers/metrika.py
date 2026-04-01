@@ -104,56 +104,6 @@ async def metrika_widget(
     )
 
 
-@router.get("/ui/metrika", response_class=HTMLResponse)
-async def ui_metrika_redirect(
-    request: Request,
-    db: AsyncSession = Depends(get_db),
-    _: User = Depends(require_admin),
-) -> HTMLResponse:
-    """Redirect /ui/metrika to the first site's traffic page."""
-    from fastapi.responses import RedirectResponse
-    sites = await site_service.get_sites(db)
-    if not sites:
-        return HTMLResponse("<p>Нет сайтов. Сначала добавьте сайт.</p>", status_code=200)
-    return RedirectResponse(f"/ui/metrika/{sites[0].id}")
-
-
-@router.get("/ui/metrika/{site_id}", response_class=HTMLResponse)
-async def ui_metrika_page(
-    site_id: uuid.UUID,
-    request: Request,
-    db: AsyncSession = Depends(get_db),
-    _: User = Depends(require_admin),
-) -> HTMLResponse:
-    """Render the Metrika traffic dashboard page at /ui/metrika/{site_id}."""
-    site = await site_service.get_site(db, site_id)
-    if not site:
-        return HTMLResponse("Site not found", status_code=404)
-
-    daily_data: list[dict] = []
-    page_data: list[dict] = []
-    events: list = []
-
-    if site.metrika_counter_id:
-        date_to = date.today() - timedelta(days=1)
-        date_from = date_to - timedelta(days=29)
-
-        daily_data = await metrika_service.get_daily_traffic(db, site_id, date_from, date_to)
-        page_data = await metrika_service.get_page_traffic(db, site_id, date_from, date_to)
-        events = await metrika_service.get_events(db, site_id)
-
-    return templates.TemplateResponse(
-        request,
-        "metrika/index.html",
-        {
-            "site": site,
-            "daily_data": daily_data,
-            "page_data": page_data,
-            "events": events,
-        },
-    )
-
-
 @router.get("/{site_id}", response_class=HTMLResponse)
 async def metrika_page(
     site_id: uuid.UUID,
