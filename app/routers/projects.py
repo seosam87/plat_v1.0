@@ -10,7 +10,7 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.dependencies import require_admin
+from app.auth.dependencies import require_admin, require_any_authenticated
 from app.dependencies import get_db
 from app.models.content_plan import ContentPlanItem, ContentStatus
 from app.models.project import Project, ProjectStatus
@@ -48,9 +48,10 @@ async def create_project(
 
 
 @router.get("")
-async def list_projects(db: AsyncSession = Depends(get_db), _: User = Depends(require_admin)) -> list[dict]:
-    result = await db.execute(select(Project).order_by(Project.created_at.desc()))
-    return [_project_dict(p) for p in result.scalars().all()]
+async def list_projects(db: AsyncSession = Depends(get_db), current_user: User = Depends(require_any_authenticated)) -> list[dict]:
+    from app.services.project_service import get_accessible_projects
+    projects = await get_accessible_projects(db, current_user)
+    return [_project_dict(p) for p in projects]
 
 
 @router.get("/{project_id}")
@@ -277,6 +278,114 @@ async def _get_or_404(db: AsyncSession, project_id: uuid.UUID) -> Project:
     if not p:
         raise HTTPException(status_code=404, detail="Project not found")
     return p
+
+
+# ---- Comments ----
+
+class CommentCreate(BaseModel):
+    text: str
+
+
+@router.post("/{project_id}/comments", status_code=status.HTTP_201_CREATED)
+async def add_comment(
+    project_id: uuid.UUID, payload: CommentCreate,
+    db: AsyncSession = Depends(get_db), current_user: User = Depends(require_any_authenticated),
+) -> dict:
+    from app.services.project_service import add_comment as _add, can_access_project
+    if not await can_access_project(db, current_user, project_id):
+        raise HTTPException(status_code=403, detail="No access to this project")
+    c = await _add(db, project_id, current_user.id, payload.text)
+    await db.commit()
+    return {"id": str(c.id), "user_id": str(c.user_id), "text": c.text, "created_at": c.created_at.isoformat()}
+
+
+@router.get("/{project_id}/comments")
+async def list_comments(
+    project_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db), current_user: User = Depends(require_any_authenticated),
+) -> list[dict]:
+    from app.services.project_service import list_comments as _list, can_access_project
+    from app.models.user import User as UserModel
+    if not await can_access_project(db, current_user, project_id):
+        raise HTTPException(status_code=403, detail="No access to this project")
+    comments = await _list(db, project_id)
+    # Enrich with usernames
+    user_ids = {c.user_id for c in comments}
+    user_map: dict[uuid.UUID, str] = {}
+    if user_ids:
+        users = (await db.execute(select(UserModel).where(UserModel.id.in_(user_ids)))).scalars().all()
+        user_map = {u.id: u.username for u in users}
+    return [
+        {"id": str(c.id), "user_id": str(c.user_id), "username": user_map.get(c.user_id, ""),
+         "text": c.text, "created_at": c.created_at.isoformat()}
+        for c in comments
+    ]
+
+
+# ---- Project access management ----
+
+class AccessGrant(BaseModel):
+    user_id: uuid.UUID
+
+
+@router.post("/{project_id}/access")
+async def grant_project_access(
+    project_id: uuid.UUID, payload: AccessGrant,
+    db: AsyncSession = Depends(get_db), _: User = Depends(require_admin),
+) -> dict:
+    """Grant a user access to a project (makes it visible to them)."""
+    from app.services.project_service import grant_access
+    await _get_or_404(db, project_id)
+    await grant_access(db, project_id, payload.user_id)
+    await db.commit()
+    return {"status": "granted", "user_id": str(payload.user_id), "project_id": str(project_id)}
+
+
+@router.delete("/{project_id}/access/{user_id}")
+async def revoke_project_access(
+    project_id: uuid.UUID, user_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db), _: User = Depends(require_admin),
+) -> dict:
+    from app.services.project_service import revoke_access
+    await revoke_access(db, project_id, user_id)
+    await db.commit()
+    return {"status": "revoked"}
+
+
+@router.get("/{project_id}/access")
+async def list_project_users(
+    project_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db), _: User = Depends(require_admin),
+) -> dict:
+    from app.services.project_service import get_project_user_ids
+    user_ids = await get_project_user_ids(db, project_id)
+    return {"project_id": str(project_id), "user_ids": [str(u) for u in user_ids]}
+
+
+# ---- Manual task creation ----
+
+class ManualTaskCreate(BaseModel):
+    title: str
+    description: str | None = None
+    assignee_id: uuid.UUID | None = None
+    url: str = ""
+
+
+@router.post("/{project_id}/tasks/create", status_code=status.HTTP_201_CREATED)
+async def create_manual_task(
+    project_id: uuid.UUID, payload: ManualTaskCreate,
+    db: AsyncSession = Depends(get_db), current_user: User = Depends(require_any_authenticated),
+) -> dict:
+    from app.services.project_service import create_task, can_access_project
+    if not await can_access_project(db, current_user, project_id):
+        raise HTTPException(status_code=403, detail="No access to this project")
+    p = await _get_or_404(db, project_id)
+    task = await create_task(
+        db, project_id, p.site_id, payload.title, payload.description,
+        assignee_id=payload.assignee_id, url=payload.url,
+    )
+    await db.commit()
+    return _task_dict(task)
 
 
 def _project_dict(p: Project) -> dict:

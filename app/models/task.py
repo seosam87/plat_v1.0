@@ -12,11 +12,16 @@ from app.database import Base
 class TaskType(str, PyEnum):
     page_404 = "page_404"
     lost_indexation = "lost_indexation"
+    missing_page = "missing_page"
+    cannibalization = "cannibalization"
+    manual = "manual"
 
 
 class TaskStatus(str, PyEnum):
     open = "open"
+    assigned = "assigned"
     in_progress = "in_progress"
+    review = "review"
     resolved = "resolved"
 
 

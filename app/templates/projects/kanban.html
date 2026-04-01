@@ -1,32 +1,44 @@
 {% extends "base.html" %}
 {% block title %}{{ project_name }} — Kanban{% endblock %}
 {% block content %}
-<div class="card">
+<div class="card" style="margin-bottom:1.5rem">
   <h2 style="margin:0 0 1.5rem">{{ project_name }} — Tasks</h2>
-  <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:1rem">
-    {% for col_status, col_label in [("open", "To Do"), ("in_progress", "In Progress"), ("resolved", "Done")] %}
-    <div style="background:#f9fafb; border-radius:8px; padding:1rem; min-height:200px">
-      <h3 style="margin:0 0 1rem; color:#6b7280; font-size:.9rem; text-transform:uppercase">{{ col_label }} ({{ tasks[col_status]|length }})</h3>
-      {% for task in tasks[col_status] %}
-      <div class="task-card" style="background:white; border:1px solid #e5e7eb; border-radius:6px; padding:.75rem; margin-bottom:.5rem">
-        <div style="font-weight:500; margin-bottom:.25rem">{{ task.title }}</div>
+  <div style="display:grid; grid-template-columns:repeat(5, 1fr); gap:.75rem; overflow-x:auto">
+    {% for col_status, col_label, col_color in [
+      ("open", "Open", "#f3f4f6"),
+      ("assigned", "Assigned", "#eff6ff"),
+      ("in_progress", "In Progress", "#fef3c7"),
+      ("review", "Review", "#ede9fe"),
+      ("resolved", "Done", "#d1fae5")
+    ] %}
+    <div style="background:{{ col_color }}; border-radius:8px; padding:.75rem; min-height:200px">
+      <h3 style="margin:0 0 .75rem; color:#6b7280; font-size:.8rem; text-transform:uppercase">{{ col_label }} ({{ tasks.get(col_status, [])|length }})</h3>
+      {% for task in tasks.get(col_status, []) %}
+      <div style="background:white; border:1px solid #e5e7eb; border-radius:6px; padding:.6rem; margin-bottom:.5rem">
+        <div style="font-weight:500; font-size:.9rem; margin-bottom:.25rem">{{ task.title }}</div>
         {% if task.task_type %}
-        <span class="badge {% if task.task_type == 'page_404' %}badge-failed{% else %}badge-unknown{% endif %}" style="font-size:.7rem">{{ task.task_type }}</span>
+        <span class="badge {% if task.task_type in ('page_404','lost_indexation') %}badge-failed{% elif task.task_type == 'manual' %}badge-unknown{% else %}badge-connected{% endif %}" style="font-size:.65rem">{{ task.task_type }}</span>
         {% endif %}
         {% if task.due_date %}
-        <span style="font-size:.75rem; color:#6b7280; margin-left:.3rem">Due: {{ task.due_date }}</span>
+        <span style="font-size:.7rem; color:#6b7280; margin-left:.25rem">{{ task.due_date }}</span>
         {% endif %}
-        <div style="margin-top:.5rem; display:flex; gap:.3rem">
+        <div style="margin-top:.4rem; display:flex; gap:.25rem; flex-wrap:wrap">
           {% if col_status == "open" %}
-          <button class="btn btn-sm" style="background:#3b82f6;color:white"
+          <button class="btn btn-sm" style="background:#3b82f6;color:white;font-size:.7rem"
+            hx-patch="/projects/tasks/{{ task.id }}" hx-vals='{"status":"assigned"}'
+            hx-swap="none">Assign</button>
+          {% elif col_status == "assigned" %}
+          <button class="btn btn-sm" style="background:#d97706;color:white;font-size:.7rem"
             hx-patch="/projects/tasks/{{ task.id }}" hx-vals='{"status":"in_progress"}'
-            hx-target="closest .card" hx-swap="outerHTML"
-            hx-headers='{"Content-Type":"application/json"}'>Start</button>
+            hx-swap="none">Start</button>
           {% elif col_status == "in_progress" %}
-          <button class="btn btn-sm" style="background:#059669;color:white"
+          <button class="btn btn-sm" style="background:#7c3aed;color:white;font-size:.7rem"
+            hx-patch="/projects/tasks/{{ task.id }}" hx-vals='{"status":"review"}'
+            hx-swap="none">To Review</button>
+          {% elif col_status == "review" %}
+          <button class="btn btn-sm" style="background:#059669;color:white;font-size:.7rem"
             hx-patch="/projects/tasks/{{ task.id }}" hx-vals='{"status":"resolved"}'
-            hx-target="closest .card" hx-swap="outerHTML"
-            hx-headers='{"Content-Type":"application/json"}'>Done</button>
+            hx-swap="none">Done</button>
           {% endif %}
         </div>
       </div>
@@ -34,5 +46,32 @@
     </div>
     {% endfor %}
   </div>
+</div>
+
+<!-- Comments -->
+<div class="card">
+  <h3 style="margin:0 0 1rem">Comments</h3>
+  <div id="comments-list">
+    {% for c in comments %}
+    <div style="border-bottom:1px solid #e5e7eb; padding:.75rem 0">
+      <strong>{{ c.username }}</strong>
+      <span style="color:#6b7280; font-size:.8rem; margin-left:.5rem">{{ c.created_at[:16] }}</span>
+      <p style="margin:.25rem 0 0">{{ c.text }}</p>
+    </div>
+    {% endfor %}
+    {% if not comments %}
+    <p style="color:#6b7280">No comments yet.</p>
+    {% endif %}
+  </div>
+  <form style="margin-top:1rem; display:flex; gap:.5rem"
+    hx-post="/projects/{{ project_id }}/comments"
+    hx-target="#comments-list"
+    hx-swap="beforeend"
+    hx-headers='{"Content-Type":"application/json"}'
+  >
+    <input type="text" name="text" placeholder="Add a comment..." required
+      style="flex:1; padding:.5rem; border:1px solid #d1d5db; border-radius:4px">
+    <button type="submit" class="btn btn-primary">Post</button>
+  </form>
 </div>
 {% endblock %}

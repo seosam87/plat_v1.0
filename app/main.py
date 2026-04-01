@@ -297,13 +297,33 @@ async def ui_kanban(project_id: str, request: Request, db: AsyncSession = Depend
     tasks = (await db.execute(
         sa_select(SeoTask).where(SeoTask.project_id == _uuid.UUID(project_id)).order_by(SeoTask.created_at)
     )).scalars().all()
-    grouped = {"open": [], "in_progress": [], "resolved": []}
+    grouped = {"open": [], "assigned": [], "in_progress": [], "review": [], "resolved": []}
     for t in tasks:
         grouped.setdefault(t.status.value, []).append({
             "id": str(t.id), "title": t.title, "task_type": t.task_type.value,
             "due_date": t.due_date.isoformat() if t.due_date else None,
         })
-    return templates.TemplateResponse(request, "projects/kanban.html", {"project_name": project.name, "tasks": grouped})
+
+    # Load comments
+    from app.models.project_comment import ProjectComment
+    from app.models.user import User as UserModel
+    comments = (await db.execute(
+        sa_select(ProjectComment).where(ProjectComment.project_id == _uuid.UUID(project_id))
+        .order_by(ProjectComment.created_at.asc())
+    )).scalars().all()
+    user_ids = {c.user_id for c in comments}
+    user_map: dict = {}
+    if user_ids:
+        users = (await db.execute(sa_select(UserModel).where(UserModel.id.in_(user_ids)))).scalars().all()
+        user_map = {u.id: u.username for u in users}
+    comments_data = [
+        {"username": user_map.get(c.user_id, ""), "text": c.text, "created_at": c.created_at.isoformat()}
+        for c in comments
+    ]
+
+    return templates.TemplateResponse(request, "projects/kanban.html", {
+        "project_name": project.name, "project_id": project_id, "tasks": grouped, "comments": comments_data,
+    })
 
 
 @app.get("/ui/projects/{project_id}/plan", response_class=HTMLResponse)
