@@ -31,6 +31,22 @@ class Settings(BaseSettings):
     CRAWLER_DELAY_MS: int = 500
     CRAWLER_MAX_PAGES: int = 500
 
+    # Google Search Console OAuth 2.0
+    GSC_CLIENT_ID: str = ""
+    GSC_CLIENT_SECRET: str = ""
+    GSC_REDIRECT_URI: str = "http://localhost:8000/auth/gsc/callback"
+
+    # DataForSEO
+    DATAFORSEO_LOGIN: str = ""
+    DATAFORSEO_PASSWORD: str = ""
+
+    # Yandex Webmaster
+    YANDEX_WEBMASTER_TOKEN: str = ""
+
+    # Playwright SERP
+    SERP_MAX_DAILY_REQUESTS: int = 50
+    SERP_DELAY_MS: int = 3000
+
     # App
     DB_ECHO: bool = False
     LOG_LEVEL: str = "INFO"

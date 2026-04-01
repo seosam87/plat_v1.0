@@ -15,10 +15,13 @@ from app.dependencies import get_db
 from app.routers.admin import router as admin_router
 from app.routers.auth import router as auth_router
 from app.routers.crawl import router as crawl_router
-from app.routers.sites import router as sites_router
+from app.routers.dataforseo import router as dataforseo_router
+from app.routers.gsc import router as gsc_router
 from app.routers.keywords import router as keywords_router
+from app.routers.sites import router as sites_router
 from app.routers.tasks import router as tasks_router
 from app.routers.uploads import router as uploads_router
+from app.routers.yandex import router as yandex_router
 from app.services.schedule_service import get_all_schedules, upsert_schedule
 from app.services.site_service import get_site, get_sites
 from app.models.schedule import ScheduleType
@@ -48,6 +51,9 @@ app.include_router(crawl_router)
 app.include_router(tasks_router)
 app.include_router(keywords_router)
 app.include_router(uploads_router)
+app.include_router(gsc_router)
+app.include_router(dataforseo_router)
+app.include_router(yandex_router)
 
 
 @app.get("/ui/sites", response_class=HTMLResponse)
