@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Sites — SEO Platform{% endblock %}
+{% block content %}
+<div class="card">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem">
+    <h2 style="margin:0">WordPress Sites</h2>
+    <a href="/ui/sites/new" class="btn btn-primary">+ Add Site</a>
+  </div>
+
+  {% if sites %}
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>URL</th>
+        <th>WP Username</th>
+        <th>Status</th>
+        <th>Active</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for site in sites %}
+      <tr>
+        <td>{{ site.name }}</td>
+        <td><a href="{{ site.url }}" target="_blank">{{ site.url }}</a></td>
+        <td>{{ site.wp_username }}</td>
+        <td>
+          <span
+            id="status-{{ site.id }}"
+            class="badge badge-{{ site.connection_status }}"
+          >{{ site.connection_status }}</span>
+        </td>
+        <td>{{ "Yes" if site.is_active else "No" }}</td>
+        <td>
+          <form class="inline">
+            <button
+              class="btn btn-sm btn-verify"
+              hx-post="/sites/{{ site.id }}/verify"
+              hx-target="#status-{{ site.id }}"
+              hx-swap="outerHTML"
+              hx-indicator="#spinner-{{ site.id }}"
+            >Verify</button>
+            <span id="spinner-{{ site.id }}" class="htmx-indicator">…</span>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p style="color:#6b7280">No sites added yet. <a href="/ui/sites/new">Add your first site.</a></p>
+  {% endif %}
+</div>
+{% endblock %}
