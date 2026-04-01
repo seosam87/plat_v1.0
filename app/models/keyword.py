@@ -67,6 +67,11 @@ class Keyword(Base):
     engine: Mapped[SearchEngine | None] = mapped_column(
         SAEnum(SearchEngine), nullable=True
     )
+    cluster_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("keyword_clusters.id", ondelete="SET NULL"),
+        nullable=True,
+    )
     target_url: Mapped[str | None] = mapped_column(String(2000), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=datetime.utcnow, nullable=False

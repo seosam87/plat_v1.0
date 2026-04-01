@@ -14,6 +14,7 @@ from app.database import engine
 from app.dependencies import get_db
 from app.routers.admin import router as admin_router
 from app.routers.auth import router as auth_router
+from app.routers.clusters import router as clusters_router
 from app.routers.crawl import router as crawl_router
 from app.routers.dataforseo import router as dataforseo_router
 from app.routers.gsc import router as gsc_router
@@ -48,6 +49,7 @@ app = FastAPI(
 app.include_router(auth_router)
 app.include_router(admin_router)
 app.include_router(sites_router)
+app.include_router(clusters_router)
 app.include_router(crawl_router)
 app.include_router(tasks_router)
 app.include_router(keywords_router)
