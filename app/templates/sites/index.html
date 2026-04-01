@@ -43,6 +43,28 @@
             >Verify</button>
             <span id="spinner-{{ site.id }}" class="htmx-indicator">…</span>
           </form>
+          {% if site.is_active %}
+          <form class="inline">
+            <button
+              class="btn btn-sm"
+              style="background:#ef4444;color:white;margin-left:.5rem"
+              hx-patch="/sites/{{ site.id }}/status?active=false"
+              hx-target="closest tr"
+              hx-swap="outerHTML"
+              hx-confirm="Disable this site? All associated jobs will stop."
+            >Disable</button>
+          </form>
+          {% else %}
+          <form class="inline">
+            <button
+              class="btn btn-sm"
+              style="background:#22c55e;color:white;margin-left:.5rem"
+              hx-patch="/sites/{{ site.id }}/status?active=true"
+              hx-target="closest tr"
+              hx-swap="outerHTML"
+            >Enable</button>
+          </form>
+          {% endif %}
         </td>
       </tr>
       {% endfor %}

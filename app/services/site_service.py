@@ -69,6 +69,18 @@ async def set_connection_status(db: AsyncSession, site: Site, status: Connection
     return site
 
 
+async def set_active_status(
+    db: AsyncSession,
+    site: Site,
+    is_active: bool,
+    actor_id: uuid.UUID | None = None,
+) -> Site:
+    site.is_active = is_active
+    action = "site.enable" if is_active else "site.disable"
+    await log_action(db, action=action, user_id=actor_id, entity_type="site", entity_id=str(site.id))
+    return site
+
+
 def get_decrypted_password(site: Site) -> str:
     """Decrypt WP Application Password for call-time use only. Never log or return to client."""
     return decrypt(site.encrypted_app_password)

@@ -15,6 +15,62 @@ def _basic_auth_header(username: str, password: str) -> str:
     return f"Basic {token}"
 
 
+def _sync_auth_headers(site: Site) -> dict:
+    password = get_decrypted_password(site)
+    return {"Authorization": _basic_auth_header(site.wp_username, password)}
+
+
+def get_posts_sync(site: Site, page: int = 1, per_page: int = 20) -> list[dict]:
+    """Fetch WP posts synchronously (for use in Celery tasks)."""
+    url = site.url.rstrip("/") + "/wp-json/wp/v2/posts"
+    try:
+        resp = httpx.get(
+            url,
+            params={"page": page, "per_page": per_page},
+            headers=_sync_auth_headers(site),
+            timeout=REQUEST_TIMEOUT,
+        )
+        resp.raise_for_status()
+        return resp.json()
+    except httpx.HTTPError as exc:
+        logger.warning("WP get_posts failed", site_id=str(site.id), error=str(exc))
+        return []
+
+
+def get_pages_sync(site: Site, page: int = 1, per_page: int = 20) -> list[dict]:
+    """Fetch WP pages synchronously (for use in Celery tasks)."""
+    url = site.url.rstrip("/") + "/wp-json/wp/v2/pages"
+    try:
+        resp = httpx.get(
+            url,
+            params={"page": page, "per_page": per_page},
+            headers=_sync_auth_headers(site),
+            timeout=REQUEST_TIMEOUT,
+        )
+        resp.raise_for_status()
+        return resp.json()
+    except httpx.HTTPError as exc:
+        logger.warning("WP get_pages failed", site_id=str(site.id), error=str(exc))
+        return []
+
+
+def create_post_sync(site: Site, title: str, content: str, status: str = "draft") -> dict | None:
+    """Create a WP post synchronously. Returns post dict or None on failure."""
+    url = site.url.rstrip("/") + "/wp-json/wp/v2/posts"
+    try:
+        resp = httpx.post(
+            url,
+            json={"title": title, "content": content, "status": status},
+            headers=_sync_auth_headers(site),
+            timeout=REQUEST_TIMEOUT,
+        )
+        resp.raise_for_status()
+        return resp.json()
+    except httpx.HTTPError as exc:
+        logger.warning("WP create_post failed", site_id=str(site.id), error=str(exc))
+        return None
+
+
 async def verify_connection(site: Site) -> ConnectionStatus:
     """
     Ping {site.url}/wp-json/wp/v2/users/me with WP Application Password auth.
