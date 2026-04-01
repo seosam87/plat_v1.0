@@ -1,8 +1,13 @@
-"""Crawler service: sitemap parsing, SEO data extraction, page classification."""
+"""Crawler service: sitemap parsing, SEO data extraction, page classification.
+
+Two extraction modes:
+- httpx + BeautifulSoup (default, lightweight, fast, no browser needed)
+- Playwright (fallback / on demand, handles JS-rendered pages)
+"""
 from __future__ import annotations
 
 import re
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urljoin
 
 import httpx
 from loguru import logger
@@ -103,6 +108,103 @@ def extract_seo_data(page) -> dict:
         "has_toc": has_toc,
         "canonical_url": canonical_url,
     }
+
+
+# ---------------------------------------------------------------------------
+# httpx + BeautifulSoup extraction (lightweight, no browser)
+# ---------------------------------------------------------------------------
+
+def fetch_page_httpx(
+    url: str,
+    timeout: float = 15.0,
+    headers: dict | None = None,
+) -> tuple[int | None, str]:
+    """Fetch a page with httpx. Returns (http_status, html_body).
+
+    Returns (None, "") on network errors.
+    """
+    default_headers = {
+        "User-Agent": "Mozilla/5.0 (compatible; SEOPlatformBot/1.0)",
+        "Accept": "text/html,application/xhtml+xml",
+    }
+    if headers:
+        default_headers.update(headers)
+    try:
+        with httpx.Client(timeout=timeout, follow_redirects=True) as client:
+            resp = client.get(url, headers=default_headers)
+            return resp.status_code, resp.text
+    except (httpx.HTTPError, Exception) as exc:
+        logger.warning("fetch_page_httpx failed", url=url, error=str(exc))
+        return None, ""
+
+
+def extract_seo_data_bs4(html: str) -> dict:
+    """Extract SEO metadata from HTML using BeautifulSoup.
+
+    Same return format as extract_seo_data (Playwright version).
+    """
+    soup = BeautifulSoup(html, "html.parser")
+
+    # Title
+    title_tag = soup.find("title")
+    title = title_tag.get_text(strip=True) if title_tag else ""
+
+    # H1
+    h1_tag = soup.find("h1")
+    h1 = h1_tag.get_text(strip=True) if h1_tag else ""
+
+    # Meta description
+    meta_tag = soup.find("meta", attrs={"name": "description"})
+    meta_description = meta_tag.get("content", "") if meta_tag else ""
+
+    # noindex
+    robots_tag = soup.find("meta", attrs={"name": "robots"})
+    robots_content = robots_tag.get("content", "") if robots_tag else ""
+    has_noindex = "noindex" in robots_content.lower()
+
+    # Schema.org JSON-LD
+    schema_scripts = soup.find_all("script", attrs={"type": "application/ld+json"})
+    has_schema = len(schema_scripts) > 0
+
+    # Canonical URL
+    canonical_tag = soup.find("link", attrs={"rel": "canonical"})
+    canonical_url = canonical_tag.get("href", "") if canonical_tag else ""
+
+    # TOC
+    toc_el = soup.find(attrs={"id": re.compile(r"toc|table-of-contents", re.I)})
+    if not toc_el:
+        toc_el = soup.find(attrs={"class": re.compile(r"toc|table-of-contents", re.I)})
+    has_toc = toc_el is not None
+
+    return {
+        "title": title,
+        "h1": h1,
+        "meta_description": meta_description,
+        "has_noindex": has_noindex,
+        "has_schema": has_schema,
+        "has_toc": has_toc,
+        "canonical_url": canonical_url,
+    }
+
+
+def extract_internal_links_bs4(html: str, base_url: str) -> list[str]:
+    """Extract internal links from HTML using BeautifulSoup."""
+    soup = BeautifulSoup(html, "html.parser")
+    base_host = urlparse(base_url).netloc
+    links = []
+    for a in soup.find_all("a", href=True):
+        href = a["href"]
+        try:
+            full = urljoin(base_url, href)
+            parsed = urlparse(full)
+            if parsed.scheme not in ("http", "https"):
+                continue
+            if parsed.netloc == base_host or not parsed.netloc:
+                clean = parsed._replace(fragment="").geturl()
+                links.append(clean)
+        except Exception:
+            continue
+    return links
 
 
 def classify_page_type(url: str, h1: str) -> str:

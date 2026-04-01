@@ -6,7 +6,13 @@ import pytest_asyncio
 import respx
 from httpx import ConnectError, Response
 
-from app.services.crawler_service import classify_page_type, parse_sitemap
+from app.services.crawler_service import (
+    classify_page_type,
+    extract_internal_links_bs4,
+    extract_seo_data_bs4,
+    fetch_page_httpx,
+    parse_sitemap,
+)
 
 
 @pytest_asyncio.fixture
@@ -132,6 +138,104 @@ async def test_create_crawl_job_missing_site(client, db_session, admin_token):
 
 # ---------------------------------------------------------------------------
 # extract_seo_data: canonical_url field
+# ---------------------------------------------------------------------------
+
+
+# ---------------------------------------------------------------------------
+# httpx + BS4 extraction
+# ---------------------------------------------------------------------------
+
+
+SAMPLE_HTML = """<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Page Title</title>
+    <meta name="description" content="Test meta description">
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="canonical" href="https://example.com/canonical">
+    <script type="application/ld+json">{"@type": "Article"}</script>
+</head>
+<body>
+    <h1>Main Heading</h1>
+    <div id="toc">Table of Contents</div>
+    <a href="/about">About</a>
+    <a href="/contact">Contact</a>
+    <a href="https://external.com/link">External</a>
+</body>
+</html>"""
+
+
+def test_extract_seo_data_bs4_full():
+    """extract_seo_data_bs4 extracts all SEO fields from HTML."""
+    data = extract_seo_data_bs4(SAMPLE_HTML)
+    assert data["title"] == "Test Page Title"
+    assert data["h1"] == "Main Heading"
+    assert data["meta_description"] == "Test meta description"
+    assert data["has_noindex"] is True
+    assert data["has_schema"] is True
+    assert data["has_toc"] is True
+    assert data["canonical_url"] == "https://example.com/canonical"
+
+
+def test_extract_seo_data_bs4_empty():
+    """extract_seo_data_bs4 handles empty HTML gracefully."""
+    data = extract_seo_data_bs4("")
+    assert data["title"] == ""
+    assert data["h1"] == ""
+    assert data["has_noindex"] is False
+    assert data["has_schema"] is False
+
+
+def test_extract_seo_data_bs4_minimal():
+    """extract_seo_data_bs4 handles minimal HTML."""
+    html = "<html><head><title>Hi</title></head><body><h1>Hello</h1></body></html>"
+    data = extract_seo_data_bs4(html)
+    assert data["title"] == "Hi"
+    assert data["h1"] == "Hello"
+    assert data["meta_description"] == ""
+    assert data["canonical_url"] == ""
+    assert data["has_noindex"] is False
+    assert data["has_schema"] is False
+    assert data["has_toc"] is False
+
+
+def test_extract_internal_links_bs4():
+    """extract_internal_links_bs4 extracts only internal links."""
+    links = extract_internal_links_bs4(SAMPLE_HTML, "https://example.com")
+    assert "https://example.com/about" in links
+    assert "https://example.com/contact" in links
+    # External link should NOT be included
+    assert not any("external.com" in l for l in links)
+
+
+def test_extract_internal_links_bs4_empty():
+    """extract_internal_links_bs4 returns empty list for no-link HTML."""
+    links = extract_internal_links_bs4("<html><body>No links</body></html>", "https://example.com")
+    assert links == []
+
+
+@respx.mock
+def test_fetch_page_httpx_success():
+    """fetch_page_httpx returns status and body on success."""
+    respx.get("https://example.com/test").mock(
+        return_value=Response(200, text="<html>OK</html>")
+    )
+    status, body = fetch_page_httpx("https://example.com/test")
+    assert status == 200
+    assert "OK" in body
+
+
+@respx.mock
+def test_fetch_page_httpx_error():
+    """fetch_page_httpx returns (None, '') on network error."""
+    respx.get("https://example.com/fail").mock(side_effect=ConnectError("refused"))
+    status, body = fetch_page_httpx("https://example.com/fail")
+    assert status is None
+    assert body == ""
+
+
+# ---------------------------------------------------------------------------
+# Playwright extract_seo_data: canonical_url field
 # ---------------------------------------------------------------------------
 
 

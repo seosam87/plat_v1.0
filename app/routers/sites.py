@@ -199,15 +199,20 @@ async def list_site_crawls(
 @router.post("/{site_id}/crawl", status_code=status.HTTP_202_ACCEPTED)
 async def trigger_crawl(
     site_id: uuid.UUID,
+    use_playwright: bool = False,
     db: AsyncSession = Depends(get_db),
     _: User = Depends(require_admin),
 ) -> dict:
-    """Trigger an async crawl for a site. Returns 202 with task_id."""
+    """Trigger an async crawl for a site.
+
+    Default: httpx + BeautifulSoup (fast, no browser).
+    use_playwright=true: Playwright headless browser (JS-rendered pages).
+    """
     site = await site_service.get_site(db, site_id)
     if not site:
         raise HTTPException(status_code=404, detail="Site not found")
-    task = _crawl_site_task.delay(str(site_id))
-    return {"task_id": task.id, "site_id": str(site_id)}
+    task = _crawl_site_task.delay(str(site_id), use_playwright=use_playwright)
+    return {"task_id": task.id, "site_id": str(site_id), "mode": "playwright" if use_playwright else "httpx"}
 
 
 @router.post("/{site_id}/verify", response_class=HTMLResponse)

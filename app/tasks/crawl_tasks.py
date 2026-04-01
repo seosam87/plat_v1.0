@@ -1,4 +1,8 @@
-"""Celery tasks for site crawling using Playwright."""
+"""Celery tasks for site crawling.
+
+Default mode: httpx + BeautifulSoup (fast, lightweight, no browser).
+Fallback/on-demand: Playwright (for JS-rendered pages).
+"""
 from __future__ import annotations
 
 import time
@@ -42,8 +46,12 @@ def _normalise_url(base_url: str, href: str) -> str | None:
     soft_time_limit=300,
     time_limit=360,
 )
-def crawl_site(self, site_id: str) -> dict:
-    """Crawl a site using Playwright. Each task gets its own BrowserContext."""
+def crawl_site(self, site_id: str, use_playwright: bool = False) -> dict:
+    """Crawl a site.
+
+    Default: httpx + BeautifulSoup (fast, no browser needed).
+    use_playwright=True: Playwright headless browser (for JS-rendered pages).
+    """
     # ------------------------------------------------------------------
     # Guard: skip disabled / missing sites
     # ------------------------------------------------------------------
@@ -83,22 +91,20 @@ def crawl_site(self, site_id: str) -> dict:
         db.add(job)
         db.commit()
 
-    logger.info("crawl_site started", site_id=site_id, crawl_job_id=str(crawl_job_id))
+    mode = "playwright" if use_playwright else "httpx"
+    logger.info("crawl_site started", site_id=site_id, crawl_job_id=str(crawl_job_id), mode=mode)
 
     # ------------------------------------------------------------------
-    # Playwright browser context
+    # Playwright context (only if requested)
     # ------------------------------------------------------------------
-    browser = get_browser()
-    if browser is None:
-        logger.warning("Playwright browser not available", site_id=site_id)
-        with get_sync_db() as db:
-            job = db.get(CrawlJob, crawl_job_id)
-            job.status = CrawlJobStatus.failed
-            job.error_message = "browser not initialised"
-            job.finished_at = datetime.now(timezone.utc)
-        return {"status": "error", "reason": "browser not initialised", "site_id": site_id}
-
-    context = browser.new_context()
+    context = None
+    if use_playwright:
+        browser = get_browser()
+        if browser is None:
+            logger.warning("Playwright not available, falling back to httpx", site_id=site_id)
+            use_playwright = False
+        else:
+            context = browser.new_context()
 
     try:
         # --------------------------------------------------------------
@@ -106,7 +112,10 @@ def crawl_site(self, site_id: str) -> dict:
         # --------------------------------------------------------------
         from app.services.crawler_service import (
             classify_page_type,
+            extract_internal_links_bs4,
             extract_seo_data,
+            extract_seo_data_bs4,
+            fetch_page_httpx,
             parse_sitemap,
         )
 
@@ -132,102 +141,31 @@ def crawl_site(self, site_id: str) -> dict:
             visited.add(url)
 
             try:
-                pw_page = context.new_page()
-                try:
-                    response = pw_page.goto(url, wait_until="domcontentloaded", timeout=30_000)
-                    http_status = response.status if response else None
+                if use_playwright and context:
+                    http_status, seo, internal_links = _crawl_page_playwright(
+                        context, url, base_url, depth
+                    )
+                else:
+                    http_status, seo, internal_links = _crawl_page_httpx(
+                        url, base_url, depth
+                    )
 
-                    seo = extract_seo_data(pw_page)
-                    page_type_str = classify_page_type(url, seo.get("h1", ""))
+                page_type_str = classify_page_type(url, seo.get("h1", ""))
 
-                    # Collect internal links for BFS (max depth=5)
-                    internal_links: list[str] = []
-                    if depth < 5:
-                        anchors = pw_page.query_selector_all("a[href]")
-                        for anchor in anchors:
-                            href = anchor.get_attribute("href")
-                            if not href:
-                                continue
-                            norm = _normalise_url(url, href)
-                            if norm and _is_internal_link(base_url, norm) and norm not in visited:
-                                internal_links.append(norm)
+                # Persist Page + PageSnapshot
+                _persist_page(
+                    site_id, crawl_job_id, url, http_status, seo,
+                    page_type_str, depth, internal_links,
+                )
+                pages_crawled += 1
 
-                    # Persist Page + PageSnapshot
-                    from app.models.crawl import PageSnapshot
-                    from app.services.diff_service import build_snapshot, compute_diff
-                    from sqlalchemy import select as sa_select
-
-                    page_id = uuid.uuid4()
-                    with get_sync_db() as db:
-                        page_row = Page(
-                            id=page_id,
-                            site_id=uuid.UUID(site_id),
-                            crawl_job_id=crawl_job_id,
-                            url=url,
-                            title=seo.get("title"),
-                            h1=seo.get("h1"),
-                            meta_description=seo.get("meta_description"),
-                            http_status=http_status,
-                            depth=depth,
-                            internal_link_count=len(internal_links),
-                            page_type=PageType(page_type_str),
-                            has_toc=seo.get("has_toc", False),
-                            has_schema=seo.get("has_schema", False),
-                            has_noindex=seo.get("has_noindex", False),
-                            crawled_at=datetime.now(timezone.utc),
-                        )
-                        db.add(page_row)
-                        db.flush()
-
-                        # Build snapshot data
-                        snap_data = build_snapshot(page_row)
-
-                        # Look up previous snapshot for the same (site_id, url)
-                        prev_page = db.execute(
-                            sa_select(Page)
-                            .where(
-                                Page.site_id == uuid.UUID(site_id),
-                                Page.url == url,
-                                Page.id != page_id,
-                            )
-                            .order_by(Page.crawled_at.desc())
-                            .limit(1)
-                        ).scalar_one_or_none()
-
-                        diff_data: dict | None = None
-                        if prev_page is not None:
-                            prev_snap = db.execute(
-                                sa_select(PageSnapshot)
-                                .where(PageSnapshot.page_id == prev_page.id)
-                                .order_by(PageSnapshot.created_at.desc())
-                                .limit(1)
-                            ).scalar_one_or_none()
-                            if prev_snap is not None:
-                                diff_data = compute_diff(prev_snap.snapshot_data, snap_data) or None
-
-                        snapshot_row = PageSnapshot(
-                            id=uuid.uuid4(),
-                            page_id=page_id,
-                            crawl_job_id=crawl_job_id,
-                            snapshot_data=snap_data,
-                            diff_data=diff_data,
-                            created_at=datetime.now(timezone.utc),
-                        )
-                        db.add(snapshot_row)
-
-                    pages_crawled += 1
-
-                    # Enqueue internal links
-                    for link in internal_links:
-                        if link not in visited:
-                            queue.append((link, depth + 1))
-
-                finally:
-                    pw_page.close()
+                # Enqueue internal links
+                for link in internal_links:
+                    if link not in visited:
+                        queue.append((link, depth + 1))
 
             except Exception as exc:
                 logger.warning("Error crawling page", url=url, error=str(exc))
-                # Continue to next URL rather than aborting entire job
 
             # Politeness delay
             if delay_s > 0:
@@ -253,6 +191,7 @@ def crawl_site(self, site_id: str) -> dict:
             site_id=site_id,
             crawl_job_id=str(crawl_job_id),
             pages_crawled=pages_crawled,
+            mode=mode,
         )
         return {"status": "done", "site_id": site_id, "crawl_job_id": str(crawl_job_id), "pages_crawled": pages_crawled}
 
@@ -267,7 +206,6 @@ def crawl_site(self, site_id: str) -> dict:
 
     except Exception as exc:
         logger.error("crawl_site failed", site_id=site_id, error=str(exc))
-        # Retry for network-like errors; fail immediately otherwise
         error_str = str(exc).lower()
         is_network_error = any(
             kw in error_str
@@ -284,5 +222,132 @@ def crawl_site(self, site_id: str) -> dict:
         return {"status": "failed", "reason": str(exc), "site_id": site_id}
 
     finally:
-        context.close()
-        logger.info("crawl_site BrowserContext closed", site_id=site_id)
+        if context:
+            context.close()
+            logger.info("crawl_site BrowserContext closed", site_id=site_id)
+
+
+def _crawl_page_httpx(
+    url: str, base_url: str, depth: int,
+) -> tuple[int | None, dict, list[str]]:
+    """Fetch and extract page data using httpx + BeautifulSoup."""
+    from app.services.crawler_service import (
+        extract_internal_links_bs4,
+        extract_seo_data_bs4,
+        fetch_page_httpx,
+    )
+
+    http_status, html = fetch_page_httpx(url)
+    seo = extract_seo_data_bs4(html) if html else {
+        "title": "", "h1": "", "meta_description": "",
+        "has_noindex": False, "has_schema": False, "has_toc": False, "canonical_url": "",
+    }
+
+    internal_links: list[str] = []
+    if depth < 5 and html:
+        all_links = extract_internal_links_bs4(html, base_url)
+        internal_links = list(dict.fromkeys(all_links))  # deduplicate, preserve order
+
+    return http_status, seo, internal_links
+
+
+def _crawl_page_playwright(
+    context, url: str, base_url: str, depth: int,
+) -> tuple[int | None, dict, list[str]]:
+    """Fetch and extract page data using Playwright."""
+    from app.services.crawler_service import extract_seo_data
+
+    pw_page = context.new_page()
+    try:
+        response = pw_page.goto(url, wait_until="domcontentloaded", timeout=30_000)
+        http_status = response.status if response else None
+        seo = extract_seo_data(pw_page)
+
+        internal_links: list[str] = []
+        if depth < 5:
+            anchors = pw_page.query_selector_all("a[href]")
+            for anchor in anchors:
+                href = anchor.get_attribute("href")
+                if not href:
+                    continue
+                norm = _normalise_url(url, href)
+                if norm and _is_internal_link(base_url, norm):
+                    internal_links.append(norm)
+
+        return http_status, seo, internal_links
+    finally:
+        pw_page.close()
+
+
+def _persist_page(
+    site_id: str,
+    crawl_job_id: uuid.UUID,
+    url: str,
+    http_status: int | None,
+    seo: dict,
+    page_type_str: str,
+    depth: int,
+    internal_links: list[str],
+) -> None:
+    """Save Page + PageSnapshot to DB, compute diff vs previous crawl."""
+    from app.database import get_sync_db
+    from app.models.crawl import Page, PageSnapshot, PageType
+    from app.services.diff_service import build_snapshot, compute_diff
+    from sqlalchemy import select as sa_select
+
+    page_id = uuid.uuid4()
+    with get_sync_db() as db:
+        page_row = Page(
+            id=page_id,
+            site_id=uuid.UUID(site_id),
+            crawl_job_id=crawl_job_id,
+            url=url,
+            title=seo.get("title"),
+            h1=seo.get("h1"),
+            meta_description=seo.get("meta_description"),
+            http_status=http_status,
+            depth=depth,
+            internal_link_count=len(internal_links),
+            page_type=PageType(page_type_str),
+            has_toc=seo.get("has_toc", False),
+            has_schema=seo.get("has_schema", False),
+            has_noindex=seo.get("has_noindex", False),
+            canonical_url=seo.get("canonical_url") or None,
+            crawled_at=datetime.now(timezone.utc),
+        )
+        db.add(page_row)
+        db.flush()
+
+        snap_data = build_snapshot(page_row)
+
+        prev_page = db.execute(
+            sa_select(Page)
+            .where(
+                Page.site_id == uuid.UUID(site_id),
+                Page.url == url,
+                Page.id != page_id,
+            )
+            .order_by(Page.crawled_at.desc())
+            .limit(1)
+        ).scalar_one_or_none()
+
+        diff_data: dict | None = None
+        if prev_page is not None:
+            prev_snap = db.execute(
+                sa_select(PageSnapshot)
+                .where(PageSnapshot.page_id == prev_page.id)
+                .order_by(PageSnapshot.created_at.desc())
+                .limit(1)
+            ).scalar_one_or_none()
+            if prev_snap is not None:
+                diff_data = compute_diff(prev_snap.snapshot_data, snap_data) or None
+
+        snapshot_row = PageSnapshot(
+            id=uuid.uuid4(),
+            page_id=page_id,
+            crawl_job_id=crawl_job_id,
+            snapshot_data=snap_data,
+            diff_data=diff_data,
+            created_at=datetime.now(timezone.utc),
+        )
+        db.add(snapshot_row)
