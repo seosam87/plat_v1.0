@@ -90,6 +90,9 @@ def parse_serp_sync(
 
             page.goto(search_url, wait_until="domcontentloaded", timeout=20_000)
 
+            # Detect SERP features before organic results
+            serp_features = _detect_serp_features(page, engine)
+
             # Extract organic results
             if engine == "yandex":
                 items = page.query_selector_all("li.serp-item")
@@ -111,7 +114,7 @@ def parse_serp_sync(
                             results.append({"position": i, "url": href, "title": title})
 
             _increment_counter()
-            logger.info("SERP parsed", keyword=keyword, engine=engine, results=len(results))
+            logger.info("SERP parsed", keyword=keyword, engine=engine, results=len(results), features=serp_features)
 
         finally:
             page.close()
@@ -127,4 +130,54 @@ def parse_serp_sync(
     if delay_s > 0:
         time.sleep(delay_s)
 
-    return results
+    return {"results": results, "features": serp_features}
+
+
+def _detect_serp_features(page, engine: str) -> list[str]:
+    """Detect SERP features present on the page.
+
+    Returns list of feature names found: featured_snippet, paa, video,
+    images, knowledge_panel, local_pack, ads.
+    """
+    features: list[str] = []
+
+    if engine == "google":
+        # Featured snippet
+        if page.query_selector("div.xpdopen, div[data-attrid='wa:/description'], div.IZ6rdc"):
+            features.append("featured_snippet")
+        # People Also Ask
+        if page.query_selector("div.related-question-pair, div[data-sgrd], div.wQiwMc"):
+            features.append("paa")
+        # Video carousel
+        if page.query_selector("div.dXiKIc, video-voyager, div[data-ved] g-scrolling-carousel"):
+            features.append("video")
+        # Image pack
+        if page.query_selector("div.islrc, div#imagebox_bigimages"):
+            features.append("images")
+        # Knowledge panel
+        if page.query_selector("div.kp-wholepage, div.osrp-blk"):
+            features.append("knowledge_panel")
+        # Local pack
+        if page.query_selector("div.VkpGBb, div[data-local-attribute]"):
+            features.append("local_pack")
+        # Ads
+        if page.query_selector("div.uEierd, div[data-text-ad]"):
+            features.append("ads")
+    elif engine == "yandex":
+        # Yandex SERP features
+        if page.query_selector("div.Fact, div.AnswerFact"):
+            features.append("featured_snippet")
+        if page.query_selector("div.RelatedQuestions"):
+            features.append("paa")
+        if page.query_selector("div.VideoThumb"):
+            features.append("video")
+        if page.query_selector("div.MMGallery"):
+            features.append("images")
+        if page.query_selector("div.ObjectAnswer"):
+            features.append("knowledge_panel")
+        if page.query_selector("div.MapSearchSnippet"):
+            features.append("local_pack")
+        if page.query_selector("div.Advert"):
+            features.append("ads")
+
+    return features

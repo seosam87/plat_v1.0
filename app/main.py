@@ -419,6 +419,30 @@ async def ui_uploads(
     )
 
 
+@app.get("/ui/datasources", response_class=HTMLResponse)
+async def ui_datasources(request: Request, db: AsyncSession = Depends(get_db)) -> HTMLResponse:
+    from app.services.serp_parser_service import get_daily_usage
+    from app.services import yandex_webmaster_service
+    from app.models.oauth_token import OAuthToken
+    from sqlalchemy import select as sa_select
+
+    # GSC status
+    gsc_tokens = (await db.execute(
+        sa_select(OAuthToken).where(OAuthToken.provider == "gsc")
+    )).scalars().all()
+    gsc_connected = len(gsc_tokens) > 0
+
+    # Yandex status
+    yandex_configured = yandex_webmaster_service.is_configured()
+
+    return templates.TemplateResponse(request, "datasources/index.html", {
+        "gsc_connected": gsc_connected,
+        "gsc_sites_count": len(gsc_tokens),
+        "yandex_configured": yandex_configured,
+        "serp_usage": get_daily_usage(),
+    })
+
+
 @app.get("/ui/dashboard", response_class=HTMLResponse)
 async def ui_dashboard(request: Request, db: AsyncSession = Depends(get_db)) -> HTMLResponse:
     from app.services.report_service import dashboard_summary

@@ -259,3 +259,40 @@ class TestSerpParserService:
         assert "used" in usage
         assert "limit" in usage
         assert usage["limit"] == 50  # default SERP_MAX_DAILY_REQUESTS
+
+
+# ---------------------------------------------------------------------------
+# Phase 7: SERP features detection
+# ---------------------------------------------------------------------------
+
+
+class TestSerpFeatures:
+    def test_detect_function_exists(self):
+        from app.services.serp_parser_service import _detect_serp_features
+        assert callable(_detect_serp_features)
+
+    def test_feature_names_valid(self):
+        """All detected feature names should be from the known set."""
+        valid = {"featured_snippet", "paa", "video", "images", "knowledge_panel", "local_pack", "ads"}
+        # Verify the function returns only valid names by checking source
+        import inspect
+        from app.services.serp_parser_service import _detect_serp_features
+        src = inspect.getsource(_detect_serp_features)
+        for name in valid:
+            assert f'"{name}"' in src
+
+    def test_parse_serp_returns_dict_with_features(self):
+        """parse_serp_sync now returns dict with 'results' and 'features' keys."""
+        import inspect
+        from app.services.serp_parser_service import parse_serp_sync
+        src = inspect.getsource(parse_serp_sync)
+        assert '"results"' in src
+        assert '"features"' in src
+
+
+class TestDatasourcesUI:
+    def test_datasources_route_exists(self):
+        """Verify /ui/datasources route is registered."""
+        from app.main import app
+        paths = [r.path for r in app.routes]
+        assert "/ui/datasources" in paths

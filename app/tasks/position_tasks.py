@@ -139,7 +139,8 @@ def _check_via_serp_parser(site_id: str, keywords) -> int:
             logger.info("SERP daily limit reached, stopping", written=written)
             break
 
-        results = parse_serp_sync(kw.phrase, engine="google")
+        serp_data = parse_serp_sync(kw.phrase, engine="google")
+        results = serp_data.get("results", []) if isinstance(serp_data, dict) else serp_data
         position = None
         url = None
         for item in results:
