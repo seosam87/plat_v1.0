@@ -1,0 +1,74 @@
+{% if not has_data %}
+<div class="card" style="text-align:center; padding:1rem">
+  <div style="font-size:.875rem; color:#6b7280">Данные не загружены.</div>
+  <a href="/ui/metrika/{{ site.id }}" class="btn btn-sm" style="margin-top:.5rem">Настройте счётчик →</a>
+</div>
+{% else %}
+<div class="card" style="padding:1rem">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:.75rem">
+    <div>
+      <div style="font-weight:600; font-size:1rem">Трафик (органика)</div>
+      <div style="font-size:.8rem; color:#6b7280">За последние 30 дней</div>
+    </div>
+  </div>
+
+  <!-- Mini metrics row -->
+  <div style="display:flex; gap:1rem; margin-bottom:.75rem; flex-wrap:wrap">
+    <div style="font-size:.875rem">
+      <span style="color:#6b7280">Визиты:</span>
+      <span style="font-weight:600">{{ totals.visits }}</span>
+    </div>
+    <div style="font-size:.875rem">
+      <span style="color:#6b7280">Отказы:</span>
+      <span style="font-weight:600">{{ totals.bounce_rate }}%</span>
+    </div>
+    <div style="font-size:.875rem">
+      <span style="color:#6b7280">Глубина:</span>
+      <span style="font-weight:600">{{ totals.page_depth }}</span>
+    </div>
+    <div style="font-size:.875rem">
+      <span style="color:#6b7280">Длительность:</span>
+      <span style="font-weight:600">{{ (totals.avg_duration_seconds // 60) }}м {{ (totals.avg_duration_seconds % 60) }}с</span>
+    </div>
+  </div>
+
+  <!-- Sparkline -->
+  <canvas id="metrika-sparkline-{{ site.id }}" style="height:80px; width:100%"></canvas>
+
+  <div style="margin-top:.5rem; text-align:right">
+    <a href="/ui/metrika/{{ site.id }}" style="font-size:.85rem; color:#4f46e5; text-decoration:none">Подробный трафик →</a>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+(function() {
+  const ctx = document.getElementById('metrika-sparkline-{{ site.id }}');
+  if (!ctx) return;
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: {{ sparkline_data | tojson }}.map((_, i) => i),
+      datasets: [{
+        data: {{ sparkline_data | tojson }},
+        borderColor: '#4f46e5',
+        backgroundColor: 'rgba(79,70,229,0.08)',
+        fill: true,
+        tension: 0.3,
+        pointRadius: 0,
+        borderWidth: 2,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        x: { display: false },
+        y: { display: false, beginAtZero: true }
+      },
+      plugins: { legend: { display: false } }
+    }
+  });
+})();
+</script>
+{% endif %}
