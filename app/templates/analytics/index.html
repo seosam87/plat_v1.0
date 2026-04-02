@@ -1,0 +1,364 @@
+{% extends "base.html" %}
+{% block title %}Аналитика — {{ site.name }} — SEO Platform{% endblock %}
+{% block content %}
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem">
+  <h2 style="margin:0">Аналитика: {{ site.name }}</h2>
+  <div style="display:flex; gap:.5rem; align-items:center">
+    <select id="session-selector" style="padding:.4rem .75rem; border:1px solid #d1d5db; border-radius:4px" onchange="loadSession(this.value)">
+      <option value="">Выберите сессию...</option>
+      {% for s in sessions %}
+      <option value="{{ s.id }}">{{ s.name }} ({{ s.keyword_count }} кл.)</option>
+      {% endfor %}
+    </select>
+    <a href="/ui/sites/{{ site.id }}" class="btn btn-sm">&larr; К сайту</a>
+  </div>
+</div>
+
+<!-- Step indicator -->
+<div style="display:flex; gap:.25rem; margin-bottom:1.5rem">
+  {% set steps = [("1","Фильтр ключей","#4f46e5"),("2","Сессия","#2563eb"),("3","Позиции","#7c3aed"),("4","SERP","#059669"),("5","Конкурент","#d97706"),("6","ТЗ","#dc2626")] %}
+  {% for num, label, color in steps %}
+  <div id="step-ind-{{ num }}" style="flex:1; text-align:center; padding:.5rem; border-radius:4px; font-size:.8rem; background:#f3f4f6; color:#6b7280; cursor:pointer" onclick="showStep({{ num }})">
+    <strong>{{ num }}</strong> {{ label }}
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Step 1: Keyword filter -->
+<div id="step-1" class="step-panel">
+  <div class="card" style="margin-bottom:1rem">
+    <h3 style="margin:0 0 1rem">Фильтр ключей</h3>
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:.75rem; margin-bottom:1rem">
+      <div>
+        <label style="font-size:.75rem; color:#6b7280; display:block">Поиск</label>
+        <input type="text" id="f-search" placeholder="Ключевая фраза..." style="width:100%; padding:.4rem .5rem; border:1px solid #d1d5db; border-radius:4px">
+      </div>
+      <div>
+        <label style="font-size:.75rem; color:#6b7280; display:block">Частотность от</label>
+        <input type="number" id="f-freq-min" style="width:100%; padding:.4rem .5rem; border:1px solid #d1d5db; border-radius:4px">
+      </div>
+      <div>
+        <label style="font-size:.75rem; color:#6b7280; display:block">Частотность до</label>
+        <input type="number" id="f-freq-max" style="width:100%; padding:.4rem .5rem; border:1px solid #d1d5db; border-radius:4px">
+      </div>
+      <div>
+        <label style="font-size:.75rem; color:#6b7280; display:block">Позиция от</label>
+        <input type="number" id="f-pos-min" style="width:100%; padding:.4rem .5rem; border:1px solid #d1d5db; border-radius:4px">
+      </div>
+      <div>
+        <label style="font-size:.75rem; color:#6b7280; display:block">Позиция до</label>
+        <input type="number" id="f-pos-max" style="width:100%; padding:.4rem .5rem; border:1px solid #d1d5db; border-radius:4px">
+      </div>
+      <div>
+        <label style="font-size:.75rem; color:#6b7280; display:block">Интент</label>
+        <select id="f-intent" style="width:100%; padding:.4rem .5rem; border:1px solid #d1d5db; border-radius:4px">
+          <option value="">Все</option>
+          {% for i in filter_options.intents %}<option value="{{ i }}">{{ i }}</option>{% endfor %}
+        </select>
+      </div>
+      <div>
+        <label style="font-size:.75rem; color:#6b7280; display:block">Кластер</label>
+        <select id="f-cluster" style="width:100%; padding:.4rem .5rem; border:1px solid #d1d5db; border-radius:4px">
+          <option value="">Все</option>
+          {% for c in filter_options.clusters %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}
+        </select>
+      </div>
+      <div>
+        <label style="font-size:.75rem; color:#6b7280; display:block">Группа</label>
+        <select id="f-group" style="width:100%; padding:.4rem .5rem; border:1px solid #d1d5db; border-radius:4px">
+          <option value="">Все</option>
+          {% for g in filter_options.groups %}<option value="{{ g.id }}">{{ g.name }}</option>{% endfor %}
+        </select>
+      </div>
+      <div>
+        <label style="font-size:.75rem; color:#6b7280; display:block">Регион</label>
+        <select id="f-region" style="width:100%; padding:.4rem .5rem; border:1px solid #d1d5db; border-radius:4px">
+          <option value="">Все</option>
+          {% for r in filter_options.regions %}<option value="{{ r }}">{{ r }}</option>{% endfor %}
+        </select>
+      </div>
+    </div>
+    <div style="display:flex; gap:.5rem; align-items:center">
+      <button class="btn" style="background:#4f46e5; color:white" onclick="searchKeywords()">Найти</button>
+      <span id="filter-count" style="font-size:.85rem; color:#6b7280"></span>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:.75rem">
+      <h3 style="margin:0">Результаты</h3>
+      <label style="font-size:.85rem"><input type="checkbox" id="select-all" onchange="toggleAll(this.checked)"> Выбрать все</label>
+    </div>
+    <div style="overflow-x:auto; max-height:400px; overflow-y:auto">
+      <table id="kw-results" style="font-size:.85rem">
+        <thead>
+          <tr><th></th><th>Фраза</th><th>Частотность</th><th>Позиция</th><th>Дельта</th><th>Кластер</th><th>Target URL</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div style="margin-top:1rem; display:flex; gap:.75rem; align-items:center">
+      <input type="text" id="session-name" placeholder="Название сессии..." style="padding:.4rem .75rem; border:1px solid #d1d5db; border-radius:4px; min-width:250px">
+      <button class="btn" style="background:#059669; color:white" onclick="saveSession()">Сохранить сессию</button>
+      <span id="session-status" style="font-size:.85rem"></span>
+    </div>
+  </div>
+</div>
+
+<!-- Step 2: Session detail -->
+<div id="step-2" class="step-panel" style="display:none">
+  <div class="card">
+    <h3 style="margin:0 0 1rem">Сессия: <span id="sess-name"></span></h3>
+    <div style="display:flex; gap:1rem; margin-bottom:1rem">
+      <div>Ключей: <strong id="sess-count">0</strong></div>
+      <div>Статус: <span id="sess-status" class="badge" style="background:#f3f4f6">draft</span></div>
+      <div>Конкурент: <span id="sess-competitor">—</span></div>
+    </div>
+    <div style="display:flex; gap:.5rem; margin-bottom:1rem">
+      <button class="btn" style="background:#7c3aed; color:white" onclick="checkPositions()">Проверить позиции</button>
+      <button class="btn" style="background:#059669; color:white" onclick="parseSERP()">Анализ SERP</button>
+      <button class="btn btn-sm" onclick="exportSession()">Экспорт CSV</button>
+    </div>
+    <div id="sess-keywords-table" style="overflow-x:auto; max-height:300px; overflow-y:auto"></div>
+  </div>
+</div>
+
+<!-- Step 3-4: SERP results -->
+<div id="step-3" class="step-panel" style="display:none">
+  <div class="card" style="margin-bottom:1rem">
+    <h3 style="margin:0 0 1rem">Результаты SERP-анализа</h3>
+    <div id="serp-summary"></div>
+  </div>
+  <div class="card">
+    <h3 style="margin:0 0 1rem">Топ конкуренты</h3>
+    <div id="competitors-table"></div>
+    <div style="margin-top:1rem; display:flex; gap:.5rem; align-items:center">
+      <input type="text" id="manual-competitor" placeholder="Домен конкурента..." style="padding:.4rem .75rem; border:1px solid #d1d5db; border-radius:4px">
+      <button class="btn btn-sm" onclick="setCompetitor()">Выбрать</button>
+      <select id="crawl-mode" style="padding:.4rem .5rem; border:1px solid #d1d5db; border-radius:4px">
+        <option value="light">Лёгкий (SEO-поля)</option>
+        <option value="full">Полный краул</option>
+      </select>
+      <button class="btn" style="background:#d97706; color:white" onclick="crawlCompetitor()">Краулить конкурента</button>
+    </div>
+  </div>
+</div>
+
+<!-- Step 5: Comparison -->
+<div id="step-4" class="step-panel" style="display:none">
+  <div class="card">
+    <h3 style="margin:0 0 1rem">Сравнение: наш сайт vs конкурент</h3>
+    <div id="comparison-table" style="overflow-x:auto"></div>
+  </div>
+</div>
+
+<!-- Step 6: Brief -->
+<div id="step-5" class="step-panel" style="display:none">
+  <div class="card">
+    <h3 style="margin:0 0 1rem">Создание ТЗ</h3>
+    <div style="display:flex; gap:1rem; margin-bottom:1rem; flex-wrap:wrap">
+      <div style="flex:1; min-width:200px">
+        <label style="font-size:.75rem; color:#6b7280; display:block">Целевой URL</label>
+        <input type="text" id="brief-url" placeholder="https://..." style="width:100%; padding:.4rem .5rem; border:1px solid #d1d5db; border-radius:4px">
+      </div>
+      <div style="flex:2; min-width:200px">
+        <label style="font-size:.75rem; color:#6b7280; display:block">Место в структуре</label>
+        <input type="text" id="brief-structure" placeholder="Раздел сайта, URL-структура..." style="width:100%; padding:.4rem .5rem; border:1px solid #d1d5db; border-radius:4px">
+      </div>
+    </div>
+    <button class="btn" style="background:#dc2626; color:white" onclick="generateBrief()">Сгенерировать ТЗ</button>
+    <div id="brief-preview" style="margin-top:1rem"></div>
+  </div>
+</div>
+
+<!-- Step 6b: Brief result -->
+<div id="step-6" class="step-panel" style="display:none">
+  <div class="card">
+    <h3 style="margin:0 0 1rem">ТЗ готово</h3>
+    <div id="brief-content" style="white-space:pre-wrap; font-family:monospace; font-size:.85rem; background:#f9fafb; padding:1rem; border-radius:4px; max-height:500px; overflow-y:auto"></div>
+    <div style="margin-top:1rem; display:flex; gap:.5rem">
+      <button class="btn" style="background:#4f46e5; color:white" onclick="exportBriefText()">Экспорт ТЗ</button>
+      <button class="btn" style="background:#059669; color:white" onclick="exportBriefCsv()">Экспорт ключей (CSV)</button>
+    </div>
+  </div>
+</div>
+
+<!-- Briefs list -->
+{% if briefs %}
+<div class="card" style="margin-top:1.5rem">
+  <h3 style="margin:0 0 1rem">Сохранённые ТЗ</h3>
+  <table style="font-size:.85rem">
+    <thead><tr><th>Название</th><th>URL</th><th>Дата</th><th>Действия</th></tr></thead>
+    <tbody>
+      {% for b in briefs %}
+      <tr>
+        <td>{{ b.title }}</td>
+        <td style="max-width:200px; overflow:hidden; text-overflow:ellipsis">{{ b.target_url or '—' }}</td>
+        <td>{{ b.created_at.strftime('%Y-%m-%d') if b.created_at else '—' }}</td>
+        <td>
+          <a href="/analytics/briefs/{{ b.id }}/export?format=text" class="btn btn-sm" style="font-size:.75rem">Скачать</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+<style>.step-panel { transition: opacity 0.2s; }</style>
+
+<script>
+const SITE_ID = '{{ site.id }}';
+let currentSessionId = null;
+let currentBriefId = null;
+let selectedKwIds = new Set();
+
+function showStep(n) {
+  document.querySelectorAll('.step-panel').forEach(p => p.style.display = 'none');
+  const panel = document.getElementById('step-' + n);
+  if (panel) panel.style.display = '';
+  document.querySelectorAll('[id^="step-ind-"]').forEach(el => {
+    el.style.background = '#f3f4f6'; el.style.color = '#6b7280';
+  });
+  const ind = document.getElementById('step-ind-' + n);
+  if (ind) { ind.style.background = '#4f46e5'; ind.style.color = 'white'; }
+}
+
+async function searchKeywords() {
+  const params = new URLSearchParams();
+  const fields = {search:'f-search', frequency_min:'f-freq-min', frequency_max:'f-freq-max', position_min:'f-pos-min', position_max:'f-pos-max', intent:'f-intent', cluster_id:'f-cluster', group_id:'f-group', region:'f-region'};
+  for (const [k, id] of Object.entries(fields)) {
+    const v = document.getElementById(id).value;
+    if (v) params.set(k, v);
+  }
+  const resp = await fetch(`/analytics/sites/${SITE_ID}/keywords?${params}`);
+  const data = await resp.json();
+  document.getElementById('filter-count').textContent = `Найдено: ${data.total}`;
+  const tbody = document.querySelector('#kw-results tbody');
+  tbody.innerHTML = '';
+  selectedKwIds.clear();
+  for (const kw of data.items) {
+    const tr = document.createElement('tr');
+    const delta = kw.delta ? (kw.delta > 0 ? `<span style="color:#059669">+${kw.delta}</span>` : `<span style="color:#dc2626">${kw.delta}</span>`) : '—';
+    tr.innerHTML = `<td><input type="checkbox" data-id="${kw.id}" onchange="toggleKw(this)"></td><td>${kw.phrase}</td><td>${kw.frequency || '—'}</td><td>${kw.latest_position || '—'}</td><td>${delta}</td><td>${kw.cluster_name || '—'}</td><td style="max-width:150px;overflow:hidden;text-overflow:ellipsis">${kw.target_url || '—'}</td>`;
+    tbody.appendChild(tr);
+  }
+}
+
+function toggleKw(cb) { cb.checked ? selectedKwIds.add(cb.dataset.id) : selectedKwIds.delete(cb.dataset.id); }
+function toggleAll(checked) { document.querySelectorAll('#kw-results input[type=checkbox][data-id]').forEach(cb => { cb.checked = checked; toggleKw(cb); }); }
+
+async function saveSession() {
+  const name = document.getElementById('session-name').value || 'Сессия ' + new Date().toLocaleDateString('ru');
+  if (!selectedKwIds.size) { alert('Выберите ключевые слова'); return; }
+  const resp = await fetch(`/analytics/sites/${SITE_ID}/sessions`, {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({name, keyword_ids: [...selectedKwIds]})
+  });
+  const data = await resp.json();
+  currentSessionId = data.id;
+  document.getElementById('session-status').innerHTML = '<span style="color:#059669">Сессия создана</span>';
+  loadSession(data.id);
+  showStep(2);
+}
+
+async function loadSession(sid) {
+  if (!sid) return;
+  currentSessionId = sid;
+  const resp = await fetch(`/analytics/sessions/${sid}`);
+  const data = await resp.json();
+  document.getElementById('sess-name').textContent = data.name;
+  document.getElementById('sess-count').textContent = data.keyword_count;
+  document.getElementById('sess-status').textContent = data.status;
+  document.getElementById('sess-competitor').textContent = data.competitor_domain || '—';
+  showStep(2);
+}
+
+async function checkPositions() {
+  if (!currentSessionId) return;
+  await fetch(`/analytics/sessions/${currentSessionId}/check-positions`, {method:'POST'});
+  alert('Проверка позиций запущена. Обновите страницу через несколько минут.');
+}
+
+async function parseSERP() {
+  if (!currentSessionId) return;
+  await fetch(`/analytics/sessions/${currentSessionId}/parse-serp`, {method:'POST'});
+  alert('SERP-анализ запущен. Обновите страницу через несколько минут.');
+  setTimeout(() => loadSerpResults(), 30000);
+}
+
+async function loadSerpResults() {
+  if (!currentSessionId) return;
+  const resp = await fetch(`/analytics/sessions/${currentSessionId}/serp-summary`);
+  const data = await resp.json();
+  let html = `<div style="display:flex;gap:1rem;margin-bottom:1rem">`;
+  const dist = data.site_type_distribution || {};
+  html += `<div class="card" style="padding:.75rem;text-align:center"><strong style="color:#d97706">${dist.commercial||0}</strong><div style="font-size:.75rem;color:#6b7280">Коммерческие</div></div>`;
+  html += `<div class="card" style="padding:.75rem;text-align:center"><strong style="color:#2563eb">${dist.informational||0}</strong><div style="font-size:.75rem;color:#6b7280">Информационные</div></div>`;
+  html += `<div class="card" style="padding:.75rem;text-align:center"><strong style="color:#6b7280">${dist.aggregator||0}</strong><div style="font-size:.75rem;color:#6b7280">Агрегаторы</div></div>`;
+  html += `</div>`;
+  document.getElementById('serp-summary').innerHTML = html;
+
+  let tbl = '<table style="font-size:.85rem"><thead><tr><th>Домен</th><th>Появлений</th><th>Ср. позиция</th><th>Тип</th></tr></thead><tbody>';
+  for (const c of (data.top_competitors||[]).slice(0,15)) {
+    const typeColor = c.site_type==='commercial'?'#d97706':c.site_type==='informational'?'#2563eb':'#6b7280';
+    tbl += `<tr><td><strong>${c.domain}</strong></td><td>${c.appearances}</td><td>${c.avg_position}</td><td><span class="badge" style="background:${typeColor}22;color:${typeColor}">${c.site_type}</span></td></tr>`;
+  }
+  tbl += '</tbody></table>';
+  document.getElementById('competitors-table').innerHTML = tbl;
+  showStep(3);
+}
+
+async function setCompetitor() {
+  const domain = document.getElementById('manual-competitor').value;
+  if (!domain || !currentSessionId) return;
+  await fetch(`/analytics/sessions/${currentSessionId}/set-competitor`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({domain})});
+  document.getElementById('sess-competitor').textContent = domain;
+}
+
+async function crawlCompetitor() {
+  if (!currentSessionId) return;
+  const mode = document.getElementById('crawl-mode').value;
+  await fetch(`/analytics/sessions/${currentSessionId}/crawl-competitor`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({mode})});
+  alert('Краулинг конкурента запущен. Обновите страницу через несколько минут.');
+  setTimeout(() => loadComparison(), 60000);
+}
+
+async function loadComparison() {
+  if (!currentSessionId) return;
+  const resp = await fetch(`/analytics/sessions/${currentSessionId}/comparison`);
+  const data = await resp.json();
+  let html = '<table style="font-size:.8rem"><thead><tr><th>Тип</th><th>URL</th><th>Title</th><th>H1</th><th>Schema</th><th>TOC</th><th>Words</th></tr></thead><tbody>';
+  for (const p of data.our_pages||[]) {
+    html += `<tr style="background:#f0fdf4"><td>Наш</td><td style="max-width:200px;overflow:hidden;text-overflow:ellipsis">${p.url||''}</td><td>${(p.title||'').substring(0,40)}</td><td>${(p.h1||'').substring(0,30)}</td><td>${p.has_schema?'✓':'✗'}</td><td>${p.has_toc?'✓':'✗'}</td><td>${p.word_count||'—'}</td></tr>`;
+  }
+  for (const p of data.competitor_pages||[]) {
+    html += `<tr style="background:#fef2f2"><td>Конк.</td><td style="max-width:200px;overflow:hidden;text-overflow:ellipsis">${p.url||''}</td><td>${(p.title||'').substring(0,40)}</td><td>${(p.h1||'').substring(0,30)}</td><td>${p.has_schema?'✓':'✗'}</td><td>${p.has_toc?'✓':'✗'}</td><td>${p.word_count||'—'}</td></tr>`;
+  }
+  html += '</tbody></table>';
+  document.getElementById('comparison-table').innerHTML = html;
+  showStep(4);
+}
+
+async function generateBrief() {
+  if (!currentSessionId) return;
+  const resp = await fetch(`/analytics/sessions/${currentSessionId}/brief`, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({target_url:document.getElementById('brief-url').value, structure_notes:document.getElementById('brief-structure').value})
+  });
+  const data = await resp.json();
+  currentBriefId = data.id;
+  const briefResp = await fetch(`/analytics/briefs/${data.id}/export?format=text`);
+  const text = await briefResp.text();
+  document.getElementById('brief-content').textContent = text;
+  showStep(6);
+}
+
+function exportBriefText() { if (currentBriefId) window.open(`/analytics/briefs/${currentBriefId}/export?format=text`); }
+function exportBriefCsv() { if (currentBriefId) window.open(`/analytics/briefs/${currentBriefId}/export?format=csv`); }
+function exportSession() { if (currentSessionId) window.open(`/analytics/sessions/${currentSessionId}/export`); }
+
+showStep(1);
+</script>
+{% endblock %}
