@@ -1,4 +1,4 @@
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -8,11 +8,12 @@ from app.dependencies import get_db
 from app.models.user import User, UserRole
 from app.services.user_service import get_user_by_id
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token", auto_error=False)
 
 
 async def get_current_user(
-    token: str = Depends(oauth2_scheme),
+    request: Request,
+    token: str | None = Depends(oauth2_scheme),
     db: AsyncSession = Depends(get_db),
 ) -> User:
     credentials_exception = HTTPException(
@@ -20,8 +21,12 @@ async def get_current_user(
         detail="Invalid or expired token",
         headers={"WWW-Authenticate": "Bearer"},
     )
+    # Try Authorization header first, fall back to cookie
+    effective_token = token or request.cookies.get("access_token")
+    if not effective_token:
+        raise credentials_exception
     try:
-        payload = decode_access_token(token)
+        payload = decode_access_token(effective_token)
         user_id: str | None = payload.get("sub")
         if user_id is None:
             raise credentials_exception
