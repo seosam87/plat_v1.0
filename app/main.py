@@ -943,12 +943,24 @@ async def ui_content_publish(
     )).scalars().all()
     jobs_data = [
         {"title": j.page_url, "status": j.status.value, "wp_post_id": j.wp_post_id,
-         "created_at": j.created_at.isoformat() if j.created_at else ""}
+         "created_at": j.created_at.isoformat() if j.created_at else "",
+         "post_type": getattr(j, "post_type", "posts") or "posts",
+         "heading_count": getattr(j, "heading_count", 0) or 0,
+         "has_toc": getattr(j, "has_toc", False) or False,
+         "job_id": str(j.id)}
         for j in jobs
     ]
+
+    # Fetch available WP post types for the selector
+    from app.services.wp_service import get_post_types_sync
+    try:
+        post_types = get_post_types_sync(site) if site.wp_username else []
+    except Exception:
+        post_types = []
+
     return templates.TemplateResponse(
         request, "pipeline/publish.html",
-        {"site": site, "preview": None, "error": None, "jobs": jobs_data},
+        {"site": site, "preview": None, "error": None, "jobs": jobs_data, "post_types": post_types},
     )
 
 
@@ -958,6 +970,7 @@ async def ui_content_publish_upload(
     file: UploadFile = File(...),
     author: str = Form("Author"),
     wp_status: str = Form("draft"),
+    post_type: str = Form("posts"),
 ) -> HTMLResponse:
     """Upload DOCX, convert to HTML, enrich with TOC + schema, show preview."""
     import uuid as _uuid
@@ -1033,11 +1046,15 @@ async def ui_content_publish_upload(
             schema_json = schema_match.group(1)
 
     # Create WP job for later publishing
+    has_toc = len(headings) > 0
     job = WpContentJob(
         id=_uuid.uuid4(),
         site_id=sid,
         page_url=title,
+        post_type=post_type,
         status=JobStatus.awaiting_approval,
+        heading_count=len(headings),
+        has_toc=has_toc,
         original_content=raw_html,
         processed_content=enriched,
     )
@@ -1052,7 +1069,11 @@ async def ui_content_publish_upload(
     )).scalars().all()
     jobs_data = [
         {"title": j.page_url, "status": j.status.value, "wp_post_id": j.wp_post_id,
-         "created_at": j.created_at.isoformat() if j.created_at else ""}
+         "created_at": j.created_at.isoformat() if j.created_at else "",
+         "post_type": getattr(j, "post_type", "posts") or "posts",
+         "heading_count": getattr(j, "heading_count", 0) or 0,
+         "has_toc": getattr(j, "has_toc", False) or False,
+         "job_id": str(j.id)}
         for j in recent
     ]
 
@@ -1064,10 +1085,11 @@ async def ui_content_publish_upload(
         "link_count": link_count,
         "job_id": str(job.id),
         "wp_status": wp_status,
+        "post_type": post_type,
     }
     return templates.TemplateResponse(
         request, "pipeline/publish.html",
-        {"site": site, "preview": preview, "error": None, "jobs": jobs_data},
+        {"site": site, "preview": preview, "error": None, "jobs": jobs_data, "post_types": []},
     )
 
 
@@ -1076,6 +1098,7 @@ async def ui_content_publish_push(
     site_id: str, request: Request, db: AsyncSession = Depends(get_db),
     job_id: str = Form(...),
     wp_status: str = Form("draft"),
+    post_type: str = Form("posts"),
 ) -> HTMLResponse:
     """Publish enriched content to WordPress."""
     import uuid as _uuid
@@ -1106,7 +1129,7 @@ async def ui_content_publish_push(
 
     # Push to WordPress
     try:
-        wp_result = create_post_sync(site, title=job.page_url, content=job.processed_content, status=wp_status)
+        wp_result = create_post_sync(site, title=job.page_url, content=job.processed_content, status=wp_status, post_type=post_type)
         if wp_result and wp_result.get("id"):
             job.wp_post_id = wp_result["id"]
             job.status = JobStatus.pushed
@@ -1128,6 +1151,73 @@ async def ui_content_publish_push(
             request, "pipeline/publish.html",
             {"site": site, "preview": None, "error": f"Publish error: {e}", "jobs": []},
         )
+
+
+@app.get("/ui/content-publish/{site_id}/preview/{job_id}", response_class=HTMLResponse)
+async def ui_content_publish_preview(
+    site_id: str, job_id: str, request: Request, db: AsyncSession = Depends(get_db),
+) -> HTMLResponse:
+    """Re-view a previously processed content job."""
+    import uuid as _uuid
+    import json as _json
+    import re as _re
+    from app.models.wp_content_job import WpContentJob
+    from sqlalchemy import select as sa_select
+
+    try:
+        sid = _uuid.UUID(site_id)
+    except ValueError:
+        return HTMLResponse("Invalid site ID", status_code=400)
+    site = await get_site(db, sid)
+    if not site:
+        return HTMLResponse("Site not found", status_code=404)
+
+    result = await db.execute(
+        sa_select(WpContentJob).where(WpContentJob.id == _uuid.UUID(job_id))
+    )
+    job = result.scalar_one_or_none()
+    if not job:
+        return HTMLResponse("Job not found", status_code=404)
+
+    # Extract schema JSON for preview tab
+    schema_json = ""
+    enriched = job.processed_content or ""
+    schema_match = _re.search(r'<script type="application/ld\+json">(.*?)</script>', enriched, _re.DOTALL)
+    if schema_match:
+        try:
+            schema_json = _json.dumps(_json.loads(schema_match.group(1)), indent=2, ensure_ascii=False)
+        except Exception:
+            schema_json = schema_match.group(1)
+
+    # Recent jobs
+    jobs = (await db.execute(
+        sa_select(WpContentJob).where(WpContentJob.site_id == sid)
+        .order_by(WpContentJob.created_at.desc()).limit(20)
+    )).scalars().all()
+    jobs_data = [
+        {"title": j.page_url, "status": j.status.value, "wp_post_id": j.wp_post_id,
+         "created_at": j.created_at.isoformat() if j.created_at else "",
+         "post_type": getattr(j, "post_type", "posts") or "posts",
+         "heading_count": getattr(j, "heading_count", 0) or 0,
+         "has_toc": getattr(j, "has_toc", False) or False,
+         "job_id": str(j.id)}
+        for j in jobs
+    ]
+
+    preview = {
+        "title": job.page_url,
+        "enriched_html": enriched,
+        "schema_json": schema_json,
+        "heading_count": getattr(job, "heading_count", 0) or 0,
+        "link_count": enriched.count('<a href='),
+        "job_id": str(job.id),
+        "wp_status": "draft",
+        "post_type": getattr(job, "post_type", "posts") or "posts",
+    }
+    return templates.TemplateResponse(
+        request, "pipeline/publish.html",
+        {"site": site, "preview": preview, "error": None, "jobs": jobs_data, "post_types": []},
+    )
 
 
 def _slugify_title(title: str) -> str:

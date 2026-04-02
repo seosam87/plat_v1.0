@@ -119,6 +119,23 @@ async def trigger_position_check(
     return {"task_id": task.id, "site_id": str(site_id)}
 
 
+@router.get("/tasks/{task_id}/status")
+async def get_task_status(
+    task_id: str,
+    _: User = Depends(require_admin),
+) -> dict:
+    """Poll Celery task status for position check progress."""
+    from app.celery_app import celery_app
+    result = celery_app.AsyncResult(task_id)
+    response: dict = {"task_id": task_id, "status": result.status}
+    if result.ready():
+        if result.successful():
+            response["result"] = result.result
+        else:
+            response["error"] = str(result.result)
+    return response
+
+
 # ---- Position Schedule endpoints ----
 
 

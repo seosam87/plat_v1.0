@@ -20,6 +20,19 @@
       <input type="text" name="author" value="Author" style="padding:.4rem .6rem;border:1px solid #d1d5db;border-radius:4px">
     </div>
     <div>
+      <label style="display:block;font-size:.85rem;color:#6b7280;margin-bottom:.3rem">Post Type</label>
+      <select name="post_type" style="padding:.4rem .6rem;border:1px solid #d1d5db;border-radius:4px">
+        {% if post_types %}
+          {% for pt in post_types %}
+          <option value="{{ pt.rest_base }}">{{ pt.name }}</option>
+          {% endfor %}
+        {% else %}
+          <option value="posts">Posts</option>
+          <option value="pages">Pages</option>
+        {% endif %}
+      </select>
+    </div>
+    <div>
       <label style="display:block;font-size:.85rem;color:#6b7280;margin-bottom:.3rem">Post Status</label>
       <select name="wp_status" style="padding:.4rem .6rem;border:1px solid #d1d5db;border-radius:4px">
         <option value="draft">Draft</option>
@@ -43,6 +56,7 @@
       <form method="post" action="/ui/content-publish/{{ site.id }}/publish">
         <input type="hidden" name="job_id" value="{{ preview.job_id }}">
         <input type="hidden" name="wp_status" value="{{ preview.wp_status }}">
+        <input type="hidden" name="post_type" value="{{ preview.post_type }}">
         <button type="submit" class="btn" style="background:#059669;color:white">Publish to WordPress</button>
       </form>
     </div>
@@ -51,7 +65,7 @@
   <!-- Stats -->
   <div style="display:flex;gap:1.5rem;margin-bottom:1rem;font-size:.85rem;color:#6b7280">
     <span>Headings: <strong>{{ preview.heading_count }}</strong></span>
-    <span>TOC: <strong style="color:#059669">Added</strong></span>
+    <span>TOC: {% if preview.heading_count > 0 %}<strong style="color:#059669">Added</strong>{% else %}<strong style="color:#dc2626">No headings found</strong>{% endif %}</span>
     <span>Schema: <strong style="color:#059669">Article</strong></span>
     <span>Internal links: <strong>{{ preview.link_count }}</strong></span>
   </div>
@@ -81,19 +95,23 @@
   <h3 style="margin:0 0 1rem">Recent Published Content</h3>
   <table>
     <thead>
-      <tr><th>Title</th><th>Status</th><th>WP Post ID</th><th>Created</th></tr>
+      <tr><th>Title</th><th>Type</th><th>Status</th><th>Headings</th><th>TOC</th><th>WP Post ID</th><th>Created</th><th></th></tr>
     </thead>
     <tbody>
       {% for j in jobs %}
       <tr>
         <td>{{ j.title }}</td>
+        <td style="font-size:.85rem">{{ j.post_type or 'posts' }}</td>
         <td>
           <span class="badge {% if j.status == 'pushed' %}badge-connected{% elif j.status == 'failed' %}badge-failed{% else %}badge-unknown{% endif %}">
             {{ j.status }}
           </span>
         </td>
+        <td style="text-align:center">{{ j.heading_count or 0 }}</td>
+        <td style="text-align:center">{% if j.has_toc %}<span style="color:#059669">&#10003;</span>{% else %}<span style="color:#dc2626">&#10007;</span>{% endif %}</td>
         <td>{% if j.wp_post_id %}<a href="{{ site.url }}/wp-admin/post.php?post={{ j.wp_post_id }}&action=edit" target="_blank">#{{ j.wp_post_id }}</a>{% else %}—{% endif %}</td>
         <td style="font-size:.85rem;color:#6b7280">{{ j.created_at[:16] }}</td>
+        <td>{% if j.job_id %}<a href="/ui/content-publish/{{ site.id }}/preview/{{ j.job_id }}" class="btn btn-sm" style="font-size:.75rem">View</a>{% endif %}</td>
       </tr>
       {% endfor %}
     </tbody>

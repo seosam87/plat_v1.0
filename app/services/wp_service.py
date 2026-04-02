@@ -54,9 +54,19 @@ def get_pages_sync(site: Site, page: int = 1, per_page: int = 20) -> list[dict]:
         return []
 
 
-def create_post_sync(site: Site, title: str, content: str, status: str = "draft") -> dict | None:
-    """Create a WP post synchronously. Returns post dict or None on failure."""
-    url = site.url.rstrip("/") + "/wp-json/wp/v2/posts"
+def create_post_sync(
+    site: Site,
+    title: str,
+    content: str,
+    status: str = "draft",
+    post_type: str = "posts",
+) -> dict | None:
+    """Create a WP post synchronously. Returns post dict or None on failure.
+
+    post_type: WP REST API collection slug — "posts", "pages", or a custom
+    post type REST base (e.g. "articles", "portfolio").
+    """
+    url = site.url.rstrip("/") + f"/wp-json/wp/v2/{post_type}"
     try:
         resp = httpx.post(
             url,
@@ -69,6 +79,40 @@ def create_post_sync(site: Site, title: str, content: str, status: str = "draft"
     except httpx.HTTPError as exc:
         logger.warning("WP create_post failed", site_id=str(site.id), error=str(exc))
         return None
+
+
+def get_post_types_sync(site: Site) -> list[dict]:
+    """Fetch available WP post types that support REST API.
+
+    Returns list of {slug, rest_base, name} for types that have
+    show_in_rest=true and support the editor.
+    """
+    url = site.url.rstrip("/") + "/wp-json/wp/v2/types"
+    try:
+        resp = httpx.get(
+            url,
+            headers=_sync_auth_headers(site),
+            timeout=REQUEST_TIMEOUT,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        result = []
+        for slug, info in data.items():
+            rest_base = info.get("rest_base", slug)
+            name = info.get("name", slug)
+            # Skip built-in non-content types
+            if slug in ("attachment", "wp_block", "wp_template",
+                        "wp_template_part", "wp_navigation", "wp_font_family",
+                        "wp_font_face", "wp_global_styles"):
+                continue
+            result.append({"slug": slug, "rest_base": rest_base, "name": name})
+        return result
+    except httpx.HTTPError as exc:
+        logger.warning("WP get_post_types failed", site_id=str(site.id), error=str(exc))
+        return [
+            {"slug": "post", "rest_base": "posts", "name": "Posts"},
+            {"slug": "page", "rest_base": "pages", "name": "Pages"},
+        ]
 
 
 async def detect_seo_plugin(client: httpx.AsyncClient, site: Site, auth_header: str) -> str:

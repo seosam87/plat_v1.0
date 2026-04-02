@@ -7,8 +7,8 @@
 <div class="card">
   <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem">
     <h2 style="margin:0">Positions: {{ site_name }} <a class="help-trigger" onclick="openHelp()" title="Справка">?</a></h2>
-    <button class="btn btn-primary" hx-post="/positions/sites/{{ site_id }}/check" hx-swap="none"
-      onclick="this.textContent='Checking...'; this.disabled=true">Check Positions</button>
+    <span id="check-status" style="font-size:.85rem;color:#6b7280;margin-right:.5rem"></span>
+    <button id="check-btn" class="btn btn-primary" onclick="startPositionCheck()">Check Positions</button>
   </div>
 
   <!-- Distribution bar -->
@@ -256,5 +256,75 @@ document.getElementById('compare-modal').addEventListener('click', function(e) {
 document.getElementById('lg-modal').addEventListener('click', function(e) {
   if (e.target === this) this.style.display = 'none';
 });
+
+async function startPositionCheck() {
+  const btn = document.getElementById('check-btn');
+  const status = document.getElementById('check-status');
+  btn.disabled = true;
+  btn.textContent = 'Sending...';
+  status.textContent = '';
+
+  try {
+    const resp = await fetch('/positions/sites/{{ site_id }}/check', {method: 'POST'});
+    if (!resp.ok) {
+      status.innerHTML = '<span style="color:#dc2626">Error: ' + resp.status + '</span>';
+      btn.disabled = false;
+      btn.textContent = 'Check Positions';
+      return;
+    }
+    const data = await resp.json();
+    const taskId = data.task_id;
+    btn.textContent = 'Checking...';
+    status.innerHTML = '<span style="color:#2563eb">⏳ Task queued, waiting for worker...</span>';
+    pollTaskStatus(taskId);
+  } catch(e) {
+    status.innerHTML = '<span style="color:#dc2626">Network error</span>';
+    btn.disabled = false;
+    btn.textContent = 'Check Positions';
+  }
+}
+
+function pollTaskStatus(taskId) {
+  const btn = document.getElementById('check-btn');
+  const status = document.getElementById('check-status');
+  let elapsed = 0;
+
+  const interval = setInterval(async () => {
+    elapsed += 3;
+    try {
+      const resp = await fetch('/positions/tasks/' + taskId + '/status');
+      const data = await resp.json();
+
+      if (data.status === 'PENDING') {
+        status.innerHTML = '<span style="color:#2563eb">⏳ In queue... (' + elapsed + 's)</span>';
+      } else if (data.status === 'STARTED') {
+        status.innerHTML = '<span style="color:#2563eb">⚙️ Checking positions... (' + elapsed + 's)</span>';
+      } else if (data.status === 'SUCCESS') {
+        clearInterval(interval);
+        const r = data.result || {};
+        status.innerHTML = '<span style="color:#059669">✓ Done! Positions: ' + (r.positions_written || 0) + ', alerts: ' + (r.alerts_sent || 0) + '</span>';
+        btn.disabled = false;
+        btn.textContent = 'Check Positions';
+        setTimeout(() => location.reload(), 2000);
+      } else if (data.status === 'FAILURE') {
+        clearInterval(interval);
+        status.innerHTML = '<span style="color:#dc2626">✗ Failed: ' + (data.error || 'unknown error') + '</span>';
+        btn.disabled = false;
+        btn.textContent = 'Check Positions';
+      } else {
+        status.innerHTML = '<span style="color:#6b7280">' + data.status + ' (' + elapsed + 's)</span>';
+      }
+    } catch(e) {
+      // Network hiccup, keep polling
+    }
+
+    if (elapsed > 660) {
+      clearInterval(interval);
+      status.innerHTML = '<span style="color:#dc2626">Timeout — check logs</span>';
+      btn.disabled = false;
+      btn.textContent = 'Check Positions';
+    }
+  }, 3000);
+}
 </script>
 {% endblock %}
