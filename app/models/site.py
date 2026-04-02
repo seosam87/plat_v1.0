@@ -23,9 +23,9 @@ class Site(Base):
     )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     url: Mapped[str] = mapped_column(String(500), nullable=False, unique=True)
-    wp_username: Mapped[str] = mapped_column(String(255), nullable=False)
+    wp_username: Mapped[str | None] = mapped_column(String(255), nullable=True)
     # Stores Fernet-encrypted WP Application Password as base64 text
-    encrypted_app_password: Mapped[str] = mapped_column(Text, nullable=False)
+    encrypted_app_password: Mapped[str | None] = mapped_column(Text, nullable=True)
     connection_status: Mapped[ConnectionStatus] = mapped_column(
         SAEnum(ConnectionStatus), nullable=False, default=ConnectionStatus.unknown
     )

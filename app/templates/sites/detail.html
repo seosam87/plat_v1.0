@@ -3,7 +3,10 @@
 {% block content %}
 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem">
   <h2 style="margin:0">{{ site.name }} <a class="help-trigger" onclick="openHelp()" title="Справка">?</a></h2>
-  <a href="/ui/sites" class="btn btn-sm">&larr; All Sites</a>
+  <div style="display:flex;gap:.5rem">
+    <a href="/ui/sites/{{ site.id }}/edit" class="btn btn-sm" style="background:#f59e0b;color:white">Edit</a>
+    <a href="/ui/sites" class="btn btn-sm">&larr; All Sites</a>
+  </div>
 </div>
 
 <!-- Stats row -->

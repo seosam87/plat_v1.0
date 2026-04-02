@@ -1,22 +1,23 @@
 {% extends "base.html" %}
-{% block title %}Add Site — SEO Platform{% endblock %}
+{% block title %}Edit {{ site.name }} — SEO Platform{% endblock %}
 {% block content %}
 <div class="card" style="max-width:600px">
-  <h2 style="margin-top:0">Add WordPress Site</h2>
+  <h2 style="margin-top:0">Edit Site</h2>
   {% if error %}
   <p style="color:#dc2626;margin-bottom:1rem">{{ error }}</p>
   {% endif %}
-  <form method="post" action="/ui/sites/new">
+  {% if success %}
+  <p style="color:#059669;margin-bottom:1rem">{{ success }}</p>
+  {% endif %}
+  <form method="post" action="/ui/sites/{{ site.id }}/edit">
     <div style="margin-bottom:1rem">
       <label style="display:block;font-weight:600;margin-bottom:.3rem">Site Name</label>
-      <input type="text" name="name" required placeholder="My Client Site"
-             value="{{ form_data.name or '' }}"
+      <input type="text" name="name" required value="{{ site.name }}"
              style="width:100%;padding:.5rem;border:1px solid #d1d5db;border-radius:4px">
     </div>
     <div style="margin-bottom:1rem">
       <label style="display:block;font-weight:600;margin-bottom:.3rem">URL</label>
-      <input type="url" name="url" required placeholder="https://example.com"
-             value="{{ form_data.url or '' }}"
+      <input type="url" name="url" required value="{{ site.url }}"
              style="width:100%;padding:.5rem;border:1px solid #d1d5db;border-radius:4px">
     </div>
     <div style="margin-bottom:1rem">
@@ -25,25 +26,23 @@
               style="width:100%;padding:.5rem;border:1px solid #d1d5db;border-radius:4px;background:white">
         <option value="">— No group —</option>
         {% for group in groups %}
-        <option value="{{ group.id }}" {% if form_data.site_group_id == group.id|string %}selected{% endif %}>{{ group.name }}</option>
+        <option value="{{ group.id }}" {% if site.site_group_id and site.site_group_id|string == group.id|string %}selected{% endif %}>{{ group.name }}</option>
         {% endfor %}
       </select>
     </div>
     <div style="margin-bottom:1rem">
       <label style="display:block;font-weight:600;margin-bottom:.3rem">WP Username <span style="color:#9ca3af;font-weight:400">(optional)</span></label>
-      <input type="text" name="wp_username" placeholder="admin"
-             value="{{ form_data.wp_username or '' }}"
+      <input type="text" name="wp_username" value="{{ site.wp_username or '' }}" placeholder="admin"
              style="width:100%;padding:.5rem;border:1px solid #d1d5db;border-radius:4px">
     </div>
     <div style="margin-bottom:1rem">
-      <label style="display:block;font-weight:600;margin-bottom:.3rem">Application Password <span style="color:#9ca3af;font-weight:400">(optional)</span></label>
+      <label style="display:block;font-weight:600;margin-bottom:.3rem">Application Password <span style="color:#9ca3af;font-weight:400">(leave empty to keep current)</span></label>
       <input type="password" name="app_password" placeholder="xxxx xxxx xxxx xxxx"
              style="width:100%;padding:.5rem;border:1px solid #d1d5db;border-radius:4px">
-      <small style="color:#6b7280">Generate in WP Admin &rarr; Users &rarr; Application Passwords</small>
     </div>
     <div style="display:flex;gap:.5rem">
-      <button type="submit" class="btn btn-primary">Add Site</button>
-      <a href="/ui/sites" class="btn" style="background:#e5e7eb;color:#374151">Cancel</a>
+      <button type="submit" class="btn btn-primary">Save Changes</button>
+      <a href="/ui/sites/{{ site.id }}" class="btn" style="background:#e5e7eb;color:#374151">Cancel</a>
     </div>
   </form>
 </div>

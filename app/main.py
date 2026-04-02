@@ -4,7 +4,7 @@ setup_logging()
 
 from contextlib import asynccontextmanager
 
-from fastapi import Depends, FastAPI, Form, Request
+from fastapi import Depends, FastAPI, File, Form, Request, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import text
@@ -130,14 +130,16 @@ class UIAuthMiddleware(BaseHTTPMiddleware):
 
         token = request.cookies.get("access_token")
         if token:
+            from app.auth.jwt import decode_access_token
             try:
-                from app.auth.jwt import decode_access_token
                 decode_access_token(token)
-                return await call_next(request)
             except Exception:
-                pass
+                # Invalid/expired token — redirect to login
+                return RedirectResponse(f"/ui/login?next={path}", status_code=302)
+            # Token valid — proceed to route handler (exceptions propagate normally)
+            return await call_next(request)
 
-        # No valid token — redirect to login
+        # No token — redirect to login
         return RedirectResponse(f"/ui/login?next={path}", status_code=302)
 
 
@@ -229,8 +231,8 @@ async def ui_create_site(
     request: Request,
     name: str = Form(...),
     url: str = Form(...),
-    wp_username: str = Form(...),
-    app_password: str = Form(...),
+    wp_username: str = Form(""),
+    app_password: str = Form(""),
     site_group_id: str = Form(""),
     db: AsyncSession = Depends(get_db),
 ) -> HTMLResponse:
@@ -249,8 +251,10 @@ async def ui_create_site(
     form_data = {"name": name, "url": url, "wp_username": wp_username, "site_group_id": site_group_id}
 
     try:
-        site = await create_site(db, name=name, url=url, wp_username=wp_username,
-                                 app_password=app_password, actor_id=user.id)
+        site = await create_site(db, name=name, url=url,
+                                 wp_username=wp_username or None,
+                                 app_password=app_password or None,
+                                 actor_id=user.id)
         if site_group_id:
             import uuid as _uuid
             await assign_site_to_group(db, site.id, _uuid.UUID(site_group_id))
@@ -259,6 +263,85 @@ async def ui_create_site(
         return templates.TemplateResponse(request, "sites/create.html",
                                           {"error": str(e), "groups": groups, "form_data": form_data}, status_code=400)
     return RedirectResponse("/ui/sites", status_code=303)
+
+
+@app.get("/ui/sites/{site_id}/edit", response_class=HTMLResponse)
+async def ui_edit_site_form(
+    site_id: str, request: Request, db: AsyncSession = Depends(get_db),
+) -> HTMLResponse:
+    import uuid as _uuid
+    from app.services.site_group_service import list_groups
+
+    try:
+        site = await get_site(db, _uuid.UUID(site_id))
+    except ValueError:
+        return HTMLResponse("Invalid site ID", status_code=400)
+    if not site:
+        return HTMLResponse("Site not found", status_code=404)
+
+    groups = await list_groups(db)
+    return templates.TemplateResponse(
+        request, "sites/edit.html", {"site": site, "groups": groups, "error": None, "success": None}
+    )
+
+
+@app.post("/ui/sites/{site_id}/edit", response_class=HTMLResponse)
+async def ui_edit_site(
+    site_id: str,
+    request: Request,
+    name: str = Form(...),
+    url: str = Form(...),
+    wp_username: str = Form(""),
+    app_password: str = Form(""),
+    site_group_id: str = Form(""),
+    db: AsyncSession = Depends(get_db),
+) -> HTMLResponse:
+    import uuid as _uuid
+    from app.auth.jwt import decode_access_token
+    from app.services.user_service import get_user_by_id
+    from app.services.site_service import update_site
+    from app.services.site_group_service import assign_site_to_group, list_groups
+
+    token = request.cookies.get("access_token", "")
+    try:
+        payload = decode_access_token(token)
+        user = await get_user_by_id(db, payload.get("sub", ""))
+    except Exception:
+        return RedirectResponse("/ui/login", status_code=302)
+
+    try:
+        site = await get_site(db, _uuid.UUID(site_id))
+    except ValueError:
+        return HTMLResponse("Invalid site ID", status_code=400)
+    if not site:
+        return HTMLResponse("Site not found", status_code=404)
+
+    groups = await list_groups(db)
+
+    try:
+        await update_site(
+            db, site,
+            name=name,
+            url=url,
+            wp_username=wp_username or None,
+            app_password=app_password or None,
+            actor_id=user.id,
+        )
+        # Update group assignment
+        new_group_id = _uuid.UUID(site_group_id) if site_group_id else None
+        if site.site_group_id != new_group_id:
+            site.site_group_id = new_group_id
+        await db.commit()
+        return templates.TemplateResponse(
+            request, "sites/edit.html",
+            {"site": site, "groups": groups, "error": None, "success": "Changes saved successfully"},
+        )
+    except Exception as e:
+        return templates.TemplateResponse(
+            request, "sites/edit.html",
+            {"site": site, "groups": groups, "error": str(e), "success": None},
+            status_code=400,
+        )
 
 
 @app.post("/ui/sites/{site_id}/schedule", response_class=HTMLResponse)
@@ -329,14 +412,17 @@ async def ui_tasks(
     import uuid as _uuid
 
     query = sa_select(SeoTask).order_by(SeoTask.created_at.desc()).limit(200)
-    if status:
-        query = query.where(SeoTask.status == TaskStatus(status))
-    if site_id:
-        query = query.where(SeoTask.site_id == _uuid.UUID(site_id))
-    if task_type:
-        query = query.where(SeoTask.task_type == TaskType(task_type))
-    if priority:
-        query = query.where(SeoTask.priority == TaskPriority(priority))
+    try:
+        if status:
+            query = query.where(SeoTask.status == TaskStatus(status))
+        if site_id:
+            query = query.where(SeoTask.site_id == _uuid.UUID(site_id))
+        if task_type:
+            query = query.where(SeoTask.task_type == TaskType(task_type))
+        if priority:
+            query = query.where(SeoTask.priority == TaskPriority(priority))
+    except (ValueError, KeyError):
+        pass  # ignore invalid filter params, show unfiltered
     result = await db.execute(query)
     tasks_list = result.scalars().all()
 
@@ -475,7 +561,10 @@ async def ui_metrika(
     from app.services import metrika_service as _metrika_service
     from datetime import date as _date, timedelta as _timedelta
 
-    site = await get_site(db, _uuid.UUID(site_id))
+    try:
+        site = await get_site(db, _uuid.UUID(site_id))
+    except (ValueError, AttributeError):
+        return HTMLResponse("Invalid site ID", status_code=400)
     if not site:
         return HTMLResponse("Site not found", status_code=404)
 
@@ -527,6 +616,126 @@ async def ui_uploads(
     ]
     return templates.TemplateResponse(
         request, "uploads/index.html", {"sites": sites, "uploads": uploads_data}
+    )
+
+
+@app.post("/ui/uploads", response_class=HTMLResponse)
+async def ui_uploads_post(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    site_id: str = Form(...),
+    file_type: str = Form(...),
+    on_duplicate: str = Form("skip"),
+    file: UploadFile = File(...),
+) -> HTMLResponse:
+    """Handle file upload from the UI form."""
+    import uuid as _uuid
+    from app.models.file_upload import FileType
+    from app.services import upload_service, keyword_service
+
+    try:
+        sid = _uuid.UUID(site_id)
+    except ValueError:
+        return HTMLResponse(
+            '<div class="alert" style="color:#dc2626;background:#fef2f2;padding:.8rem;border-radius:6px">'
+            'Invalid site ID</div>'
+        )
+
+    site = await get_site(db, sid)
+    if not site:
+        return HTMLResponse(
+            '<div class="alert" style="color:#dc2626;background:#fef2f2;padding:.8rem;border-radius:6px">'
+            'Site not found</div>'
+        )
+
+    try:
+        ft = FileType(file_type)
+    except ValueError:
+        return HTMLResponse(
+            f'<div class="alert" style="color:#dc2626;background:#fef2f2;padding:.8rem;border-radius:6px">'
+            f'Invalid file type: {file_type}</div>'
+        )
+
+    file_bytes = await file.read()
+    if not file_bytes:
+        return HTMLResponse(
+            '<div class="alert" style="color:#dc2626;background:#fef2f2;padding:.8rem;border-radius:6px">'
+            'Empty file</div>'
+        )
+
+    try:
+        upload = await upload_service.save_upload(db, sid, ft, file.filename or "unknown", file_bytes)
+        result = await upload_service.process_upload(db, upload)
+
+        imported_count = 0
+        if on_duplicate not in ("skip", "update", "replace"):
+            on_duplicate = "skip"
+        if ft in (FileType.topvisor, FileType.key_collector):
+            from app.routers.uploads import _save_keywords
+            imported_count = await _save_keywords(db, sid, ft, result, on_duplicate)
+
+        await db.commit()
+
+        row_count = result.get("row_count", 0)
+        return HTMLResponse(
+            f'<div style="color:#059669;background:#ecfdf5;padding:.8rem;border-radius:6px">'
+            f'Upload successful! Rows: {row_count}, keywords imported: {imported_count}</div>'
+        )
+    except Exception as e:
+        return HTMLResponse(
+            f'<div class="alert" style="color:#dc2626;background:#fef2f2;padding:.8rem;border-radius:6px">'
+            f'Upload error: {str(e)}</div>'
+        )
+
+
+@app.get("/ui/analytics", response_class=HTMLResponse)
+async def ui_analytics_select(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+) -> HTMLResponse:
+    """Redirect /ui/analytics to the first site's analytics page."""
+    sites = await get_sites(db)
+    if not sites:
+        return templates.TemplateResponse(
+            request, "analytics/index.html",
+            {"site": None, "sessions": []},
+        )
+    return RedirectResponse(f"/ui/analytics/{sites[0].id}")
+
+
+@app.get("/ui/analytics/{site_id}", response_class=HTMLResponse)
+async def ui_analytics(
+    site_id: str,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+) -> HTMLResponse:
+    """Analytics workspace page for a site."""
+    import uuid as _uuid
+    from app.models.analytics import AnalysisSession
+    from sqlalchemy import select as sa_select
+
+    try:
+        sid = _uuid.UUID(site_id)
+    except ValueError:
+        return HTMLResponse("Invalid site ID", status_code=400)
+
+    site = await get_site(db, sid)
+    if not site:
+        return HTMLResponse("Site not found", status_code=404)
+
+    result = await db.execute(
+        sa_select(AnalysisSession)
+        .where(AnalysisSession.site_id == sid)
+        .order_by(AnalysisSession.created_at.desc())
+    )
+    sessions = [
+        {"id": str(s.id), "name": s.name, "keyword_count": s.keyword_count}
+        for s in result.scalars().all()
+    ]
+
+    return templates.TemplateResponse(
+        request, "analytics/index.html",
+        {"site": site, "sessions": sessions},
     )
 
 

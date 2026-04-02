@@ -22,15 +22,15 @@ async def create_site(
     db: AsyncSession,
     name: str,
     url: str,
-    wp_username: str,
-    app_password: str,
+    wp_username: str | None = None,
+    app_password: str | None = None,
     actor_id: uuid.UUID | None = None,
 ) -> Site:
     site = Site(
         name=name,
         url=url.rstrip("/"),
-        wp_username=wp_username,
-        encrypted_app_password=encrypt(app_password),
+        wp_username=wp_username or None,
+        encrypted_app_password=encrypt(app_password) if app_password else None,
     )
     db.add(site)
     await db.flush()
