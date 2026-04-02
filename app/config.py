@@ -57,6 +57,9 @@ class Settings(BaseSettings):
     ANTICAPTCHA_KEY: str = ""
     SERP_DAILY_LIMIT: int = 200
 
+    # XMLProxy
+    XMLPROXY_LOW_BALANCE_THRESHOLD: int = 50  # Alert when balance drops below this (RUB)
+
     # App
     DB_ECHO: bool = False
     LOG_LEVEL: str = "INFO"

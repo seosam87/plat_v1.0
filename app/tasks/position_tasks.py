@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from loguru import logger
 
 from app.celery_app import celery_app
+from app.database import get_sync_db
 from app.tasks.wp_tasks import site_active_guard
 
 
@@ -20,16 +21,16 @@ from app.tasks.wp_tasks import site_active_guard
 def check_positions(self, site_id: str) -> dict:
     """Check positions for all keywords of a site using available sources.
 
-    Priority: DataForSEO (batch) → GSC → Yandex Webmaster.
-    Writes results to keyword_positions table.
+    Engine split (per D-17, D-18):
+      - engine='yandex' -> XMLProxy (per D-01, only Yandex source)
+      - engine='google' or engine=None -> DataForSEO if configured, else logged as skipped
     """
     skip = site_active_guard(site_id)
     if skip:
         return skip
 
-    from app.database import get_sync_db
     from app.models.keyword import Keyword
-    from app.services.position_service import write_position_sync
+    from app.config import settings
     from sqlalchemy import select
 
     with get_sync_db() as db:
@@ -42,18 +43,28 @@ def check_positions(self, site_id: str) -> dict:
 
     logger.info("Position check started", site_id=site_id, keywords=len(keywords))
 
-    # Try DataForSEO first (batch)
-    from app.config import settings
+    # Split keywords by engine (per D-17, D-18)
+    yandex_kws = [kw for kw in keywords if kw.engine and kw.engine.value == "yandex"]
+    google_kws = [kw for kw in keywords if not kw.engine or kw.engine.value == "google"]
+
     written = 0
 
-    if settings.DATAFORSEO_LOGIN and settings.DATAFORSEO_PASSWORD:
-        written = _check_via_dataforseo(site_id, keywords)
-    else:
-        logger.info("DataForSEO not configured, skipping", site_id=site_id)
+    # Process Yandex keywords via XMLProxy (per D-01: ONLY source for Yandex)
+    if yandex_kws:
+        written += _check_via_xmlproxy(self, site_id, yandex_kws)
 
-    # Playwright SERP fallback for remaining (if under daily limit)
-    if written == 0:
-        written = _check_via_serp_parser(site_id, keywords)
+    # Process Google keywords via DataForSEO or log as skipped (per D-17)
+    if google_kws:
+        if settings.DATAFORSEO_LOGIN and settings.DATAFORSEO_PASSWORD:
+            written += _check_via_dataforseo(site_id, google_kws)
+        else:
+            # Per D-17: Google parsing out of scope for this phase
+            for kw in google_kws:
+                logger.info(
+                    "Google keyword skipped: no source configured",
+                    phrase=kw.phrase,
+                    site_id=site_id,
+                )
 
     # Check for position drops and send Telegram alerts
     alerts_sent = _send_drop_alerts(site_id)
@@ -62,11 +73,118 @@ def check_positions(self, site_id: str) -> dict:
     return {"status": "done", "site_id": site_id, "positions_written": written, "alerts_sent": alerts_sent}
 
 
+def _check_via_xmlproxy(self_task, site_id: str, keywords) -> int:
+    """Check Yandex positions via XMLProxy. Per D-01, D-02, D-03.
+
+    Args:
+        self_task: Celery task instance (for retry).
+        site_id: Site UUID as string.
+        keywords: List of Keyword model instances with engine='yandex'.
+
+    Returns:
+        Number of position records written.
+    """
+    from app.services.xmlproxy_service import search_yandex_sync, fetch_balance_sync, XMLProxyError
+    from app.services.service_credential_service import get_credential_sync
+    from app.services.telegram_service import send_message_sync, is_configured
+    from app.services.position_service import write_position_sync
+    from app.models.site import Site
+    from app.config import settings
+    from sqlalchemy import select
+
+    with get_sync_db() as db:
+        creds = get_credential_sync(db, "xmlproxy")
+
+    if not creds or not creds.get("user") or not creds.get("key"):
+        logger.warning("XMLProxy not configured, skipping Yandex keywords", site_id=site_id)
+        return 0
+
+    user, key = creds["user"], creds["key"]
+
+    # Fetch balance ONCE before loop (per Research pitfall 5 / D-03)
+    balance_data = fetch_balance_sync(user, key)
+    if balance_data:
+        balance = balance_data.get("data", 0)
+        if balance <= 0:
+            logger.warning("XMLProxy balance zero — skipping Yandex keywords", site_id=site_id)
+            if is_configured():
+                send_message_sync(
+                    f"XMLProxy balance is 0. Yandex position checks paused for site {site_id}."
+                )
+            return 0
+        threshold = getattr(settings, "XMLPROXY_LOW_BALANCE_THRESHOLD", 50)
+        if balance < threshold:
+            logger.warning("XMLProxy balance low", balance=balance, threshold=threshold, site_id=site_id)
+            if is_configured():
+                send_message_sync(
+                    f"XMLProxy balance low: {balance} RUB (threshold: {threshold})"
+                )
+
+    with get_sync_db() as db:
+        site = db.execute(
+            select(Site).where(Site.id == uuid.UUID(site_id))
+        ).scalar_one_or_none()
+
+    if not site:
+        logger.warning("Site not found for XMLProxy check", site_id=site_id)
+        return 0
+
+    site_domain = site.url.rstrip("/").replace("https://", "").replace("http://", "")
+    lr = site.yandex_region or 213
+    written = 0
+
+    for kw in keywords:
+        try:
+            result = search_yandex_sync(user, key, kw.phrase, lr=lr)
+        except XMLProxyError as e:
+            if e.code == -55:
+                # Async request — retry after 300s (per D-02)
+                logger.info("XMLProxy async (-55) — retrying in 300s", keyword=kw.phrase)
+                raise self_task.retry(countdown=300, max_retries=3)
+            elif e.code == -32:
+                # Insufficient funds — alert and stop
+                logger.error("XMLProxy balance zero (-32)", keyword=kw.phrase)
+                if is_configured():
+                    send_message_sync("XMLProxy: insufficient funds. Yandex checks stopped.")
+                return written
+            elif e.code == -34:
+                # Invalid credentials
+                logger.error("XMLProxy invalid credentials (-34)", keyword=kw.phrase)
+                if is_configured():
+                    send_message_sync("XMLProxy: invalid credentials. Check settings.")
+                return written
+            elif e.code == -132:
+                # Rate limit — skip this keyword and continue
+                logger.warning("XMLProxy rate limit (-132), skipping keyword", keyword=kw.phrase)
+                continue
+            else:
+                logger.error("XMLProxy unknown error", code=e.code, msg=e.message, keyword=kw.phrase)
+                continue
+        except Exception as exc:
+            logger.warning("XMLProxy request failed", keyword=kw.phrase, error=str(exc))
+            continue
+
+        # Find site position in results
+        position = None
+        url = None
+        for item in result.get("results", []):
+            if site_domain in (item.get("url") or ""):
+                position = item.get("position")
+                url = item.get("url")
+                break
+
+        engine_str = "yandex"
+        with get_sync_db() as db:
+            write_position_sync(db, kw.id, uuid.UUID(site_id), engine_str, position, url=url)
+            written += 1
+
+    return written
+
+
 def _check_via_dataforseo(site_id: str, keywords) -> int:
-    """Batch check via DataForSEO SERP API (sync wrapper)."""
+    """Batch check via DataForSEO SERP API (sync wrapper). Google keywords only."""
     import asyncio
     from app.services.dataforseo_service import fetch_serp_batch
-    from app.database import get_sync_db
     from app.services.position_service import write_position_sync
     from app.models.site import Site
     from sqlalchemy import select
@@ -119,9 +237,8 @@ def _check_via_dataforseo(site_id: str, keywords) -> int:
 
 
 def _check_via_serp_parser(site_id: str, keywords) -> int:
-    """Fallback: Playwright SERP parser (respects daily limit)."""
+    """Fallback: Playwright SERP parser (Google only, respects daily limit)."""
     from app.services.serp_parser_service import parse_serp_sync, _check_daily_limit
-    from app.database import get_sync_db
     from app.services.position_service import write_position_sync
     from app.models.site import Site
     from sqlalchemy import select
@@ -169,7 +286,6 @@ def _send_drop_alerts(site_id: str) -> int:
         return 0
 
     threshold = settings.POSITION_DROP_THRESHOLD
-    from app.database import get_sync_db
     from app.models.position import KeywordPosition
     from app.models.keyword import Keyword
     from app.models.site import Site
