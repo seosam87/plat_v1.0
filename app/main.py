@@ -918,6 +918,225 @@ async def ui_pipeline(site_id: str, request: Request, db: AsyncSession = Depends
     return templates.TemplateResponse(request, "pipeline/jobs.html", {"site_name": site.name, "site_id": str(site.id), "jobs": jobs_data})
 
 
+# ---- Content Publisher (DOCX → HTML → WP) ----
+
+
+@app.get("/ui/content-publish/{site_id}", response_class=HTMLResponse)
+async def ui_content_publish(
+    site_id: str, request: Request, db: AsyncSession = Depends(get_db),
+) -> HTMLResponse:
+    import uuid as _uuid
+    from app.models.wp_content_job import WpContentJob
+    from sqlalchemy import select as sa_select
+
+    try:
+        sid = _uuid.UUID(site_id)
+    except ValueError:
+        return HTMLResponse("Invalid site ID", status_code=400)
+    site = await get_site(db, sid)
+    if not site:
+        return HTMLResponse("Site not found", status_code=404)
+
+    jobs = (await db.execute(
+        sa_select(WpContentJob).where(WpContentJob.site_id == sid)
+        .order_by(WpContentJob.created_at.desc()).limit(20)
+    )).scalars().all()
+    jobs_data = [
+        {"title": j.page_url, "status": j.status.value, "wp_post_id": j.wp_post_id,
+         "created_at": j.created_at.isoformat() if j.created_at else ""}
+        for j in jobs
+    ]
+    return templates.TemplateResponse(
+        request, "pipeline/publish.html",
+        {"site": site, "preview": None, "error": None, "jobs": jobs_data},
+    )
+
+
+@app.post("/ui/content-publish/{site_id}/upload", response_class=HTMLResponse)
+async def ui_content_publish_upload(
+    site_id: str, request: Request, db: AsyncSession = Depends(get_db),
+    file: UploadFile = File(...),
+    author: str = Form("Author"),
+    wp_status: str = Form("draft"),
+) -> HTMLResponse:
+    """Upload DOCX, convert to HTML, enrich with TOC + schema, show preview."""
+    import uuid as _uuid
+    import json as _json
+    from app.services.docx_converter import docx_to_html, extract_title
+    from app.services.content_pipeline import (
+        extract_headings, generate_toc_html, inject_toc, add_heading_ids,
+        generate_schema_article, inject_schema,
+        find_link_opportunities, insert_links,
+    )
+    from app.models.wp_content_job import WpContentJob, JobStatus
+    from app.models.keyword import Keyword
+    from sqlalchemy import select as sa_select
+
+    try:
+        sid = _uuid.UUID(site_id)
+    except ValueError:
+        return HTMLResponse("Invalid site ID", status_code=400)
+    site = await get_site(db, sid)
+    if not site:
+        return HTMLResponse("Site not found", status_code=404)
+
+    # Read and convert DOCX
+    file_bytes = await file.read()
+    if not file_bytes:
+        return templates.TemplateResponse(
+            request, "pipeline/publish.html",
+            {"site": site, "preview": None, "error": "Empty file", "jobs": []},
+        )
+
+    try:
+        raw_html = docx_to_html(file_bytes)
+    except Exception as e:
+        return templates.TemplateResponse(
+            request, "pipeline/publish.html",
+            {"site": site, "preview": None, "error": f"DOCX conversion error: {e}", "jobs": []},
+        )
+
+    title = extract_title(raw_html)
+
+    # Enrich: TOC
+    headings = extract_headings(raw_html)
+    html_with_ids = add_heading_ids(raw_html, headings)
+    toc = generate_toc_html(headings)
+    html_with_toc = inject_toc(html_with_ids, toc)
+
+    # Enrich: Schema.org
+    page_url = f"{site.url.rstrip('/')}/{_slugify_title(title)}/"
+    schema_tag = generate_schema_article(title, page_url, author=author)
+    enriched = inject_schema(html_with_toc, schema_tag)
+
+    # Enrich: Internal links
+    kw_rows = (await db.execute(
+        sa_select(Keyword.phrase, Keyword.target_url)
+        .where(Keyword.site_id == sid, Keyword.target_url.isnot(None))
+    )).all()
+    kw_list = [{"phrase": r.phrase, "url": r.target_url} for r in kw_rows]
+    if kw_list:
+        opps = find_link_opportunities(enriched, kw_list, max_links=5)
+        enriched = insert_links(enriched, opps)
+        link_count = len(opps)
+    else:
+        link_count = 0
+
+    # Extract schema JSON for preview tab
+    schema_json = ""
+    import re as _re
+    schema_match = _re.search(r'<script type="application/ld\+json">(.*?)</script>', enriched, _re.DOTALL)
+    if schema_match:
+        try:
+            schema_json = _json.dumps(_json.loads(schema_match.group(1)), indent=2, ensure_ascii=False)
+        except Exception:
+            schema_json = schema_match.group(1)
+
+    # Create WP job for later publishing
+    job = WpContentJob(
+        id=_uuid.uuid4(),
+        site_id=sid,
+        page_url=title,
+        status=JobStatus.awaiting_approval,
+        original_content=raw_html,
+        processed_content=enriched,
+    )
+    db.add(job)
+    await db.commit()
+
+    # Recent jobs
+    from sqlalchemy import select as sa_sel
+    recent = (await db.execute(
+        sa_sel(WpContentJob).where(WpContentJob.site_id == sid)
+        .order_by(WpContentJob.created_at.desc()).limit(20)
+    )).scalars().all()
+    jobs_data = [
+        {"title": j.page_url, "status": j.status.value, "wp_post_id": j.wp_post_id,
+         "created_at": j.created_at.isoformat() if j.created_at else ""}
+        for j in recent
+    ]
+
+    preview = {
+        "title": title,
+        "enriched_html": enriched,
+        "schema_json": schema_json,
+        "heading_count": len(headings),
+        "link_count": link_count,
+        "job_id": str(job.id),
+        "wp_status": wp_status,
+    }
+    return templates.TemplateResponse(
+        request, "pipeline/publish.html",
+        {"site": site, "preview": preview, "error": None, "jobs": jobs_data},
+    )
+
+
+@app.post("/ui/content-publish/{site_id}/publish", response_class=HTMLResponse)
+async def ui_content_publish_push(
+    site_id: str, request: Request, db: AsyncSession = Depends(get_db),
+    job_id: str = Form(...),
+    wp_status: str = Form("draft"),
+) -> HTMLResponse:
+    """Publish enriched content to WordPress."""
+    import uuid as _uuid
+    from app.models.wp_content_job import WpContentJob, JobStatus
+    from app.services.wp_service import create_post_sync
+    from sqlalchemy import select as sa_select
+
+    try:
+        sid = _uuid.UUID(site_id)
+    except ValueError:
+        return HTMLResponse("Invalid site ID", status_code=400)
+    site = await get_site(db, sid)
+    if not site:
+        return HTMLResponse("Site not found", status_code=404)
+
+    result = await db.execute(
+        sa_select(WpContentJob).where(WpContentJob.id == _uuid.UUID(job_id))
+    )
+    job = result.scalar_one_or_none()
+    if not job:
+        return HTMLResponse("Job not found", status_code=404)
+
+    if not site.wp_username or not site.encrypted_app_password:
+        return templates.TemplateResponse(
+            request, "pipeline/publish.html",
+            {"site": site, "preview": None, "error": "WP credentials not configured. Edit the site to add them.", "jobs": []},
+        )
+
+    # Push to WordPress
+    try:
+        wp_result = create_post_sync(site, title=job.page_url, content=job.processed_content, status=wp_status)
+        if wp_result and wp_result.get("id"):
+            job.wp_post_id = wp_result["id"]
+            job.status = JobStatus.pushed
+            await db.commit()
+            return RedirectResponse(f"/ui/content-publish/{site_id}?success=Published+as+post+%23{wp_result['id']}", status_code=303)
+        else:
+            job.status = JobStatus.failed
+            job.error_message = "WP API returned no post ID"
+            await db.commit()
+            return templates.TemplateResponse(
+                request, "pipeline/publish.html",
+                {"site": site, "preview": None, "error": "WordPress publish failed — check WP credentials", "jobs": []},
+            )
+    except Exception as e:
+        job.status = JobStatus.failed
+        job.error_message = str(e)
+        await db.commit()
+        return templates.TemplateResponse(
+            request, "pipeline/publish.html",
+            {"site": site, "preview": None, "error": f"Publish error: {e}", "jobs": []},
+        )
+
+
+def _slugify_title(title: str) -> str:
+    import re as _re
+    slug = _re.sub(r"[^\w\s-]", "", title.lower())
+    slug = _re.sub(r"[\s_]+", "-", slug).strip("-")
+    return slug[:80]
+
+
 # ---- Admin: User Management UI ----
 
 

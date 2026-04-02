@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block title %}Content Publisher — {{ site.name }} — SEO Platform{% endblock %}
+{% block breadcrumbs %}
+<div class="breadcrumbs"><a href="/ui/dashboard">Dashboard</a><span>&rsaquo;</span><a href="/ui/sites">Sites</a><span>&rsaquo;</span><a href="/ui/sites/{{ site.id }}">{{ site.name }}</a><span>&rsaquo;</span>Content Publisher</div>
+{% endblock %}
+{% block content %}
+<div class="card" style="margin-bottom:1.5rem">
+  <h2 style="margin:0 0 1rem">Content Publisher: {{ site.name }}</h2>
+  <p style="color:#6b7280;margin-bottom:1.5rem">Upload .docx files to convert to HTML with TOC and schema.org, then publish to WordPress.</p>
+
+  <!-- Upload form -->
+  <form method="post" action="/ui/content-publish/{{ site.id }}/upload" enctype="multipart/form-data"
+        style="display:flex;gap:1rem;align-items:end;flex-wrap:wrap;margin-bottom:1.5rem;padding:1.5rem;background:#f9fafb;border-radius:8px;border:1px dashed #d1d5db">
+    <div>
+      <label style="display:block;font-size:.85rem;color:#6b7280;margin-bottom:.3rem">DOCX File</label>
+      <input type="file" name="file" accept=".docx" required>
+    </div>
+    <div>
+      <label style="display:block;font-size:.85rem;color:#6b7280;margin-bottom:.3rem">Author</label>
+      <input type="text" name="author" value="Author" style="padding:.4rem .6rem;border:1px solid #d1d5db;border-radius:4px">
+    </div>
+    <div>
+      <label style="display:block;font-size:.85rem;color:#6b7280;margin-bottom:.3rem">Post Status</label>
+      <select name="wp_status" style="padding:.4rem .6rem;border:1px solid #d1d5db;border-radius:4px">
+        <option value="draft">Draft</option>
+        <option value="publish">Publish</option>
+      </select>
+    </div>
+    <button type="submit" class="btn btn-primary" style="height:fit-content">Upload & Process</button>
+  </form>
+
+  {% if error %}
+  <div style="color:#dc2626;background:#fef2f2;padding:.8rem;border-radius:6px;margin-bottom:1.5rem">{{ error }}</div>
+  {% endif %}
+</div>
+
+{% if preview %}
+<!-- Preview section -->
+<div class="card" style="margin-bottom:1.5rem">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+    <h3 style="margin:0">Preview: {{ preview.title }}</h3>
+    <div style="display:flex;gap:.5rem">
+      <form method="post" action="/ui/content-publish/{{ site.id }}/publish">
+        <input type="hidden" name="job_id" value="{{ preview.job_id }}">
+        <input type="hidden" name="wp_status" value="{{ preview.wp_status }}">
+        <button type="submit" class="btn" style="background:#059669;color:white">Publish to WordPress</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div style="display:flex;gap:1.5rem;margin-bottom:1rem;font-size:.85rem;color:#6b7280">
+    <span>Headings: <strong>{{ preview.heading_count }}</strong></span>
+    <span>TOC: <strong style="color:#059669">Added</strong></span>
+    <span>Schema: <strong style="color:#059669">Article</strong></span>
+    <span>Internal links: <strong>{{ preview.link_count }}</strong></span>
+  </div>
+
+  <!-- Tabs -->
+  <div style="display:flex;gap:0;margin-bottom:1rem;border-bottom:2px solid #e5e7eb">
+    <button onclick="showTab('rendered')" id="tab-rendered" class="btn" style="border-radius:4px 4px 0 0;border-bottom:2px solid #4f46e5;margin-bottom:-2px;background:white;color:#4f46e5;font-weight:600">Rendered</button>
+    <button onclick="showTab('html')" id="tab-html" class="btn" style="border-radius:4px 4px 0 0;background:#f9fafb;color:#6b7280;margin-bottom:-2px">HTML Source</button>
+    <button onclick="showTab('schema')" id="tab-schema" class="btn" style="border-radius:4px 4px 0 0;background:#f9fafb;color:#6b7280;margin-bottom:-2px">Schema.org</button>
+  </div>
+
+  <div id="panel-rendered" style="max-height:600px;overflow-y:auto;padding:1rem;border:1px solid #e5e7eb;border-radius:4px;background:white;line-height:1.7">
+    {{ preview.enriched_html | safe }}
+  </div>
+  <div id="panel-html" style="display:none;max-height:600px;overflow-y:auto">
+    <pre style="background:#1a1a2e;color:#e5e7eb;padding:1rem;border-radius:4px;font-size:.8rem;white-space:pre-wrap;word-break:break-all">{{ preview.enriched_html | e }}</pre>
+  </div>
+  <div id="panel-schema" style="display:none;max-height:600px;overflow-y:auto">
+    <pre style="background:#1a1a2e;color:#e5e7eb;padding:1rem;border-radius:4px;font-size:.85rem;white-space:pre-wrap">{{ preview.schema_json }}</pre>
+  </div>
+</div>
+{% endif %}
+
+<!-- Recent jobs -->
+{% if jobs %}
+<div class="card">
+  <h3 style="margin:0 0 1rem">Recent Published Content</h3>
+  <table>
+    <thead>
+      <tr><th>Title</th><th>Status</th><th>WP Post ID</th><th>Created</th></tr>
+    </thead>
+    <tbody>
+      {% for j in jobs %}
+      <tr>
+        <td>{{ j.title }}</td>
+        <td>
+          <span class="badge {% if j.status == 'pushed' %}badge-connected{% elif j.status == 'failed' %}badge-failed{% else %}badge-unknown{% endif %}">
+            {{ j.status }}
+          </span>
+        </td>
+        <td>{% if j.wp_post_id %}<a href="{{ site.url }}/wp-admin/post.php?post={{ j.wp_post_id }}&action=edit" target="_blank">#{{ j.wp_post_id }}</a>{% else %}—{% endif %}</td>
+        <td style="font-size:.85rem;color:#6b7280">{{ j.created_at[:16] }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+<script>
+function showTab(name) {
+  ['rendered','html','schema'].forEach(t => {
+    document.getElementById('panel-'+t).style.display = t===name?'block':'none';
+    const btn = document.getElementById('tab-'+t);
+    if (t===name) { btn.style.borderBottom='2px solid #4f46e5'; btn.style.color='#4f46e5'; btn.style.background='white'; btn.style.fontWeight='600'; }
+    else { btn.style.borderBottom='none'; btn.style.color='#6b7280'; btn.style.background='#f9fafb'; btn.style.fontWeight='400'; }
+  });
+}
+</script>
+{% endblock %}

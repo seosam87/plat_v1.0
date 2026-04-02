@@ -44,6 +44,9 @@ lxml>=5.0,<6.0
 # Data import (xlsx/csv parsing)
 openpyxl>=3.1,<4.0
 
+# DOCX to HTML conversion
+mammoth>=1.6,<2.0
+
 # Logging
 loguru>=0.7,<0.8
 
