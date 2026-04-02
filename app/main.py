@@ -297,6 +297,7 @@ async def ui_edit_site(
     wp_username: str = Form(""),
     app_password: str = Form(""),
     site_group_id: str = Form(""),
+    yandex_region: str = Form(""),
     db: AsyncSession = Depends(get_db),
 ) -> HTMLResponse:
     import uuid as _uuid
@@ -334,6 +335,8 @@ async def ui_edit_site(
         new_group_id = _uuid.UUID(site_group_id) if site_group_id else None
         if site.site_group_id != new_group_id:
             site.site_group_id = new_group_id
+        # Update yandex_region
+        site.yandex_region = int(yandex_region) if yandex_region.strip() else None
         await db.commit()
         return templates.TemplateResponse(
             request, "sites/edit.html",
@@ -1858,6 +1861,10 @@ async def ui_admin_change_password(
 @app.get("/ui/admin/settings", response_class=HTMLResponse)
 async def ui_admin_settings(request: Request, db: AsyncSession = Depends(get_db)) -> HTMLResponse:
     from app.config import settings as app_settings
+    from app.database import get_sync_db as _get_sync_db
+    from app.models.proxy import Proxy as _Proxy
+    from app.services.service_credential_service import get_credential_sync as _get_cred
+    from sqlalchemy import select as _select
 
     current_user = await _get_current_user_from_cookie(request, db)
     if not current_user or current_user.role.value != "admin":
@@ -1873,7 +1880,27 @@ async def ui_admin_settings(request: Request, db: AsyncSession = Depends(get_db)
         "dataforseo_configured": bool(app_settings.DATAFORSEO_LOGIN and app_settings.DATAFORSEO_PASSWORD),
     }
 
-    return templates.TemplateResponse(request, "admin/settings.html", {"settings": settings_data})
+    # Load proxy pool and service credentials via sync session
+    proxies = []
+    xmlproxy_creds = None
+    anticaptcha_creds = None
+    rucaptcha_creds = None
+    try:
+        with _get_sync_db() as sync_db:
+            proxies = sync_db.execute(_select(_Proxy)).scalars().all()
+            xmlproxy_creds = _get_cred(sync_db, "xmlproxy")
+            anticaptcha_creds = _get_cred(sync_db, "anticaptcha")
+            rucaptcha_creds = _get_cred(sync_db, "rucaptcha")
+    except Exception:
+        pass  # DB may not be migrated yet in dev/test
+
+    return templates.TemplateResponse(request, "admin/settings.html", {
+        "settings": settings_data,
+        "proxies": proxies,
+        "xmlproxy_creds": xmlproxy_creds,
+        "anticaptcha_creds": anticaptcha_creds,
+        "rucaptcha_creds": rucaptcha_creds,
+    })
 
 
 # ---- Admin: Audit Log UI ----

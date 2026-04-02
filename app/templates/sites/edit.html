@@ -40,6 +40,17 @@
       <input type="password" name="app_password" placeholder="xxxx xxxx xxxx xxxx"
              style="width:100%;padding:.5rem;border:1px solid #d1d5db;border-radius:4px">
     </div>
+    <div style="margin-bottom:1rem">
+      <label style="display:block;font-weight:600;margin-bottom:.3rem">
+        Yandex Region (lr)
+        <span style="color:#9ca3af;font-weight:400">(optional)</span>
+      </label>
+      <input type="number" name="yandex_region" value="{{ site.yandex_region or 213 }}" placeholder="213"
+             style="width:100%;padding:.5rem;border:1px solid #d1d5db;border-radius:4px">
+      <div style="font-size:.8rem;color:#9ca3af;margin-top:.25rem">
+        Common: 213=Москва, 2=СПб, 11316=Новосибирск, 54=Екатеринбург
+      </div>
+    </div>
     <div style="display:flex;gap:.5rem">
       <button type="submit" class="btn btn-primary">Save Changes</button>
       <a href="/ui/sites/{{ site.id }}" class="btn" style="background:#e5e7eb;color:#374151">Cancel</a>
