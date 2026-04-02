@@ -52,6 +52,11 @@ class Settings(BaseSettings):
     TELEGRAM_CHAT_ID: str = ""
     POSITION_DROP_THRESHOLD: int = 5  # alert if keyword drops by this many positions
 
+    # Proxy & anticaptcha for SERP parsing
+    PROXY_URL: str = ""
+    ANTICAPTCHA_KEY: str = ""
+    SERP_DAILY_LIMIT: int = 200
+
     # App
     DB_ECHO: bool = False
     LOG_LEVEL: str = "INFO"
