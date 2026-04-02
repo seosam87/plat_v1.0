@@ -1,0 +1,37 @@
+{
+  "version": "1.0",
+  "timestamp": "2026-04-02T21:46:08.134Z",
+  "phase": "06.1",
+  "phase_name": "proxy-management-xmlproxy-integration",
+  "phase_dir": ".planning/phases/06.1-proxy-management-xmlproxy-integration",
+  "plan": 3,
+  "task": 2,
+  "total_tasks": 6,
+  "status": "completed",
+  "completed_tasks": [
+    {"id": 1, "name": "06.1-01 T1: DB models + migration", "status": "done", "commit": "293d180"},
+    {"id": 2, "name": "06.1-01 T2: XMLProxy, proxy health, credential services + tests", "status": "done", "commit": "f9f7add"},
+    {"id": 3, "name": "06.1-02 T1: Admin proxy router", "status": "done", "commit": "105df91"},
+    {"id": 4, "name": "06.1-02 T2: Admin settings proxy tab + site yandex_region", "status": "done", "commit": "6983764"},
+    {"id": 5, "name": "06.1-03 T1: XMLProxy position pipeline wiring", "status": "done", "commit": "1539f0c"},
+    {"id": 6, "name": "06.1-03 T2: rucaptcha URL swap", "status": "done", "commit": "3c82d6a"}
+  ],
+  "remaining_tasks": [],
+  "blockers": [],
+  "human_actions_pending": [
+    {"action": "Run Alembic migration 0033 on dev/prod DB", "context": "New tables: proxies, service_credentials; new column: sites.yandex_region", "blocking": true},
+    {"action": "Add XMLProxy credentials via admin UI", "context": "Go to /ui/admin/settings > Прокси tab, enter XMLProxy user+key from your account", "blocking": true},
+    {"action": "Set yandex_region (lr) for each site", "context": "Go to site edit page, set the Yandex region code (e.g. 213=Moscow)", "blocking": false},
+    {"action": "Test HTMX interactions in browser", "context": "4 items from VERIFICATION.md need manual testing: proxy CRUD, balance widgets, check-all, inline edit", "blocking": false},
+    {"action": "Rebuild Docker containers", "context": "New dependency httpx[socks] added to requirements.txt", "blocking": true}
+  ],
+  "decisions": [
+    {"decision": "XMLProxy only for Yandex — no Playwright fallback", "rationale": "Cleaner, no captcha risk, cheaper", "phase": "06.1"},
+    {"decision": "rucaptcha.com replaces anti-captcha.com", "rationale": "User's existing service with balance", "phase": "06.1"},
+    {"decision": "Google parsing out of scope", "rationale": "No reliable free source yet, defer to future phase", "phase": "06.1"},
+    {"decision": "Credentials stored in DB (Fernet encrypted), not .env", "rationale": "Editable via admin UI without container restart", "phase": "06.1"}
+  ],
+  "uncommitted_files": [".planning/config.json"],
+  "next_action": "Deploy: run migration 0033, rebuild containers, add XMLProxy credentials in admin, test position check with Yandex keywords",
+  "context_notes": "Phase 06.1 fully executed and verified (22/22 must-haves). Quick task 260402-v3j also fixed the engine badge bug. 28 unit tests passing across all plans. Pending todo for full proxy phase (xmlproxy integration) can be marked done. Next roadmap phase is 7 (Semantics) but user should first deploy 06.1, test manually, and configure XMLProxy credentials."
+}
