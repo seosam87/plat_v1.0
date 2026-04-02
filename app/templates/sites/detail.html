@@ -39,6 +39,7 @@
     <a href="/ui/sites/{{ site.id }}/crawls" class="btn" style="background:#059669;color:white">Crawl History</a>
     <a href="/ui/pipeline/{{ site.id }}" class="btn" style="background:#d97706;color:white">Content Pipeline</a>
     <a href="/audit/{{ site.id }}" class="btn" style="background:#dc2626;color:white">Аудит контента</a>
+    <a href="/monitoring/{{ site.id }}" class="btn" style="background:#f59e0b;color:white">Мониторинг</a>
     <a href="/ui/metrika/{{ site.id }}" class="btn" style="background:#0ea5e9;color:white">Трафик</a>
     <button class="btn btn-verify" hx-post="/sites/{{ site.id }}/verify" hx-swap="none"
       onclick="this.textContent='Verifying...'; this.disabled=true; setTimeout(()=>location.reload(), 3000)">Verify Connection</button>
