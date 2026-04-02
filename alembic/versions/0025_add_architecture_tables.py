@@ -17,12 +17,17 @@ depends_on = None
 
 
 def upgrade() -> None:
-    arch_role_enum = sa.Enum(
+    op.execute(
+        "DO $$ BEGIN "
+        "CREATE TYPE architecturerole AS ENUM ('pillar', 'service', 'subservice', "
+        "'article', 'trigger', 'authority', 'link_accelerator', 'unknown'); "
+        "EXCEPTION WHEN duplicate_object THEN NULL; END $$"
+    )
+    arch_role_enum = postgresql.ENUM(
         "pillar", "service", "subservice", "article", "trigger",
         "authority", "link_accelerator", "unknown",
-        name="architecturerole",
+        name="architecturerole", create_type=False,
     )
-    arch_role_enum.create(op.get_bind(), checkfirst=True)
 
     op.add_column("pages", sa.Column("source", sa.String(20), nullable=False, server_default="crawl"))
     op.add_column("pages", sa.Column("architecture_role", arch_role_enum, nullable=False, server_default="unknown"))

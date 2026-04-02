@@ -18,11 +18,17 @@ depends_on = None
 
 
 def upgrade() -> None:
-    # Create contenttype enum
-    content_type_enum = sa.Enum(
-        "informational", "commercial", "unknown", name="contenttype"
+    # Create contenttype enum via raw SQL to avoid SQLAlchemy auto-create conflicts
+    op.execute(
+        "DO $$ BEGIN "
+        "CREATE TYPE contenttype AS ENUM ('informational', 'commercial', 'unknown'); "
+        "EXCEPTION WHEN duplicate_object THEN NULL; "
+        "END $$"
     )
-    content_type_enum.create(op.get_bind(), checkfirst=True)
+    content_type_enum = postgresql.ENUM(
+        "informational", "commercial", "unknown", name="contenttype",
+        create_type=False,
+    )
 
     # Add content_type to pages
     op.add_column(

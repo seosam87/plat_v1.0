@@ -17,8 +17,12 @@ depends_on = None
 
 
 def upgrade() -> None:
-    proposal_status_enum = sa.Enum("pending", "approved", "rejected", name="proposalstatus")
-    proposal_status_enum.create(op.get_bind(), checkfirst=True)
+    op.execute(
+        "DO $$ BEGIN "
+        "CREATE TYPE proposalstatus AS ENUM ('pending', 'approved', 'rejected'); "
+        "EXCEPTION WHEN duplicate_object THEN NULL; END $$"
+    )
+    proposal_status_enum = postgresql.ENUM("pending", "approved", "rejected", name="proposalstatus", create_type=False)
 
     op.create_table(
         "gap_groups",

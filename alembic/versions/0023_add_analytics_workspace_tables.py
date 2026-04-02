@@ -17,12 +17,17 @@ depends_on = None
 
 
 def upgrade() -> None:
-    session_status_enum = sa.Enum(
+    op.execute(
+        "DO $$ BEGIN "
+        "CREATE TYPE sessionstatus AS ENUM ('draft', 'positions_checked', 'serp_parsed', "
+        "'competitor_found', 'compared', 'brief_created', 'completed'); "
+        "EXCEPTION WHEN duplicate_object THEN NULL; END $$"
+    )
+    session_status_enum = postgresql.ENUM(
         "draft", "positions_checked", "serp_parsed", "competitor_found",
         "compared", "brief_created", "completed",
-        name="sessionstatus",
+        name="sessionstatus", create_type=False,
     )
-    session_status_enum.create(op.get_bind(), checkfirst=True)
 
     # analysis_sessions
     op.create_table(

@@ -17,17 +17,27 @@ depends_on = None
 
 
 def upgrade() -> None:
-    # Create enums
-    changetype_enum = sa.Enum(
+    # Create enums via raw SQL to avoid SQLAlchemy auto-create conflicts
+    op.execute(
+        "DO $$ BEGIN "
+        "CREATE TYPE changetype AS ENUM ('page_404', 'noindex_added', 'schema_removed', "
+        "'title_changed', 'h1_changed', 'canonical_changed', "
+        "'meta_description_changed', 'content_changed', 'new_page'); "
+        "EXCEPTION WHEN duplicate_object THEN NULL; END $$"
+    )
+    changetype_enum = postgresql.ENUM(
         "page_404", "noindex_added", "schema_removed",
         "title_changed", "h1_changed", "canonical_changed",
         "meta_description_changed", "content_changed", "new_page",
-        name="changetype",
+        name="changetype", create_type=False,
     )
-    changetype_enum.create(op.get_bind(), checkfirst=True)
 
-    alertseverity_enum = sa.Enum("error", "warning", "info", name="alertseverity")
-    alertseverity_enum.create(op.get_bind(), checkfirst=True)
+    op.execute(
+        "DO $$ BEGIN "
+        "CREATE TYPE alertseverity AS ENUM ('error', 'warning', 'info'); "
+        "EXCEPTION WHEN duplicate_object THEN NULL; END $$"
+    )
+    alertseverity_enum = postgresql.ENUM("error", "warning", "info", name="alertseverity", create_type=False)
 
     # change_alert_rules
     op.create_table(

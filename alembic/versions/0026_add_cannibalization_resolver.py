@@ -16,10 +16,18 @@ depends_on = None
 
 
 def upgrade() -> None:
-    res_type = sa.Enum("merge_content", "set_canonical", "redirect_301", "split_keywords", name="resolutiontype")
-    res_type.create(op.get_bind(), checkfirst=True)
-    res_status = sa.Enum("proposed", "in_progress", "resolved", "rejected", name="resolutionstatus")
-    res_status.create(op.get_bind(), checkfirst=True)
+    op.execute(
+        "DO $$ BEGIN "
+        "CREATE TYPE resolutiontype AS ENUM ('merge_content', 'set_canonical', 'redirect_301', 'split_keywords'); "
+        "EXCEPTION WHEN duplicate_object THEN NULL; END $$"
+    )
+    res_type = postgresql.ENUM("merge_content", "set_canonical", "redirect_301", "split_keywords", name="resolutiontype", create_type=False)
+    op.execute(
+        "DO $$ BEGIN "
+        "CREATE TYPE resolutionstatus AS ENUM ('proposed', 'in_progress', 'resolved', 'rejected'); "
+        "EXCEPTION WHEN duplicate_object THEN NULL; END $$"
+    )
+    res_status = postgresql.ENUM("proposed", "in_progress", "resolved", "rejected", name="resolutionstatus", create_type=False)
 
     op.create_table(
         "cannibalization_resolutions",

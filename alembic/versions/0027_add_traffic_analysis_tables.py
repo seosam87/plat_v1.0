@@ -16,8 +16,12 @@ depends_on = None
 
 
 def upgrade() -> None:
-    visit_source = sa.Enum("organic", "direct", "referral", "bot_suspected", "injection_suspected", name="visitsource")
-    visit_source.create(op.get_bind(), checkfirst=True)
+    op.execute(
+        "DO $$ BEGIN "
+        "CREATE TYPE visitsource AS ENUM ('organic', 'direct', 'referral', 'bot_suspected', 'injection_suspected'); "
+        "EXCEPTION WHEN duplicate_object THEN NULL; END $$"
+    )
+    visit_source = postgresql.ENUM("organic", "direct", "referral", "bot_suspected", "injection_suspected", name="visitsource", create_type=False)
 
     op.create_table(
         "traffic_analysis_sessions",
