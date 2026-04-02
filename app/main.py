@@ -32,6 +32,7 @@ from app.routers.uploads import router as uploads_router
 from app.routers.wp_pipeline import router as wp_pipeline_router
 from app.routers.yandex import router as yandex_router
 from app.routers.metrika import router as metrika_router
+from app.routers.audit import router as audit_router
 from app.services.schedule_service import get_all_schedules, upsert_schedule
 from app.services.site_service import get_site, get_sites
 from app.models.schedule import ScheduleType
@@ -53,6 +54,7 @@ _HELP_MODULE_MAP = {
     "/ui/tasks": "projects",
     "/ui/admin": "admin",
     "/ui/metrika": "metrika",
+    "/audit": "audit",
 }
 
 
@@ -151,6 +153,7 @@ app.include_router(yandex_router)
 from app.routers.competitors import router as competitors_router
 app.include_router(competitors_router)
 app.include_router(metrika_router)
+app.include_router(audit_router)
 
 
 @app.get("/ui/sites", response_class=HTMLResponse)

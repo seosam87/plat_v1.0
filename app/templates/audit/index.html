@@ -1,0 +1,299 @@
+{% extends "base.html" %}
+{% block title %}Аудит контента — {{ site.name }} — SEO Platform{% endblock %}
+{% block content %}
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem">
+  <h2 style="margin:0">Аудит контента: {{ site.name }}</h2>
+  <div style="display:flex; gap:.5rem">
+    <button class="btn" style="background:#4f46e5;color:white"
+      hx-post="/audit/{{ site.id }}/run" hx-swap="none"
+      onclick="this.textContent='Запуск...'; this.disabled=true; setTimeout(()=>location.reload(), 10000)">
+      Запустить аудит
+    </button>
+    <a href="/ui/sites/{{ site.id }}" class="btn btn-sm">&larr; К сайту</a>
+  </div>
+</div>
+
+<!-- Summary stats -->
+<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); gap:1rem; margin-bottom:1.5rem">
+  <div class="card" style="text-align:center; padding:1rem">
+    <div style="font-size:1.75rem; font-weight:700; color:#2563eb">{{ total_pages }}</div>
+    <div style="color:#6b7280; font-size:.85rem">Всего страниц</div>
+  </div>
+  <div class="card" style="text-align:center; padding:1rem">
+    <div style="font-size:1.75rem; font-weight:700; color:#dc2626">{{ pages_with_issues }}</div>
+    <div style="color:#6b7280; font-size:.85rem">С проблемами</div>
+  </div>
+  <div class="card" style="text-align:center; padding:1rem">
+    <div style="font-size:1.75rem; font-weight:700; color:#059669">{{ pages_all_pass }}</div>
+    <div style="color:#6b7280; font-size:.85rem">Без проблем</div>
+  </div>
+  <div class="card" style="text-align:center; padding:1rem">
+    <div style="font-size:1.75rem; font-weight:700; color:#6b7280">{{ pages_unchecked }}</div>
+    <div style="color:#6b7280; font-size:.85rem">Не проверено</div>
+  </div>
+</div>
+
+<!-- Filters -->
+<div class="card" style="margin-bottom:1.5rem; padding:1rem">
+  <div style="display:flex; gap:1rem; flex-wrap:wrap; align-items:center">
+    <input type="text" id="search-input" placeholder="Поиск по URL или title..." value="{{ search }}"
+      style="flex:1; min-width:200px; padding:.4rem .75rem; border:1px solid #d1d5db; border-radius:4px"
+      oninput="filterTable()">
+    <select id="type-filter" style="padding:.4rem .75rem; border:1px solid #d1d5db; border-radius:4px" onchange="filterTable()">
+      <option value="all">Все типы</option>
+      <option value="informational">Информационные</option>
+      <option value="commercial">Коммерческие</option>
+      <option value="unknown">Не определён</option>
+    </select>
+    <select id="status-filter" style="padding:.4rem .75rem; border:1px solid #d1d5db; border-radius:4px" onchange="filterTable()">
+      <option value="all">Все</option>
+      <option value="has_issues">С проблемами</option>
+      <option value="all_pass">Без проблем</option>
+    </select>
+  </div>
+</div>
+
+<!-- Pages table -->
+<div class="card" style="margin-bottom:1.5rem; overflow-x:auto">
+  <table id="audit-table">
+    <thead>
+      <tr>
+        <th>Страница</th>
+        <th>Тип</th>
+        <th style="text-align:center">TOC</th>
+        <th style="text-align:center">Schema</th>
+        <th style="text-align:center">Автор</th>
+        <th style="text-align:center">Статьи</th>
+        <th style="text-align:center">CTA</th>
+        <th style="text-align:center">Ссылки</th>
+        <th style="text-align:center">noindex</th>
+        <th>Действия</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in pages %}
+      {% set pr = results_map.get(p.url, {}) %}
+      {% set ct = p.content_type.value if p.content_type is not string else p.content_type %}
+      {% set has_issue = pr.values()|select("in", ["fail","warning"])|list|length > 0 if pr else false %}
+      <tr class="audit-row"
+          data-url="{{ p.url }}"
+          data-title="{{ p.title or '' }}"
+          data-type="{{ ct }}"
+          data-has-issues="{{ 'yes' if has_issue else 'no' }}"
+          data-has-results="{{ 'yes' if pr else 'no' }}">
+        <td style="max-width:300px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">
+          <a href="{{ p.url }}" target="_blank" title="{{ p.url }}" style="font-size:.85rem">{{ p.url | truncate(60) }}</a>
+          {% if p.title %}<div style="color:#6b7280; font-size:.75rem">{{ p.title | truncate(50) }}</div>{% endif %}
+        </td>
+        <td>
+          <select style="font-size:.75rem; padding:.2rem .4rem; border:1px solid #d1d5db; border-radius:4px"
+            onchange="updateContentType('{{ p.id }}', this.value)">
+            <option value="informational" {% if ct == 'informational' %}selected{% endif %}>Инфо</option>
+            <option value="commercial" {% if ct == 'commercial' %}selected{% endif %}>Комм</option>
+            <option value="unknown" {% if ct == 'unknown' %}selected{% endif %}>—</option>
+          </select>
+        </td>
+        {% set check_map = {"toc_present":"toc","schema_present":"schema","author_block":"author","related_posts":"related","cta_present":"cta","internal_links":"links","noindex_check":"noindex"} %}
+        {% for code in ["toc_present","schema_present","author_block","related_posts","cta_present","internal_links","noindex_check"] %}
+        <td style="text-align:center">
+          {% set st = pr.get(code, "—") %}
+          {% if st == "pass" %}<span style="color:#059669; font-weight:700">✓</span>
+          {% elif st == "fail" %}<span style="color:#dc2626; font-weight:700">✗</span>
+          {% elif st == "warning" %}<span style="color:#f59e0b; font-weight:700">⚠</span>
+          {% else %}<span style="color:#d1d5db">—</span>{% endif %}
+        </td>
+        {% endfor %}
+        <td>
+          <button class="btn btn-sm" style="font-size:.75rem"
+            onclick="runSingleAudit('{{ p.url }}')">Проверить</button>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% if not pages %}
+  <p style="padding:1rem; color:#6b7280; text-align:center">Нет страниц для аудита. Запустите краулинг сайта.</p>
+  {% endif %}
+</div>
+
+<!-- Check definitions (collapsible) -->
+<details class="card" style="margin-bottom:1.5rem">
+  <summary style="cursor:pointer; font-weight:600; padding:.75rem">Настройка проверок ({{ check_defs|length }})</summary>
+  <div style="padding:0 .75rem .75rem">
+    <table style="font-size:.85rem">
+      <thead>
+        <tr><th>Код</th><th>Название</th><th>Тип</th><th>Серьёзность</th><th>Авто-фикс</th><th>Активен</th></tr>
+      </thead>
+      <tbody>
+        {% for c in check_defs %}
+        <tr>
+          <td><code>{{ c.code }}</code></td>
+          <td>{{ c.name }}</td>
+          <td>
+            {% if c.applies_to == 'informational' %}<span class="badge" style="background:#dbeafe;color:#2563eb">Инфо</span>
+            {% elif c.applies_to == 'commercial' %}<span class="badge" style="background:#fef3c7;color:#d97706">Комм</span>
+            {% else %}<span class="badge" style="background:#f3f4f6;color:#6b7280">Все</span>{% endif %}
+          </td>
+          <td>
+            {% if c.severity == 'error' %}<span style="color:#dc2626; font-weight:600">Ошибка</span>
+            {% else %}<span style="color:#f59e0b">Предупреждение</span>{% endif %}
+          </td>
+          <td>{% if c.auto_fixable %}<span style="color:#059669">Да</span>{% else %}—{% endif %}</td>
+          <td>
+            <input type="checkbox" {% if c.is_active %}checked{% endif %}
+              onchange="toggleCheck('{{ c.id }}', this.checked)">
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</details>
+
+<!-- CTA Template -->
+<div class="card" style="margin-bottom:1.5rem">
+  <h3 style="margin:0 0 .75rem">CTA-шаблон</h3>
+  <p style="font-size:.85rem; color:#6b7280; margin-bottom:.5rem">HTML-код блока призыва к действию. Вставляется в конец контента коммерческих страниц.</p>
+  <textarea id="cta-textarea" rows="5"
+    style="width:100%; font-family:monospace; font-size:.85rem; padding:.5rem; border:1px solid #d1d5db; border-radius:4px; resize:vertical"
+    placeholder="<div class='cta-block'>...</div>">{{ site.cta_template_html or '' }}</textarea>
+  <button class="btn" style="margin-top:.5rem; background:#059669; color:white" onclick="saveCta()">Сохранить CTA</button>
+  <span id="cta-status" style="margin-left:.5rem; font-size:.85rem"></span>
+</div>
+
+<!-- Schema Templates -->
+<div class="card" style="margin-bottom:1.5rem">
+  <h3 style="margin:0 0 .75rem">Schema-шаблоны</h3>
+  <p style="font-size:.85rem; color:#6b7280; margin-bottom:.5rem">JSON-LD шаблоны schema.org. Используйте <code>{% raw %}{{title}}{% endraw %}</code>, <code>{% raw %}{{url}}{% endraw %}</code>, <code>{% raw %}{{description}}{% endraw %}</code> для подстановки.</p>
+  <table style="font-size:.85rem">
+    <thead>
+      <tr><th>Тип</th><th>Название</th><th>Источник</th><th>Действия</th></tr>
+    </thead>
+    <tbody>
+      {% for t in schema_templates %}
+      <tr>
+        <td><code>{{ t.schema_type }}</code></td>
+        <td>{{ t.name }}</td>
+        <td>{% if t.is_default %}<span class="badge" style="background:#f3f4f6;color:#6b7280">По умолчанию</span>
+        {% else %}<span class="badge" style="background:#dbeafe;color:#2563eb">Свой</span>{% endif %}</td>
+        <td>
+          <button class="btn btn-sm" style="font-size:.75rem" onclick="editTemplate('{{ t.id }}', '{{ t.schema_type }}', `{{ t.template_json|e }}`)">Редактировать</button>
+          {% if not t.is_default %}
+          <button class="btn btn-sm" style="font-size:.75rem; background:#991b1b; color:white"
+            onclick="deleteTemplate('{{ t.id }}')">Удалить</button>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- Schema edit modal (hidden by default) -->
+<div id="schema-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:100; justify-content:center; align-items:center">
+  <div class="card" style="width:600px; max-height:80vh; overflow-y:auto; padding:1.5rem">
+    <h3 style="margin:0 0 1rem">Редактирование шаблона: <span id="modal-schema-type"></span></h3>
+    <label style="font-size:.85rem; color:#6b7280">Название:</label>
+    <input type="text" id="modal-name" style="width:100%; padding:.4rem .75rem; border:1px solid #d1d5db; border-radius:4px; margin-bottom:.75rem">
+    <label style="font-size:.85rem; color:#6b7280">JSON-LD шаблон:</label>
+    <textarea id="modal-json" rows="10"
+      style="width:100%; font-family:monospace; font-size:.85rem; padding:.5rem; border:1px solid #d1d5db; border-radius:4px; resize:vertical; margin-bottom:.75rem"></textarea>
+    <div style="display:flex; gap:.5rem">
+      <button class="btn" style="background:#4f46e5; color:white" onclick="saveTemplate()">Сохранить</button>
+      <button class="btn" onclick="closeModal()">Отмена</button>
+    </div>
+  </div>
+</div>
+
+<script>
+function filterTable() {
+  const search = document.getElementById('search-input').value.toLowerCase();
+  const typeFilter = document.getElementById('type-filter').value;
+  const statusFilter = document.getElementById('status-filter').value;
+  document.querySelectorAll('.audit-row').forEach(row => {
+    const url = (row.dataset.url || '').toLowerCase();
+    const title = (row.dataset.title || '').toLowerCase();
+    const type = row.dataset.type;
+    const hasIssues = row.dataset.hasIssues === 'yes';
+    const hasResults = row.dataset.hasResults === 'yes';
+    let show = true;
+    if (search && !url.includes(search) && !title.includes(search)) show = false;
+    if (typeFilter !== 'all' && type !== typeFilter) show = false;
+    if (statusFilter === 'has_issues' && !hasIssues) show = false;
+    if (statusFilter === 'all_pass' && (!hasResults || hasIssues)) show = false;
+    row.style.display = show ? '' : 'none';
+  });
+}
+
+async function runSingleAudit(pageUrl) {
+  const resp = await fetch('/audit/{{ site.id }}/run-single', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({page_url: pageUrl})
+  });
+  if (resp.ok) location.reload();
+}
+
+async function updateContentType(pageId, value) {
+  await fetch('/audit/{{ site.id }}/pages/' + pageId + '/content-type', {
+    method: 'PUT',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({content_type: value})
+  });
+}
+
+async function toggleCheck(checkId, active) {
+  await fetch('/audit/checks/' + checkId, {
+    method: 'PUT',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({is_active: active})
+  });
+}
+
+async function saveCta() {
+  const html = document.getElementById('cta-textarea').value;
+  const resp = await fetch('/audit/{{ site.id }}/cta', {
+    method: 'PUT',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({cta_html: html})
+  });
+  const el = document.getElementById('cta-status');
+  el.innerHTML = resp.ok ? '<span style="color:#059669">Сохранено</span>' : '<span style="color:#dc2626">Ошибка</span>';
+  setTimeout(() => el.innerHTML = '', 3000);
+}
+
+let _editingType = '';
+function editTemplate(id, schemaType, json) {
+  _editingType = schemaType;
+  document.getElementById('modal-schema-type').textContent = schemaType;
+  document.getElementById('modal-name').value = schemaType + ' (свой)';
+  try {
+    document.getElementById('modal-json').value = JSON.stringify(JSON.parse(json), null, 2);
+  } catch(e) {
+    document.getElementById('modal-json').value = json;
+  }
+  document.getElementById('schema-modal').style.display = 'flex';
+}
+
+function closeModal() {
+  document.getElementById('schema-modal').style.display = 'none';
+}
+
+async function saveTemplate() {
+  const name = document.getElementById('modal-name').value;
+  const json = document.getElementById('modal-json').value;
+  const resp = await fetch('/audit/{{ site.id }}/templates', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({schema_type: _editingType, name: name, template_json: json})
+  });
+  if (resp.ok) { closeModal(); location.reload(); }
+}
+
+async function deleteTemplate(id) {
+  if (!confirm('Удалить этот шаблон? Будет использоваться шаблон по умолчанию.')) return;
+  await fetch('/audit/{{ site.id }}/templates/' + id, {method: 'DELETE'});
+  location.reload();
+}
+</script>
+{% endblock %}
