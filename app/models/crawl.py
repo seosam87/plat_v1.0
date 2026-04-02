@@ -33,6 +33,12 @@ class PageType(str, PyEnum):
     unknown = "unknown"
 
 
+class ContentType(str, PyEnum):
+    informational = "informational"
+    commercial = "commercial"
+    unknown = "unknown"
+
+
 class CrawlJob(Base):
     __tablename__ = "crawl_jobs"
 
@@ -84,6 +90,9 @@ class Page(Base):
     internal_link_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     page_type: Mapped[PageType] = mapped_column(
         SAEnum(PageType), nullable=False, default=PageType.unknown
+    )
+    content_type: Mapped[ContentType] = mapped_column(
+        SAEnum(ContentType), nullable=False, default=ContentType.unknown
     )
     has_toc: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     has_schema: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
