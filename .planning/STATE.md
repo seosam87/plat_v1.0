@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 06.1-01-PLAN.md
-last_updated: "2026-04-02T21:34:11.291Z"
+stopped_at: Completed 06.1-03-PLAN.md
+last_updated: "2026-04-02T21:38:29.189Z"
 last_activity: 2026-04-02
 progress:
   total_phases: 12
   completed_phases: 0
   total_plans: 14
-  completed_plans: 4
+  completed_plans: 5
   percent: 18
 ---
 
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-03-31)
 ## Current Position
 
 Phase: 06.1 (proxy-management-xmlproxy-integration) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-04-02
 
@@ -58,6 +58,7 @@ Progress: [██░░░░░░░░] 18%
 | Phase 02 P02 | 3min | 2 tasks | 7 files |
 | Phase 02 P03 | 5min | 2 tasks | 7 files |
 | Phase 06.1 P01 | 5 | 2 tasks | 11 files |
+| Phase 06.1 P03 | 5 min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -72,6 +73,8 @@ Recent decisions affecting current work:
 - Roadmap: Playwright workers — `WORKER_MAX_TASKS_PER_CHILD=50`, `BrowserContext` closed in `finally`, `crawl` queue concurrency=2
 - [Phase 06.1]: ProxyType/ProxyStatus enums use native_enum=False (VARCHAR storage) to avoid PG enum DDL lock-in
 - [Phase 06.1]: ENCRYPTED_FIELDS dict maps service_name to sensitive JSON keys for per-field Fernet encryption in service_credential_service
+- [Phase 06.1]: Yandex keywords exclusively routed to XMLProxy; Google keywords to DataForSEO or logged as skipped (D-17, D-18)
+- [Phase 06.1]: rucaptcha.com replaces anti-captcha.com in proxy_serp_service.py per D-15
 
 ### Pending Todos
 
@@ -95,6 +98,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-02T21:34:11.283Z
-Stopped at: Completed 06.1-01-PLAN.md
+Last session: 2026-04-02T21:38:29.186Z
+Stopped at: Completed 06.1-03-PLAN.md
 Resume file: None
