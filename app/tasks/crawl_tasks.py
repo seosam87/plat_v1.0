@@ -186,6 +186,26 @@ def crawl_site(self, site_id: str, use_playwright: bool = False) -> dict:
 
             create_auto_tasks(db, uuid.UUID(site_id), crawl_job_id)
 
+        # Detect changes and dispatch Telegram alerts
+        with get_sync_db() as db:
+            from app.services.change_monitoring_service import process_crawl_changes
+            from app.models.site import Site
+            from sqlalchemy import select as sa_select
+
+            site = db.execute(
+                sa_select(Site).where(Site.id == uuid.UUID(site_id))
+            ).scalar_one_or_none()
+            if site:
+                change_result = process_crawl_changes(
+                    db, uuid.UUID(site_id), site.name, crawl_job_id
+                )
+                logger.info(
+                    "Change monitoring done",
+                    site_id=site_id,
+                    total_changes=change_result["total_changes"],
+                    alerts_sent=change_result["alerts_sent"],
+                )
+
         logger.info(
             "crawl_site finished",
             site_id=site_id,

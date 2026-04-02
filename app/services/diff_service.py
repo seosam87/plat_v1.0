@@ -1,7 +1,10 @@
 """Diff service: compute field-level changes between page snapshots."""
 from __future__ import annotations
 
-SNAPSHOT_FIELDS = ("title", "h1", "meta_description", "http_status", "content_preview")
+SNAPSHOT_FIELDS = (
+    "title", "h1", "meta_description", "http_status", "content_preview",
+    "canonical_url", "has_schema", "has_toc", "has_noindex",
+)
 
 
 def compute_diff(old_snap: dict, new_snap: dict) -> dict:
@@ -40,4 +43,8 @@ def build_snapshot(page, content_preview: str = "") -> dict:
         "meta_description": page.meta_description or "",
         "http_status": page.http_status,
         "content_preview": content_preview,
+        "canonical_url": page.canonical_url or "",
+        "has_schema": page.has_schema,
+        "has_toc": page.has_toc,
+        "has_noindex": page.has_noindex,
     }
