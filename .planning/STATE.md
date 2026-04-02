@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 06.1 context gathered
-last_updated: "2026-04-02T20:50:16.964Z"
-last_activity: "2026-04-02 - Completed quick task 260402-v3j: Fix position check engine bug"
+stopped_at: Completed 06.1-01-PLAN.md
+last_updated: "2026-04-02T21:34:11.291Z"
+last_activity: 2026-04-02
 progress:
   total_phases: 12
   completed_phases: 0
-  total_plans: 11
-  completed_plans: 3
+  total_plans: 14
+  completed_plans: 4
   percent: 18
 ---
 
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-31)
 
 **Core value:** A team member or client can open the platform and immediately see the SEO health of any site — positions, recent changes, pending tasks — without switching between GSC, spreadsheets, and WP admin.
-**Current focus:** Phase v3-01 — Yandex Metrika
+**Current focus:** Phase 06.1 — proxy-management-xmlproxy-integration
 
 ## Current Position
 
-Phase: v3-01 (Yandex Metrika) — EXECUTING
-Plan: 2 of 5
+Phase: 06.1 (proxy-management-xmlproxy-integration) — EXECUTING
+Plan: 2 of 3
 Status: Ready to execute
-Last activity: 2026-04-02 - Completed quick task 260402-v3j: Fix position check engine bug
+Last activity: 2026-04-02
 
 Progress: [██░░░░░░░░] 18%
 
@@ -57,6 +57,7 @@ Progress: [██░░░░░░░░] 18%
 | Phase 02 P01 | 6min | 3 tasks | 10 files |
 | Phase 02 P02 | 3min | 2 tasks | 7 files |
 | Phase 02 P03 | 5min | 2 tasks | 7 files |
+| Phase 06.1 P01 | 5 | 2 tasks | 11 files |
 
 ## Accumulated Context
 
@@ -69,6 +70,8 @@ Recent decisions affecting current work:
 - Roadmap: `keyword_positions` monthly range partitioning is a hard constraint in Phase 6 first migration
 - Roadmap: redbeat required for UI-driven crawl scheduling (Phase 4); schedule stored in PostgreSQL, not Redis-only
 - Roadmap: Playwright workers — `WORKER_MAX_TASKS_PER_CHILD=50`, `BrowserContext` closed in `finally`, `crawl` queue concurrency=2
+- [Phase 06.1]: ProxyType/ProxyStatus enums use native_enum=False (VARCHAR storage) to avoid PG enum DDL lock-in
+- [Phase 06.1]: ENCRYPTED_FIELDS dict maps service_name to sensitive JSON keys for per-field Fernet encryption in service_credential_service
 
 ### Pending Todos
 
@@ -92,6 +95,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-02T20:50:16.960Z
-Stopped at: Phase 06.1 context gathered
-Resume file: .planning/phases/06.1-proxy-management-xmlproxy-integration/06.1-CONTEXT.md
+Last session: 2026-04-02T21:34:11.283Z
+Stopped at: Completed 06.1-01-PLAN.md
+Resume file: None
