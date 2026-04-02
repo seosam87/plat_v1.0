@@ -733,9 +733,33 @@ async def ui_analytics(
         for s in result.scalars().all()
     ]
 
+    # Build filter options for the template
+    from app.models.cluster import KeywordCluster
+    from app.models.keyword import KeywordGroup, Keyword
+
+    clusters = (await db.execute(
+        sa_select(KeywordCluster).where(KeywordCluster.site_id == sid).order_by(KeywordCluster.name)
+    )).scalars().all()
+    groups = (await db.execute(
+        sa_select(KeywordGroup).where(KeywordGroup.site_id == sid).order_by(KeywordGroup.name)
+    )).scalars().all()
+
+    # Distinct regions from keywords
+    from sqlalchemy import distinct
+    regions_raw = (await db.execute(
+        sa_select(distinct(Keyword.region)).where(Keyword.site_id == sid, Keyword.region.isnot(None))
+    )).scalars().all()
+
+    filter_options = {
+        "intents": [],
+        "clusters": [{"id": str(c.id), "name": c.name} for c in clusters],
+        "groups": [{"id": str(g.id), "name": g.name} for g in groups],
+        "regions": [r for r in regions_raw if r],
+    }
+
     return templates.TemplateResponse(
         request, "analytics/index.html",
-        {"site": site, "sessions": sessions},
+        {"site": site, "sessions": sessions, "filter_options": filter_options},
     )
 
 
