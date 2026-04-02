@@ -54,6 +54,10 @@ def _make_page(**kwargs):
         "h1": "Test H1",
         "meta_description": "Test description",
         "http_status": 200,
+        "canonical_url": "",
+        "has_schema": False,
+        "has_toc": False,
+        "has_noindex": False,
     }
     defaults.update(kwargs)
     return types.SimpleNamespace(**defaults)
