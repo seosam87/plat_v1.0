@@ -49,8 +49,10 @@
     <a href="/bulk/{{ site.id }}" class="btn" style="background:#6b7280;color:white">Массовые операции</a>
     <a href="/traffic-analysis/{{ site.id }}" class="btn" style="background:#991b1b;color:white">Анализ трафика</a>
     <a href="/ui/metrika/{{ site.id }}" class="btn" style="background:#0ea5e9;color:white">Трафик</a>
-    <button class="btn btn-verify" hx-post="/sites/{{ site.id }}/verify" hx-swap="none"
-      onclick="this.textContent='Verifying...'; this.disabled=true; setTimeout(()=>location.reload(), 3000)">Verify Connection</button>
+    <button class="btn btn-verify" hx-post="/sites/{{ site.id }}/verify" hx-target="#conn-status-badge" hx-swap="innerHTML"
+      onclick="this.textContent='Verifying...'; this.disabled=true"
+      hx-on::after-request="this.textContent='Verify Connection'; this.disabled=false">Verify Connection</button>
+    <span id="conn-status-badge"></span>
     <button class="btn" style="background:#4f46e5;color:white" hx-post="/sites/{{ site.id }}/crawl" hx-swap="none"
       onclick="this.textContent='Starting...'; this.disabled=true">Start Crawl</button>
     <button class="btn" style="background:#7c3aed;color:white" hx-post="/positions/sites/{{ site.id }}/check" hx-swap="none"

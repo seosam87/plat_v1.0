@@ -100,7 +100,11 @@
       </div>
       <div style="margin-bottom:.8rem">
         <label style="display:block;font-weight:600;margin-bottom:.2rem;font-size:.85rem">Password</label>
-        <input type="password" name="password" required minlength="8" style="width:100%;padding:.4rem;border:1px solid #d1d5db;border-radius:4px">
+        <div style="display:flex;gap:.5rem">
+          <input type="text" name="password" id="add-password" required minlength="8" style="flex:1;padding:.4rem;border:1px solid #d1d5db;border-radius:4px;font-family:monospace">
+          <button type="button" class="btn btn-sm" style="background:#4f46e5;color:white;white-space:nowrap" onclick="generatePassword('add-password')">Generate</button>
+          <button type="button" class="btn btn-sm" style="background:#059669;color:white" onclick="copyField('add-password')" title="Copy">Copy</button>
+        </div>
       </div>
       <div style="margin-bottom:1rem">
         <label style="display:block;font-weight:600;margin-bottom:.2rem;font-size:.85rem">Role</label>
@@ -131,6 +135,14 @@
         <label style="display:block;font-weight:600;margin-bottom:.2rem;font-size:.85rem">Email</label>
         <input type="email" name="email" id="edit-email" required style="width:100%;padding:.4rem;border:1px solid #d1d5db;border-radius:4px">
       </div>
+      <div style="margin-bottom:.8rem">
+        <label style="display:block;font-weight:600;margin-bottom:.2rem;font-size:.85rem">New Password <span style="color:#9ca3af;font-weight:400">(leave empty to keep current)</span></label>
+        <div style="display:flex;gap:.5rem">
+          <input type="text" name="password" id="edit-password" minlength="8" style="flex:1;padding:.4rem;border:1px solid #d1d5db;border-radius:4px;font-family:monospace" placeholder="Leave empty to keep current">
+          <button type="button" class="btn btn-sm" style="background:#4f46e5;color:white;white-space:nowrap" onclick="generatePassword('edit-password')">Generate</button>
+          <button type="button" class="btn btn-sm" style="background:#059669;color:white" onclick="copyField('edit-password')" title="Copy">Copy</button>
+        </div>
+      </div>
       <div style="margin-bottom:1rem">
         <label style="display:block;font-weight:600;margin-bottom:.2rem;font-size:.85rem">Role</label>
         <select name="role" id="edit-role" style="width:100%;padding:.4rem;border:1px solid #d1d5db;border-radius:4px;background:white">
@@ -158,8 +170,22 @@ function openEditModal(id, username, email, role) {
   document.getElementById('edit-username').value = username;
   document.getElementById('edit-email').value = email;
   document.getElementById('edit-role').value = role;
+  document.getElementById('edit-password').value = '';
   document.getElementById('edit-user-form').action = '/ui/admin/users/' + id + '/edit';
   document.getElementById('edit-user-modal').style.display = 'flex';
+}
+function generatePassword(fieldId) {
+  const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%';
+  let pw = '';
+  for (let i = 0; i < 16; i++) pw += chars[Math.floor(Math.random() * chars.length)];
+  document.getElementById(fieldId).value = pw;
+}
+function copyField(fieldId) {
+  const el = document.getElementById(fieldId);
+  navigator.clipboard.writeText(el.value).then(() => {
+    const btn = el.parentElement.querySelector('[title=Copy]') || el.nextElementSibling?.nextElementSibling;
+    if (btn) { const orig = btn.textContent; btn.textContent = 'Copied!'; setTimeout(() => btn.textContent = orig, 1500); }
+  });
 }
 </script>
 {% endblock %}

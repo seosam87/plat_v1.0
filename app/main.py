@@ -981,6 +981,7 @@ async def ui_admin_edit_user(
     username: str = Form(...),
     email: str = Form(...),
     role: str = Form(...),
+    password: str = Form(""),
     db: AsyncSession = Depends(get_db),
 ) -> HTMLResponse:
     from app.services.user_service import update_user
@@ -993,6 +994,12 @@ async def ui_admin_edit_user(
     try:
         await update_user(db, target_user_id=user_id, current_user=current_user,
                           username=username, email=email, role=UserRole(role))
+        if password and len(password) >= 8:
+            from app.auth.password import hash_password
+            from app.services.user_service import get_user_by_id
+            target_user = await get_user_by_id(db, user_id)
+            if target_user:
+                target_user.password_hash = hash_password(password)
         await db.commit()
     except Exception as e:
         return RedirectResponse(f"/ui/admin/users?error={e}", status_code=303)
@@ -1326,11 +1333,101 @@ async def ui_admin_assign_site_to_group(
     if not site_id:
         return HTMLResponse("Missing site_id", status_code=400)
 
-    await assign_site_to_group(db, _uuid.UUID(str(site_id)), _uuid.UUID(group_id))
-    await db.commit()
+    try:
+        await assign_site_to_group(db, _uuid.UUID(str(site_id)), _uuid.UUID(group_id))
+        await db.commit()
+    except Exception as e:
+        import json as _json
+        resp = HTMLResponse("")
+        resp.headers["HX-Trigger"] = _json.dumps({"showToast": {"msg": f"Error: {e}", "type": "error"}})
+        return resp
 
-    # Full page refresh for this group card (redirect)
-    return RedirectResponse("/ui/admin/groups", status_code=303)
+    # Reload page via HTMX redirect
+    resp = HTMLResponse("")
+    resp.headers["HX-Redirect"] = "/ui/admin/groups"
+    return resp
+
+
+# ---- Platform Issues UI ----
+
+
+@app.get("/ui/admin/issues", response_class=HTMLResponse)
+async def ui_admin_issues(request: Request, db: AsyncSession = Depends(get_db)) -> HTMLResponse:
+    from app.models.platform_issue import PlatformIssue
+    from sqlalchemy import select as sa_select
+
+    current_user = await _get_current_user_from_cookie(request, db)
+    if not current_user:
+        return RedirectResponse("/ui/login", status_code=302)
+
+    result = await db.execute(
+        sa_select(PlatformIssue).order_by(PlatformIssue.created_at.desc())
+    )
+    issues = [
+        {
+            "id": str(i.id),
+            "title": i.title,
+            "description": i.description,
+            "status": i.status.value,
+            "created_by": i.created_by,
+            "created_at": i.created_at.isoformat() if i.created_at else "",
+        }
+        for i in result.scalars().all()
+    ]
+    return templates.TemplateResponse(request, "admin/issues.html", {"issues": issues})
+
+
+@app.post("/ui/admin/issues", response_class=HTMLResponse)
+async def ui_admin_create_issue(
+    request: Request,
+    title: str = Form(...),
+    description: str = Form(""),
+    db: AsyncSession = Depends(get_db),
+) -> HTMLResponse:
+    from app.models.platform_issue import PlatformIssue
+    import uuid as _uuid
+
+    current_user = await _get_current_user_from_cookie(request, db)
+    if not current_user:
+        return RedirectResponse("/ui/login", status_code=302)
+
+    issue = PlatformIssue(
+        id=_uuid.uuid4(),
+        title=title,
+        description=description or None,
+        created_by=current_user.username,
+    )
+    db.add(issue)
+    await db.commit()
+    return RedirectResponse("/ui/admin/issues", status_code=303)
+
+
+@app.post("/ui/admin/issues/{issue_id}/status", response_class=HTMLResponse)
+async def ui_admin_update_issue_status(
+    issue_id: str,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+) -> HTMLResponse:
+    import uuid as _uuid
+    from app.models.platform_issue import PlatformIssue, IssueStatus
+    from sqlalchemy import select as sa_select
+
+    current_user = await _get_current_user_from_cookie(request, db)
+    if not current_user:
+        return HTMLResponse("Unauthorized", status_code=401)
+
+    form = await request.form()
+    new_status = form.get("status", "open")
+
+    result = await db.execute(sa_select(PlatformIssue).where(PlatformIssue.id == _uuid.UUID(issue_id)))
+    issue = result.scalar_one_or_none()
+    if issue:
+        try:
+            issue.status = IssueStatus(new_status)
+            await db.commit()
+        except ValueError:
+            pass
+    return HTMLResponse("OK")
 
 
 # ---- Competitors UI ----
@@ -2041,6 +2138,36 @@ async def logout():
     response = RedirectResponse("/ui/login", status_code=302)
     response.delete_cookie("access_token")
     return response
+
+
+@app.get("/ui/logs", response_class=HTMLResponse)
+async def ui_server_logs(request: Request, lines: int = 30) -> HTMLResponse:
+    """Return last N log lines as HTML for the log panel."""
+    import json as _json
+    from pathlib import Path
+
+    log_path = Path("logs/app.log")
+    entries: list[str] = []
+    if log_path.exists():
+        try:
+            raw_lines = log_path.read_text(errors="replace").strip().split("\n")
+            for raw in raw_lines[-(lines):]:
+                try:
+                    rec = _json.loads(raw)
+                    ts = rec.get("text", "")[:19] if "text" not in rec else ""
+                    r = rec.get("record", {})
+                    ts = r.get("time", {}).get("repr", "")[:19] if r else ts
+                    level = r.get("level", {}).get("name", "INFO") if r else "INFO"
+                    msg = r.get("message", raw[:200]) if r else raw[:200]
+                    color = "#dc2626" if level == "ERROR" else "#f59e0b" if level == "WARNING" else "#6b7280"
+                    entries.append(f'<div style="font-size:.8rem;font-family:monospace;padding:.15rem 0"><span style="color:{color};font-weight:600">{level:8s}</span> <span style="color:#9ca3af">{ts}</span> {msg}</div>')
+                except _json.JSONDecodeError:
+                    entries.append(f'<div style="font-size:.8rem;font-family:monospace;color:#6b7280;padding:.15rem 0">{raw[:200]}</div>')
+        except Exception:
+            entries.append('<div style="color:#dc2626">Error reading logs</div>')
+    else:
+        entries.append('<div style="color:#6b7280">No log file found</div>')
+    return HTMLResponse("\n".join(entries))
 
 
 @app.get("/")

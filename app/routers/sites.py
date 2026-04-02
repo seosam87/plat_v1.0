@@ -221,14 +221,30 @@ async def verify_site(
     db: AsyncSession = Depends(get_db),
     _: User = Depends(require_admin),
 ) -> HTMLResponse:
+    import json as _json
     site = await site_service.get_site(db, site_id)
     if not site:
         raise HTTPException(status_code=404, detail="Site not found")
-    new_status, seo_plugin = await wp_svc.verify_connection(site)
-    await site_service.set_connection_status(db, site, new_status)
-    site.seo_plugin = seo_plugin
-    await db.commit()
-    return HTMLResponse(_status_badge(str(site_id), new_status.value))
+    try:
+        new_status, seo_plugin = await wp_svc.verify_connection(site)
+        await site_service.set_connection_status(db, site, new_status)
+        site.seo_plugin = seo_plugin
+        await db.commit()
+        badge_html = _status_badge(str(site_id), new_status.value)
+        if new_status.value == "connected":
+            msg = f"Connection OK. Plugin: {seo_plugin or 'unknown'}"
+            toast_type = "success"
+        else:
+            msg = "Connection failed — check WP credentials"
+            toast_type = "error"
+        resp = HTMLResponse(badge_html)
+        resp.headers["HX-Trigger"] = _json.dumps({"showToast": {"msg": msg, "type": toast_type}})
+        return resp
+    except Exception as e:
+        badge_html = _status_badge(str(site_id), "failed")
+        resp = HTMLResponse(badge_html)
+        resp.headers["HX-Trigger"] = _json.dumps({"showToast": {"msg": f"Verify error: {e}", "type": "error"}})
+        return resp
 
 
 # ---- Crawl schedule endpoints ----

@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}Platform Issues — SEO Platform{% endblock %}
+{% block breadcrumbs %}
+<div class="breadcrumbs"><a href="/ui/dashboard">Dashboard</a><span>&rsaquo;</span>Platform Issues</div>
+{% endblock %}
+{% block content %}
+<div class="card" style="margin-bottom:1.5rem">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem">
+    <h2 style="margin:0">Platform Issues</h2>
+    <button class="btn btn-primary" onclick="document.getElementById('add-issue-modal').style.display='flex'">+ Report Issue</button>
+  </div>
+
+  {% if issues %}
+  <table>
+    <thead>
+      <tr>
+        <th>Title</th>
+        <th>Status</th>
+        <th>Created By</th>
+        <th>Created</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for i in issues %}
+      <tr>
+        <td>
+          <strong>{{ i.title }}</strong>
+          {% if i.description %}
+          <div style="font-size:.8rem;color:#6b7280;margin-top:.25rem;white-space:pre-wrap;max-width:500px">{{ i.description[:300] }}{% if i.description|length > 300 %}...{% endif %}</div>
+          {% endif %}
+        </td>
+        <td>
+          <span class="badge" style="{% if i.status == 'open' %}background:#fee2e2;color:#991b1b{% elif i.status == 'in_progress' %}background:#fef3c7;color:#92400e{% else %}background:#d1fae5;color:#065f46{% endif %}">
+            {{ i.status.replace('_', ' ') }}
+          </span>
+        </td>
+        <td style="font-size:.85rem;color:#6b7280">{{ i.created_by or '—' }}</td>
+        <td style="font-size:.85rem;color:#6b7280">{{ i.created_at[:16] }}</td>
+        <td>
+          {% if i.status != 'resolved' %}
+          <form class="inline">
+            <select name="status" style="padding:.2rem .4rem;border:1px solid #d1d5db;border-radius:4px;font-size:.8rem"
+                    hx-post="/ui/admin/issues/{{ i.id }}/status" hx-include="this" hx-swap="none"
+                    hx-on::after-request="location.reload()">
+              <option value="open" {% if i.status == 'open' %}selected{% endif %}>Open</option>
+              <option value="in_progress" {% if i.status == 'in_progress' %}selected{% endif %}>In Progress</option>
+              <option value="resolved" {% if i.status == 'resolved' %}selected{% endif %}>Resolved</option>
+            </select>
+          </form>
+          {% else %}
+          <span style="color:#059669;font-size:.85rem">Done</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p style="color:#6b7280">No issues reported yet.</p>
+  {% endif %}
+</div>
+
+<!-- Add Issue Modal -->
+<div id="add-issue-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;align-items:center;justify-content:center">
+  <div class="card" style="max-width:550px;width:100%">
+    <h3 style="margin-top:0">Report Issue</h3>
+    <form method="post" action="/ui/admin/issues">
+      <div style="margin-bottom:.8rem">
+        <label style="display:block;font-weight:600;margin-bottom:.2rem;font-size:.85rem">Title</label>
+        <input type="text" name="title" required placeholder="Brief description of the issue"
+               style="width:100%;padding:.4rem;border:1px solid #d1d5db;border-radius:4px">
+      </div>
+      <div style="margin-bottom:1rem">
+        <label style="display:block;font-weight:600;margin-bottom:.2rem;font-size:.85rem">Description</label>
+        <textarea name="description" rows="5" placeholder="Details, steps to reproduce, error messages..."
+                  style="width:100%;padding:.4rem;border:1px solid #d1d5db;border-radius:4px;font-family:inherit;resize:vertical"></textarea>
+      </div>
+      <div style="display:flex;gap:.5rem">
+        <button type="submit" class="btn btn-primary">Submit</button>
+        <button type="button" class="btn" style="background:#e5e7eb;color:#374151" onclick="document.getElementById('add-issue-modal').style.display='none'">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

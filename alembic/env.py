@@ -25,6 +25,7 @@ from app.models.ad_traffic import AdTraffic  # noqa: F401
 from app.models.invite import InviteLink  # noqa: F401
 from app.models.project_comment import ProjectComment  # noqa: F401
 from app.models.site_group import SiteGroup, user_site_groups  # noqa: F401
+from app.models.platform_issue import PlatformIssue  # noqa: F401
 
 config = context.config
 

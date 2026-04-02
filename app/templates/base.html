@@ -25,6 +25,16 @@
     form.inline { display: inline; }
     .htmx-indicator { opacity: 0; }
     .htmx-request .htmx-indicator { opacity: 1; }
+    .breadcrumbs { font-size:.85rem; color:#6b7280; margin-bottom:1rem; }
+    .breadcrumbs a { color:#4f46e5; text-decoration:none; }
+    .breadcrumbs a:hover { text-decoration:underline; }
+    .breadcrumbs span { margin:0 .4rem; }
+    #toast-container { position:fixed; bottom:1.5rem; right:1.5rem; z-index:999; display:flex; flex-direction:column; gap:.5rem; }
+    .toast { padding:.75rem 1.25rem; border-radius:6px; box-shadow:0 2px 8px rgba(0,0,0,.15); font-size:.9rem; animation:toastIn .3s ease; max-width:400px; }
+    .toast-success { background:#ecfdf5; color:#065f46; border:1px solid #a7f3d0; }
+    .toast-error { background:#fef2f2; color:#991b1b; border:1px solid #fecaca; }
+    .toast-info { background:#eff6ff; color:#1e40af; border:1px solid #bfdbfe; }
+    @keyframes toastIn { from{opacity:0;transform:translateY(1rem)} to{opacity:1;transform:translateY(0)} }
   </style>
 </head>
 <body>
@@ -35,15 +45,59 @@
     <a href="/ui/tasks">Tasks</a>
     <a href="/ui/positions">Positions</a>
     <a href="/ui/metrika">Трафик</a>
-    <a href="/analytics">Аналитика</a>
+    <a href="/ui/analytics">Аналитика</a>
     <a href="/ui/uploads">Uploads</a>
     <a href="/ui/admin/users" style="margin-left:2rem;color:#fbbf24">Users</a>
     <a href="/ui/admin/groups" style="color:#fbbf24">Groups</a>
+    <a href="/ui/admin/issues" style="color:#fbbf24">Issues</a>
     <a href="/ui/logout" style="margin-left:auto">Logout</a>
   </nav>
   <main>
+    {% block breadcrumbs %}{% endblock %}
     {% block content %}{% endblock %}
   </main>
+  <!-- Server log panel -->
+  <div id="log-panel" style="position:fixed;bottom:0;left:0;right:0;z-index:50;background:#1a1a2e;color:#e5e7eb;transition:height .3s">
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:.4rem 1rem;cursor:pointer;border-top:1px solid #374151" onclick="toggleLogPanel()">
+      <span style="font-size:.8rem;font-weight:600">Server Log</span>
+      <span id="log-toggle-icon" style="font-size:.8rem">&#9650;</span>
+    </div>
+    <div id="log-content" style="display:none;max-height:200px;overflow-y:auto;padding:.5rem 1rem"
+         hx-get="/ui/logs?lines=40" hx-trigger="revealed" hx-swap="innerHTML">
+    </div>
+  </div>
+  <div style="height:32px"></div>
+  <div id="toast-container"></div>
+  <script>
+  function showToast(msg, type) {
+    type = type || 'info';
+    var c = document.getElementById('toast-container');
+    var t = document.createElement('div');
+    t.className = 'toast toast-' + type;
+    t.textContent = msg;
+    c.appendChild(t);
+    setTimeout(function(){ t.style.opacity='0'; t.style.transition='opacity .3s'; setTimeout(function(){ t.remove(); }, 300); }, 4000);
+  }
+  document.body.addEventListener('htmx:responseError', function(e) {
+    showToast('Server error: ' + (e.detail.xhr.status || 'unknown'), 'error');
+  });
+  function toggleLogPanel() {
+    var c = document.getElementById('log-content');
+    var icon = document.getElementById('log-toggle-icon');
+    if (c.style.display === 'none') {
+      c.style.display = 'block';
+      icon.innerHTML = '&#9660;';
+      htmx.trigger(c, 'revealed');
+    } else {
+      c.style.display = 'none';
+      icon.innerHTML = '&#9650;';
+    }
+  }
+  document.body.addEventListener('showToast', function(e) {
+    var d = e.detail || {};
+    showToast(d.msg || 'Done', d.type || 'info');
+  });
+  </script>
   {% if help_module %}
   {% with hm=help_module %}
   {% include "help/_modal.html" %}
