@@ -1,0 +1,36 @@
+<div class="card" style="margin:1rem 0; border-left:4px solid #4f46e5; padding:1rem">
+  <h4 style="margin:0 0 .75rem">Предпросмотр исправления: {{ fix_action_label }}</h4>
+
+  {% if not preview %}
+  <p style="color:#dc2626">Не удалось сгенерировать исправление для этой страницы.</p>
+  {% else %}
+
+  {% if warnings %}
+  <div style="background:#fef3c7; padding:.5rem .75rem; border-radius:4px; margin-bottom:.75rem; font-size:.85rem; color:#92400e">
+    <strong>Предупреждения:</strong>
+    {% for w in warnings %}<div>{{ w }}</div>{% endfor %}
+  </div>
+  {% endif %}
+
+  <div style="margin-bottom:.75rem">
+    <span style="font-size:.85rem; color:#6b7280">Изменения:</span>
+    <span style="color:#059669; font-weight:600">+{{ diff.added_lines }}</span>
+    <span style="color:#dc2626; font-weight:600; margin-left:.5rem">-{{ diff.removed_lines }}</span>
+  </div>
+
+  <!-- Diff display -->
+  <pre style="background:#1e1e1e; color:#d4d4d4; padding:1rem; border-radius:4px; font-size:.8rem; overflow-x:auto; max-height:300px">{{ diff.diff_text }}</pre>
+
+  <div style="display:flex; gap:.5rem; margin-top:1rem">
+    <button class="btn" style="background:#059669;color:white"
+      onclick="applyFix('{{ page_url }}', '{{ fix_action }}', {{ wp_post_id or 'null' }})">
+      Применить и отправить на проверку
+    </button>
+    <button class="btn" style="background:#4f46e5;color:white"
+      onclick="applyAndApprove('{{ page_url }}', '{{ fix_action }}', {{ wp_post_id or 'null' }})">
+      Применить и опубликовать
+    </button>
+    <button class="btn" onclick="closePreview()">Отмена</button>
+  </div>
+  {% endif %}
+</div>

@@ -16,6 +16,7 @@ from app.models.site import Site
 from app.models.user import User
 from app.services import content_audit_service as cas
 from app.services import schema_service as ss
+from app.services import audit_fix_service as afs
 
 router = APIRouter(prefix="/audit", tags=["audit"])
 templates = Jinja2Templates(directory="app/templates")
@@ -380,3 +381,165 @@ async def get_results(
         }
         for r in results
     ]
+
+
+# ---- Fix endpoints ----
+
+
+_FIX_ACTION_TO_CHECK = {
+    "inject_toc": "toc_present",
+    "inject_schema": "schema_present",
+    "inject_cta": "cta_present",
+    "inject_links": "internal_links",
+}
+
+
+async def _get_fix_result(
+    db: AsyncSession, site_id: uuid.UUID, body: FixRequest
+) -> dict:
+    """Generate a fix result for preview or apply."""
+    site = await _get_site_or_404(db, site_id)
+
+    # Fetch HTML
+    html = ""
+    try:
+        from app.tasks.wp_content_tasks import _fetch_wp_content
+        html = _fetch_wp_content(str(site_id), body.page_url) or ""
+    except Exception:
+        pass
+
+    if not html:
+        return {"error": "Could not fetch page HTML"}
+
+    fix_result = None
+    if body.fix_action == "inject_toc":
+        fix_result = afs.generate_toc_fix(html)
+    elif body.fix_action == "inject_cta":
+        fix_result = afs.generate_cta_fix(html, site.cta_template_html or "")
+    elif body.fix_action == "inject_schema":
+        # Get page data for schema rendering
+        page_result = await db.execute(
+            select(Page)
+            .where(Page.site_id == site_id, Page.url == body.page_url)
+            .order_by(Page.crawled_at.desc())
+            .limit(1)
+        )
+        page_row = page_result.scalar_one_or_none()
+        if page_row:
+            ct = page_row.content_type.value if hasattr(page_row.content_type, "value") else page_row.content_type
+            pt = page_row.page_type.value if hasattr(page_row.page_type, "value") else page_row.page_type
+            page_data = ss.get_page_data_for_schema(
+                title=page_row.title or "",
+                url=page_row.url,
+                description=page_row.meta_description or "",
+                site_name=site.name,
+            )
+            schema_tag = await ss.render_schema_for_page(db, site_id, page_data, ct, pt)
+            if schema_tag:
+                fix_result = afs.generate_schema_fix(html, schema_tag)
+    elif body.fix_action == "inject_links":
+        from app.models.keyword import Keyword
+        kws = (await db.execute(
+            select(Keyword).where(
+                Keyword.site_id == site_id,
+                Keyword.target_url != None,
+            )
+        )).scalars().all()
+        kw_urls = [{"phrase": k.phrase, "url": k.target_url} for k in kws if k.target_url]
+        if kw_urls:
+            fix_result = afs.generate_links_fix(html, kw_urls)
+
+    if not fix_result:
+        return {"error": "No fix available for this action"}
+
+    integrity = afs.verify_html_integrity(html, fix_result["processed_html"])
+    return {
+        "original_html": html,
+        "fix_result": fix_result,
+        "integrity": integrity,
+    }
+
+
+@router.post("/{site_id}/fix/preview")
+async def fix_preview(
+    site_id: uuid.UUID,
+    body: FixRequest,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_admin),
+) -> dict:
+    """Generate a fix preview without applying."""
+    result = await _get_fix_result(db, site_id, body)
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+
+    return {
+        "diff": result["fix_result"]["diff"],
+        "valid": result["integrity"]["valid"],
+        "warnings": result["integrity"]["warnings"],
+    }
+
+
+@router.post("/{site_id}/fix/apply")
+async def fix_apply(
+    site_id: uuid.UUID,
+    body: FixRequest,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_admin),
+) -> dict:
+    """Apply a fix — create pipeline job in awaiting_approval."""
+    result = await _get_fix_result(db, site_id, body)
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+
+    job = await afs.create_fix_job(
+        db,
+        site_id=site_id,
+        page_url=body.page_url,
+        wp_post_id=body.wp_post_id,
+        original_html=result["original_html"],
+        processed_html=result["fix_result"]["processed_html"],
+        fix_action=body.fix_action,
+    )
+
+    check_code = _FIX_ACTION_TO_CHECK.get(body.fix_action)
+    if check_code:
+        await afs.mark_audit_fixed(db, site_id, body.page_url, check_code, job.id)
+
+    await db.commit()
+    return {"job_id": str(job.id), "status": "awaiting_approval"}
+
+
+@router.post("/{site_id}/fix/apply-and-approve")
+async def fix_apply_and_approve(
+    site_id: uuid.UUID,
+    body: FixRequest,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_admin),
+) -> dict:
+    """Apply fix + auto-approve + dispatch push."""
+    result = await _get_fix_result(db, site_id, body)
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+
+    job = await afs.create_fix_job(
+        db,
+        site_id=site_id,
+        page_url=body.page_url,
+        wp_post_id=body.wp_post_id,
+        original_html=result["original_html"],
+        processed_html=result["fix_result"]["processed_html"],
+        fix_action=body.fix_action,
+    )
+    job.status = JobStatus.approved
+    await db.flush()
+
+    check_code = _FIX_ACTION_TO_CHECK.get(body.fix_action)
+    if check_code:
+        await afs.mark_audit_fixed(db, site_id, body.page_url, check_code, job.id)
+
+    await db.commit()
+
+    from app.tasks.wp_content_tasks import push_to_wp
+    task = push_to_wp.delay(str(job.id))
+
+    return {"job_id": str(job.id), "status": "approved", "push_task_id": task.id}
