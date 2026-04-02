@@ -43,6 +43,7 @@
     <a href="/analytics/sites/{{ site.id }}" class="btn" style="background:#4f46e5;color:white">Аналитика</a>
     <a href="/gap/{{ site.id }}" class="btn" style="background:#059669;color:white">Gap-анализ</a>
     <a href="/architecture/{{ site.id }}" class="btn" style="background:#7c3aed;color:white">Архитектура</a>
+    <a href="/bulk/{{ site.id }}" class="btn" style="background:#6b7280;color:white">Массовые операции</a>
     <a href="/ui/metrika/{{ site.id }}" class="btn" style="background:#0ea5e9;color:white">Трафик</a>
     <button class="btn btn-verify" hx-post="/sites/{{ site.id }}/verify" hx-swap="none"
       onclick="this.textContent='Verifying...'; this.disabled=true; setTimeout(()=>location.reload(), 3000)">Verify Connection</button>

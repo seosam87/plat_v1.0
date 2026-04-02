@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+{% block title %}Массовые операции — {{ site.name }} — SEO Platform{% endblock %}
+{% block content %}
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem">
+  <h2 style="margin:0">Массовые операции: {{ site.name }}</h2>
+  <a href="/ui/sites/{{ site.id }}" class="btn btn-sm">&larr; К сайту</a>
+</div>
+
+<!-- Actions bar -->
+<div class="card" style="margin-bottom:1rem; padding:.75rem; display:flex; gap:.5rem; flex-wrap:wrap; align-items:center">
+  <span id="selected-count" style="font-weight:600; min-width:100px">Выбрано: 0</span>
+  <select id="action-group" style="padding:.3rem .5rem; border:1px solid #d1d5db; border-radius:4px; font-size:.85rem">
+    <option value="">Группа...</option>
+    {% for g in filter_options.groups %}<option value="{{ g.id }}">{{ g.name }}</option>{% endfor %}
+  </select>
+  <button class="btn btn-sm" onclick="moveToGroup()">В группу</button>
+  <select id="action-cluster" style="padding:.3rem .5rem; border:1px solid #d1d5db; border-radius:4px; font-size:.85rem">
+    <option value="">Кластер...</option>
+    {% for c in filter_options.clusters %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}
+  </select>
+  <button class="btn btn-sm" onclick="moveToCluster()">В кластер</button>
+  <input type="text" id="action-url" placeholder="Target URL..." style="padding:.3rem .5rem; border:1px solid #d1d5db; border-radius:4px; font-size:.85rem; width:200px">
+  <button class="btn btn-sm" style="background:#4f46e5;color:white" onclick="assignUrl()">Назначить URL</button>
+  <button class="btn btn-sm" style="background:#991b1b;color:white" onclick="deleteSelected()">Удалить</button>
+</div>
+
+<!-- Filters -->
+<div class="card" style="margin-bottom:1rem; padding:.75rem">
+  <div style="display:flex; gap:.75rem; flex-wrap:wrap; align-items:center">
+    <input type="text" id="f-search" placeholder="Поиск..." style="flex:1; min-width:150px; padding:.3rem .5rem; border:1px solid #d1d5db; border-radius:4px; font-size:.85rem">
+    <input type="number" id="f-freq-min" placeholder="Част. от" style="width:80px; padding:.3rem .5rem; border:1px solid #d1d5db; border-radius:4px; font-size:.85rem">
+    <input type="number" id="f-freq-max" placeholder="Част. до" style="width:80px; padding:.3rem .5rem; border:1px solid #d1d5db; border-radius:4px; font-size:.85rem">
+    <select id="f-cluster" style="padding:.3rem .5rem; border:1px solid #d1d5db; border-radius:4px; font-size:.85rem">
+      <option value="">Все кластеры</option>
+      {% for c in filter_options.clusters %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}
+    </select>
+    <select id="f-group" style="padding:.3rem .5rem; border:1px solid #d1d5db; border-radius:4px; font-size:.85rem">
+      <option value="">Все группы</option>
+      {% for g in filter_options.groups %}<option value="{{ g.id }}">{{ g.name }}</option>{% endfor %}
+    </select>
+    <button class="btn btn-sm" style="background:#4f46e5;color:white" onclick="searchKeywords()">Найти</button>
+  </div>
+</div>
+
+<!-- Keywords table -->
+<div class="card" style="margin-bottom:1.5rem">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:.5rem">
+    <label style="font-size:.85rem"><input type="checkbox" id="select-all" onchange="toggleAll(this.checked)"> Выбрать все</label>
+    <span id="total-count" style="font-size:.85rem; color:#6b7280"></span>
+  </div>
+  <div style="overflow-x:auto; max-height:500px; overflow-y:auto">
+    <table id="kw-table" style="font-size:.85rem">
+      <thead><tr><th></th><th>Фраза</th><th>Частотность</th><th>Позиция</th><th>Группа</th><th>Кластер</th><th>Target URL</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Export / Import -->
+<div style="display:flex; gap:1rem; margin-bottom:1.5rem; flex-wrap:wrap">
+  <div class="card" style="flex:1; min-width:250px">
+    <h3 style="margin:0 0 .75rem">Экспорт</h3>
+    <div style="display:flex; gap:.5rem">
+      <a href="/bulk/{{ site.id }}/export?format=csv" class="btn" style="background:#059669;color:white">Экспорт CSV</a>
+      <a href="/bulk/{{ site.id }}/export?format=xlsx" class="btn" style="background:#2563eb;color:white">Экспорт XLSX</a>
+    </div>
+  </div>
+  <div class="card" style="flex:1; min-width:250px">
+    <h3 style="margin:0 0 .75rem">Импорт</h3>
+    <form id="import-form" enctype="multipart/form-data">
+      <div style="display:flex; gap:.5rem; align-items:center; margin-bottom:.5rem">
+        <input type="file" name="file" accept=".csv,.xlsx">
+        <select name="on_duplicate" style="padding:.3rem .5rem; border:1px solid #d1d5db; border-radius:4px; font-size:.85rem">
+          <option value="skip">Пропустить дубли</option>
+          <option value="update">Обновить дубли</option>
+          <option value="replace">Заменить дубли</option>
+        </select>
+      </div>
+      <button type="button" class="btn" style="background:#d97706;color:white" onclick="importFile()">Импортировать</button>
+      <span id="import-status" style="font-size:.85rem; margin-left:.5rem"></span>
+    </form>
+  </div>
+</div>
+
+<script>
+const SITE_ID = '{{ site.id }}';
+let selectedIds = new Set();
+
+function getSelectedIds() { return [...selectedIds]; }
+function updateCount() { document.getElementById('selected-count').textContent = `Выбрано: ${selectedIds.size}`; }
+function toggleAll(checked) { document.querySelectorAll('.kw-cb').forEach(cb => { cb.checked = checked; checked ? selectedIds.add(cb.dataset.id) : selectedIds.delete(cb.dataset.id); }); updateCount(); }
+
+async function searchKeywords() {
+  const params = new URLSearchParams();
+  const map = {search:'f-search', frequency_min:'f-freq-min', frequency_max:'f-freq-max', cluster_id:'f-cluster', group_id:'f-group'};
+  for (const [k,id] of Object.entries(map)) { const v = document.getElementById(id).value; if (v) params.set(k, v); }
+  const resp = await fetch(`/analytics/sites/${SITE_ID}/keywords?${params}`);
+  const data = await resp.json();
+  document.getElementById('total-count').textContent = `Найдено: ${data.total}`;
+  const tbody = document.querySelector('#kw-table tbody');
+  tbody.innerHTML = '';
+  selectedIds.clear();
+  for (const kw of data.items) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td><input type="checkbox" class="kw-cb" data-id="${kw.id}" onchange="this.checked?selectedIds.add(this.dataset.id):selectedIds.delete(this.dataset.id);updateCount()"></td><td>${kw.phrase}</td><td>${kw.frequency||'—'}</td><td>${kw.latest_position||'—'}</td><td>${kw.cluster_name||'—'}</td><td>${kw.cluster_name||'—'}</td><td style="max-width:150px;overflow:hidden;text-overflow:ellipsis">${kw.target_url||'—'}</td>`;
+    tbody.appendChild(tr);
+  }
+  updateCount();
+}
+
+async function moveToGroup() {
+  const ids = getSelectedIds(); const gid = document.getElementById('action-group').value;
+  if (!ids.length) { alert('Выберите ключи'); return; }
+  await fetch(`/bulk/${SITE_ID}/move-group`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({keyword_ids:ids, group_id:gid||null})});
+  searchKeywords();
+}
+
+async function moveToCluster() {
+  const ids = getSelectedIds(); const cid = document.getElementById('action-cluster').value;
+  if (!ids.length) { alert('Выберите ключи'); return; }
+  await fetch(`/bulk/${SITE_ID}/move-cluster`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({keyword_ids:ids, cluster_id:cid||null})});
+  searchKeywords();
+}
+
+async function assignUrl() {
+  const ids = getSelectedIds(); const url = document.getElementById('action-url').value;
+  if (!ids.length || !url) { alert('Выберите ключи и введите URL'); return; }
+  await fetch(`/bulk/${SITE_ID}/assign-url`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({keyword_ids:ids, target_url:url})});
+  searchKeywords();
+}
+
+async function deleteSelected() {
+  const ids = getSelectedIds();
+  if (!ids.length) { alert('Выберите ключи'); return; }
+  if (!confirm(`Удалить ${ids.length} ключей?`)) return;
+  await fetch(`/bulk/${SITE_ID}/delete`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({keyword_ids:ids})});
+  searchKeywords();
+}
+
+async function importFile() {
+  const form = document.getElementById('import-form');
+  const resp = await fetch(`/bulk/${SITE_ID}/import`, {method:'POST', body: new FormData(form)});
+  const data = await resp.json();
+  document.getElementById('import-status').innerHTML = `<span style="color:#059669">Добавлено: ${data.added}, обновлено: ${data.updated}, пропущено: ${data.skipped}</span>`;
+}
+
+searchKeywords();
+</script>
+{% endblock %}
