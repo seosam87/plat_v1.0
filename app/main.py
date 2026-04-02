@@ -35,6 +35,7 @@ from app.routers.metrika import router as metrika_router
 from app.routers.audit import router as audit_router
 from app.routers.monitoring import router as monitoring_router
 from app.routers.analytics import router as analytics_router
+from app.routers.gap import router as gap_router
 from app.services.schedule_service import get_all_schedules, upsert_schedule
 from app.services.site_service import get_site, get_sites
 from app.models.schedule import ScheduleType
@@ -59,6 +60,7 @@ _HELP_MODULE_MAP = {
     "/audit": "audit",
     "/monitoring": "monitoring",
     "/analytics": "analytics",
+    "/gap": "gap",
 }
 
 
@@ -160,6 +162,7 @@ app.include_router(metrika_router)
 app.include_router(audit_router)
 app.include_router(monitoring_router)
 app.include_router(analytics_router)
+app.include_router(gap_router)
 
 
 @app.get("/ui/sites", response_class=HTMLResponse)
