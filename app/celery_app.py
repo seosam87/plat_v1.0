@@ -15,6 +15,7 @@ celery_app = Celery(
         "app.tasks.wp_content_tasks",
         "app.tasks.metrika_tasks",
         "app.tasks.audit_tasks",
+        "app.tasks.digest_tasks",
     ],
 )
 
@@ -97,6 +98,8 @@ def restore_crawl_schedules(**kwargs):
 
         restore_schedules_from_db()
         restore_position_schedules_from_db()
+        from app.services.digest_service import restore_digest_schedules_from_db
+        restore_digest_schedules_from_db()
     except Exception as exc:
         import logging
 
