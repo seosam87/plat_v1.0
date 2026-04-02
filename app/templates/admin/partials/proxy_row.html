@@ -1,0 +1,35 @@
+<tr id="proxy-{{ p.id }}">
+  <td>{{ p.url }}</td>
+  <td><span class="badge">{{ p.proxy_type }}</span></td>
+  <td>
+    <span class="badge" style="background:{{ '#22c55e' if p.status == 'active' else '#ef4444' if p.status == 'dead' else '#9ca3af' }};color:white">
+      {{ p.status }}
+    </span>
+  </td>
+  <td>{{ p.response_time_ms or '---' }} ms</td>
+  <td>{{ p.last_checked_at.strftime('%d.%m %H:%M') if p.last_checked_at else '---' }}</td>
+  <td>
+    <!-- Edit inline form (toggled by JS or HTMX) -->
+    <form hx-put="/admin/proxies/{{ p.id }}" hx-target="#proxy-{{ p.id }}" hx-swap="outerHTML" style="display:inline">
+      <input type="hidden" name="url" value="{{ p.url }}">
+      <input type="hidden" name="proxy_type" value="{{ p.proxy_type }}">
+      <button type="button" class="btn btn-sm"
+              onclick="this.closest('tr').querySelector('.edit-form').style.display='block';this.closest('tr').querySelector('.view-row').style.display='none'">
+        Edit
+      </button>
+    </form>
+    <button class="btn btn-sm" style="background:#ef4444;color:white"
+            hx-delete="/admin/proxies/{{ p.id }}"
+            hx-target="#proxy-{{ p.id }}"
+            hx-swap="outerHTML swap:200ms"
+            hx-confirm="Delete proxy?">
+      Delete
+    </button>
+    <button class="btn btn-sm"
+            hx-post="/admin/proxies/{{ p.id }}/check"
+            hx-target="#proxy-{{ p.id }}"
+            hx-swap="outerHTML">
+      Check
+    </button>
+  </td>
+</tr>

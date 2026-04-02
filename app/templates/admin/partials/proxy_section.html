@@ -1,0 +1,24 @@
+<div id="proxy-section">
+  <table style="width:100%;border-collapse:collapse;font-size:.9rem">
+    <thead>
+      <tr style="border-bottom:2px solid #e5e7eb;text-align:left">
+        <th style="padding:.5rem">URL</th>
+        <th style="padding:.5rem">Type</th>
+        <th style="padding:.5rem">Status</th>
+        <th style="padding:.5rem">Response Time</th>
+        <th style="padding:.5rem">Last Checked</th>
+        <th style="padding:.5rem">Actions</th>
+      </tr>
+    </thead>
+    <tbody id="proxy-table-body">
+      {% for p in proxies %}
+        {% include "admin/partials/proxy_row.html" %}
+      {% endfor %}
+    </tbody>
+  </table>
+  {% if xmlproxy_balance %}
+  <p style="font-size:.85rem;color:#6b7280;margin-top:.5rem">
+    XMLProxy balance: {{ xmlproxy_balance.data }} | Cost: {{ xmlproxy_balance.cur_cost }} | Max: {{ xmlproxy_balance.max_cost }}
+  </p>
+  {% endif %}
+</div>

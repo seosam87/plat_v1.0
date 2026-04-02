@@ -166,6 +166,9 @@ app.include_router(yandex_router)
 
 from app.routers.competitors import router as competitors_router
 app.include_router(competitors_router)
+
+from app.routers import proxy_admin
+app.include_router(proxy_admin.router)
 app.include_router(metrika_router)
 app.include_router(audit_router)
 app.include_router(monitoring_router)
