@@ -16,6 +16,7 @@ celery_app = Celery(
         "app.tasks.metrika_tasks",
         "app.tasks.audit_tasks",
         "app.tasks.digest_tasks",
+        "app.tasks.analytics_tasks",
     ],
 )
 
