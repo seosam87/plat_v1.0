@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}Анализ трафика — {{ site.name }} — SEO Platform{% endblock %}
+{% block content %}
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem">
+  <h2 style="margin:0">Анализ трафика: {{ site.name }}</h2>
+  <a href="/ui/sites/{{ site.id }}" class="btn btn-sm">&larr; К сайту</a>
+</div>
+
+<!-- Analysis source -->
+<div class="card" style="margin-bottom:1.5rem">
+  <h3 style="margin:0 0 1rem">Источник данных</h3>
+  <div style="display:flex; gap:2rem; flex-wrap:wrap">
+    <div style="flex:1; min-width:250px">
+      <h4 style="margin:0 0 .5rem; font-size:.9rem">Анализ Метрики</h4>
+      <div style="display:flex; gap:.5rem; margin-bottom:.5rem">
+        <input type="date" id="metrika-from" style="padding:.3rem .5rem; border:1px solid #d1d5db; border-radius:4px">
+        <input type="date" id="metrika-to" style="padding:.3rem .5rem; border:1px solid #d1d5db; border-radius:4px">
+      </div>
+      <button class="btn" style="background:#4f46e5; color:white" onclick="analyzeMetrika()">Анализировать Метрику</button>
+    </div>
+    <div style="flex:1; min-width:250px">
+      <h4 style="margin:0 0 .5rem; font-size:.9rem">Загрузить access.log</h4>
+      <form id="log-form" enctype="multipart/form-data">
+        <input type="file" name="file" accept=".log,.txt" style="margin-bottom:.5rem">
+        <button type="button" class="btn" style="background:#059669; color:white" onclick="uploadLog()">Загрузить лог</button>
+      </form>
+    </div>
+  </div>
+  <span id="analysis-status" style="font-size:.85rem; display:block; margin-top:.5rem"></span>
+</div>
+
+<!-- Anomaly alert -->
+<div id="anomaly-alert" style="display:none; background:#fee2e2; border:1px solid #fca5a5; border-radius:8px; padding:1rem; margin-bottom:1.5rem">
+  <h3 style="margin:0 0 .5rem; color:#dc2626">Аномалии обнаружены</h3>
+  <div id="anomaly-details" style="font-size:.85rem"></div>
+</div>
+
+<!-- Sessions history -->
+<div class="card" style="margin-bottom:1.5rem">
+  <h3 style="margin:0 0 1rem">История анализов</h3>
+  {% if sessions %}
+  <table style="font-size:.85rem">
+    <thead><tr><th>Название</th><th>Источник</th><th>Визиты</th><th>Боты</th><th>Аномалии</th><th>Период</th></tr></thead>
+    <tbody>
+      {% for s in sessions %}
+      <tr>
+        <td>{{ s.name }}</td>
+        <td><span class="badge" style="background:#f3f4f6;color:#6b7280">{{ s.source_type }}</span></td>
+        <td>{{ s.total_visits }}</td>
+        <td style="{% if s.bot_visits > 0 %}color:#dc2626; font-weight:600{% endif %}">{{ s.bot_visits }}</td>
+        <td>
+          {% if s.anomaly_detected %}<span style="color:#dc2626; font-weight:600">Да</span>
+          {% else %}<span style="color:#059669">Нет</span>{% endif %}
+        </td>
+        <td style="font-size:.8rem">{{ s.period_start }} — {{ s.period_end }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p style="color:#6b7280; text-align:center">Нет анализов. Запустите анализ Метрики или загрузите access.log.</p>
+  {% endif %}
+</div>
+
+<!-- Chart placeholder -->
+<div class="card" style="margin-bottom:1.5rem">
+  <h3 style="margin:0 0 1rem">Timeline трафика</h3>
+  <canvas id="traffic-chart" style="height:300px"></canvas>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0"></script>
+<script>
+const SITE_ID = '{{ site.id }}';
+
+async function analyzeMetrika() {
+  const from = document.getElementById('metrika-from').value;
+  const to = document.getElementById('metrika-to').value;
+  if (!from || !to) { alert('Выберите даты'); return; }
+  const resp = await fetch(`/traffic-analysis/${SITE_ID}/analyze-metrika`, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({date_from:from, date_to:to})
+  });
+  const data = await resp.json();
+  const el = document.getElementById('analysis-status');
+  if (data.error) { el.innerHTML = `<span style="color:#dc2626">${data.error}</span>`; return; }
+  el.innerHTML = `<span style="color:#059669">Визитов: ${data.total_visits}, аномалии: ${data.anomaly_detected ? 'Да' : 'Нет'}</span>`;
+  if (data.anomaly_detected) {
+    document.getElementById('anomaly-alert').style.display = '';
+    document.getElementById('anomaly-details').innerHTML = data.anomaly_days.map(d =>
+      `<div>${d.date}: ${d.visits} визитов (ожидалось ~${d.expected}, отклонение ${d.deviation}σ)</div>`
+    ).join('');
+  }
+  setTimeout(() => location.reload(), 2000);
+}
+
+async function uploadLog() {
+  const form = document.getElementById('log-form');
+  const resp = await fetch(`/traffic-analysis/${SITE_ID}/upload-log`, {method:'POST', body: new FormData(form)});
+  const data = await resp.json();
+  const el = document.getElementById('analysis-status');
+  if (data.error) { el.innerHTML = `<span style="color:#dc2626">${data.error}</span>`; return; }
+  el.innerHTML = `<span style="color:#059669">Записей: ${data.total}, ботов: ${data.bots}, людей: ${data.humans}</span>`;
+  setTimeout(() => location.reload(), 2000);
+}
+</script>
+{% endblock %}
