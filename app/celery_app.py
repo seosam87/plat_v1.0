@@ -33,6 +33,7 @@ celery_app.conf.update(
     worker_prefetch_multiplier=1,
     task_routes={
         "app.tasks.crawl_tasks.*": {"queue": "crawl"},
+        "app.tasks.position_tasks.*": {"queue": "crawl"},
         "app.tasks.wp_tasks.*": {"queue": "wp"},
         "app.tasks.default_tasks.*": {"queue": "default"},
     },
