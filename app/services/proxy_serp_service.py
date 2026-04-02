@@ -1,4 +1,4 @@
-"""Proxy-enabled SERP parser: Playwright + proxy rotation + anticaptcha."""
+"""Proxy-enabled SERP parser: Playwright + proxy rotation + rucaptcha."""
 from __future__ import annotations
 
 from loguru import logger
@@ -132,7 +132,7 @@ async def _solve_captcha(page) -> bool:
             # Send to anticaptcha
             async with httpx.AsyncClient(timeout=60) as client:
                 resp = await client.post(
-                    "https://api.anti-captcha.com/createTask",
+                    "https://api.rucaptcha.com/createTask",
                     json={
                         "clientKey": settings.ANTICAPTCHA_KEY,
                         "task": {
@@ -151,7 +151,7 @@ async def _solve_captcha(page) -> bool:
                 for _ in range(30):
                     await asyncio.sleep(2)
                     result = await client.post(
-                        "https://api.anti-captcha.com/getTaskResult",
+                        "https://api.rucaptcha.com/getTaskResult",
                         json={"clientKey": settings.ANTICAPTCHA_KEY, "taskId": task_id},
                     )
                     result_data = result.json()
