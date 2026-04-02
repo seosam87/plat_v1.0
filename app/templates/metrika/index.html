@@ -206,7 +206,7 @@
 <script>
 // ── Data from server ──────────────────────────────────────────────────────
 const dailyData = {{ daily_data | tojson }};
-const eventsData = {{ events | tojson(default=str) }};
+const eventsData = {{ events | tojson }};
 const siteId = "{{ site.id }}";
 
 // ── Build Chart.js annotation objects from events ─────────────────────────
