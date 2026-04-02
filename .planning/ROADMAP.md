@@ -138,6 +138,18 @@ Plans:
 - [x] 06-02: Position writer service — stores DataForSEO/GSC/Yandex results into `keyword_positions`; delta computation vs. previous check; Celery Beat schedule for automated checks
 - [x] 06-03: Position table UI — keyword + position + delta arrow + colour indicator + URL + engine/geo/device columns; filter controls (top-N / engine / region / cluster); 90-day Chart.js chart per keyword; Telegram alert task (configurable drop threshold, retry=3)
 
+### Phase 06.1: Proxy Management & XMLProxy Integration (INSERTED)
+
+**Goal:** Admin can manage a proxy pool, configure XMLProxy.ru and rucaptcha.com credentials from the UI, and Yandex position checks run through XMLProxy with automatic retry and balance monitoring.
+**Requirements**: PROXY-01, PROXY-02, PROXY-03, PROXY-04, PROXY-05, PROXY-06, PROXY-07, PROXY-08, PROXY-09, PROXY-10, PROXY-11, PROXY-12, PROXY-13, PROXY-14
+**Depends on:** Phase 6
+**Plans:** 3 plans
+
+Plans:
+- [ ] 06.1-01-PLAN.md — DB models (Proxy, ServiceCredential, Site.yandex_region), Alembic migration, XMLProxy/proxy-health/credential services, unit tests
+- [ ] 06.1-02-PLAN.md — Admin UI: proxy CRUD, XMLProxy/rucaptcha/anticaptcha credential forms, balance widgets, check-all button, site yandex_region field
+- [ ] 06.1-03-PLAN.md — Position pipeline: XMLProxy integration for Yandex keywords, engine split, retry on -55, balance guard, Telegram alerts, rucaptcha URL swap
+
 ### Phase 7: Semantics
 **Goal**: User can cluster keywords manually or via SERP intersection, map clusters to target pages, see cannibalization warnings, export the full keyword list, and have the system auto-create tasks for keywords with no mapped page.
 **Depends on**: Phase 6
@@ -232,7 +244,7 @@ Plans:
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10 → 11
+Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 6.1 → 7 → 8 → 9 → 10 → 11
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -242,6 +254,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 4. Crawl Scheduling | 0/3 | Not started | - |
 | 5. Keyword Import | 0/4 | Not started | - |
 | 6. Position Tracking | 0/3 | Not started | - |
+| 6.1 Proxy & XMLProxy | 0/3 | Not started | - |
 | 7. Semantics | 0/3 | Not started | - |
 | 8. WP Pipeline | 0/4 | Not started | - |
 | 9. Projects & Tasks | 0/3 | Not started | - |
