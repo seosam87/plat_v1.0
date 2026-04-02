@@ -39,6 +39,17 @@ class ContentType(str, PyEnum):
     unknown = "unknown"
 
 
+class ArchitectureRole(str, PyEnum):
+    pillar = "pillar"
+    service = "service"
+    subservice = "subservice"
+    article = "article"
+    trigger = "trigger"
+    authority = "authority"
+    link_accelerator = "link_accelerator"
+    unknown = "unknown"
+
+
 class CrawlJob(Base):
     __tablename__ = "crawl_jobs"
 
@@ -93,6 +104,10 @@ class Page(Base):
     )
     content_type: Mapped[ContentType] = mapped_column(
         SAEnum(ContentType), nullable=False, default=ContentType.unknown
+    )
+    source: Mapped[str] = mapped_column(String(20), nullable=False, default="crawl")
+    architecture_role: Mapped[ArchitectureRole] = mapped_column(
+        SAEnum(ArchitectureRole), nullable=False, default=ArchitectureRole.unknown
     )
     has_toc: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     has_schema: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
