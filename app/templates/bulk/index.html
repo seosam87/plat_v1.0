@@ -1,83 +1,91 @@
 {% extends "base.html" %}
 {% block title %}Массовые операции — {{ site.name }} — SEO Platform{% endblock %}
 {% block content %}
-<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem">
-  <h2 style="margin:0">Массовые операции: {{ site.name }}</h2>
+<div class="flex justify-between items-center mb-6">
+  <h2 class="text-lg font-semibold text-gray-800 m-0">Массовые операции: {{ site.name }}</h2>
   <a href="/ui/sites/{{ site.id }}" class="btn btn-sm">&larr; К сайту</a>
 </div>
 
 <!-- Actions bar -->
-<div class="card" style="margin-bottom:1rem; padding:.75rem; display:flex; gap:.5rem; flex-wrap:wrap; align-items:center">
-  <span id="selected-count" style="font-weight:600; min-width:100px">Выбрано: 0</span>
-  <select id="action-group" style="padding:.3rem .5rem; border:1px solid #d1d5db; border-radius:4px; font-size:.85rem">
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 px-3 py-2 mb-4 flex gap-2 flex-wrap items-center">
+  <span id="selected-count" class="font-semibold min-w-[100px]">Выбрано: 0</span>
+  <select id="action-group" class="px-2 py-1 border border-gray-300 rounded text-sm bg-white">
     <option value="">Группа...</option>
     {% for g in filter_options.groups %}<option value="{{ g.id }}">{{ g.name }}</option>{% endfor %}
   </select>
   <button class="btn btn-sm" onclick="moveToGroup()">В группу</button>
-  <select id="action-cluster" style="padding:.3rem .5rem; border:1px solid #d1d5db; border-radius:4px; font-size:.85rem">
+  <select id="action-cluster" class="px-2 py-1 border border-gray-300 rounded text-sm bg-white">
     <option value="">Кластер...</option>
     {% for c in filter_options.clusters %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}
   </select>
   <button class="btn btn-sm" onclick="moveToCluster()">В кластер</button>
-  <input type="text" id="action-url" placeholder="Target URL..." style="padding:.3rem .5rem; border:1px solid #d1d5db; border-radius:4px; font-size:.85rem; width:200px">
-  <button class="btn btn-sm" style="background:#4f46e5;color:white" onclick="assignUrl()">Назначить URL</button>
-  <button class="btn btn-sm" style="background:#991b1b;color:white" onclick="deleteSelected()">Удалить</button>
+  <input type="text" id="action-url" placeholder="Target URL..." class="px-2 py-1 border border-gray-300 rounded text-sm w-[200px]">
+  <button class="px-2 py-1 text-xs font-medium rounded bg-indigo-600 text-white hover:bg-indigo-700" onclick="assignUrl()">Назначить URL</button>
+  <button class="px-2 py-1 text-xs font-medium rounded bg-red-800 text-white hover:bg-red-700" onclick="deleteSelected()">Удалить</button>
 </div>
 
 <!-- Filters -->
-<div class="card" style="margin-bottom:1rem; padding:.75rem">
-  <div style="display:flex; gap:.75rem; flex-wrap:wrap; align-items:center">
-    <input type="text" id="f-search" placeholder="Поиск..." style="flex:1; min-width:150px; padding:.3rem .5rem; border:1px solid #d1d5db; border-radius:4px; font-size:.85rem">
-    <input type="number" id="f-freq-min" placeholder="Част. от" style="width:80px; padding:.3rem .5rem; border:1px solid #d1d5db; border-radius:4px; font-size:.85rem">
-    <input type="number" id="f-freq-max" placeholder="Част. до" style="width:80px; padding:.3rem .5rem; border:1px solid #d1d5db; border-radius:4px; font-size:.85rem">
-    <select id="f-cluster" style="padding:.3rem .5rem; border:1px solid #d1d5db; border-radius:4px; font-size:.85rem">
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 px-3 py-2 mb-4">
+  <div class="flex gap-3 flex-wrap items-center">
+    <input type="text" id="f-search" placeholder="Поиск..." class="flex-1 min-w-[150px] px-2 py-1 border border-gray-300 rounded text-sm">
+    <input type="number" id="f-freq-min" placeholder="Част. от" class="w-[80px] px-2 py-1 border border-gray-300 rounded text-sm">
+    <input type="number" id="f-freq-max" placeholder="Част. до" class="w-[80px] px-2 py-1 border border-gray-300 rounded text-sm">
+    <select id="f-cluster" class="px-2 py-1 border border-gray-300 rounded text-sm bg-white">
       <option value="">Все кластеры</option>
       {% for c in filter_options.clusters %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}
     </select>
-    <select id="f-group" style="padding:.3rem .5rem; border:1px solid #d1d5db; border-radius:4px; font-size:.85rem">
+    <select id="f-group" class="px-2 py-1 border border-gray-300 rounded text-sm bg-white">
       <option value="">Все группы</option>
       {% for g in filter_options.groups %}<option value="{{ g.id }}">{{ g.name }}</option>{% endfor %}
     </select>
-    <button class="btn btn-sm" style="background:#4f46e5;color:white" onclick="searchKeywords()">Найти</button>
+    <button class="px-2 py-1 text-xs font-medium rounded bg-indigo-600 text-white hover:bg-indigo-700" onclick="searchKeywords()">Найти</button>
   </div>
 </div>
 
 <!-- Keywords table -->
-<div class="card" style="margin-bottom:1.5rem">
-  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:.5rem">
-    <label style="font-size:.85rem"><input type="checkbox" id="select-all" onchange="toggleAll(this.checked)"> Выбрать все</label>
-    <span id="total-count" style="font-size:.85rem; color:#6b7280"></span>
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+  <div class="flex justify-between items-center mb-2">
+    <label class="text-sm"><input type="checkbox" id="select-all" onchange="toggleAll(this.checked)"> Выбрать все</label>
+    <span id="total-count" class="text-sm text-gray-500"></span>
   </div>
-  <div style="overflow-x:auto; max-height:500px; overflow-y:auto">
-    <table id="kw-table" style="font-size:.85rem">
-      <thead><tr><th></th><th>Фраза</th><th>Частотность</th><th>Позиция</th><th>Группа</th><th>Кластер</th><th>Target URL</th></tr></thead>
-      <tbody></tbody>
+  <div class="overflow-x-auto max-h-[500px] overflow-y-auto">
+    <table id="kw-table" class="min-w-full divide-y divide-gray-200 text-sm">
+      <thead class="bg-gray-50"><tr>
+        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"></th>
+        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Фраза</th>
+        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Частотность</th>
+        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Позиция</th>
+        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Группа</th>
+        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Кластер</th>
+        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Target URL</th>
+      </tr></thead>
+      <tbody class="bg-white divide-y divide-gray-100"></tbody>
     </table>
   </div>
 </div>
 
 <!-- Export / Import -->
-<div style="display:flex; gap:1rem; margin-bottom:1.5rem; flex-wrap:wrap">
-  <div class="card" style="flex:1; min-width:250px">
-    <h3 style="margin:0 0 .75rem">Экспорт</h3>
-    <div style="display:flex; gap:.5rem">
-      <a id="export-csv" href="/bulk/{{ site.id }}/export?format=csv" class="btn" style="background:#059669;color:white" onclick="this.href=buildExportUrl('csv');return true">Экспорт CSV</a>
-      <a id="export-xlsx" href="/bulk/{{ site.id }}/export?format=xlsx" class="btn" style="background:#2563eb;color:white" onclick="this.href=buildExportUrl('xlsx');return true">Экспорт XLSX</a>
+<div class="flex gap-4 mb-6 flex-wrap">
+  <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 flex-1 min-w-[250px]">
+    <h3 class="text-base font-semibold text-gray-800 m-0 mb-3">Экспорт</h3>
+    <div class="flex gap-2">
+      <a id="export-csv" href="/bulk/{{ site.id }}/export?format=csv" class="px-3 py-1.5 text-sm font-medium rounded bg-emerald-600 text-white hover:bg-emerald-700" onclick="this.href=buildExportUrl('csv');return true">Экспорт CSV</a>
+      <a id="export-xlsx" href="/bulk/{{ site.id }}/export?format=xlsx" class="px-3 py-1.5 text-sm font-medium rounded bg-blue-600 text-white hover:bg-blue-700" onclick="this.href=buildExportUrl('xlsx');return true">Экспорт XLSX</a>
     </div>
   </div>
-  <div class="card" style="flex:1; min-width:250px">
-    <h3 style="margin:0 0 .75rem">Импорт</h3>
+  <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 flex-1 min-w-[250px]">
+    <h3 class="text-base font-semibold text-gray-800 m-0 mb-3">Импорт</h3>
     <form id="import-form" enctype="multipart/form-data">
-      <div style="display:flex; gap:.5rem; align-items:center; margin-bottom:.5rem">
+      <div class="flex gap-2 items-center mb-2">
         <input type="file" name="file" accept=".csv,.xlsx">
-        <select name="on_duplicate" style="padding:.3rem .5rem; border:1px solid #d1d5db; border-radius:4px; font-size:.85rem">
+        <select name="on_duplicate" class="px-2 py-1 border border-gray-300 rounded text-sm bg-white">
           <option value="skip">Пропустить дубли</option>
           <option value="update">Обновить дубли</option>
           <option value="replace">Заменить дубли</option>
         </select>
       </div>
-      <button type="button" class="btn" style="background:#d97706;color:white" onclick="importFile()">Импортировать</button>
-      <span id="import-status" style="font-size:.85rem; margin-left:.5rem"></span>
+      <button type="button" class="px-3 py-1.5 text-sm font-medium rounded bg-amber-600 text-white hover:bg-amber-700" onclick="importFile()">Импортировать</button>
+      <span id="import-status" class="text-sm ml-2"></span>
     </form>
   </div>
 </div>
@@ -102,7 +110,7 @@ async function searchKeywords() {
   selectedIds.clear();
   for (const kw of data.items) {
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td><input type="checkbox" class="kw-cb" data-id="${kw.id}" onchange="this.checked?selectedIds.add(this.dataset.id):selectedIds.delete(this.dataset.id);updateCount()"></td><td>${kw.phrase}</td><td>${kw.frequency||'—'}</td><td>${kw.latest_position||'—'}</td><td>${kw.group_name||'—'}</td><td>${kw.cluster_name||'—'}</td><td style="max-width:150px;overflow:hidden;text-overflow:ellipsis">${kw.target_url||'—'}</td>`;
+    tr.innerHTML = `<td class="px-3 py-2"><input type="checkbox" class="kw-cb" data-id="${kw.id}" onchange="this.checked?selectedIds.add(this.dataset.id):selectedIds.delete(this.dataset.id);updateCount()"></td><td class="px-3 py-2">${kw.phrase}</td><td class="px-3 py-2">${kw.frequency||'—'}</td><td class="px-3 py-2">${kw.latest_position||'—'}</td><td class="px-3 py-2">${kw.group_name||'—'}</td><td class="px-3 py-2">${kw.cluster_name||'—'}</td><td class="px-3 py-2 max-w-[150px] overflow-hidden text-ellipsis">${kw.target_url||'—'}</td>`;
     tbody.appendChild(tr);
   }
   updateCount();
@@ -148,7 +156,7 @@ async function importFile() {
   const form = document.getElementById('import-form');
   const resp = await fetch(`/bulk/${SITE_ID}/import`, {method:'POST', body: new FormData(form)});
   const data = await resp.json();
-  document.getElementById('import-status').innerHTML = `<span style="color:#059669">Добавлено: ${data.added}, обновлено: ${data.updated}, пропущено: ${data.skipped}</span>`;
+  document.getElementById('import-status').innerHTML = `<span class="text-emerald-600">Добавлено: ${data.added}, обновлено: ${data.updated}, пропущено: ${data.skipped}</span>`;
 }
 
 searchKeywords();
