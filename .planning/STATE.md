@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed v3-06-02-PLAN.md
-last_updated: "2026-04-03T08:34:09.390Z"
+stopped_at: Completed v3-07-01-PLAN.md
+last_updated: "2026-04-03T08:39:30.597Z"
 last_activity: 2026-04-03
 progress:
   total_phases: 12
@@ -21,12 +21,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-31)
 
 **Core value:** A team member or client can open the platform and immediately see the SEO health of any site — positions, recent changes, pending tasks — without switching between GSC, spreadsheets, and WP admin.
-**Current focus:** Phase v3-06-site — architecture
+**Current focus:** Phase v3-07-bulk — operations
 
 ## Current Position
 
-Phase: v3-06-site
-Plan: Not started
+Phase: v3-07-bulk (operations) — EXECUTING
+Plan: 2 of 2
 Status: Ready to execute
 Last activity: 2026-04-03
 
@@ -66,6 +66,7 @@ Progress: [██░░░░░░░░] 18%
 | Phase v3-05 P03 | 5 | 3 tasks | 4 files |
 | Phase v3-06 P01 | 5 | 4 tasks | 4 files |
 | Phase v3-06 P02 | 5 | 2 tasks | 2 files |
+| Phase v3-07 P01 | 5 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -95,6 +96,7 @@ Recent decisions affecting current work:
 - [Phase v3-06]: ArchitectureRole uses native PostgreSQL ENUM for type safety (8 values: pillar, service, subservice, article, trigger, authority, link_accelerator, unknown)
 - [Phase v3-06]: SF import uses synthetic crawl_job_id (uuid4()) per import — sitemap unique constraint is (crawl_job_id, url)
 - [Phase v3-06]: save_page_links is sync (Session) for Celery task context; all other DB functions are async
+- [Phase v3-07]: bulk_service uses SQLAlchemy UPDATE/DELETE statements (not row-by-row loops) for batch operations performance
 
 ### Pending Todos
 
@@ -118,6 +120,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-03T08:26:50.186Z
-Stopped at: Completed v3-06-02-PLAN.md
+Last session: 2026-04-03T08:39:30.593Z
+Stopped at: Completed v3-07-01-PLAN.md
 Resume file: None
