@@ -1,75 +1,74 @@
 {% extends "base.html" %}
 {% block title %}Cannibalization — {{ site_name }} — SEO Platform{% endblock %}
 {% block content %}
-<div class="card">
-  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem">
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+  <div class="flex justify-between items-center mb-6">
     <div>
-      <h2 style="margin:0; display:inline">Cannibalization: {{ site_name }}</h2>
-      <span style="color:#6b7280; margin-left:1rem">{{ results | length }} keywords affected</span>
+      <h2 class="text-lg font-semibold text-gray-800 inline">Cannibalization: {{ site_name }}</h2>
+      <span class="text-gray-500 ml-4">{{ results | length }} keywords affected</span>
     </div>
     <a href="/ui/clusters/{{ site_id }}" class="btn btn-sm">&larr; Back to Clusters</a>
   </div>
 
   {% if results %}
-  <p style="color:#6b7280; font-size:.85rem; margin-bottom:1rem">
+  <p class="text-gray-500 text-sm mb-4">
     Keywords below have 2+ different pages ranking in top-100. This can dilute SEO authority.
     Choose a resolution action for each keyword to create an action plan.
   </p>
-  <table>
-    <thead>
+  <table class="min-w-full divide-y divide-gray-200">
+    <thead class="bg-gray-50">
       <tr>
-        <th>Keyword</th>
-        <th>Competing Pages</th>
-        <th>Resolve</th>
+        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Keyword</th>
+        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Competing Pages</th>
+        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Resolve</th>
       </tr>
     </thead>
-    <tbody>
+    <tbody class="divide-y divide-gray-200 bg-white">
       {% for r in results %}
       <tr id="row-{{ loop.index }}">
-        <td style="font-weight:500">{{ r.phrase }}</td>
-        <td>
+        <td class="px-3 py-2 font-medium">{{ r.phrase }}</td>
+        <td class="px-3 py-2">
           {% for page in r.pages %}
-          <div style="margin-bottom:.3rem">
-            <span class="badge {% if page.position <= 10 %}badge-connected{% elif page.position <= 30 %}badge-unknown{% else %}badge-failed{% endif %}"
-              style="min-width:40px; text-align:center">{{ page.position }}</span>
-            <a href="{{ page.url }}" target="_blank" style="margin-left:.5rem; font-size:.85rem">{{ page.url }}</a>
+          <div class="mb-1">
+            <span class="inline-flex items-center justify-center px-2 py-0.5 rounded text-xs font-medium min-w-[40px] {% if page.position <= 10 %}bg-emerald-50 text-emerald-700{% elif page.position <= 30 %}bg-gray-100 text-gray-600{% else %}bg-red-50 text-red-700{% endif %}">{{ page.position }}</span>
+            <a href="{{ page.url }}" target="_blank" class="ml-2 text-sm text-indigo-500 hover:underline">{{ page.url }}</a>
           </div>
           {% endfor %}
         </td>
-        <td style="min-width:300px">
+        <td class="px-3 py-2 min-w-[300px]">
           <form
             hx-post="/clusters/sites/{{ site_id }}/cannibalization/resolve"
             hx-target="#resolution-history"
             hx-swap="beforeend"
-            style="display:flex; flex-direction:column; gap:.5rem"
+            class="flex flex-col gap-2"
           >
             <input type="hidden" name="keyword" value="{{ r.phrase }}">
             {% for page in r.pages %}
             <input type="hidden" name="urls" value="{{ page.url }}">
             {% endfor %}
 
-            <label style="font-size:.8rem; color:#6b7280">Основная страница:</label>
-            <select name="primary_url" style="padding:.3rem; border:1px solid #d1d5db; border-radius:4px; font-size:.85rem">
+            <label class="text-xs text-gray-500">Основная страница:</label>
+            <select name="primary_url" class="px-2 py-1 border border-gray-300 rounded text-sm">
               {% for page in r.pages %}
               <option value="{{ page.url }}">{{ page.url }}</option>
               {% endfor %}
             </select>
 
-            <div style="display:flex; gap:.4rem; flex-wrap:wrap">
+            <div class="flex gap-1.5 flex-wrap">
               <button type="submit" name="resolution_type" value="merge_content"
-                class="btn btn-sm" style="background:#3b82f6; color:#fff; border:none; cursor:pointer">
+                class="px-2 py-1 text-xs font-medium rounded bg-blue-500 text-white hover:bg-blue-600 border-none cursor-pointer">
                 Объединить
               </button>
               <button type="submit" name="resolution_type" value="set_canonical"
-                class="btn btn-sm" style="background:#8b5cf6; color:#fff; border:none; cursor:pointer">
+                class="px-2 py-1 text-xs font-medium rounded bg-violet-500 text-white hover:bg-violet-600 border-none cursor-pointer">
                 Canonical
               </button>
               <button type="submit" name="resolution_type" value="redirect_301"
-                class="btn btn-sm" style="background:#f59e0b; color:#fff; border:none; cursor:pointer">
+                class="px-2 py-1 text-xs font-medium rounded bg-amber-500 text-white hover:bg-amber-600 border-none cursor-pointer">
                 301 Redirect
               </button>
               <button type="submit" name="resolution_type" value="split_keywords"
-                class="btn btn-sm" style="background:#10b981; color:#fff; border:none; cursor:pointer">
+                class="px-2 py-1 text-xs font-medium rounded bg-emerald-500 text-white hover:bg-emerald-600 border-none cursor-pointer">
                 Разнести ключи
               </button>
             </div>
@@ -80,14 +79,14 @@
     </tbody>
   </table>
   {% else %}
-  <p style="color:#059669; font-weight:500">No cannibalization detected. Each keyword has at most one ranking page.</p>
+  <p class="text-emerald-600 font-medium">No cannibalization detected. Each keyword has at most one ranking page.</p>
   {% endif %}
 </div>
 
 <!-- Resolution history section -->
-<div class="card" style="margin-top:1.5rem">
-  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem">
-    <h3 style="margin:0">История решений</h3>
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mt-6">
+  <div class="flex justify-between items-center mb-4">
+    <h3 class="text-base font-semibold text-gray-800 m-0">История решений</h3>
     <button
       hx-get="/clusters/sites/{{ site_id }}/cannibalization/resolutions"
       hx-target="#resolution-history"
@@ -100,26 +99,18 @@
   <div id="resolution-history">
     {% if resolutions %}
     {% for res in resolutions %}
-    <div class="card" style="margin-bottom:1rem; border-left:4px solid
-      {% if res.status == 'resolved' %}#10b981
-      {% elif res.status == 'in_progress' %}#3b82f6
-      {% elif res.status == 'rejected' %}#ef4444
-      {% else %}#6b7280{% endif %}">
-      <div style="display:flex; justify-content:space-between; align-items:start">
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-4 {% if res.status == 'resolved' %}border-l-4 border-l-emerald-500{% elif res.status == 'in_progress' %}border-l-4 border-l-blue-500{% elif res.status == 'rejected' %}border-l-4 border-l-red-500{% else %}border-l-4 border-l-gray-400{% endif %}">
+      <div class="flex justify-between items-start">
         <div>
           <strong>{{ res.keyword_phrase }}</strong>
-          <span class="badge" style="margin-left:.5rem; background:
-            {% if res.status == 'resolved' %}#d1fae5; color:#065f46
-            {% elif res.status == 'in_progress' %}#dbeafe; color:#1e40af
-            {% elif res.status == 'rejected' %}#fee2e2; color:#991b1b
-            {% else %}#f3f4f6; color:#374151{% endif %}">
+          <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ml-2 {% if res.status == 'resolved' %}bg-emerald-50 text-emerald-700{% elif res.status == 'in_progress' %}bg-blue-50 text-blue-700{% elif res.status == 'rejected' %}bg-red-50 text-red-700{% else %}bg-gray-100 text-gray-600{% endif %}">
             {{ res.status }}
           </span>
-          <span class="badge" style="margin-left:.3rem; background:#ede9fe; color:#5b21b6">
+          <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ml-1.5 bg-violet-50 text-violet-700">
             {{ res.resolution_type }}
           </span>
         </div>
-        <div style="display:flex; gap:.4rem">
+        <div class="flex gap-1.5">
           <button
             hx-post="/clusters/cannibalization/resolutions/{{ res.id }}/check"
             hx-target="#check-result-{{ loop.index }}"
@@ -140,23 +131,23 @@
             hx-vals='{"status": "resolved"}'
             hx-target="closest .card"
             hx-swap="outerHTML"
-            class="btn btn-sm" style="background:#10b981; color:#fff; border:none; cursor:pointer">
+            class="px-2 py-1 text-xs font-medium rounded bg-emerald-500 text-white hover:bg-emerald-600">
             Решено
           </button>
         </div>
       </div>
-      <div style="margin-top:.5rem; font-size:.8rem; color:#6b7280">
+      <div class="mt-2 text-xs text-gray-500">
         Основная страница: <a href="{{ res.primary_url }}" target="_blank">{{ res.primary_url }}</a>
       </div>
-      <details style="margin-top:.5rem">
-        <summary style="cursor:pointer; font-size:.85rem; color:#3b82f6">Показать план действий</summary>
-        <pre style="margin-top:.5rem; font-size:.8rem; white-space:pre-wrap; background:#f9fafb; padding:.75rem; border-radius:4px">{{ res.action_plan }}</pre>
+      <details class="mt-2">
+        <summary class="cursor-pointer text-sm text-blue-500">Показать план действий</summary>
+        <pre class="mt-2 text-xs whitespace-pre-wrap bg-gray-50 p-3 rounded">{{ res.action_plan }}</pre>
       </details>
-      <div id="check-result-{{ loop.index }}" style="margin-top:.3rem; font-size:.8rem"></div>
+      <div id="check-result-{{ loop.index }}" class="mt-1 text-xs"></div>
     </div>
     {% endfor %}
     {% else %}
-    <p style="color:#6b7280; font-size:.85rem">Планов решения пока нет. Выберите действие для ключевого слова выше.</p>
+    <p class="text-gray-500 text-sm">Планов решения пока нет. Выберите действие для ключевого слова выше.</p>
     {% endif %}
   </div>
 </div>
