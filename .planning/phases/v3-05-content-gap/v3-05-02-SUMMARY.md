@@ -105,6 +105,13 @@ None - no external service configuration required.
 - Gap service layer complete; ready for Plan 03 (gap router, UI endpoints, and site detail integration)
 - All scoring and import functions are pure or async — easily testable in router integration tests
 
+## Self-Check: PASSED
+
+- FOUND: app/services/gap_service.py
+- FOUND: app/parsers/gap_parser.py
+- FOUND: tests/test_gap_service.py
+- FOUND: commit de9bfa5 (feat(v3-05-02))
+
 ---
 *Phase: v3-05-content-gap*
 *Completed: 2026-04-03*
