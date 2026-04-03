@@ -4,24 +4,24 @@
 <div class="breadcrumbs"><a href="/ui/dashboard">Dashboard</a><span>&rsaquo;</span><a href="/ui/sites">Sites</a><span>&rsaquo;</span><a href="/ui/sites/{{ site.id }}">{{ site.name }}</a><span>&rsaquo;</span>Content Publisher</div>
 {% endblock %}
 {% block content %}
-<div class="card" style="margin-bottom:1.5rem">
-  <h2 style="margin:0 0 1rem">Content Publisher: {{ site.name }}</h2>
-  <p style="color:#6b7280;margin-bottom:1.5rem">Upload .docx files to convert to HTML with TOC and schema.org, then publish to WordPress.</p>
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+  <h2 class="text-lg font-semibold text-gray-800 m-0 mb-4">Content Publisher: {{ site.name }}</h2>
+  <p class="text-gray-500 mb-6">Upload .docx files to convert to HTML with TOC and schema.org, then publish to WordPress.</p>
 
   <!-- Upload form -->
   <form method="post" action="/ui/content-publish/{{ site.id }}/upload" enctype="multipart/form-data"
-        style="display:flex;gap:1rem;align-items:end;flex-wrap:wrap;margin-bottom:1.5rem;padding:1.5rem;background:#f9fafb;border-radius:8px;border:1px dashed #d1d5db">
+        class="flex gap-4 items-end flex-wrap mb-6 p-6 bg-gray-50 rounded-lg border border-dashed border-gray-300">
     <div>
-      <label style="display:block;font-size:.85rem;color:#6b7280;margin-bottom:.3rem">DOCX File</label>
+      <label class="block text-sm text-gray-500 mb-1">DOCX File</label>
       <input type="file" name="file" accept=".docx" required>
     </div>
     <div>
-      <label style="display:block;font-size:.85rem;color:#6b7280;margin-bottom:.3rem">Author</label>
-      <input type="text" name="author" value="Author" style="padding:.4rem .6rem;border:1px solid #d1d5db;border-radius:4px">
+      <label class="block text-sm text-gray-500 mb-1">Author</label>
+      <input type="text" name="author" value="Author" class="px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-indigo-500 focus:border-indigo-500">
     </div>
     <div>
-      <label style="display:block;font-size:.85rem;color:#6b7280;margin-bottom:.3rem">Post Type</label>
-      <select name="post_type" style="padding:.4rem .6rem;border:1px solid #d1d5db;border-radius:4px">
+      <label class="block text-sm text-gray-500 mb-1">Post Type</label>
+      <select name="post_type" class="px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-indigo-500 focus:border-indigo-500">
         {% if post_types %}
           {% for pt in post_types %}
           <option value="{{ pt.rest_base }}">{{ pt.name }}</option>
@@ -33,67 +33,67 @@
       </select>
     </div>
     <div>
-      <label style="display:block;font-size:.85rem;color:#6b7280;margin-bottom:.3rem">Post Status</label>
-      <select name="wp_status" style="padding:.4rem .6rem;border:1px solid #d1d5db;border-radius:4px">
+      <label class="block text-sm text-gray-500 mb-1">Post Status</label>
+      <select name="wp_status" class="px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-indigo-500 focus:border-indigo-500">
         <option value="draft">Draft</option>
         <option value="publish">Publish</option>
       </select>
     </div>
-    <button type="submit" class="btn btn-primary" style="height:fit-content">Upload & Process</button>
+    <button type="submit" class="btn btn-primary">Upload & Process</button>
   </form>
 
   {% if error %}
-  <div style="color:#dc2626;background:#fef2f2;padding:.8rem;border-radius:6px;margin-bottom:1.5rem">{{ error }}</div>
+  <div class="text-red-600 bg-red-50 p-3 rounded-md mb-6">{{ error }}</div>
   {% endif %}
 </div>
 
 {% if preview %}
 <!-- Preview section -->
-<div class="card" style="margin-bottom:1.5rem">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
-    <h3 style="margin:0">Preview: {{ preview.title }}</h3>
-    <div style="display:flex;gap:.5rem">
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+  <div class="flex justify-between items-center mb-4">
+    <h3 class="text-base font-semibold m-0">Preview: {{ preview.title }}</h3>
+    <div>
       <form method="post" action="/ui/content-publish/{{ site.id }}/publish">
         <input type="hidden" name="job_id" value="{{ preview.job_id }}">
         <input type="hidden" name="wp_status" value="{{ preview.wp_status }}">
         <input type="hidden" name="post_type" value="{{ preview.post_type }}">
-        <button type="submit" class="btn" style="background:#059669;color:white">Publish to WordPress</button>
+        <button type="submit" class="px-3 py-1.5 text-sm font-medium rounded bg-emerald-600 text-white hover:bg-emerald-700">Publish to WordPress</button>
       </form>
     </div>
   </div>
 
   <!-- Stats -->
-  <div style="display:flex;gap:1.5rem;margin-bottom:1rem;font-size:.85rem;color:#6b7280">
+  <div class="flex gap-6 mb-4 text-sm text-gray-500">
     <span>Headings: <strong>{{ preview.heading_count }}</strong></span>
-    <span>TOC: {% if preview.heading_count > 0 %}<strong style="color:#059669">Added</strong>{% else %}<strong style="color:#dc2626">No headings found</strong>{% endif %}</span>
-    <span>Schema: <strong style="color:#059669">Article</strong></span>
+    <span>TOC: {% if preview.heading_count > 0 %}<strong class="text-emerald-600">Added</strong>{% else %}<strong class="text-red-600">No headings found</strong>{% endif %}</span>
+    <span>Schema: <strong class="text-emerald-600">Article</strong></span>
     <span>Internal links: <strong>{{ preview.link_count }}</strong></span>
   </div>
 
   <!-- Tabs -->
-  <div style="display:flex;gap:0;margin-bottom:1rem;border-bottom:2px solid #e5e7eb">
-    <button onclick="showTab('rendered')" id="tab-rendered" class="btn" style="border-radius:4px 4px 0 0;border-bottom:2px solid #4f46e5;margin-bottom:-2px;background:white;color:#4f46e5;font-weight:600">Rendered</button>
-    <button onclick="showTab('html')" id="tab-html" class="btn" style="border-radius:4px 4px 0 0;background:#f9fafb;color:#6b7280;margin-bottom:-2px">HTML Source</button>
-    <button onclick="showTab('schema')" id="tab-schema" class="btn" style="border-radius:4px 4px 0 0;background:#f9fafb;color:#6b7280;margin-bottom:-2px">Schema.org</button>
+  <div class="flex gap-0 mb-4 border-b-2 border-gray-200">
+    <button onclick="showTab('rendered')" id="tab-rendered" class="tab-btn px-4 py-2 text-sm rounded-t border-b-2 border-indigo-600 -mb-0.5 bg-white text-indigo-600 font-semibold cursor-pointer">Rendered</button>
+    <button onclick="showTab('html')" id="tab-html" class="tab-btn px-4 py-2 text-sm rounded-t bg-gray-50 text-gray-500 -mb-0.5 cursor-pointer hover:text-gray-700">HTML Source</button>
+    <button onclick="showTab('schema')" id="tab-schema" class="tab-btn px-4 py-2 text-sm rounded-t bg-gray-50 text-gray-500 -mb-0.5 cursor-pointer hover:text-gray-700">Schema.org</button>
   </div>
 
-  <div id="panel-rendered" style="max-height:600px;overflow-y:auto;padding:1rem;border:1px solid #e5e7eb;border-radius:4px;background:white;line-height:1.7">
+  <div id="panel-rendered" class="max-h-[600px] overflow-y-auto p-4 border border-gray-200 rounded bg-white leading-relaxed">
     {{ preview.enriched_html | safe }}
   </div>
-  <div id="panel-html" style="display:none;max-height:600px;overflow-y:auto">
-    <pre style="background:#1a1a2e;color:#e5e7eb;padding:1rem;border-radius:4px;font-size:.8rem;white-space:pre-wrap;word-break:break-all">{{ preview.enriched_html | e }}</pre>
+  <div id="panel-html" class="hidden max-h-[600px] overflow-y-auto">
+    <pre class="bg-gray-900 text-gray-200 p-4 rounded text-xs whitespace-pre-wrap break-all">{{ preview.enriched_html | e }}</pre>
   </div>
-  <div id="panel-schema" style="display:none;max-height:600px;overflow-y:auto">
-    <pre style="background:#1a1a2e;color:#e5e7eb;padding:1rem;border-radius:4px;font-size:.85rem;white-space:pre-wrap">{{ preview.schema_json }}</pre>
+  <div id="panel-schema" class="hidden max-h-[600px] overflow-y-auto">
+    <pre class="bg-gray-900 text-gray-200 p-4 rounded text-sm whitespace-pre-wrap">{{ preview.schema_json }}</pre>
   </div>
 </div>
 {% endif %}
 
 <!-- Recent jobs -->
 {% if jobs %}
-<div class="card">
-  <h3 style="margin:0 0 1rem">Recent Published Content</h3>
-  <table>
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+  <h3 class="text-base font-semibold m-0 mb-4">Recent Published Content</h3>
+  <table class="min-w-full divide-y divide-gray-200">
     <thead>
       <tr><th>Title</th><th>Type</th><th>Status</th><th>Headings</th><th>TOC</th><th>WP Post ID</th><th>Created</th><th></th></tr>
     </thead>
@@ -101,17 +101,21 @@
       {% for j in jobs %}
       <tr>
         <td>{{ j.title }}</td>
-        <td style="font-size:.85rem">{{ j.post_type or 'posts' }}</td>
+        <td class="text-sm">{{ j.post_type or 'posts' }}</td>
         <td>
-          <span class="badge {% if j.status == 'pushed' %}badge-connected{% elif j.status == 'failed' %}badge-failed{% else %}badge-unknown{% endif %}">
-            {{ j.status }}
-          </span>
+          {% if j.status == 'pushed' %}
+          <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-700">{{ j.status }}</span>
+          {% elif j.status == 'failed' %}
+          <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700">{{ j.status }}</span>
+          {% else %}
+          <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700">{{ j.status }}</span>
+          {% endif %}
         </td>
-        <td style="text-align:center">{{ j.heading_count or 0 }}</td>
-        <td style="text-align:center">{% if j.has_toc %}<span style="color:#059669">&#10003;</span>{% else %}<span style="color:#dc2626">&#10007;</span>{% endif %}</td>
+        <td class="text-center">{{ j.heading_count or 0 }}</td>
+        <td class="text-center">{% if j.has_toc %}<span class="text-emerald-600">&#10003;</span>{% else %}<span class="text-red-600">&#10007;</span>{% endif %}</td>
         <td>{% if j.wp_post_id %}<a href="{{ site.url }}/wp-admin/post.php?post={{ j.wp_post_id }}&action=edit" target="_blank">#{{ j.wp_post_id }}</a>{% else %}—{% endif %}</td>
-        <td style="font-size:.85rem;color:#6b7280">{{ j.created_at[:16] }}</td>
-        <td>{% if j.job_id %}<a href="/ui/content-publish/{{ site.id }}/preview/{{ j.job_id }}" class="btn btn-sm" style="font-size:.75rem">View</a>{% endif %}</td>
+        <td class="text-sm text-gray-500">{{ j.created_at[:16] }}</td>
+        <td>{% if j.job_id %}<a href="/ui/content-publish/{{ site.id }}/preview/{{ j.job_id }}" class="px-2 py-1 text-xs rounded">View</a>{% endif %}</td>
       </tr>
       {% endfor %}
     </tbody>
@@ -122,10 +126,15 @@
 <script>
 function showTab(name) {
   ['rendered','html','schema'].forEach(t => {
-    document.getElementById('panel-'+t).style.display = t===name?'block':'none';
+    const panel = document.getElementById('panel-'+t);
     const btn = document.getElementById('tab-'+t);
-    if (t===name) { btn.style.borderBottom='2px solid #4f46e5'; btn.style.color='#4f46e5'; btn.style.background='white'; btn.style.fontWeight='600'; }
-    else { btn.style.borderBottom='none'; btn.style.color='#6b7280'; btn.style.background='#f9fafb'; btn.style.fontWeight='400'; }
+    if (t===name) {
+      panel.classList.remove('hidden');
+      btn.className = 'tab-btn px-4 py-2 text-sm rounded-t border-b-2 border-indigo-600 -mb-0.5 bg-white text-indigo-600 font-semibold cursor-pointer';
+    } else {
+      panel.classList.add('hidden');
+      btn.className = 'tab-btn px-4 py-2 text-sm rounded-t bg-gray-50 text-gray-500 -mb-0.5 cursor-pointer hover:text-gray-700';
+    }
   });
 }
 </script>
