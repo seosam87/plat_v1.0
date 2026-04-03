@@ -1,24 +1,27 @@
 {% extends "base.html" %}
 {% block title %}Change Feed — Crawl {{ job.id }}{% endblock %}
 {% block content %}
-<div class="card">
-  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem">
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+  <div class="flex justify-between items-center mb-4">
     <div>
-      <h2 style="margin:0">Change Feed</h2>
-      <p style="color:#6b7280; margin:.25rem 0 0">
+      <h2 class="text-lg font-semibold text-gray-800">Change Feed</h2>
+      <p class="text-sm text-gray-500 mt-1">
         Job {{ job.id }} &middot;
         {{ job.status.value }} &middot;
         {{ job.pages_crawled }} pages
       </p>
     </div>
-    <a href="/ui/sites/{{ job.site_id }}/crawls" class="btn btn-primary">← Crawl History</a>
+    <a href="/ui/sites/{{ job.site_id }}/crawls"
+       class="inline-flex items-center px-3 py-1.5 bg-gray-100 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-200">
+      &larr; История краулов
+    </a>
   </div>
 
   <!-- Filter buttons -->
-  <div style="margin-bottom:1rem; display:flex; gap:.5rem; flex-wrap:wrap">
+  <div class="flex gap-2 flex-wrap mb-4">
     {% for f in ["all", "seo_changed", "content_changed", "new_pages", "status_changed"] %}
     <button
-      class="btn btn-sm {% if filter == f %}btn-primary{% endif %}"
+      class="px-3 py-1.5 text-sm font-medium rounded-md {% if filter == f %}bg-indigo-600 text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}"
       hx-get="/ui/crawls/{{ job.id }}?filter={{ f }}"
       hx-target="#pages-tbody"
       hx-swap="innerHTML"
@@ -27,20 +30,22 @@
     {% endfor %}
   </div>
 
-  <table>
-    <thead>
-      <tr>
-        <th>URL</th>
-        <th>Title</th>
-        <th>Status</th>
-        <th>Type</th>
-        <th>Changes</th>
-        <th>Flags</th>
-      </tr>
-    </thead>
-    <tbody id="pages-tbody">
-      {% include "crawl/feed_rows.html" %}
-    </tbody>
-  </table>
+  <div class="overflow-x-auto">
+    <table class="min-w-full divide-y divide-gray-200">
+      <thead class="bg-gray-50">
+        <tr>
+          <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">URL</th>
+          <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Title</th>
+          <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+          <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
+          <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Changes</th>
+          <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Flags</th>
+        </tr>
+      </thead>
+      <tbody id="pages-tbody" class="divide-y divide-gray-100">
+        {% include "crawl/feed_rows.html" %}
+      </tbody>
+    </table>
+  </div>
 </div>
 {% endblock %}
