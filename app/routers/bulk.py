@@ -6,7 +6,7 @@ from tempfile import NamedTemporaryFile
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse, PlainTextResponse, Response
-from fastapi.templating import Jinja2Templates
+from app.template_engine import templates
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -19,7 +19,6 @@ from app.services import analytics_service as ans
 from app.services import bulk_service as bs
 
 router = APIRouter(prefix="/bulk", tags=["bulk"])
-templates = Jinja2Templates(directory="app/templates")
 
 
 class BulkMoveGroup(BaseModel):

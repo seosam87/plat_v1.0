@@ -20,9 +20,8 @@ NAV_SECTIONS = [
         "admin_only": False,
         "children": [
             {"id": "sites-list", "label": "Список сайтов", "url": "/ui/sites"},
-            {"id": "sites-detail", "label": "Детали сайта", "url": "/ui/sites/{site_id}"},
+            {"id": "sites-detail", "label": "Детали сайта", "url": "/ui/sites/{site_id}/detail"},
             {"id": "sites-crawls", "label": "Краулы", "url": "/ui/sites/{site_id}/crawls"},
-            {"id": "sites-schedules", "label": "Расписания", "url": "/ui/sites/{site_id}#schedules"},
         ],
     },
     {
@@ -80,9 +79,9 @@ NAV_SECTIONS = [
         "children": [
             {"id": "users", "label": "Пользователи", "url": "/ui/admin/users"},
             {"id": "groups", "label": "Группы", "url": "/ui/admin/groups"},
-            {"id": "datasources", "label": "Источники данных", "url": "/ui/admin/datasources"},
-            {"id": "proxy", "label": "Прокси", "url": "/ui/admin/settings"},
-            {"id": "parameters", "label": "Параметры", "url": "/ui/admin/issues"},
+            {"id": "datasources", "label": "Источники данных", "url": "/ui/datasources"},
+            {"id": "proxy", "label": "Прокси и настройки", "url": "/ui/admin/settings"},
+            {"id": "issues", "label": "Задачи платформы", "url": "/ui/admin/issues"},
             {"id": "audit-log", "label": "Журнал аудита", "url": "/ui/admin/audit"},
         ],
     },

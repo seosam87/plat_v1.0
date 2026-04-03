@@ -3,7 +3,7 @@ import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
+from app.template_engine import templates
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -16,7 +16,6 @@ from app.services.site_service import get_site
 from app.tasks.wp_content_tasks import run_content_pipeline, push_to_wp, rollback_job
 
 router = APIRouter(prefix="/pipeline", tags=["pipeline"])
-templates = Jinja2Templates(directory="app/templates")
 
 
 class PipelineRequest(BaseModel):

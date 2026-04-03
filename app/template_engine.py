@@ -1,0 +1,106 @@
+"""Shared template engine with navigation context injection.
+
+All routers MUST import `templates` from this module instead of creating
+their own Jinja2Templates instance. This ensures sidebar, breadcrumbs,
+and active state work on every page.
+
+Usage in routers:
+    from app.template_engine import templates
+"""
+from __future__ import annotations
+
+from fastapi.templating import Jinja2Templates
+from starlette.requests import Request
+
+from app.navigation import build_sidebar_sections, resolve_nav_context
+
+_jinja_templates = Jinja2Templates(directory="app/templates")
+
+# Help module mapping: URL prefix → module name for context-sensitive help
+_HELP_MODULE_MAP = {
+    "/ui/sites": "sites",
+    "/ui/keywords": "keywords",
+    "/ui/positions": "positions",
+    "/ui/clusters": "clusters",
+    "/ui/cannibalization": "clusters",
+    "/ui/projects": "projects",
+    "/ui/pipeline": "pipeline",
+    "/ui/content-publish": "pipeline",
+    "/ui/dashboard": "reports",
+    "/ui/uploads": "keywords",
+    "/ui/tasks": "projects",
+    "/ui/admin": "admin",
+    "/ui/metrika": "metrika",
+    "/audit": "audit",
+    "/monitoring": "monitoring",
+    "/analytics": "analytics",
+    "/gap": "gap",
+    "/architecture": "architecture",
+    "/bulk": "bulk",
+    "/traffic-analysis": "traffic-analysis",
+    "/intent": "intent",
+    "/ui/competitors": "competitors",
+}
+
+
+class _NavAwareTemplates:
+    """Wrapper that auto-injects nav context + help module into every template response."""
+
+    def __init__(self, jinja_templates: Jinja2Templates):
+        self._t = jinja_templates
+
+    def TemplateResponse(self, request_or_name, name_or_context=None, context=None, **kwargs):
+        # Handle both calling conventions:
+        # New style: TemplateResponse(request, name, context)
+        # Old style: TemplateResponse(name, {"request": request, ...})
+        if isinstance(request_or_name, str):
+            # Old style: first arg is template name
+            name = request_or_name
+            ctx = dict(name_or_context or {})
+            request = ctx.get("request")
+        else:
+            # New style: first arg is request
+            request = request_or_name
+            name = name_or_context
+            ctx = dict(context or {})
+
+        if request is None:
+            return self._t.TemplateResponse(name, ctx, **kwargs)
+
+        # Inject help module
+        if "help_module" not in ctx:
+            path = str(request.url.path)
+            for prefix, module in _HELP_MODULE_MAP.items():
+                if path.startswith(prefix):
+                    ctx["help_module"] = module
+                    break
+
+        # Inject navigation context for sidebar
+        if "nav_sections" not in ctx:
+            path = str(request.url.path)
+            nav_ctx = resolve_nav_context(path)
+            ctx.update(nav_ctx)
+
+            # Selected site from cookie
+            raw = request.cookies.get("selected_site_id")
+            ctx["selected_site_id"] = raw if raw else None
+
+            # Admin check from JWT cookie
+            is_admin = False
+            try:
+                from app.auth.jwt import decode_access_token
+                token = request.cookies.get("access_token", "")
+                if token:
+                    payload = decode_access_token(token)
+                    is_admin = payload.get("role") == "admin"
+            except Exception:
+                pass
+            ctx["nav_sections"] = build_sidebar_sections(ctx["selected_site_id"], is_admin)
+
+        # Ensure request is in context for old-style Starlette rendering
+        if "request" not in ctx and request is not None:
+            ctx["request"] = request
+        return self._t.TemplateResponse(name, ctx, **kwargs)
+
+
+templates = _NavAwareTemplates(_jinja_templates)

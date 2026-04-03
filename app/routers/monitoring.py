@@ -3,7 +3,7 @@ import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
+from app.template_engine import templates
 from pydantic import BaseModel
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -16,7 +16,6 @@ from app.models.user import User
 from app.services import digest_service as ds
 
 router = APIRouter(prefix="/monitoring", tags=["monitoring"])
-templates = Jinja2Templates(directory="app/templates")
 
 
 class DigestScheduleUpdate(BaseModel):

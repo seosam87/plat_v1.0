@@ -6,7 +6,7 @@ from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
+from app.template_engine import templates
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -16,7 +16,6 @@ from app.models.crawl import CrawlJob, Page, PageSnapshot
 from app.models.user import User
 
 router = APIRouter(tags=["crawls"])
-templates = Jinja2Templates(directory="app/templates")
 
 FilterType = Literal["all", "seo_changed", "content_changed", "new_pages", "status_changed"]
 

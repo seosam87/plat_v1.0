@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI, File, Form, Request, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
+from fastapi.templating import Jinja2Templates  # still needed for type hints
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -43,77 +43,9 @@ from app.routers.intent import router as intent_router
 from app.services.schedule_service import get_all_schedules, upsert_schedule
 from app.services.site_service import get_site, get_sites
 from app.models.schedule import ScheduleType
-from app.navigation import resolve_nav_context, build_sidebar_sections
+# navigation imports moved to app.template_engine
 
-_jinja_templates = Jinja2Templates(directory="app/templates")
-
-# Map URL prefixes to help module names
-_HELP_MODULE_MAP = {
-    "/ui/sites": "sites",
-    "/ui/keywords": "keywords",
-    "/ui/positions": "positions",
-    "/ui/crawls": "crawl",
-    "/ui/clusters": "clusters",
-    "/ui/cannibalization": "clusters",
-    "/ui/pipeline": "pipeline",
-    "/ui/projects": "projects",
-    "/ui/dashboard": "reports",
-    "/ui/uploads": "keywords",
-    "/ui/tasks": "projects",
-    "/ui/admin": "admin",
-    "/ui/metrika": "metrika",
-    "/audit": "audit",
-    "/monitoring": "monitoring",
-    "/analytics": "analytics",
-    "/gap": "gap",
-    "/architecture": "architecture",
-    "/bulk": "bulk",
-    "/traffic-analysis": "traffic-analysis",
-}
-
-
-class _HelpAwareTemplates:
-    """Wrapper that auto-injects help_module into template context based on request URL."""
-
-    def __init__(self, jinja_templates: Jinja2Templates):
-        self._t = jinja_templates
-
-    def TemplateResponse(self, request, name, context=None, **kwargs):
-        ctx = dict(context or {})
-        if "help_module" not in ctx:
-            path = str(request.url.path)
-            for prefix, module in _HELP_MODULE_MAP.items():
-                if path.startswith(prefix):
-                    ctx["help_module"] = module
-                    break
-        # Inject navigation context for sidebar active states
-        if "nav_sections" not in ctx:
-            path = str(request.url.path)
-            # Resolve active nav state
-            nav_ctx = resolve_nav_context(path)
-            ctx.update(nav_ctx)
-            # Resolve selected_site_id from cookie
-            try:
-                raw = request.cookies.get("selected_site_id")
-                selected_site_id = raw if raw else None
-            except (ValueError, TypeError):
-                selected_site_id = None
-            ctx["selected_site_id"] = selected_site_id
-            # Determine if current user is admin from JWT cookie
-            is_admin = False
-            try:
-                from app.auth.jwt import decode_access_token
-                token = request.cookies.get("access_token", "")
-                if token:
-                    payload = decode_access_token(token)
-                    is_admin = payload.get("role") == "admin"
-            except Exception:
-                pass
-            ctx["nav_sections"] = build_sidebar_sections(selected_site_id, is_admin)
-        return self._t.TemplateResponse(request, name, ctx, **kwargs)
-
-
-templates = _HelpAwareTemplates(_jinja_templates)
+from app.template_engine import templates  # shared nav-aware templates
 
 
 @asynccontextmanager

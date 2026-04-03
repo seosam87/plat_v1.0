@@ -3,7 +3,7 @@ import uuid
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
+from app.template_engine import templates
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import require_admin
@@ -14,7 +14,6 @@ from app.services import upload_service, keyword_service
 from app.services.site_service import get_site
 
 router = APIRouter(prefix="/uploads", tags=["uploads"])
-templates = Jinja2Templates(directory="app/templates")
 
 
 @router.post("/sites/{site_id}")

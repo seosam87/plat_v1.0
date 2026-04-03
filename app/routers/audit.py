@@ -3,7 +3,7 @@ import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
+from app.template_engine import templates
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -20,7 +20,6 @@ from app.services import schema_service as ss
 from app.services import audit_fix_service as afs
 
 router = APIRouter(prefix="/audit", tags=["audit"])
-templates = Jinja2Templates(directory="app/templates")
 
 
 class ContentTypeUpdate(BaseModel):

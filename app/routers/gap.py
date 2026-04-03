@@ -6,7 +6,7 @@ from tempfile import NamedTemporaryFile
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
+from app.template_engine import templates
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -19,7 +19,6 @@ from app.models.user import User
 from app.services import gap_service as gs
 
 router = APIRouter(prefix="/gap", tags=["gap"])
-templates = Jinja2Templates(directory="app/templates")
 
 
 class DetectRequest(BaseModel):

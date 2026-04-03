@@ -3,7 +3,7 @@ import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, PlainTextResponse
-from fastapi.templating import Jinja2Templates
+from app.template_engine import templates
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -18,7 +18,6 @@ from app.services import brief_service as bs
 from app.services import serp_analysis_service as sas
 
 router = APIRouter(prefix="/analytics", tags=["analytics"])
-templates = Jinja2Templates(directory="app/templates")
 
 
 class SessionCreate(BaseModel):

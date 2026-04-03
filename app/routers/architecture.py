@@ -6,7 +6,7 @@ from tempfile import NamedTemporaryFile
 
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
+from app.template_engine import templates
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -20,7 +20,6 @@ from app.models.user import User
 from app.services import architecture_service as arch
 
 router = APIRouter(prefix="/architecture", tags=["architecture"])
-templates = Jinja2Templates(directory="app/templates")
 
 
 class RoleUpdate(BaseModel):

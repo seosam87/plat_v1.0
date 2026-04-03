@@ -6,7 +6,7 @@ from datetime import date, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
+from app.template_engine import templates
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -22,7 +22,6 @@ from app.tasks.metrika_tasks import fetch_metrika_data
 
 router = APIRouter(prefix="/metrika", tags=["metrika"])
 
-templates = Jinja2Templates(directory="app/templates")
 
 
 # ---------------------------------------------------------------------------

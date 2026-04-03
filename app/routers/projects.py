@@ -5,7 +5,7 @@ from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import HTMLResponse, StreamingResponse
-from fastapi.templating import Jinja2Templates
+from app.template_engine import templates
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -18,7 +18,6 @@ from app.models.task import SeoTask, TaskStatus
 from app.models.user import User
 
 router = APIRouter(prefix="/projects", tags=["projects"])
-templates = Jinja2Templates(directory="app/templates")
 
 
 # ---- Project CRUD ----
