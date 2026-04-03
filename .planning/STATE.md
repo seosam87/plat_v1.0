@@ -107,6 +107,9 @@ Recent decisions affecting current work:
 - [Phase v3-04]: SessionStatus enum uses native_enum=False (VARCHAR storage) consistent with Phase 06.1 ProxyType pattern
 - [Phase v3-04]: AnalysisSession.keyword_ids is JSON (list of UUID strings) to avoid M2M join table for ephemeral workspace sessions
 - [Phase v3-04]: ContentBrief has both session_id and site_id FKs to enable listing briefs by site without session context
+- [Phase v3-04-03]: SERP domain classification: aggregator check first, then informational domains/URL patterns, commercial as default
+- [Phase v3-04-03]: Pure functions (classify_site_type, analyze_serp_results) are synchronous for testability without DB/Celery infrastructure
+- [Phase v3-04-03]: parse_group_serp limited to 50 keywords; crawl_competitor_pages capped at 20 URLs per session
 - [Phase v3-04]: Pure functions (build_heading_structure, suggest_seo_fields, format_brief_text) separated from async DB layer in brief_service — enables fast unit tests without DB setup
 
 ### Pending Todos
