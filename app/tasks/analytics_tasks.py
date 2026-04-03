@@ -49,17 +49,18 @@ async def _check_group(session_id: str) -> dict:
             select(Keyword).where(Keyword.id.in_(kw_uuids))
         )).scalars().all()
 
-        # For each keyword, check position via DataForSEO or existing service
-        # This delegates to the existing position checking infrastructure
+        # Fetch latest positions for the session's site — reuses existing data
+        from app.services.position_service import get_latest_positions
+
+        latest = await get_latest_positions(db, session.site_id, limit=10000)
+        latest_kw_ids = {p.keyword_id for p in latest}
+
         checked = 0
         for kw in keywords:
-            try:
-                from app.services.position_service import check_single_keyword_position
-                await check_single_keyword_position(db, kw)
+            if kw.id in latest_kw_ids:
                 checked += 1
-            except (ImportError, Exception):
-                # If single-keyword check not available, skip gracefully
-                checked += 1
+            else:
+                logger.debug("No position data for keyword", phrase=kw.phrase)
 
         session.status = SessionStatus.positions_checked
         await db.commit()
@@ -115,10 +116,12 @@ async def _parse_serp(session_id: str) -> dict:
         parsed = 0
         for kw in keywords:
             try:
-                # Try Playwright SERP parser
-                from app.services.serp_parser_service import parse_serp
-                serp = await parse_serp(kw.phrase, engine=kw.engine or "yandex")
-                results = serp.get("results", [])
+                # Use sync Playwright SERP parser (runs in Celery worker with browser)
+                from app.services.serp_parser_service import parse_serp_sync
+                raw_results = await asyncio.get_event_loop().run_in_executor(
+                    None, lambda: parse_serp_sync(kw.phrase, engine=kw.engine or "yandex")
+                )
+                results = raw_results if isinstance(raw_results, list) else []
 
                 # Add domain to each result
                 for r in results:
@@ -126,7 +129,6 @@ async def _parse_serp(session_id: str) -> dict:
 
                 await sas.save_serp_results(
                     db, uuid.UUID(session_id), kw.id, kw.phrase, results,
-                    features=serp.get("features"),
                 )
                 parsed += 1
             except Exception as e:
