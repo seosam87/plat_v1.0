@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: Completed v3-05-02-PLAN.md
-last_updated: "2026-04-03T08:11:14.913Z"
+status: verifying
+stopped_at: Completed v3-05-03-PLAN.md
+last_updated: "2026-04-03T08:14:16.559Z"
 last_activity: 2026-04-03
 progress:
   total_phases: 12
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-03-31)
 
 Phase: v3-05-content (gap) — EXECUTING
 Plan: 3 of 3
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-04-03
 
 Progress: [██░░░░░░░░] 18%
@@ -63,6 +63,7 @@ Progress: [██░░░░░░░░] 18%
 | Phase v3-04 P07 | 3 | 2 tasks | 3 files |
 | Phase v3-05 P01 | 3 | 3 tasks | 3 files |
 | Phase v3-05 P02 | 5 | 3 tasks | 3 files |
+| Phase v3-05 P03 | 5 | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -86,6 +87,8 @@ Recent decisions affecting current work:
 - [Phase v3-05-01]: GapProposal.content_plan_item_id FK SET NULL so deleting content plan items doesn't cascade-delete proposals
 - [Phase v3-05]: SCORE_FORMULA_DESCRIPTION constant in gap_service for UI tooltip display
 - [Phase v3-05]: gap_parser uses find_column() for multi-format auto-detection (keys.so, Topvisor, generic)
+- [Phase v3-05-03]: Gap router uses /gap/{site_id} prefix (not /gap/sites/{site_id}) for consistency with audit/monitoring pattern
+- [Phase v3-05-03]: score-formula endpoint at /gap/score-formula (no site_id) since formula is global
 
 ### Pending Todos
 
@@ -109,6 +112,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-03T08:11:14.909Z
-Stopped at: Completed v3-05-02-PLAN.md
+Last session: 2026-04-03T08:14:16.555Z
+Stopped at: Completed v3-05-03-PLAN.md
 Resume file: None
