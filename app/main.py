@@ -43,6 +43,7 @@ from app.routers.intent import router as intent_router
 from app.services.schedule_service import get_all_schedules, upsert_schedule
 from app.services.site_service import get_site, get_sites
 from app.models.schedule import ScheduleType
+from app.navigation import resolve_nav_context, build_sidebar_sections
 
 _jinja_templates = Jinja2Templates(directory="app/templates")
 
@@ -85,6 +86,30 @@ class _HelpAwareTemplates:
                 if path.startswith(prefix):
                     ctx["help_module"] = module
                     break
+        # Inject navigation context for sidebar active states
+        if "nav_sections" not in ctx:
+            path = str(request.url.path)
+            # Resolve active nav state
+            nav_ctx = resolve_nav_context(path)
+            ctx.update(nav_ctx)
+            # Resolve selected_site_id from cookie
+            try:
+                raw = request.cookies.get("selected_site_id")
+                selected_site_id = int(raw) if raw else None
+            except (ValueError, TypeError):
+                selected_site_id = None
+            ctx["selected_site_id"] = selected_site_id
+            # Determine if current user is admin from JWT cookie
+            is_admin = False
+            try:
+                from app.auth.jwt import decode_access_token
+                token = request.cookies.get("access_token", "")
+                if token:
+                    payload = decode_access_token(token)
+                    is_admin = payload.get("role") == "admin"
+            except Exception:
+                pass
+            ctx["nav_sections"] = build_sidebar_sections(selected_site_id, is_admin)
         return self._t.TemplateResponse(request, name, ctx, **kwargs)
 
 
@@ -179,6 +204,38 @@ app.include_router(architecture_router)
 app.include_router(bulk_router)
 app.include_router(traffic_analysis_router)
 app.include_router(intent_router)
+
+
+# ---- Site selector API endpoints for nav sidebar ----
+
+@app.get("/ui/api/sites", response_class=HTMLResponse)
+async def ui_api_sites(request: Request, db: AsyncSession = Depends(get_db)) -> HTMLResponse:
+    """Return site <option> elements HTML fragment for the site selector dropdown."""
+    sites = await get_sites(db)
+    options_html = "\n".join(
+        f'<option value="{site.id}">{site.name}</option>'
+        for site in sites
+    )
+    return HTMLResponse(content=options_html)
+
+
+@app.post("/ui/api/select-site")
+async def ui_api_select_site(
+    request: Request,
+    site_id: str = Form(...),
+):
+    """Set selected_site_id cookie and return 204."""
+    from fastapi.responses import Response
+    response = Response(status_code=204)
+    response.set_cookie(
+        key="selected_site_id",
+        value=str(site_id),
+        path="/",
+        max_age=31536000,
+        samesite="lax",
+        httponly=False,
+    )
+    return response
 
 
 @app.get("/ui/sites", response_class=HTMLResponse)
