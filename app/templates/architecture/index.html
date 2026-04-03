@@ -1,89 +1,89 @@
 {% extends "base.html" %}
 {% block title %}Архитектура — {{ site.name }} — SEO Platform{% endblock %}
 {% block content %}
-<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem">
-  <h2 style="margin:0">Архитектура сайта: {{ site.name }}</h2>
+<div class="flex justify-between items-center mb-6">
+  <h2 class="m-0 text-lg font-semibold text-gray-800">Архитектура сайта: {{ site.name }}</h2>
   <a href="/ui/sites/{{ site.id }}" class="btn btn-sm">&larr; К сайту</a>
 </div>
 
 <!-- Import section -->
-<div class="card" style="margin-bottom:1.5rem">
-  <h3 style="margin:0 0 1rem">Импорт данных</h3>
-  <div style="display:flex; gap:2rem; flex-wrap:wrap">
-    <div style="flex:1; min-width:220px">
-      <h4 style="margin:0 0 .5rem; font-size:.9rem">Screaming Frog</h4>
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+  <h3 class="m-0 mb-4 text-base font-semibold">Импорт данных</h3>
+  <div class="flex gap-8 flex-wrap">
+    <div class="flex-1 min-w-[220px]">
+      <h4 class="m-0 mb-2 text-sm font-medium">Screaming Frog</h4>
       <form id="sf-form" enctype="multipart/form-data">
-        <input type="file" name="file" accept=".csv,.xlsx" style="margin-bottom:.5rem">
-        <button type="button" class="btn" style="background:#4f46e5; color:white" onclick="importSF()">Импортировать SF</button>
+        <input type="file" name="file" accept=".csv,.xlsx" class="mb-2 text-sm">
+        <button type="button" class="btn px-3 py-1.5 text-sm font-medium rounded bg-indigo-600 text-white hover:bg-indigo-700" onclick="importSF()">Импортировать SF</button>
       </form>
     </div>
-    <div style="flex:1; min-width:220px">
-      <h4 style="margin:0 0 .5rem; font-size:.9rem">Sitemap.xml</h4>
-      <div style="display:flex; gap:.5rem; margin-bottom:.5rem">
-        <button class="btn" style="background:#059669; color:white" onclick="fetchSitemap()">Загрузить с сайта</button>
-        <form id="sm-form" enctype="multipart/form-data" style="display:inline">
-          <input type="file" name="file" accept=".xml" id="sm-file" style="display:none" onchange="uploadSitemap()">
+    <div class="flex-1 min-w-[220px]">
+      <h4 class="m-0 mb-2 text-sm font-medium">Sitemap.xml</h4>
+      <div class="flex gap-2 mb-2">
+        <button class="btn px-3 py-1.5 text-sm font-medium rounded bg-emerald-600 text-white hover:bg-emerald-700" onclick="fetchSitemap()">Загрузить с сайта</button>
+        <form id="sm-form" enctype="multipart/form-data" class="inline">
+          <input type="file" name="file" accept=".xml" id="sm-file" class="hidden" onchange="uploadSitemap()">
           <button type="button" class="btn" onclick="document.getElementById('sm-file').click()">Загрузить файл</button>
         </form>
       </div>
     </div>
   </div>
-  <span id="import-status" style="font-size:.85rem; display:block; margin-top:.5rem"></span>
+  <span id="import-status" class="text-sm block mt-2"></span>
 </div>
 
 <!-- Sitemap comparison -->
-<div class="card" style="margin-bottom:1.5rem">
-  <h3 style="margin:0 0 1rem">Sitemap: сравнение</h3>
-  <div style="display:flex; gap:1rem; margin-bottom:1rem">
-    <div style="text-align:center; padding:.5rem 1rem; border-radius:4px; background:#fee2e2">
-      <div style="font-size:1.25rem; font-weight:700; color:#dc2626">{{ sm_stats.orphan }}</div>
-      <div style="font-size:.75rem; color:#6b7280">Orphan (нет в sitemap)</div>
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+  <h3 class="m-0 mb-4 text-base font-semibold">Sitemap: сравнение</h3>
+  <div class="flex gap-4 mb-4">
+    <div class="text-center px-4 py-2 rounded bg-red-100">
+      <div class="text-xl font-bold text-red-600">{{ sm_stats.orphan }}</div>
+      <div class="text-xs text-gray-500">Orphan (нет в sitemap)</div>
     </div>
-    <div style="text-align:center; padding:.5rem 1rem; border-radius:4px; background:#fef3c7">
-      <div style="font-size:1.25rem; font-weight:700; color:#d97706">{{ sm_stats.missing }}</div>
-      <div style="font-size:.75rem; color:#6b7280">Missing (нет на сайте)</div>
+    <div class="text-center px-4 py-2 rounded bg-amber-100">
+      <div class="text-xl font-bold text-amber-600">{{ sm_stats.missing }}</div>
+      <div class="text-xs text-gray-500">Missing (нет на сайте)</div>
     </div>
-    <div style="text-align:center; padding:.5rem 1rem; border-radius:4px; background:#d1fae5">
-      <div style="font-size:1.25rem; font-weight:700; color:#059669">{{ sm_stats.ok }}</div>
-      <div style="font-size:.75rem; color:#6b7280">OK</div>
+    <div class="text-center px-4 py-2 rounded bg-emerald-100">
+      <div class="text-xl font-bold text-emerald-600">{{ sm_stats.ok }}</div>
+      <div class="text-xs text-gray-500">OK</div>
     </div>
   </div>
-  <div id="sitemap-table" style="max-height:300px; overflow-y:auto"></div>
-  <div style="margin-top:.5rem">
+  <div id="sitemap-table" class="max-h-[300px] overflow-y-auto"></div>
+  <div class="mt-2 flex gap-2">
     <button class="btn btn-sm" onclick="loadSitemapResults('all')">Все</button>
-    <button class="btn btn-sm" onclick="loadSitemapResults('orphan')" style="color:#dc2626">Orphan</button>
-    <button class="btn btn-sm" onclick="loadSitemapResults('missing')" style="color:#d97706">Missing</button>
+    <button class="btn btn-sm text-red-600" onclick="loadSitemapResults('orphan')">Orphan</button>
+    <button class="btn btn-sm text-amber-600" onclick="loadSitemapResults('missing')">Missing</button>
   </div>
 </div>
 
 <!-- URL Tree (D3.js) -->
-<div class="card" style="margin-bottom:1.5rem">
-  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem">
-    <h3 style="margin:0">Дерево URL</h3>
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+  <div class="flex justify-between items-center mb-4">
+    <h3 class="m-0 text-base font-semibold">Дерево URL</h3>
     <button class="btn btn-sm" onclick="loadTree()">Обновить</button>
   </div>
-  <div id="tree-container" style="width:100%; overflow:auto; min-height:400px; background:#fafafa; border-radius:4px"></div>
+  <div id="tree-container" class="w-full overflow-auto min-h-[400px] bg-gray-50 rounded"></div>
 </div>
 
 <!-- Architecture roles -->
-<div class="card" style="margin-bottom:1.5rem">
-  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem">
-    <h3 style="margin:0">Роли страниц</h3>
-    <button class="btn" style="background:#7c3aed; color:white" onclick="detectRoles()">Автоопределение</button>
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+  <div class="flex justify-between items-center mb-4">
+    <h3 class="m-0 text-base font-semibold">Роли страниц</h3>
+    <button class="btn px-3 py-1.5 text-sm font-medium rounded bg-violet-600 text-white hover:bg-violet-700" onclick="detectRoles()">Автоопределение</button>
   </div>
   <div id="roles-table"></div>
 </div>
 
 <!-- Inlinks diff -->
-<div class="card">
-  <h3 style="margin:0 0 1rem">Изменения ссылочной структуры</h3>
-  <div style="display:flex; gap:1rem; align-items:center; margin-bottom:1rem">
-    <select id="crawl-a" style="padding:.4rem .5rem; border:1px solid #d1d5db; border-radius:4px">
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+  <h3 class="m-0 mb-4 text-base font-semibold">Изменения ссылочной структуры</h3>
+  <div class="flex gap-4 items-center mb-4">
+    <select id="crawl-a" class="px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-indigo-500 focus:border-indigo-500">
       <option value="">Краул A...</option>
       {% for c in crawls %}<option value="{{ c.id }}">{{ c.started_at.strftime('%Y-%m-%d %H:%M') if c.started_at else c.id }}</option>{% endfor %}
     </select>
     <span>vs</span>
-    <select id="crawl-b" style="padding:.4rem .5rem; border:1px solid #d1d5db; border-radius:4px">
+    <select id="crawl-b" class="px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-indigo-500 focus:border-indigo-500">
       <option value="">Краул B...</option>
       {% for c in crawls %}<option value="{{ c.id }}">{{ c.started_at.strftime('%Y-%m-%d %H:%M') if c.started_at else c.id }}</option>{% endfor %}
     </select>
@@ -102,13 +102,13 @@ async function importSF() {
   const form = document.getElementById('sf-form');
   const resp = await fetch(`/architecture/${SITE_ID}/import-sf`, {method:'POST', body: new FormData(form)});
   const data = await resp.json();
-  document.getElementById('import-status').innerHTML = `<span style="color:#059669">SF импорт: ${data.imported} страниц (${data.tab_type})</span>`;
+  document.getElementById('import-status').innerHTML = `<span class="text-emerald-600">SF импорт: ${data.imported} страниц (${data.tab_type})</span>`;
 }
 
 async function fetchSitemap() {
   const resp = await fetch(`/architecture/${SITE_ID}/sitemap/fetch`, {method:'POST'});
   const data = await resp.json();
-  document.getElementById('import-status').innerHTML = `<span style="color:#059669">Sitemap: ${data.total_sitemap} URL, orphan: ${data.orphan}, missing: ${data.missing}</span>`;
+  document.getElementById('import-status').innerHTML = `<span class="text-emerald-600">Sitemap: ${data.total_sitemap} URL, orphan: ${data.orphan}, missing: ${data.missing}</span>`;
   setTimeout(() => location.reload(), 2000);
 }
 
@@ -116,7 +116,7 @@ async function uploadSitemap() {
   const form = document.getElementById('sm-form');
   const resp = await fetch(`/architecture/${SITE_ID}/sitemap/upload`, {method:'POST', body: new FormData(form)});
   const data = await resp.json();
-  document.getElementById('import-status').innerHTML = `<span style="color:#059669">Sitemap загружен: orphan=${data.orphan}, missing=${data.missing}</span>`;
+  document.getElementById('import-status').innerHTML = `<span class="text-emerald-600">Sitemap загружен: orphan=${data.orphan}, missing=${data.missing}</span>`;
   setTimeout(() => location.reload(), 2000);
 }
 
@@ -124,10 +124,10 @@ async function loadSitemapResults(status) {
   const url = status === 'all' ? `/architecture/${SITE_ID}/sitemap/results` : `/architecture/${SITE_ID}/sitemap/results?status=${status}`;
   const resp = await fetch(url);
   const data = await resp.json();
-  let html = '<table style="font-size:.8rem"><thead><tr><th>URL</th><th>Статус</th></tr></thead><tbody>';
+  const statusClasses = {orphan:'text-red-600 font-semibold', missing:'text-amber-600 font-semibold', ok:'text-emerald-600 font-semibold'};
+  let html = '<table class="min-w-full divide-y divide-gray-200 text-xs"><thead class="bg-gray-50"><tr><th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">URL</th><th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Статус</th></tr></thead><tbody class="bg-white divide-y divide-gray-100">';
   for (const e of data.slice(0, 100)) {
-    const color = e.status==='orphan'?'#dc2626':e.status==='missing'?'#d97706':'#059669';
-    html += `<tr><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">${e.url}</td><td><span style="color:${color};font-weight:600">${e.status}</span></td></tr>`;
+    html += `<tr><td class="px-3 py-2 max-w-[400px] overflow-hidden text-ellipsis">${e.url}</td><td class="px-3 py-2"><span class="${statusClasses[e.status] || 'text-gray-500'}">${e.status}</span></td></tr>`;
   }
   html += '</tbody></table>';
   document.getElementById('sitemap-table').innerHTML = html;
@@ -171,20 +171,20 @@ async function detectRoles() {
 async function loadRoles() {
   const resp = await fetch(`/architecture/${SITE_ID}/roles`);
   const data = await resp.json();
+  const ROLE_TW = {pillar:'text-violet-600',service:'text-blue-600',subservice:'text-sky-500',article:'text-emerald-600',trigger:'text-amber-600',authority:'text-teal-600',link_accelerator:'text-pink-500',unknown:'text-gray-400'};
   let html = '';
   for (const [role, pages] of Object.entries(data)) {
-    const color = ROLE_COLORS[role] || '#6b7280';
-    html += `<div style="margin-bottom:1rem"><h4 style="color:${color};margin:0 0 .5rem">${ROLE_LABELS[role]||role} (${pages.length})</h4>`;
-    html += '<table style="font-size:.8rem"><thead><tr><th>URL</th><th>Title</th><th>Inlinks</th><th>Роль</th></tr></thead><tbody>';
+    html += `<div class="mb-4"><h4 class="${ROLE_TW[role] || 'text-gray-500'} m-0 mb-2">${ROLE_LABELS[role]||role} (${pages.length})</h4>`;
+    html += '<table class="min-w-full divide-y divide-gray-200 text-xs"><thead class="bg-gray-50"><tr><th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">URL</th><th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th><th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Inlinks</th><th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Роль</th></tr></thead><tbody class="bg-white divide-y divide-gray-100">';
     for (const p of pages) {
-      html += `<tr><td style="max-width:250px;overflow:hidden;text-overflow:ellipsis">${p.url}</td><td>${(p.title||'').substring(0,40)}</td><td>${p.inlinks_count||0}</td>`;
-      html += `<td><select style="font-size:.7rem" onchange="setRole('${p.id}',this.value)">`;
+      html += `<tr><td class="px-3 py-2 max-w-[250px] overflow-hidden text-ellipsis">${p.url}</td><td class="px-3 py-2">${(p.title||'').substring(0,40)}</td><td class="px-3 py-2">${p.inlinks_count||0}</td>`;
+      html += `<td class="px-3 py-2"><select class="text-xs px-1 py-0.5 border border-gray-300 rounded" onchange="setRole('${p.id}',this.value)">`;
       for (const [r,l] of Object.entries(ROLE_LABELS)) html += `<option value="${r}" ${r===role?'selected':''}>${l}</option>`;
       html += '</select></td></tr>';
     }
     html += '</tbody></table></div>';
   }
-  document.getElementById('roles-table').innerHTML = html || '<p style="color:#6b7280">Нет классифицированных страниц. Нажмите "Автоопределение".</p>';
+  document.getElementById('roles-table').innerHTML = html || '<p class="text-gray-500">Нет классифицированных страниц. Нажмите "Автоопределение".</p>';
 }
 
 async function setRole(pageId, role) {
@@ -197,10 +197,10 @@ async function loadInlinksDiff() {
   if (!a || !b) { alert('Выберите два краула'); return; }
   const resp = await fetch(`/architecture/${SITE_ID}/inlinks-diff?crawl_a=${a}&crawl_b=${b}`);
   const data = await resp.json();
-  let html = `<div style="margin-bottom:.5rem"><span style="color:#059669;font-weight:600">+${data.added_count||0} добавлено</span> <span style="color:#dc2626;font-weight:600;margin-left:1rem">-${data.removed_count||0} удалено</span></div>`;
-  html += '<table style="font-size:.8rem"><thead><tr><th>Источник</th><th>Цель</th><th>Анкор</th><th>Статус</th></tr></thead><tbody>';
-  for (const l of (data.added||[]).slice(0,50)) html += `<tr style="background:#f0fdf4"><td>${l.source_url}</td><td>${l.target_url}</td><td>${l.anchor_text||''}</td><td style="color:#059669">+</td></tr>`;
-  for (const l of (data.removed||[]).slice(0,50)) html += `<tr style="background:#fef2f2"><td>${l.source_url}</td><td>${l.target_url}</td><td>${l.anchor_text||''}</td><td style="color:#dc2626">-</td></tr>`;
+  let html = `<div class="mb-2"><span class="text-emerald-600 font-semibold">+${data.added_count||0} добавлено</span> <span class="text-red-600 font-semibold ml-4">-${data.removed_count||0} удалено</span></div>`;
+  html += '<table class="min-w-full divide-y divide-gray-200 text-xs"><thead class="bg-gray-50"><tr><th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Источник</th><th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Цель</th><th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Анкор</th><th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Статус</th></tr></thead><tbody class="bg-white divide-y divide-gray-100">';
+  for (const l of (data.added||[]).slice(0,50)) html += `<tr class="bg-emerald-50"><td class="px-3 py-2">${l.source_url}</td><td class="px-3 py-2">${l.target_url}</td><td class="px-3 py-2">${l.anchor_text||''}</td><td class="px-3 py-2 text-emerald-600">+</td></tr>`;
+  for (const l of (data.removed||[]).slice(0,50)) html += `<tr class="bg-red-50"><td class="px-3 py-2">${l.source_url}</td><td class="px-3 py-2">${l.target_url}</td><td class="px-3 py-2">${l.anchor_text||''}</td><td class="px-3 py-2 text-red-600">-</td></tr>`;
   html += '</tbody></table>';
   document.getElementById('inlinks-diff').innerHTML = html;
 }
