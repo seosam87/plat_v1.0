@@ -2449,14 +2449,32 @@ async def ui_delete_cluster(cluster_id: str, request: Request, db: AsyncSession 
 async def ui_cannibalization(site_id: str, request: Request, db: AsyncSession = Depends(get_db)) -> HTMLResponse:
     import uuid as _uuid
     from app.services.cluster_service import detect_cannibalization
+    from app.services.cannibalization_service import list_resolutions
 
     site = await get_site(db, _uuid.UUID(site_id))
     if not site:
         return HTMLResponse("Site not found", status_code=404)
 
-    results = await detect_cannibalization(db, _uuid.UUID(site_id))
+    sid = _uuid.UUID(site_id)
+    results = await detect_cannibalization(db, sid)
+    resolutions_objs = await list_resolutions(db, sid)
+    resolutions = [
+        {
+            "id": str(r.id),
+            "keyword_phrase": r.keyword_phrase,
+            "competing_urls": r.competing_urls,
+            "resolution_type": r.resolution_type.value if hasattr(r.resolution_type, "value") else r.resolution_type,
+            "primary_url": r.primary_url,
+            "action_plan": r.action_plan,
+            "status": r.status.value if hasattr(r.status, "value") else r.status,
+            "task_id": str(r.task_id) if r.task_id else None,
+            "resolved_at": r.resolved_at.isoformat() if r.resolved_at else None,
+        }
+        for r in resolutions_objs
+    ]
     return templates.TemplateResponse(request, "clusters/cannibalization.html", {
         "site_name": site.name, "site_id": str(site.id), "results": results,
+        "resolutions": resolutions,
     })
 
 

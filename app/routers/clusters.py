@@ -14,6 +14,7 @@ from app.dependencies import get_db
 from app.models.keyword import Keyword
 from app.models.user import User
 from app.services import cluster_service
+from app.services import cannibalization_service
 
 router = APIRouter(prefix="/clusters", tags=["clusters"])
 
@@ -119,6 +120,100 @@ async def cannibalization(
 ) -> dict:
     items = await cluster_service.detect_cannibalization(db, site_id)
     return {"cannibalization": items, "count": len(items)}
+
+
+class ResolveRequest(BaseModel):
+    keyword: str
+    urls: list[str]
+    resolution_type: str
+    primary_url: str
+
+
+class StatusUpdateRequest(BaseModel):
+    status: str
+
+
+@router.post("/sites/{site_id}/cannibalization/resolve", status_code=status.HTTP_201_CREATED)
+async def create_cannibalization_resolve(
+    site_id: uuid.UUID,
+    payload: ResolveRequest,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_admin),
+) -> dict:
+    """Create a resolution proposal for a cannibalized keyword."""
+    r = await cannibalization_service.create_resolution(
+        db,
+        site_id=site_id,
+        keyword=payload.keyword,
+        competing_urls=payload.urls,
+        resolution_type=payload.resolution_type,
+        primary_url=payload.primary_url,
+    )
+    await db.commit()
+    return {
+        "id": str(r.id),
+        "keyword_phrase": r.keyword_phrase,
+        "resolution_type": r.resolution_type.value if hasattr(r.resolution_type, "value") else r.resolution_type,
+        "primary_url": r.primary_url,
+        "status": r.status.value if hasattr(r.status, "value") else r.status,
+        "action_plan": r.action_plan,
+    }
+
+
+@router.get("/sites/{site_id}/cannibalization/resolutions")
+async def list_cannibalization_resolutions(
+    site_id: uuid.UUID,
+    resolution_status: str | None = None,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_admin),
+) -> list[dict]:
+    """List all resolution proposals for a site."""
+    resolutions = await cannibalization_service.list_resolutions(db, site_id, status=resolution_status)
+    return [
+        {
+            "id": str(r.id),
+            "keyword_phrase": r.keyword_phrase,
+            "competing_urls": r.competing_urls,
+            "resolution_type": r.resolution_type.value if hasattr(r.resolution_type, "value") else r.resolution_type,
+            "primary_url": r.primary_url,
+            "action_plan": r.action_plan,
+            "status": r.status.value if hasattr(r.status, "value") else r.status,
+            "task_id": str(r.task_id) if r.task_id else None,
+            "resolved_at": r.resolved_at.isoformat() if r.resolved_at else None,
+            "created_at": r.created_at.isoformat(),
+        }
+        for r in resolutions
+    ]
+
+
+@router.post("/cannibalization/resolutions/{resolution_id}/status")
+async def update_resolution_status(
+    resolution_id: uuid.UUID,
+    payload: StatusUpdateRequest,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_admin),
+) -> dict:
+    """Update status of a cannibalization resolution."""
+    r = await cannibalization_service.update_resolution_status(db, resolution_id, payload.status)
+    if not r:
+        raise HTTPException(status_code=404, detail="Resolution not found")
+    await db.commit()
+    return {
+        "id": str(r.id),
+        "status": r.status.value if hasattr(r.status, "value") else r.status,
+        "resolved_at": r.resolved_at.isoformat() if r.resolved_at else None,
+    }
+
+
+@router.post("/cannibalization/resolutions/{resolution_id}/check")
+async def check_cannibalization_resolution(
+    resolution_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_admin),
+) -> dict:
+    """Re-check if the cannibalization issue is resolved."""
+    result = await cannibalization_service.check_resolution(db, resolution_id)
+    return result
 
 
 @router.get("/sites/{site_id}/intent-mismatches")

@@ -13,17 +13,19 @@
   {% if results %}
   <p style="color:#6b7280; font-size:.85rem; margin-bottom:1rem">
     Keywords below have 2+ different pages ranking in top-100. This can dilute SEO authority.
+    Choose a resolution action for each keyword to create an action plan.
   </p>
   <table>
     <thead>
       <tr>
         <th>Keyword</th>
         <th>Competing Pages</th>
+        <th>Resolve</th>
       </tr>
     </thead>
     <tbody>
       {% for r in results %}
-      <tr>
+      <tr id="row-{{ loop.index }}">
         <td style="font-weight:500">{{ r.phrase }}</td>
         <td>
           {% for page in r.pages %}
@@ -34,6 +36,45 @@
           </div>
           {% endfor %}
         </td>
+        <td style="min-width:300px">
+          <form
+            hx-post="/clusters/sites/{{ site_id }}/cannibalization/resolve"
+            hx-target="#resolution-history"
+            hx-swap="beforeend"
+            style="display:flex; flex-direction:column; gap:.5rem"
+          >
+            <input type="hidden" name="keyword" value="{{ r.phrase }}">
+            {% for page in r.pages %}
+            <input type="hidden" name="urls" value="{{ page.url }}">
+            {% endfor %}
+
+            <label style="font-size:.8rem; color:#6b7280">Основная страница:</label>
+            <select name="primary_url" style="padding:.3rem; border:1px solid #d1d5db; border-radius:4px; font-size:.85rem">
+              {% for page in r.pages %}
+              <option value="{{ page.url }}">{{ page.url }}</option>
+              {% endfor %}
+            </select>
+
+            <div style="display:flex; gap:.4rem; flex-wrap:wrap">
+              <button type="submit" name="resolution_type" value="merge_content"
+                class="btn btn-sm" style="background:#3b82f6; color:#fff; border:none; cursor:pointer">
+                Объединить
+              </button>
+              <button type="submit" name="resolution_type" value="set_canonical"
+                class="btn btn-sm" style="background:#8b5cf6; color:#fff; border:none; cursor:pointer">
+                Canonical
+              </button>
+              <button type="submit" name="resolution_type" value="redirect_301"
+                class="btn btn-sm" style="background:#f59e0b; color:#fff; border:none; cursor:pointer">
+                301 Redirect
+              </button>
+              <button type="submit" name="resolution_type" value="split_keywords"
+                class="btn btn-sm" style="background:#10b981; color:#fff; border:none; cursor:pointer">
+                Разнести ключи
+              </button>
+            </div>
+          </form>
+        </td>
       </tr>
       {% endfor %}
     </tbody>
@@ -41,5 +82,82 @@
   {% else %}
   <p style="color:#059669; font-weight:500">No cannibalization detected. Each keyword has at most one ranking page.</p>
   {% endif %}
+</div>
+
+<!-- Resolution history section -->
+<div class="card" style="margin-top:1.5rem">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem">
+    <h3 style="margin:0">История решений</h3>
+    <button
+      hx-get="/clusters/sites/{{ site_id }}/cannibalization/resolutions"
+      hx-target="#resolution-history"
+      hx-swap="innerHTML"
+      class="btn btn-sm">
+      Обновить
+    </button>
+  </div>
+
+  <div id="resolution-history">
+    {% if resolutions %}
+    {% for res in resolutions %}
+    <div class="card" style="margin-bottom:1rem; border-left:4px solid
+      {% if res.status == 'resolved' %}#10b981
+      {% elif res.status == 'in_progress' %}#3b82f6
+      {% elif res.status == 'rejected' %}#ef4444
+      {% else %}#6b7280{% endif %}">
+      <div style="display:flex; justify-content:space-between; align-items:start">
+        <div>
+          <strong>{{ res.keyword_phrase }}</strong>
+          <span class="badge" style="margin-left:.5rem; background:
+            {% if res.status == 'resolved' %}#d1fae5; color:#065f46
+            {% elif res.status == 'in_progress' %}#dbeafe; color:#1e40af
+            {% elif res.status == 'rejected' %}#fee2e2; color:#991b1b
+            {% else %}#f3f4f6; color:#374151{% endif %}">
+            {{ res.status }}
+          </span>
+          <span class="badge" style="margin-left:.3rem; background:#ede9fe; color:#5b21b6">
+            {{ res.resolution_type }}
+          </span>
+        </div>
+        <div style="display:flex; gap:.4rem">
+          <button
+            hx-post="/clusters/cannibalization/resolutions/{{ res.id }}/check"
+            hx-target="#check-result-{{ loop.index }}"
+            hx-swap="innerHTML"
+            class="btn btn-sm">
+            Проверить
+          </button>
+          <button
+            hx-post="/clusters/cannibalization/resolutions/{{ res.id }}/status"
+            hx-vals='{"status": "in_progress"}'
+            hx-target="closest .card"
+            hx-swap="outerHTML"
+            class="btn btn-sm">
+            В работу
+          </button>
+          <button
+            hx-post="/clusters/cannibalization/resolutions/{{ res.id }}/status"
+            hx-vals='{"status": "resolved"}'
+            hx-target="closest .card"
+            hx-swap="outerHTML"
+            class="btn btn-sm" style="background:#10b981; color:#fff; border:none; cursor:pointer">
+            Решено
+          </button>
+        </div>
+      </div>
+      <div style="margin-top:.5rem; font-size:.8rem; color:#6b7280">
+        Основная страница: <a href="{{ res.primary_url }}" target="_blank">{{ res.primary_url }}</a>
+      </div>
+      <details style="margin-top:.5rem">
+        <summary style="cursor:pointer; font-size:.85rem; color:#3b82f6">Показать план действий</summary>
+        <pre style="margin-top:.5rem; font-size:.8rem; white-space:pre-wrap; background:#f9fafb; padding:.75rem; border-radius:4px">{{ res.action_plan }}</pre>
+      </details>
+      <div id="check-result-{{ loop.index }}" style="margin-top:.3rem; font-size:.8rem"></div>
+    </div>
+    {% endfor %}
+    {% else %}
+    <p style="color:#6b7280; font-size:.85rem">Планов решения пока нет. Выберите действие для ключевого слова выше.</p>
+    {% endif %}
+  </div>
 </div>
 {% endblock %}
