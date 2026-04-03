@@ -1,31 +1,31 @@
 {% extends "base.html" %}
 {% block title %}Мониторинг — {{ site.name }} — SEO Platform{% endblock %}
 {% block content %}
-<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem">
-  <h2 style="margin:0">Мониторинг изменений: {{ site.name }}</h2>
+<div class="flex justify-between items-center mb-6">
+  <h2 class="text-lg font-semibold text-gray-800 m-0">Мониторинг изменений: {{ site.name }}</h2>
   <a href="/ui/sites/{{ site.id }}" class="btn btn-sm">&larr; К сайту</a>
 </div>
 
 <!-- Summary stats (last 7 days) -->
-<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); gap:1rem; margin-bottom:1.5rem">
-  <div class="card" style="text-align:center; padding:1rem">
-    <div style="font-size:1.75rem; font-weight:700; color:#dc2626">{{ error_count }}</div>
-    <div style="color:#6b7280; font-size:.85rem">Критичных (7д)</div>
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+  <div class="bg-white rounded-lg shadow-sm border border-gray-200 text-center p-4">
+    <div class="text-3xl font-bold text-red-600">{{ error_count }}</div>
+    <div class="text-gray-500 text-sm">Критичных (7д)</div>
   </div>
-  <div class="card" style="text-align:center; padding:1rem">
-    <div style="font-size:1.75rem; font-weight:700; color:#f59e0b">{{ warning_count }}</div>
-    <div style="color:#6b7280; font-size:.85rem">Предупреждений (7д)</div>
+  <div class="bg-white rounded-lg shadow-sm border border-gray-200 text-center p-4">
+    <div class="text-3xl font-bold text-amber-500">{{ warning_count }}</div>
+    <div class="text-gray-500 text-sm">Предупреждений (7д)</div>
   </div>
-  <div class="card" style="text-align:center; padding:1rem">
-    <div style="font-size:1.75rem; font-weight:700; color:#2563eb">{{ total_count }}</div>
-    <div style="color:#6b7280; font-size:.85rem">Всего изменений (7д)</div>
+  <div class="bg-white rounded-lg shadow-sm border border-gray-200 text-center p-4">
+    <div class="text-3xl font-bold text-blue-600">{{ total_count }}</div>
+    <div class="text-gray-500 text-sm">Всего изменений (7д)</div>
   </div>
 </div>
 
 <!-- Alert rules -->
-<div class="card" style="margin-bottom:1.5rem">
-  <h3 style="margin:0 0 1rem">Правила алертов</h3>
-  <table style="font-size:.85rem">
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+  <h3 class="text-base font-semibold text-gray-800 m-0 mb-4">Правила алертов</h3>
+  <table class="min-w-full divide-y divide-gray-200 text-sm">
     <thead>
       <tr><th>Тип изменения</th><th>Описание</th><th>Серьёзность</th><th>Активен</th></tr>
     </thead>
@@ -35,11 +35,11 @@
         <td><code>{{ r.change_type.value if r.change_type is not string else r.change_type }}</code></td>
         <td>{{ r.description or '—' }}</td>
         <td>
-          <select style="font-size:.75rem; padding:.2rem .4rem; border:1px solid #d1d5db; border-radius:4px"
+          <select class="text-xs px-2 py-1 border border-gray-300 rounded focus:ring-indigo-500 focus:border-indigo-500"
             onchange="updateRule('{{ r.id }}', 'severity', this.value)">
-            <option value="error" {% if r.severity.value == 'error' or r.severity == 'error' %}selected{% endif %} style="color:#dc2626">Критичный</option>
-            <option value="warning" {% if r.severity.value == 'warning' or r.severity == 'warning' %}selected{% endif %} style="color:#f59e0b">Предупреждение</option>
-            <option value="info" {% if r.severity.value == 'info' or r.severity == 'info' %}selected{% endif %} style="color:#6b7280">Информация</option>
+            <option value="error" {% if r.severity.value == 'error' or r.severity == 'error' %}selected{% endif %}>Критичный</option>
+            <option value="warning" {% if r.severity.value == 'warning' or r.severity == 'warning' %}selected{% endif %}>Предупреждение</option>
+            <option value="info" {% if r.severity.value == 'info' or r.severity == 'info' %}selected{% endif %}>Информация</option>
           </select>
         </td>
         <td>
@@ -53,44 +53,44 @@
 </div>
 
 <!-- Digest schedule -->
-<div class="card" style="margin-bottom:1.5rem">
-  <h3 style="margin:0 0 1rem">Еженедельный дайджест</h3>
-  <div style="display:flex; gap:1rem; flex-wrap:wrap; align-items:center; margin-bottom:1rem">
-    <label style="display:flex; align-items:center; gap:.5rem">
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+  <h3 class="text-base font-semibold text-gray-800 m-0 mb-4">Еженедельный дайджест</h3>
+  <div class="flex gap-4 flex-wrap items-center mb-4">
+    <label class="flex items-center gap-2">
       <input type="checkbox" id="digest-active" {% if digest_schedule and digest_schedule.is_active %}checked{% endif %}>
       Включён
     </label>
-    <select id="digest-day" style="padding:.4rem .75rem; border:1px solid #d1d5db; border-radius:4px">
+    <select id="digest-day" class="px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-indigo-500 focus:border-indigo-500">
       {% set days = [("1","Понедельник"),("2","Вторник"),("3","Среда"),("4","Четверг"),("5","Пятница"),("6","Суббота"),("7","Воскресенье")] %}
       {% for val, label in days %}
       <option value="{{ val }}" {% if digest_schedule and digest_schedule.day_of_week == val|int %}selected{% endif %}>{{ label }}</option>
       {% endfor %}
     </select>
     <input type="number" id="digest-hour" min="0" max="23" value="{{ digest_schedule.hour if digest_schedule else 9 }}"
-      style="width:60px; padding:.4rem .5rem; border:1px solid #d1d5db; border-radius:4px"> :
+      class="w-16 px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-indigo-500 focus:border-indigo-500"> :
     <input type="number" id="digest-minute" min="0" max="59" value="{{ digest_schedule.minute if digest_schedule else 0 }}"
-      style="width:60px; padding:.4rem .5rem; border:1px solid #d1d5db; border-radius:4px">
-    <span style="color:#6b7280; font-size:.85rem">(UTC)</span>
+      class="w-16 px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-indigo-500 focus:border-indigo-500">
+    <span class="text-gray-500 text-sm">(UTC)</span>
   </div>
-  <div style="display:flex; gap:.5rem">
-    <button class="btn" style="background:#4f46e5; color:white" onclick="saveDigestSchedule()">Сохранить расписание</button>
-    <button class="btn" style="background:#059669; color:white" onclick="sendDigestNow()">Отправить дайджест сейчас</button>
-    <span id="digest-status" style="font-size:.85rem; margin-left:.5rem"></span>
+  <div class="flex gap-2">
+    <button class="px-3 py-1.5 text-sm font-medium rounded bg-indigo-600 text-white hover:bg-indigo-700" onclick="saveDigestSchedule()">Сохранить расписание</button>
+    <button class="px-3 py-1.5 text-sm font-medium rounded bg-emerald-600 text-white hover:bg-emerald-700" onclick="sendDigestNow()">Отправить дайджест сейчас</button>
+    <span id="digest-status" class="text-sm ml-2"></span>
   </div>
 </div>
 
 <!-- Alert history -->
-<div class="card">
-  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem">
-    <h3 style="margin:0">История изменений</h3>
-    <select id="severity-filter" style="padding:.4rem .75rem; border:1px solid #d1d5db; border-radius:4px" onchange="filterAlerts()">
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+  <div class="flex justify-between items-center mb-4">
+    <h3 class="text-base font-semibold text-gray-800 m-0">История изменений</h3>
+    <select id="severity-filter" class="px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-indigo-500 focus:border-indigo-500" onchange="filterAlerts()">
       <option value="all">Все</option>
       <option value="error">Критичные</option>
       <option value="warning">Предупреждения</option>
       <option value="info">Информация</option>
     </select>
   </div>
-  <table id="alerts-table" style="font-size:.85rem">
+  <table id="alerts-table" class="min-w-full divide-y divide-gray-200 text-sm">
     <thead>
       <tr><th>Дата</th><th>Тип</th><th>Страница</th><th>Серьёзность</th><th>Детали</th></tr>
     </thead>
@@ -99,21 +99,21 @@
       {% set sev = a.severity.value if a.severity is not string else a.severity %}
       {% set ct = a.change_type.value if a.change_type is not string else a.change_type %}
       <tr class="alert-row" data-severity="{{ sev }}">
-        <td style="white-space:nowrap">{{ a.created_at.strftime('%Y-%m-%d %H:%M') if a.created_at else '—' }}</td>
+        <td class="whitespace-nowrap">{{ a.created_at.strftime('%Y-%m-%d %H:%M') if a.created_at else '—' }}</td>
         <td><code>{{ ct }}</code></td>
-        <td style="max-width:250px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap" title="{{ a.page_url }}">{{ a.page_url | truncate(50) }}</td>
+        <td class="max-w-[250px] overflow-hidden text-ellipsis whitespace-nowrap" title="{{ a.page_url }}">{{ a.page_url | truncate(50) }}</td>
         <td>
-          {% if sev == 'error' %}<span class="badge" style="background:#fee2e2;color:#dc2626">Критичный</span>
-          {% elif sev == 'warning' %}<span class="badge" style="background:#fef3c7;color:#d97706">Предупреждение</span>
-          {% else %}<span class="badge" style="background:#f3f4f6;color:#6b7280">Информация</span>{% endif %}
+          {% if sev == 'error' %}<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700">Критичный</span>
+          {% elif sev == 'warning' %}<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-700">Предупреждение</span>
+          {% else %}<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700">Информация</span>{% endif %}
         </td>
-        <td style="max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap" title="{{ a.details or '' }}">{{ a.details or '—' }}</td>
+        <td class="max-w-[200px] overflow-hidden text-ellipsis whitespace-nowrap" title="{{ a.details or '' }}">{{ a.details or '—' }}</td>
       </tr>
       {% endfor %}
     </tbody>
   </table>
   {% if not alerts %}
-  <p style="padding:1rem; color:#6b7280; text-align:center">Нет зарегистрированных изменений. Запустите краулинг для обнаружения.</p>
+  <p class="p-4 text-gray-500 text-center">Нет зарегистрированных изменений. Запустите краулинг для обнаружения.</p>
   {% endif %}
 </div>
 
@@ -140,14 +140,14 @@ async function saveDigestSchedule() {
     })
   });
   const el = document.getElementById('digest-status');
-  el.innerHTML = resp.ok ? '<span style="color:#059669">Сохранено</span>' : '<span style="color:#dc2626">Ошибка</span>';
+  el.innerHTML = resp.ok ? '<span class="text-emerald-600">Сохранено</span>' : '<span class="text-red-600">Ошибка</span>';
   setTimeout(() => el.innerHTML = '', 3000);
 }
 
 async function sendDigestNow() {
   const resp = await fetch('/monitoring/{{ site.id }}/digest/send', {method: 'POST'});
   const el = document.getElementById('digest-status');
-  el.innerHTML = resp.ok ? '<span style="color:#059669">Дайджест отправлен</span>' : '<span style="color:#dc2626">Ошибка</span>';
+  el.innerHTML = resp.ok ? '<span class="text-emerald-600">Дайджест отправлен</span>' : '<span class="text-red-600">Ошибка</span>';
   setTimeout(() => el.innerHTML = '', 5000);
 }
 
