@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed v3-06-01-PLAN.md
-last_updated: "2026-04-03T08:24:47.246Z"
+stopped_at: Completed v3-06-02-PLAN.md
+last_updated: "2026-04-03T08:26:50.189Z"
 last_activity: 2026-04-03
 progress:
   total_phases: 12
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-03-31)
 ## Current Position
 
 Phase: v3-06-site (architecture) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-04-03
 
@@ -65,6 +65,7 @@ Progress: [██░░░░░░░░] 18%
 | Phase v3-05 P02 | 5 | 3 tasks | 3 files |
 | Phase v3-05 P03 | 5 | 3 tasks | 4 files |
 | Phase v3-06 P01 | 5 | 4 tasks | 4 files |
+| Phase v3-06 P02 | 5 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -92,6 +93,8 @@ Recent decisions affecting current work:
 - [Phase v3-05-03]: score-formula endpoint at /gap/score-formula (no site_id) since formula is global
 - [Phase v3-06]: Page.source is String(20) not enum — crawl/sf_import free-form values avoid future migrations
 - [Phase v3-06]: ArchitectureRole uses native PostgreSQL ENUM for type safety (8 values: pillar, service, subservice, article, trigger, authority, link_accelerator, unknown)
+- [Phase v3-06]: SF import uses synthetic crawl_job_id (uuid4()) per import — sitemap unique constraint is (crawl_job_id, url)
+- [Phase v3-06]: save_page_links is sync (Session) for Celery task context; all other DB functions are async
 
 ### Pending Todos
 
@@ -115,6 +118,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-03T08:24:47.243Z
-Stopped at: Completed v3-06-01-PLAN.md
+Last session: 2026-04-03T08:26:50.186Z
+Stopped at: Completed v3-06-02-PLAN.md
 Resume file: None
