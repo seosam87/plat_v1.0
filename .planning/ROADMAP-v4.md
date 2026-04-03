@@ -13,7 +13,8 @@ This milestone restructures the platform's UI from a top-nav layout into a verti
 - [ ] **Phase v4-05: Секция «Аналитика»** - Migrate analytics workspace, gap, architecture, Metrika, traffic, competitors
 - [ ] **Phase v4-06: Секция «Контент»** - Migrate content audit, WP pipeline, publisher, projects, kanban, monitoring
 - [ ] **Phase v4-07: Секция «Настройки»** - Migrate admin pages with role guard
-- [ ] **Phase v4-08: Visual Polish & Migration Completion** - Dark mode, URL redirects, HTMX validation pass
+- [ ] **Phase v4-08: UI Smoke Test Agent** - Automated route crawler that finds 4xx/5xx errors across all pages
+- [ ] **Phase v4-09: Visual Polish & Migration Completion** - Dark mode, URL redirects, HTMX validation pass
 
 ## Phase Details
 
@@ -97,9 +98,21 @@ Plans:
 **Plans**: TBD
 **UI hint**: yes
 
-### Phase v4-08: Visual Polish & Migration Completion
+### Phase v4-08: UI Smoke Test Agent
+**Goal**: Automated test script that authenticates, discovers all UI routes from navigation config and main.py, visits every page with a real site_id, and reports 4xx/5xx errors with URL and status code. Runnable as `python -m tests.smoke_test` or via Celery task.
+**Depends on**: Phase v4-01
+**Requirements**: SMOKE-01, SMOKE-02, SMOKE-03, SMOKE-04
+**Success Criteria** (what must be TRUE):
+  1. Running `python -m tests.smoke_test` authenticates as admin and visits every registered UI route
+  2. For site-scoped routes, the script substitutes a real site_id from the database
+  3. The report lists every URL with HTTP status code; 4xx and 5xx are flagged as errors
+  4. The script exits with code 1 if any errors found, code 0 if all pages return 200/3xx
+  5. Can be triggered as a Celery task that sends results to Telegram
+**Plans**: TBD
+
+### Phase v4-09: Visual Polish & Migration Completion
 **Goal**: Dark mode is available site-wide, all 50+ pages have been confirmed in their new sections, existing URL patterns are preserved or redirected, and HTMX interactions are validated
-**Depends on**: Phase v4-02, Phase v4-03, Phase v4-04, Phase v4-05, Phase v4-06, Phase v4-07
+**Depends on**: Phase v4-02, Phase v4-03, Phase v4-04, Phase v4-05, Phase v4-06, Phase v4-07, Phase v4-08
 **Requirements**: VIS-02, MIG-01, MIG-02, MIG-03
 **Success Criteria** (what must be TRUE):
   1. User can toggle dark mode from the sidebar footer and the preference persists across page loads
@@ -112,15 +125,16 @@ Plans:
 ## Progress
 
 **Execution Order:**
-Phases execute in order: v4-01 → v4-02 → v4-03 → v4-04 → v4-05 → v4-06 → v4-07 → v4-08
+Phases execute in order: v4-01 → (v4-02..v4-07 parallel) → v4-08 → v4-09
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| v4-01. Navigation Foundation | 0/1 | Planned | - |
+| v4-01. Navigation Foundation | 0/1 | In progress | - |
 | v4-02. Секция «Обзор» | 0/TBD | Not started | - |
 | v4-03. Секция «Сайты» | 0/TBD | Not started | - |
 | v4-04. Секция «Позиции и ключи» | 0/TBD | Not started | - |
 | v4-05. Секция «Аналитика» | 0/TBD | Not started | - |
 | v4-06. Секция «Контент» | 0/TBD | Not started | - |
 | v4-07. Секция «Настройки» | 0/TBD | Not started | - |
-| v4-08. Visual Polish & Migration | 0/TBD | Not started | - |
+| v4-08. UI Smoke Test Agent | 0/TBD | Not started | - |
+| v4-09. Visual Polish & Migration | 0/TBD | Not started | - |

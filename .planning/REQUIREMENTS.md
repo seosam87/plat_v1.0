@@ -54,6 +54,13 @@
 - [ ] **VIS-02**: Dark mode через toggle в sidebar footer, Tailwind dark: классы на всех страницах
 - [x] **VIS-03**: Единая цветовая палитра (indigo primary, emerald success, red danger)
 
+### UI Smoke Test Agent
+
+- [ ] **SMOKE-01**: Скрипт `python -m tests.smoke_test` авторизуется как admin и обходит все зарегистрированные UI маршруты
+- [ ] **SMOKE-02**: Для site-scoped маршрутов скрипт подставляет реальный site_id из БД
+- [ ] **SMOKE-03**: Отчёт содержит URL + HTTP-код для каждой страницы; 4xx/5xx помечены как ошибки, exit code 1
+- [ ] **SMOKE-04**: Скрипт можно запустить как Celery-задачу с отправкой результатов в Telegram
+
 ### Миграция страниц
 
 - [ ] **MIG-01**: Все 50+ существующих UI-страниц перегруппированы по новой IA без потери функциональности
