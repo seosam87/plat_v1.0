@@ -48,6 +48,14 @@ async def _get_site_or_404(db: AsyncSession, site_id: uuid.UUID) -> Site:
     return site
 
 
+# ---- Score formula ----
+
+
+@router.get("/score-formula")
+async def score_formula(_: User = Depends(require_admin)) -> dict:
+    return {"formula": gs.SCORE_FORMULA_DESCRIPTION}
+
+
 # ---- Page ----
 
 
@@ -284,11 +292,3 @@ async def reject_proposal(
         raise HTTPException(status_code=404, detail="Proposal not found")
     await db.commit()
     return {"status": "rejected"}
-
-
-# ---- Score formula ----
-
-
-@router.get("/score-formula")
-async def score_formula(_: User = Depends(require_admin)) -> dict:
-    return {"formula": gs.SCORE_FORMULA_DESCRIPTION}

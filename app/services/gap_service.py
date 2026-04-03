@@ -63,13 +63,18 @@ async def detect_gaps_from_session(
         select(SessionSerpResult).where(SessionSerpResult.session_id == session_id)
     )).scalars().all()
 
+    # Get our site domain for SERP matching
+    from app.models.site import Site
+    site = (await db.execute(select(Site).where(Site.id == site_id))).scalar_one()
+    our_domain = extract_domain(site.url).removeprefix("www.")
+
     comp_lower = competitor_domain.lower().removeprefix("www.")
     gaps = []
 
     for row in serp_rows:
         results = row.results_json or []
         comp_pos = None
-        our_in_top10 = False
+        our_pos = None
 
         for r in results:
             domain = extract_domain(r.get("url", "")).removeprefix("www.")
@@ -77,19 +82,19 @@ async def detect_gaps_from_session(
 
             if comp_lower in domain and comp_pos is None:
                 comp_pos = pos
-            # Check if our site appears (compare with site URL)
-            # For simplicity, check if any of our keywords' target URLs match
-            # Actually we check by phrase — if it's our keyword, we have it
+            if our_domain in domain and our_pos is None:
+                our_pos = pos
 
-        # Gap = competitor has position but the keyword phrase is not in our set
-        # OR we could check our position vs competitor position
-        # Simpler: competitor appears, let's check if we also appear
-        if comp_pos is not None:
+        # Gap = competitor ranks in TOP-10 but we either don't appear or rank worse
+        if comp_pos is not None and our_pos is None:
+            # Skip keywords we already have in our keyword set
+            if row.keyword_phrase.lower().strip() in our_phrases:
+                continue
             gaps.append({
                 "phrase": row.keyword_phrase,
                 "frequency": None,
                 "competitor_position": comp_pos,
-                "our_position": None,
+                "our_position": our_pos,
             })
 
     return gaps
