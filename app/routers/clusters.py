@@ -3,7 +3,7 @@ import csv
 import io
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, Form, HTTPException, status
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy import select
@@ -122,33 +122,27 @@ async def cannibalization(
     return {"cannibalization": items, "count": len(items)}
 
 
-class ResolveRequest(BaseModel):
-    keyword: str
-    urls: list[str]
-    resolution_type: str
-    primary_url: str
-
-
-class StatusUpdateRequest(BaseModel):
-    status: str
-
-
 @router.post("/sites/{site_id}/cannibalization/resolve", status_code=status.HTTP_201_CREATED)
 async def create_cannibalization_resolve(
     site_id: uuid.UUID,
-    payload: ResolveRequest,
+    keyword: str = Form(...),
+    urls: str = Form(...),
+    resolution_type: str = Form(...),
+    primary_url: str = Form(...),
     db: AsyncSession = Depends(get_db),
     _: User = Depends(require_admin),
 ) -> dict:
     """Create a resolution proposal for a cannibalized keyword."""
+    url_list = [u.strip() for u in urls.split(",") if u.strip()]
     r = await cannibalization_service.create_resolution(
         db,
         site_id=site_id,
-        keyword=payload.keyword,
-        competing_urls=payload.urls,
-        resolution_type=payload.resolution_type,
-        primary_url=payload.primary_url,
+        keyword=keyword,
+        competing_urls=url_list,
+        resolution_type=resolution_type,
+        primary_url=primary_url,
     )
+    await cannibalization_service.create_resolution_task(db, r.id)
     await db.commit()
     return {
         "id": str(r.id),
@@ -189,12 +183,12 @@ async def list_cannibalization_resolutions(
 @router.post("/cannibalization/resolutions/{resolution_id}/status")
 async def update_resolution_status(
     resolution_id: uuid.UUID,
-    payload: StatusUpdateRequest,
+    status_value: str = Form(..., alias="status"),
     db: AsyncSession = Depends(get_db),
     _: User = Depends(require_admin),
 ) -> dict:
     """Update status of a cannibalization resolution."""
-    r = await cannibalization_service.update_resolution_status(db, resolution_id, payload.status)
+    r = await cannibalization_service.update_resolution_status(db, resolution_id, status_value)
     if not r:
         raise HTTPException(status_code=404, detail="Resolution not found")
     await db.commit()
