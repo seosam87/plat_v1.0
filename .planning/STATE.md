@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: verifying
-stopped_at: Completed v4-01-01-PLAN.md — Task 3 pending human visual verification
-last_updated: "2026-04-03T11:27:27.390Z"
+status: executing
+stopped_at: Completed v4-08-01-PLAN.md
+last_updated: "2026-04-03T14:20:35.637Z"
 last_activity: 2026-04-03
 progress:
   total_phases: 12
@@ -21,13 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-03)
 
 **Core value:** A team member or client can open the platform and immediately see the SEO health of any site — positions, recent changes, pending tasks — without switching between GSC, spreadsheets, and WP admin.
-**Current focus:** Phase v4-01-navigation — foundation
+**Current focus:** Phase v4-08-ui-smoke-test — agent
 
 ## Current Position
 
-Phase: v4-01-navigation (foundation) — EXECUTING
-Plan: 1 of 1
-Status: Phase complete — ready for verification
+Phase: v4-08-ui-smoke-test (agent) — EXECUTING
+Plan: 2 of 2
+Status: Ready to execute
 Last activity: 2026-04-03
 
 Progress: [░░░░░░░░░░] 0%
@@ -64,6 +64,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase v3-10 P01 | 5 | 3 tasks | 4 files |
 | Phase v3-10 P02 | 8 | 2 tasks | 2 files |
 | Phase v4-01-navigation-foundation P01 | 8 | 2 tasks | 6 files |
+| Phase v4-08-ui-smoke-test P01 | 8 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -90,6 +91,8 @@ Recent decisions affecting current work:
 - [v4.0]: Phase v4-08 (Visual Polish) depends on all 6 section phases being complete
 - [Phase v4-01]: Sidebar section labels rendered dynamically from NAV_SECTIONS in navigation.py — not hardcoded in templates
 - [Phase v4-01]: site_selector cookie set as httponly=False to allow JS access; samesite=lax for security
+- [Phase v4-08-01]: Auth uses POST /ui/login (form fields: email, password) not /auth/token — sets httponly cookie read by UIAuthMiddleware
+- [Phase v4-08-01]: Smoke test routes with {crawl_job_id}, {job_id}, {module}, /ui/api/ patterns are skipped (not errors)
 
 ### Pending Todos
 
@@ -114,6 +117,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-03T11:27:27.386Z
-Stopped at: Completed v4-01-01-PLAN.md — Task 3 pending human visual verification
+Last session: 2026-04-03T14:20:35.633Z
+Stopped at: Completed v4-08-01-PLAN.md
 Resume file: None
