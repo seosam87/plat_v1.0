@@ -1,7 +1,7 @@
 """Traffic Analysis router: Metrika analysis, log upload, bot detection, anomalies."""
 import shutil
 import uuid
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
@@ -15,7 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth.dependencies import require_admin
 from app.dependencies import get_db
 from app.models.site import Site
-from app.models.traffic_analysis import BotPattern, TrafficAnalysisSession, TrafficVisit
+from app.models.traffic_analysis import BotPattern, TrafficAnalysisSession, TrafficVisit, VisitSource
 from app.models.user import User
 from app.services import traffic_analysis_service as tas
 
@@ -128,12 +128,17 @@ async def upload_log(
         if classification["is_bot"]:
             bot_count += 1
 
+    # Determine period from parsed timestamps
+    timestamps = [v.get("timestamp") for v in parsed if v.get("timestamp")]
+    period_start = min(timestamps).date() if timestamps else date.today()
+    period_end = max(timestamps).date() if timestamps else date.today()
+
     # Create session
     session = TrafficAnalysisSession(
         site_id=site_id,
         name=f"Access log: {file.filename}",
-        period_start=date.today(),
-        period_end=date.today(),
+        period_start=period_start,
+        period_end=period_end,
         source_type="access_log",
         total_visits=len(parsed),
         bot_visits=bot_count,
@@ -141,6 +146,22 @@ async def upload_log(
     )
     db.add(session)
     await db.flush()
+
+    # Persist individual visit rows for dashboard queries
+    for v in parsed:
+        visit = TrafficVisit(
+            session_id=session.id,
+            timestamp=v.get("timestamp", datetime.utcnow()),
+            page_url=v.get("page_url", v.get("url", "/")),
+            source=v.get("source", VisitSource.organic),
+            referer=v.get("referer"),
+            user_agent=v.get("user_agent"),
+            ip_address=v.get("ip_address"),
+            is_bot=v.get("is_bot", False),
+            bot_reason=v.get("bot_reason"),
+        )
+        db.add(visit)
+
     await db.commit()
 
     return {
