@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: verifying
-stopped_at: Phase v4-03 context gathered
-last_updated: "2026-04-03T21:04:33.264Z"
+status: executing
+stopped_at: Completed v4-03-02-PLAN.md
+last_updated: "2026-04-03T21:17:23.523Z"
 last_activity: 2026-04-03
 progress:
   total_phases: 12
@@ -21,13 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-03)
 
 **Core value:** A team member or client can open the platform and immediately see the SEO health of any site — positions, recent changes, pending tasks — without switching between GSC, spreadsheets, and WP admin.
-**Current focus:** Phase v4-02-section — overview
+**Current focus:** Phase v4-03-section — sites
 
 ## Current Position
 
-Phase: v4-02
-Plan: Not started
-Status: Phase complete — ready for verification
+Phase: v4-03-section (sites) — EXECUTING
+Plan: 2 of 2
+Status: Ready to execute
 Last activity: 2026-04-03
 
 Progress: [░░░░░░░░░░] 0%
@@ -68,6 +68,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase v4-08 P02 | 2min | 2 tasks | 3 files |
 | Phase v4-02-section-overview P01 | 8 | 2 tasks | 3 files |
 | Phase v4-02-section-overview P02 | 5 | 1 tasks | 1 files |
+| Phase v4-03-section-sites P02 | 2 | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -101,6 +102,7 @@ Recent decisions affecting current work:
 - [Phase v4-02-section-overview]: Cache key dashboard:agg_positions with 300s TTL prevents heavy cross-site aggregate SQL on every dashboard load
 - [Phase v4-02-section-overview]: asyncio.gather() in ui_dashboard runs aggregated_positions and todays_tasks concurrently
 - [Phase v4-02-section-overview]: Dashboard template rewrite uses explicit Tailwind classes throughout — zero inline style= attributes; existing .card CSS class retained for table sections
+- [Phase v4-03-section-sites]: Start Crawl button in crawl history uses hx-post /sites/site_id/crawl with hx-swap=none — fire-and-forget matching existing trigger_crawl endpoint
 
 ### Pending Todos
 
@@ -125,6 +127,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-03T21:04:33.259Z
-Stopped at: Phase v4-03 context gathered
-Resume file: .planning/phases/v4-03-section-sites/v4-03-section-CONTEXT.md
+Last session: 2026-04-03T21:17:23.519Z
+Stopped at: Completed v4-03-02-PLAN.md
+Resume file: None
