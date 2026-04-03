@@ -108,7 +108,10 @@ Plans:
   3. The report lists every URL with HTTP status code; 4xx and 5xx are flagged as errors
   4. The script exits with code 1 if any errors found, code 0 if all pages return 200/3xx
   5. Can be triggered as a Celery task that sends results to Telegram
-**Plans**: TBD
+**Plans**: 2 plans
+Plans:
+- [ ] v4-08-01-PLAN.md — Smoke test runner: route discovery, auth, site_id substitution, colored report, exit codes
+- [ ] v4-08-02-PLAN.md — Celery task wrapper with Telegram summary reporting
 
 ### Phase v4-09: Visual Polish & Migration Completion
 **Goal**: Dark mode is available site-wide, all 50+ pages have been confirmed in their new sections, existing URL patterns are preserved or redirected, and HTMX interactions are validated
@@ -136,5 +139,5 @@ Phases execute in order: v4-01 → (v4-02..v4-07 parallel) → v4-08 → v4-09
 | v4-05. Секция «Аналитика» | 0/TBD | Not started | - |
 | v4-06. Секция «Контент» | 0/TBD | Not started | - |
 | v4-07. Секция «Настройки» | 0/TBD | Not started | - |
-| v4-08. UI Smoke Test Agent | 0/TBD | Not started | - |
+| v4-08. UI Smoke Test Agent | 0/2 | Not started | - |
 | v4-09. Visual Polish & Migration | 0/TBD | Not started | - |
