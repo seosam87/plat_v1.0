@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed v4-04-02-PLAN.md
-last_updated: "2026-04-03T21:42:00.449Z"
+stopped_at: Completed v4-04-03-PLAN.md
+last_updated: "2026-04-03T21:42:24.487Z"
 last_activity: 2026-04-03
 progress:
   total_phases: 12
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-04-03)
 ## Current Position
 
 Phase: v4-04-section-positions (keywords) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-04-03
 
@@ -71,6 +71,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase v4-03-section-sites P02 | 2 | 2 tasks | 3 files |
 | Phase v4-03-section-sites P01 | 8 | 2 tasks | 5 files |
 | Phase v4-04-section-positions-keywords P02 | 2 | 2 tasks | 2 files |
+| Phase v4-04-section-positions-keywords P03 | 2 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -109,6 +110,8 @@ Recent decisions affecting current work:
 - [Phase v4-03-01]: site_metrics dict computed per-site in ui_sites handler (count_keywords + SQL counts) and passed to sites/index.html template
 - [Phase v4-04-02]: Jinja2 conditional expressions used inline for status-driven border-l and badge colors in cannibalization resolution cards
 - [Phase v4-04-02]: Position badges use conditional Tailwind classes per threshold (<=10 emerald, <=30 gray, >30 red) in cannibalization table
+- [Phase v4-04-section-positions-keywords]: classList toggling (remove hidden) used for all JS-driven show/hide in intent/bulk pages — never style.display
+- [Phase v4-04-section-positions-keywords]: Confidence coloring computed as CSS class string (confClass) before innerHTML, not inline style color — consistent with no-inline-style constraint
 
 ### Pending Todos
 
@@ -133,6 +136,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-03T21:42:00.446Z
-Stopped at: Completed v4-04-02-PLAN.md
+Last session: 2026-04-03T21:42:24.483Z
+Stopped at: Completed v4-04-03-PLAN.md
 Resume file: None
