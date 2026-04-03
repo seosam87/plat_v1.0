@@ -20,8 +20,8 @@ NAV_SECTIONS = [
         "admin_only": False,
         "children": [
             {"id": "sites-list", "label": "Список сайтов", "url": "/ui/sites"},
-            {"id": "sites-detail", "label": "Детали сайта", "url": "/ui/sites/{site_id}/detail"},
             {"id": "sites-crawls", "label": "Краулы", "url": "/ui/sites/{site_id}/crawls"},
+            {"id": "sites-schedule", "label": "Расписание", "url": "/ui/sites/{site_id}/schedule"},
         ],
     },
     {

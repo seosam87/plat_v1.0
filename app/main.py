@@ -208,8 +208,31 @@ async def ui_sites(request: Request, db: AsyncSession = Depends(get_db)) -> HTML
     groups = await list_groups(db)
     site_groups = {str(g.id): g.name for g in groups}
 
+    # Compute per-site metrics for index table (D-04, D-07)
+    from app.services.keyword_service import count_keywords
+    from app.models.crawl import CrawlJob
+    from app.models.task import SeoTask, TaskStatus
+    from sqlalchemy import select as sa_select, func
+    import uuid as _uuid
+
+    site_metrics: dict = {}
+    for site_obj in sites:
+        sid = site_obj.id
+        kw_count = await count_keywords(db, sid)
+        crawl_count = (await db.execute(
+            sa_select(func.count()).select_from(CrawlJob).where(CrawlJob.site_id == sid)
+        )).scalar() or 0
+        task_count = (await db.execute(
+            sa_select(func.count()).select_from(SeoTask).where(
+                SeoTask.site_id == sid,
+                SeoTask.status.in_([TaskStatus.open, TaskStatus.assigned, TaskStatus.in_progress]),
+            )
+        )).scalar() or 0
+        site_metrics[str(sid)] = {"keywords": kw_count, "crawls": crawl_count, "tasks": task_count}
+
     return templates.TemplateResponse(
-        request, "sites/index.html", {"sites": sites, "schedules": schedules, "site_groups": site_groups}
+        request, "sites/index.html",
+        {"sites": sites, "schedules": schedules, "site_groups": site_groups, "site_metrics": site_metrics}
     )
 
 
@@ -365,6 +388,24 @@ async def ui_update_schedule(
     if label == "manual":
         return HTMLResponse("")
     return HTMLResponse(f'<span style="color:#059669">Saved</span>')
+
+
+@app.get("/ui/sites/{site_id}/schedule", response_class=HTMLResponse)
+async def ui_site_schedule(site_id: str, request: Request, db: AsyncSession = Depends(get_db)) -> HTMLResponse:
+    """Schedule management page for a site (crawl + position check schedules)."""
+    import uuid as _uuid
+    from app.services.schedule_service import get_schedule, get_position_schedule
+
+    site = await get_site(db, _uuid.UUID(site_id))
+    if not site:
+        return HTMLResponse("Site not found", status_code=404)
+    crawl_sched = await get_schedule(db, _uuid.UUID(site_id))
+    pos_sched = await get_position_schedule(db, _uuid.UUID(site_id))
+    return templates.TemplateResponse(request, "sites/schedule.html", {
+        "site": {"id": str(site.id), "name": site.name, "url": site.url},
+        "crawl_schedule": crawl_sched.schedule_type.value if crawl_sched else "manual",
+        "position_schedule": pos_sched.schedule_type.value if pos_sched else "manual",
+    })
 
 
 @app.delete("/ui/sites/{site_id}", response_class=HTMLResponse)
@@ -2102,70 +2143,9 @@ def _inline(text: str) -> str:
 
 
 @app.get("/ui/sites/{site_id}/detail", response_class=HTMLResponse)
-async def ui_site_detail(site_id: str, request: Request, db: AsyncSession = Depends(get_db)) -> HTMLResponse:
-    import uuid as _uuid
-    from app.services.keyword_service import count_keywords
-    from app.services.schedule_service import get_schedule, get_position_schedule
-    from app.models.crawl import CrawlJob
-    from app.models.task import SeoTask, TaskStatus
-    from sqlalchemy import select as sa_select, func
-
-    site = await get_site(db, _uuid.UUID(site_id))
-    if not site:
-        return HTMLResponse("Site not found", status_code=404)
-
-    keyword_count = await count_keywords(db, _uuid.UUID(site_id))
-
-    crawl_count = (await db.execute(
-        sa_select(func.count()).select_from(CrawlJob).where(CrawlJob.site_id == _uuid.UUID(site_id))
-    )).scalar() or 0
-
-    task_count = (await db.execute(
-        sa_select(func.count()).select_from(SeoTask).where(
-            SeoTask.site_id == _uuid.UUID(site_id),
-            SeoTask.status.in_([TaskStatus.open, TaskStatus.assigned, TaskStatus.in_progress]),
-        )
-    )).scalar() or 0
-
-    crawl_sched = await get_schedule(db, _uuid.UUID(site_id))
-    pos_sched = await get_position_schedule(db, _uuid.UUID(site_id))
-
-    recent_crawls_rows = (await db.execute(
-        sa_select(CrawlJob).where(CrawlJob.site_id == _uuid.UUID(site_id))
-        .order_by(CrawlJob.started_at.desc().nullslast()).limit(5)
-    )).scalars().all()
-    recent_crawls = [
-        {"id": str(c.id), "status": c.status.value, "pages_crawled": c.pages_crawled,
-         "started_at": c.started_at.isoformat()[:16] if c.started_at else "—"}
-        for c in recent_crawls_rows
-    ]
-
-    # Recent open tasks for widget
-    recent_tasks = (await db.execute(
-        sa_select(SeoTask).where(
-            SeoTask.site_id == _uuid.UUID(site_id),
-            SeoTask.status.in_([TaskStatus.open, TaskStatus.assigned, TaskStatus.in_progress]),
-        ).order_by(SeoTask.created_at.desc()).limit(5)
-    )).scalars().all()
-    recent_tasks_data = [
-        {"title": t.title, "task_type": t.task_type.value, "status": t.status.value,
-         "priority": t.priority.value if hasattr(t, "priority") and t.priority else "p3",
-         "url": t.url}
-        for t in recent_tasks
-    ]
-
-    return templates.TemplateResponse(request, "sites/detail.html", {
-        "site": {"id": str(site.id), "name": site.name, "url": site.url,
-                 "connection_status": site.connection_status.value,
-                 "seo_plugin": site.seo_plugin or "unknown"},
-        "keyword_count": keyword_count,
-        "crawl_count": crawl_count,
-        "task_count": task_count,
-        "crawl_schedule": crawl_sched.schedule_type.value if crawl_sched else "manual",
-        "position_schedule": pos_sched.schedule_type.value if pos_sched else "manual",
-        "recent_crawls": recent_crawls,
-        "recent_tasks": recent_tasks_data,
-    })
+async def ui_site_detail(site_id: str, request: Request, db: AsyncSession = Depends(get_db)):
+    """Redirects to /ui/sites — detail page removed in v4 (D-06, D-08)."""
+    return RedirectResponse(url="/ui/sites", status_code=301)
 
 
 # ---- Keywords UI ----

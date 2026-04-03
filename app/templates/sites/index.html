@@ -1,125 +1,128 @@
 {% extends "base.html" %}
 {% block title %}Sites — SEO Platform{% endblock %}
 {% block content %}
-<div class="card">
-  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem">
-    <h2 style="margin:0">WordPress Sites <a class="help-trigger" onclick="openHelp()" title="Справка">?</a></h2>
-    <a href="/ui/sites/new" class="btn btn-primary">+ Add Site</a>
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+  <div class="flex justify-between items-center mb-4">
+    <h2 class="text-lg font-semibold text-gray-800">WordPress Sites</h2>
+    <a href="/ui/sites/new" class="inline-flex items-center px-3 py-1.5 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700">+ Add Site</a>
   </div>
 
   {% if sites %}
-  <table>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>URL</th>
-        <th>Group</th>
-        <th>WP Username</th>
-        <th>Status</th>
-        <th>Schedule</th>
-        <th>Active</th>
-        <th>Actions</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for site in sites %}
-      <tr>
-        <td><a href="/ui/sites/{{ site.id }}/detail" style="font-weight:500; color:#1e40af; text-decoration:none">{{ site.name }}</a></td>
-        <td><a href="{{ site.url }}" target="_blank">{{ site.url }}</a></td>
-        <td>
-          {% set group_name = site_groups.get(site.site_group_id|string, '') if site_groups else '' %}
-          <span class="badge badge-unknown" style="{% if group_name %}background:#dbeafe;color:#1e40af{% endif %}">{{ group_name or '—' }}</span>
-        </td>
-        <td>{{ site.wp_username }}</td>
-        <td>
-          <span
-            id="status-{{ site.id }}"
-            class="badge badge-{{ site.connection_status }}"
-          >{{ site.connection_status }}</span>
-        </td>
-        <td>
-          {% set sched = schedules.get(site.id|string, "manual") %}
-          <select
-            name="schedule_type"
-            class="schedule-select"
-            hx-post="/ui/sites/{{ site.id }}/schedule"
-            hx-target="#sched-badge-{{ site.id }}"
-            hx-swap="innerHTML"
-            hx-trigger="change"
-          >
-            <option value="manual" {% if sched == "manual" %}selected{% endif %}>Manual</option>
-            <option value="daily" {% if sched == "daily" %}selected{% endif %}>Daily</option>
-            <option value="weekly" {% if sched == "weekly" %}selected{% endif %}>Weekly</option>
-          </select>
-          <span id="sched-badge-{{ site.id }}" class="sched-confirm"></span>
-        </td>
-        <td>{{ "Yes" if site.is_active else "No" }}</td>
-        <td>
-          <form class="inline">
-            <button
-              class="btn btn-sm btn-verify"
-              hx-post="/sites/{{ site.id }}/verify"
-              hx-target="#status-{{ site.id }}"
-              hx-swap="outerHTML"
-              hx-indicator="#spinner-{{ site.id }}"
-            >Verify</button>
-            <span id="spinner-{{ site.id }}" class="htmx-indicator">…</span>
-          </form>
-          <a href="/ui/sites/{{ site.id }}/crawls" class="btn btn-sm" style="margin-left:.5rem">History</a>
-          {% if site.is_active %}
-          <form class="inline">
-            <button
-              class="btn btn-sm"
-              style="background:#ef4444;color:white;margin-left:.5rem"
-              hx-patch="/sites/{{ site.id }}/status?active=false"
-              hx-target="closest tr"
-              hx-swap="outerHTML"
-              hx-confirm="Disable this site? All associated jobs will stop."
-            >Disable</button>
-          </form>
-          {% else %}
-          <form class="inline">
-            <button
-              class="btn btn-sm"
-              style="background:#22c55e;color:white;margin-left:.5rem"
-              hx-patch="/sites/{{ site.id }}/status?active=true"
-              hx-target="closest tr"
-              hx-swap="outerHTML"
-            >Enable</button>
-          </form>
-          {% endif %}
-          <form class="inline">
-            <button
-              class="btn btn-sm"
-              style="background:#991b1b;color:white;margin-left:.5rem"
-              hx-delete="/ui/sites/{{ site.id }}"
-              hx-target="closest tr"
-              hx-swap="outerHTML swap:200ms"
-              hx-confirm="Delete site '{{ site.name }}'? This cannot be undone. All keywords, positions, crawl history and tasks for this site will be lost."
-            >Delete</button>
-          </form>
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  <div class="overflow-x-auto">
+    <table class="min-w-full divide-y divide-gray-200">
+      <thead class="bg-gray-50">
+        <tr>
+          <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+          <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Keywords</th>
+          <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Crawls</th>
+          <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tasks</th>
+          <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">URL</th>
+          <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Group</th>
+          <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">WP Username</th>
+          <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+          <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Schedule</th>
+          <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Active</th>
+          <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+        </tr>
+      </thead>
+      <tbody class="bg-white divide-y divide-gray-100">
+        {% for site in sites %}
+        <tr class="hover:bg-gray-50">
+          <td class="px-3 py-2">
+            <span class="font-medium text-indigo-600">{{ site.name }}</span>
+          </td>
+          <td class="px-3 py-2 text-sm text-indigo-600 font-bold">
+            {{ site_metrics[site.id|string].keywords if site_metrics and site.id|string in site_metrics else 0 }}
+          </td>
+          <td class="px-3 py-2 text-sm text-emerald-600 font-bold">
+            {{ site_metrics[site.id|string].crawls if site_metrics and site.id|string in site_metrics else 0 }}
+          </td>
+          <td class="px-3 py-2 text-sm text-amber-600 font-bold">
+            {{ site_metrics[site.id|string].tasks if site_metrics and site.id|string in site_metrics else 0 }}
+          </td>
+          <td class="px-3 py-2 text-sm">
+            <a href="{{ site.url }}" target="_blank" class="text-indigo-500 hover:underline truncate max-w-xs block">{{ site.url }}</a>
+          </td>
+          <td class="px-3 py-2 text-sm">
+            {% set group_name = site_groups.get(site.site_group_id|string, '') if site_groups else '' %}
+            {% if group_name %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-sky-50 text-sky-700">{{ group_name }}</span>
+            {% else %}
+            <span class="text-gray-400">—</span>
+            {% endif %}
+          </td>
+          <td class="px-3 py-2 text-sm text-gray-600">{{ site.wp_username }}</td>
+          <td class="px-3 py-2 text-sm">
+            {% if site.connection_status.value == 'connected' %}
+            <span id="status-{{ site.id }}" class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-50 text-emerald-700">{{ site.connection_status.value }}</span>
+            {% elif site.connection_status.value == 'failed' %}
+            <span id="status-{{ site.id }}" class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-50 text-red-700">{{ site.connection_status.value }}</span>
+            {% else %}
+            <span id="status-{{ site.id }}" class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">{{ site.connection_status.value }}</span>
+            {% endif %}
+          </td>
+          <td class="px-3 py-2 text-sm">
+            {% set sched = schedules.get(site.id|string, "manual") %}
+            <select
+              name="schedule_type"
+              class="px-2 py-1 border border-gray-300 rounded text-xs bg-white focus:ring-indigo-500 focus:border-indigo-500"
+              hx-post="/ui/sites/{{ site.id }}/schedule"
+              hx-target="#sched-badge-{{ site.id }}"
+              hx-swap="innerHTML"
+              hx-trigger="change"
+            >
+              <option value="manual" {% if sched == "manual" %}selected{% endif %}>Manual</option>
+              <option value="daily" {% if sched == "daily" %}selected{% endif %}>Daily</option>
+              <option value="weekly" {% if sched == "weekly" %}selected{% endif %}>Weekly</option>
+            </select>
+            <span id="sched-badge-{{ site.id }}" class="text-xs text-emerald-600 ml-1"></span>
+          </td>
+          <td class="px-3 py-2 text-sm text-gray-600">{{ "Yes" if site.is_active else "No" }}</td>
+          <td class="px-3 py-2 text-sm">
+            <div class="flex items-center gap-1 flex-wrap">
+              <button
+                class="px-2 py-1 text-xs font-medium rounded bg-blue-50 text-blue-700 hover:bg-blue-100"
+                hx-post="/sites/{{ site.id }}/verify"
+                hx-target="#status-{{ site.id }}"
+                hx-swap="outerHTML"
+                hx-indicator="#spinner-{{ site.id }}"
+              >Verify</button>
+              <span id="spinner-{{ site.id }}" class="htmx-indicator text-xs text-gray-400">…</span>
+              <a href="/ui/sites/{{ site.id }}/crawls" class="px-2 py-1 text-xs font-medium rounded bg-gray-100 text-gray-700 hover:bg-gray-200">History</a>
+              <a href="/ui/sites/{{ site.id }}/schedule" class="px-2 py-1 text-xs font-medium rounded bg-indigo-50 text-indigo-700 hover:bg-indigo-100">Schedule</a>
+              <a href="/ui/sites/{{ site.id }}/edit" class="px-2 py-1 text-xs font-medium rounded bg-amber-50 text-amber-700 hover:bg-amber-100">Edit</a>
+              {% if site.is_active %}
+              <button
+                class="px-2 py-1 text-xs font-medium rounded bg-red-600 text-white hover:bg-red-700"
+                hx-patch="/sites/{{ site.id }}/status?active=false"
+                hx-target="closest tr"
+                hx-swap="outerHTML"
+                hx-confirm="Disable this site? All associated jobs will stop."
+              >Disable</button>
+              {% else %}
+              <button
+                class="px-2 py-1 text-xs font-medium rounded bg-emerald-600 text-white hover:bg-emerald-700"
+                hx-patch="/sites/{{ site.id }}/status?active=true"
+                hx-target="closest tr"
+                hx-swap="outerHTML"
+              >Enable</button>
+              {% endif %}
+              <button
+                class="px-2 py-1 text-xs font-medium rounded bg-red-900 text-white hover:bg-red-800"
+                hx-delete="/ui/sites/{{ site.id }}"
+                hx-target="closest tr"
+                hx-swap="outerHTML swap:200ms"
+                hx-confirm="Delete site '{{ site.name }}'? This cannot be undone. All keywords, positions, crawl history and tasks for this site will be lost."
+              >Delete</button>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
   {% else %}
-  <p style="color:#6b7280">No sites added yet. <a href="/ui/sites/new">Add your first site.</a></p>
+  <p class="text-gray-500">No sites added yet. <a href="/ui/sites/new" class="text-indigo-600 hover:underline">Add your first site.</a></p>
   {% endif %}
 </div>
-
-<style>
-  .schedule-select {
-    padding: .25rem .4rem;
-    border: 1px solid #d1d5db;
-    border-radius: 4px;
-    font-size: .85rem;
-    background: white;
-  }
-  .sched-confirm {
-    font-size: .75rem;
-    color: #059669;
-    margin-left: .3rem;
-  }
-</style>
 {% endblock %}

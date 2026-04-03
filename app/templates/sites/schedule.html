@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Расписание — {{ site.name }}{% endblock %}
+{% block content %}
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+  <div class="flex justify-between items-center mb-6">
+    <div>
+      <h2 class="text-lg font-semibold text-gray-800">Расписание</h2>
+      <p class="text-sm text-gray-500 mt-1">
+        <a href="{{ site.url }}" target="_blank" class="text-indigo-600 hover:underline">{{ site.name }}</a>
+      </p>
+    </div>
+    <a href="/ui/sites" class="inline-flex items-center px-3 py-1.5 bg-gray-100 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-200">&larr; All Sites</a>
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <!-- Crawl Schedule -->
+    <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+      <label class="block text-sm font-medium text-gray-700 mb-2">Расписание краулов</label>
+      <select hx-put="/ui/sites/{{ site.id }}/schedule"
+              hx-target="#crawl-schedule-result" hx-swap="innerHTML"
+              hx-vals='js:{"schedule_type": event.target.value}'
+              name="schedule_type"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-indigo-500 focus:border-indigo-500">
+        {% for opt in ["manual", "daily", "weekly"] %}
+        <option value="{{ opt }}" {% if crawl_schedule == opt %}selected{% endif %}>{{ opt | capitalize }}</option>
+        {% endfor %}
+      </select>
+      <span id="crawl-schedule-result" class="text-xs text-emerald-600 mt-1 block"></span>
+    </div>
+
+    <!-- Position Check Schedule -->
+    <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+      <label class="block text-sm font-medium text-gray-700 mb-2">Расписание проверки позиций</label>
+      <select id="pos-schedule-select"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-indigo-500 focus:border-indigo-500"
+              onchange="updatePosSchedule(this.value)">
+        {% for opt in ["manual", "daily", "weekly", "every_12h"] %}
+        <option value="{{ opt }}" {% if position_schedule == opt %}selected{% endif %}>{{ opt | replace('_', ' ') | capitalize }}</option>
+        {% endfor %}
+      </select>
+      <span id="pos-schedule-result" class="text-xs text-emerald-600 mt-1 block"></span>
+    </div>
+  </div>
+</div>
+
+<script>
+async function updatePosSchedule(value) {
+  const resp = await fetch('/positions/sites/{{ site.id }}/schedule', {
+    method: 'PUT',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({schedule_type: value})
+  });
+  const el = document.getElementById('pos-schedule-result');
+  if (resp.ok) {
+    el.innerHTML = '<span class="text-emerald-600">Сохранено</span>';
+  } else {
+    el.innerHTML = '<span class="text-red-600">Ошибка</span>';
+  }
+  setTimeout(() => el.innerHTML = '', 3000);
+}
+</script>
+{% endblock %}
