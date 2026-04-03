@@ -11,96 +11,571 @@
   <h3 style="margin:0 0 1rem">Источник данных</h3>
   <div style="display:flex; gap:2rem; flex-wrap:wrap">
     <div style="flex:1; min-width:250px">
-      <h4 style="margin:0 0 .5rem; font-size:.9rem">Анализ Метрики</h4>
-      <div style="display:flex; gap:.5rem; margin-bottom:.5rem">
+      <h4 style="margin:0 0 .5rem; font-size:.9rem; color:#374151">Анализ Метрики</h4>
+      <div style="display:flex; gap:.5rem; margin-bottom:.5rem; flex-wrap:wrap">
         <input type="date" id="metrika-from" style="padding:.3rem .5rem; border:1px solid #d1d5db; border-radius:4px">
         <input type="date" id="metrika-to" style="padding:.3rem .5rem; border:1px solid #d1d5db; border-radius:4px">
       </div>
       <button class="btn" style="background:#4f46e5; color:white" onclick="analyzeMetrika()">Анализировать Метрику</button>
     </div>
     <div style="flex:1; min-width:250px">
-      <h4 style="margin:0 0 .5rem; font-size:.9rem">Загрузить access.log</h4>
+      <h4 style="margin:0 0 .5rem; font-size:.9rem; color:#374151">Загрузить access.log</h4>
       <form id="log-form" enctype="multipart/form-data">
-        <input type="file" name="file" accept=".log,.txt" style="margin-bottom:.5rem">
+        <input type="file" name="file" accept=".log,.txt" style="margin-bottom:.5rem; display:block">
         <button type="button" class="btn" style="background:#059669; color:white" onclick="uploadLog()">Загрузить лог</button>
       </form>
     </div>
   </div>
-  <span id="analysis-status" style="font-size:.85rem; display:block; margin-top:.5rem"></span>
+  <div id="analysis-status" style="font-size:.85rem; margin-top:.75rem"></div>
 </div>
 
 <!-- Anomaly alert -->
 <div id="anomaly-alert" style="display:none; background:#fee2e2; border:1px solid #fca5a5; border-radius:8px; padding:1rem; margin-bottom:1.5rem">
   <h3 style="margin:0 0 .5rem; color:#dc2626">Аномалии обнаружены</h3>
-  <div id="anomaly-details" style="font-size:.85rem"></div>
+  <div id="anomaly-details" style="font-size:.85rem; color:#7f1d1d"></div>
+</div>
+<div id="no-anomalies-ok" style="display:none; background:#d1fae5; border:1px solid #6ee7b7; border-radius:8px; padding:.75rem 1rem; margin-bottom:1.5rem">
+  <span style="color:#065f46; font-weight:600">Нет аномалий — трафик в норме</span>
 </div>
 
 <!-- Sessions history -->
 <div class="card" style="margin-bottom:1.5rem">
-  <h3 style="margin:0 0 1rem">История анализов</h3>
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem">
+    <h3 style="margin:0">История анализов</h3>
+    <span style="font-size:.8rem; color:#6b7280">Нажмите на сессию чтобы загрузить данные</span>
+  </div>
   {% if sessions %}
+  <div style="overflow-x:auto">
   <table style="font-size:.85rem">
-    <thead><tr><th>Название</th><th>Источник</th><th>Визиты</th><th>Боты</th><th>Аномалии</th><th>Период</th></tr></thead>
+    <thead>
+      <tr>
+        <th>Название</th><th>Источник</th><th>Визиты</th><th>Боты</th>
+        <th>Аномалии</th><th>Период</th><th></th>
+      </tr>
+    </thead>
     <tbody>
       {% for s in sessions %}
-      <tr>
+      <tr style="cursor:pointer" onclick="loadSession('{{ s.id }}', '{{ s.name }}')" title="Загрузить данные сессии">
         <td>{{ s.name }}</td>
-        <td><span class="badge" style="background:#f3f4f6;color:#6b7280">{{ s.source_type }}</span></td>
+        <td>
+          <span class="badge" style="background:#f3f4f6;color:#6b7280">
+            {{ "Метрика" if s.source_type == "metrika" else "access.log" }}
+          </span>
+        </td>
         <td>{{ s.total_visits }}</td>
         <td style="{% if s.bot_visits > 0 %}color:#dc2626; font-weight:600{% endif %}">{{ s.bot_visits }}</td>
         <td>
           {% if s.anomaly_detected %}<span style="color:#dc2626; font-weight:600">Да</span>
           {% else %}<span style="color:#059669">Нет</span>{% endif %}
         </td>
-        <td style="font-size:.8rem">{{ s.period_start }} — {{ s.period_end }}</td>
+        <td style="font-size:.8rem; color:#6b7280">{{ s.period_start }} — {{ s.period_end }}</td>
+        <td>
+          <button class="btn btn-sm" style="background:#4f46e5; color:white"
+                  onclick="event.stopPropagation(); loadSession('{{ s.id }}', '{{ s.name }}')">
+            Загрузить
+          </button>
+        </td>
       </tr>
       {% endfor %}
     </tbody>
   </table>
+  </div>
   {% else %}
-  <p style="color:#6b7280; text-align:center">Нет анализов. Запустите анализ Метрики или загрузите access.log.</p>
+  <p style="color:#6b7280; text-align:center; padding:1rem 0">
+    Нет анализов. Запустите анализ Метрики или загрузите access.log.
+  </p>
   {% endif %}
 </div>
 
-<!-- Chart placeholder -->
+<!-- Traffic timeline chart -->
 <div class="card" style="margin-bottom:1.5rem">
-  <h3 style="margin:0 0 1rem">Timeline трафика</h3>
-  <canvas id="traffic-chart" style="height:300px"></canvas>
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem">
+    <h3 style="margin:0">Timeline трафика</h3>
+    <span id="chart-session-label" style="font-size:.8rem; color:#6b7280">Нет загруженной сессии</span>
+  </div>
+  <canvas id="traffic-chart" style="max-height:320px"></canvas>
+</div>
+
+<!-- Traffic sources -->
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:1.5rem; margin-bottom:1.5rem">
+
+  <div class="card">
+    <h3 style="margin:0 0 1rem">Источники трафика</h3>
+    <canvas id="sources-chart" style="max-height:220px"></canvas>
+    <div id="sources-summary" style="margin-top:.75rem; font-size:.85rem; display:none">
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:.25rem .5rem" id="sources-grid"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3 style="margin:0 0 1rem">Топ referers</h3>
+    <div id="referers-list" style="font-size:.85rem; color:#6b7280">
+      Нет данных. Загрузите сессию.
+    </div>
+  </div>
+
+</div>
+
+<!-- Top landing pages -->
+<div class="card" style="margin-bottom:1.5rem">
+  <h3 style="margin:0 0 1rem">Топ посадочных страниц</h3>
+  <div id="landings-list" style="font-size:.85rem; color:#6b7280">
+    Нет данных. Загрузите сессию.
+  </div>
+</div>
+
+<!-- Bot detection -->
+<div class="card" style="margin-bottom:1.5rem">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem">
+    <h3 style="margin:0">Обнаружение ботов</h3>
+    <div>
+      <label style="font-size:.85rem; margin-right:.5rem">Фильтр по причине:</label>
+      <select id="bot-reason-filter" onchange="filterBots()" style="padding:.25rem .5rem; border:1px solid #d1d5db; border-radius:4px; font-size:.85rem">
+        <option value="">Все</option>
+      </select>
+    </div>
+  </div>
+  <div id="bots-section" style="color:#6b7280; font-size:.85rem">
+    Нет данных. Загрузите сессию.
+  </div>
+</div>
+
+<!-- Injection patterns -->
+<div class="card" style="margin-bottom:1.5rem">
+  <h3 style="margin:0 0 1rem">Паттерны подлива трафика</h3>
+  <div id="injections-section" style="color:#6b7280; font-size:.85rem">
+    Нет данных. Загрузите сессию.
+  </div>
+</div>
+
+<!-- Period comparison -->
+<div class="card" style="margin-bottom:1.5rem">
+  <h3 style="margin:0 0 1rem">Сравнение периодов</h3>
+  <div style="display:flex; gap:1rem; margin-bottom:1rem; flex-wrap:wrap; align-items:flex-end">
+    <div>
+      <label style="font-size:.8rem; color:#6b7280; display:block; margin-bottom:.25rem">Период 1 — с</label>
+      <input type="date" id="period1-from" style="padding:.3rem .5rem; border:1px solid #d1d5db; border-radius:4px">
+    </div>
+    <div>
+      <label style="font-size:.8rem; color:#6b7280; display:block; margin-bottom:.25rem">по</label>
+      <input type="date" id="period1-to" style="padding:.3rem .5rem; border:1px solid #d1d5db; border-radius:4px">
+    </div>
+    <div style="width:1px; background:#e5e7eb; align-self:stretch"></div>
+    <div>
+      <label style="font-size:.8rem; color:#6b7280; display:block; margin-bottom:.25rem">Период 2 — с</label>
+      <input type="date" id="period2-from" style="padding:.3rem .5rem; border:1px solid #d1d5db; border-radius:4px">
+    </div>
+    <div>
+      <label style="font-size:.8rem; color:#6b7280; display:block; margin-bottom:.25rem">по</label>
+      <input type="date" id="period2-to" style="padding:.3rem .5rem; border:1px solid #d1d5db; border-radius:4px">
+    </div>
+    <button class="btn" style="background:#4f46e5; color:white; align-self:flex-end" onclick="comparePeriods()">
+      Сравнить
+    </button>
+  </div>
+  <div id="comparison-result" style="display:none">
+    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:1rem">
+      <div>
+        <div style="font-size:.75rem; color:#6b7280; font-weight:600; text-transform:uppercase; margin-bottom:.5rem">Период 1</div>
+        <div id="period1-stats" style="font-size:.85rem"></div>
+      </div>
+      <div style="background:#f9fafb; border-radius:8px; padding:.75rem; text-align:center">
+        <div style="font-size:.75rem; color:#6b7280; font-weight:600; text-transform:uppercase; margin-bottom:.5rem">Изменение</div>
+        <div id="period-delta" style="font-size:.85rem"></div>
+      </div>
+      <div>
+        <div style="font-size:.75rem; color:#6b7280; font-weight:600; text-transform:uppercase; margin-bottom:.5rem">Период 2</div>
+        <div id="period2-stats" style="font-size:.85rem"></div>
+      </div>
+    </div>
+  </div>
+  <p id="comparison-placeholder" style="color:#6b7280; font-size:.85rem">
+    Выберите два периода и нажмите «Сравнить» для анализа данных текущей загруженной сессии.
+  </p>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0"></script>
 <script>
 const SITE_ID = '{{ site.id }}';
+let currentSessionId = null;
+let currentVisits = [];
+let allBotVisits = [];
+let trafficChart = null;
+let sourcesChart = null;
 
+// ---------- Metrika analysis ----------
 async function analyzeMetrika() {
   const from = document.getElementById('metrika-from').value;
   const to = document.getElementById('metrika-to').value;
   if (!from || !to) { alert('Выберите даты'); return; }
-  const resp = await fetch(`/traffic-analysis/${SITE_ID}/analyze-metrika`, {
-    method:'POST', headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({date_from:from, date_to:to})
-  });
-  const data = await resp.json();
-  const el = document.getElementById('analysis-status');
-  if (data.error) { el.innerHTML = `<span style="color:#dc2626">${data.error}</span>`; return; }
-  el.innerHTML = `<span style="color:#059669">Визитов: ${data.total_visits}, аномалии: ${data.anomaly_detected ? 'Да' : 'Нет'}</span>`;
-  if (data.anomaly_detected) {
-    document.getElementById('anomaly-alert').style.display = '';
-    document.getElementById('anomaly-details').innerHTML = data.anomaly_days.map(d =>
-      `<div>${d.date}: ${d.visits} визитов (ожидалось ~${d.expected}, отклонение ${d.deviation}σ)</div>`
-    ).join('');
-  }
-  setTimeout(() => location.reload(), 2000);
+  setStatus('Анализирую Метрику...', '#4f46e5');
+  try {
+    const resp = await fetch(`/traffic-analysis/${SITE_ID}/analyze-metrika`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({date_from: from, date_to: to})
+    });
+    const data = await resp.json();
+    if (data.error) { setStatus(data.error, '#dc2626'); return; }
+    setStatus(`Готово. Визитов: ${data.total_visits}, аномалии: ${data.anomaly_detected ? 'Да' : 'Нет'}`, '#059669');
+    if (data.anomaly_detected) showAnomalyAlert(data.anomaly_days);
+    setTimeout(() => location.reload(), 2000);
+  } catch (e) { setStatus('Ошибка соединения', '#dc2626'); }
 }
 
+// ---------- Log upload ----------
 async function uploadLog() {
   const form = document.getElementById('log-form');
-  const resp = await fetch(`/traffic-analysis/${SITE_ID}/upload-log`, {method:'POST', body: new FormData(form)});
-  const data = await resp.json();
+  const fd = new FormData(form);
+  if (!fd.get('file') || !fd.get('file').name) { alert('Выберите файл'); return; }
+  setStatus('Загружаю и анализирую лог...', '#4f46e5');
+  try {
+    const resp = await fetch(`/traffic-analysis/${SITE_ID}/upload-log`, {method: 'POST', body: fd});
+    const data = await resp.json();
+    if (data.error) { setStatus(data.error, '#dc2626'); return; }
+    setStatus(`Готово. Записей: ${data.total}, ботов: ${data.bots}, людей: ${data.humans}`, '#059669');
+    setTimeout(() => location.reload(), 2000);
+  } catch (e) { setStatus('Ошибка соединения', '#dc2626'); }
+}
+
+// ---------- Load session data ----------
+async function loadSession(sessionId, sessionName) {
+  currentSessionId = sessionId;
+  document.getElementById('chart-session-label').textContent = sessionName;
+  setStatus(`Загружаю данные сессии: ${sessionName}...`, '#4f46e5');
+
+  try {
+    const [visitsResp, anomaliesResp, botsResp, injectionsResp] = await Promise.all([
+      fetch(`/traffic-analysis/sessions/${sessionId}/visits`),
+      fetch(`/traffic-analysis/sessions/${sessionId}/anomalies`),
+      fetch(`/traffic-analysis/sessions/${sessionId}/bots`),
+      fetch(`/traffic-analysis/sessions/${sessionId}/injections`),
+    ]);
+    currentVisits = await visitsResp.json();
+    const anomalies = await anomaliesResp.json();
+    allBotVisits = await botsResp.json();
+    const injections = await injectionsResp.json();
+
+    renderTimeline(anomalies);
+    renderSourcesChart(injections.source_summary);
+    renderReferers(injections.top_referers);
+    renderLandings(injections.top_landings);
+    renderBots(allBotVisits);
+    renderInjections(injections.patterns, anomalies);
+
+    if (anomalies.anomaly_detected && anomalies.anomaly_days.length > 0) {
+      showAnomalyAlert(anomalies.anomaly_days);
+    } else if (!anomalies.anomaly_detected) {
+      document.getElementById('no-anomalies-ok').style.display = '';
+      document.getElementById('anomaly-alert').style.display = 'none';
+    }
+
+    setStatus(`Данные загружены. Визитов: ${currentVisits.length}, ботов: ${allBotVisits.length}`, '#059669');
+  } catch (e) {
+    setStatus('Ошибка загрузки данных сессии', '#dc2626');
+    console.error(e);
+  }
+}
+
+// ---------- Timeline chart ----------
+function renderTimeline(anomalies) {
+  const dayMap = {};
+  for (const v of currentVisits) {
+    const day = v.timestamp.split('T')[0];
+    if (!dayMap[day]) dayMap[day] = {organic:0, direct:0, referral:0, bot:0, injection:0};
+    const s = v.source || 'organic';
+    if (s === 'bot_suspected') dayMap[day].bot++;
+    else if (s === 'injection_suspected') dayMap[day].injection++;
+    else if (s === 'referral') dayMap[day].referral++;
+    else if (s === 'direct') dayMap[day].direct++;
+    else dayMap[day].organic++;
+  }
+
+  // If no visits, use anomaly visits_by_day as fallback labels
+  let labels = Object.keys(dayMap).sort();
+  if (labels.length === 0 && anomalies.visits_by_day) {
+    labels = anomalies.visits_by_day.map(d => d.date);
+  }
+
+  const anomalyDays = new Set((anomalies.anomaly_days || []).map(d => d.date));
+
+  const bgColor = labels.map(d => anomalyDays.has(d) ? 'rgba(220,38,38,.15)' : 'transparent');
+
+  if (trafficChart) trafficChart.destroy();
+  const ctx = document.getElementById('traffic-chart').getContext('2d');
+  trafficChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        {label:'Органика', data: labels.map(d => (dayMap[d]||{}).organic||0), backgroundColor:'#4f46e5', stack:'s'},
+        {label:'Прямой', data: labels.map(d => (dayMap[d]||{}).direct||0), backgroundColor:'#0ea5e9', stack:'s'},
+        {label:'Реферал', data: labels.map(d => (dayMap[d]||{}).referral||0), backgroundColor:'#f59e0b', stack:'s'},
+        {label:'Бот', data: labels.map(d => (dayMap[d]||{}).bot||0), backgroundColor:'#dc2626', stack:'s'},
+        {label:'Подлив', data: labels.map(d => (dayMap[d]||{}).injection||0), backgroundColor:'#7c3aed', stack:'s'},
+      ]
+    },
+    options: {
+      responsive: true,
+      interaction: {mode:'index', intersect:false},
+      plugins: {
+        legend: {position:'bottom'},
+        tooltip: {
+          callbacks: {
+            afterBody(ctx) {
+              const lbl = ctx[0].label;
+              if (anomalyDays.has(lbl)) return ['⚠ Аномалия обнаружена'];
+              return [];
+            }
+          }
+        }
+      },
+      scales: {
+        x: {stacked:true, ticks:{maxRotation:45, font:{size:10}}},
+        y: {stacked:true, beginAtZero:true}
+      }
+    }
+  });
+
+  // Annotate anomaly bars with red background via custom plugin
+  if (anomalyDays.size > 0) {
+    document.getElementById('chart-session-label').textContent +=
+      ` | Аномалий: ${anomalyDays.size} дн.`;
+  }
+}
+
+// ---------- Sources pie chart ----------
+function renderSourcesChart(summary) {
+  const labels = ['Органика','Прямой','Реферал','Боты','Подлив'];
+  const values = [summary.organic, summary.direct, summary.referral, summary.bot, summary.injection];
+  const colors = ['#4f46e5','#0ea5e9','#f59e0b','#dc2626','#7c3aed'];
+
+  if (sourcesChart) sourcesChart.destroy();
+  const ctx = document.getElementById('sources-chart').getContext('2d');
+  sourcesChart = new Chart(ctx, {
+    type: 'doughnut',
+    data: {labels, datasets: [{data:values, backgroundColor:colors, borderWidth:2}]},
+    options: {responsive:true, plugins:{legend:{position:'bottom'}}}
+  });
+
+  const grid = document.getElementById('sources-grid');
+  grid.innerHTML = labels.map((l,i) =>
+    `<div style="display:flex; align-items:center; gap:.3rem">
+      <span style="width:10px;height:10px;border-radius:50%;background:${colors[i]};flex-shrink:0"></span>
+      <span>${l}</span>
+    </div>
+    <div style="text-align:right;font-weight:600">${values[i]}</div>`
+  ).join('');
+  document.getElementById('sources-summary').style.display = '';
+}
+
+// ---------- Referers ----------
+function renderReferers(topReferers) {
+  const el = document.getElementById('referers-list');
+  if (!topReferers || topReferers.length === 0) {
+    el.innerHTML = '<span style="color:#6b7280">Нет данных о реферерах</span>';
+    return;
+  }
+  const max = topReferers[0][1] || 1;
+  el.innerHTML = topReferers.map(([ref, cnt]) => `
+    <div style="display:flex; align-items:center; gap:.5rem; margin-bottom:.4rem">
+      <div style="flex:1; min-width:0">
+        <div style="font-size:.8rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis" title="${ref}">${ref || '(прямой)'}</div>
+        <div style="background:#e5e7eb; border-radius:2px; height:4px; margin-top:2px">
+          <div style="background:#4f46e5; height:4px; border-radius:2px; width:${Math.round(cnt/max*100)}%"></div>
+        </div>
+      </div>
+      <span style="font-weight:600; min-width:40px; text-align:right">${cnt}</span>
+    </div>
+  `).join('');
+}
+
+// ---------- Landing pages ----------
+function renderLandings(topLandings) {
+  const el = document.getElementById('landings-list');
+  if (!topLandings || topLandings.length === 0) {
+    el.innerHTML = '<span style="color:#6b7280">Нет данных о страницах</span>';
+    return;
+  }
+  const max = topLandings[0][1] || 1;
+  el.innerHTML = `<div style="overflow-x:auto"><table style="font-size:.82rem">
+    <thead><tr><th>URL</th><th style="text-align:right">Визиты</th><th style="min-width:120px">Доля</th></tr></thead>
+    <tbody>${topLandings.map(([url, cnt]) => `
+      <tr>
+        <td style="max-width:400px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap" title="${url}">
+          <a href="${url}" target="_blank" rel="noopener" style="color:#4f46e5; text-decoration:none">${url}</a>
+        </td>
+        <td style="text-align:right; font-weight:600">${cnt}</td>
+        <td>
+          <div style="background:#e5e7eb; border-radius:2px; height:6px">
+            <div style="background:#0ea5e9; height:6px; border-radius:2px; width:${Math.round(cnt/max*100)}%"></div>
+          </div>
+        </td>
+      </tr>`).join('')}
+    </tbody>
+  </table></div>`;
+}
+
+// ---------- Bot detection ----------
+function renderBots(bots) {
+  const el = document.getElementById('bots-section');
+  if (!bots || bots.length === 0) {
+    el.innerHTML = '<span style="color:#059669; font-weight:600">Ботов не обнаружено</span>';
+    return;
+  }
+
+  // Populate filter
+  const reasons = [...new Set(bots.map(b => b.bot_reason || 'Неизвестно'))].sort();
+  const sel = document.getElementById('bot-reason-filter');
+  sel.innerHTML = '<option value="">Все</option>' +
+    reasons.map(r => `<option value="${r}">${r}</option>`).join('');
+
+  renderBotsTable(bots);
+}
+
+function renderBotsTable(bots) {
+  const el = document.getElementById('bots-section');
+  el.innerHTML = `<div style="margin-bottom:.5rem; color:#dc2626; font-weight:600">
+    Обнаружено ботов: ${bots.length}
+  </div>
+  <div style="overflow-x:auto"><table style="font-size:.82rem">
+    <thead>
+      <tr>
+        <th>Время</th><th>IP</th><th>User-Agent</th><th>Referer</th><th>URL</th><th>Причина</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${bots.slice(0,200).map(b => `<tr>
+        <td style="white-space:nowrap">${b.timestamp ? b.timestamp.replace('T',' ').slice(0,16) : ''}</td>
+        <td style="font-family:monospace">${b.ip_address || ''}</td>
+        <td style="max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap" title="${b.user_agent || ''}">${b.user_agent || ''}</td>
+        <td style="max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap" title="${b.referer || ''}">${b.referer || ''}</td>
+        <td style="max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap" title="${b.page_url || ''}">${b.page_url || ''}</td>
+        <td><span class="badge" style="background:#fee2e2;color:#991b1b">${b.bot_reason || ''}</span></td>
+      </tr>`).join('')}
+    </tbody>
+  </table></div>
+  ${bots.length > 200 ? `<p style="color:#6b7280;font-size:.8rem;margin-top:.5rem">Показаны первые 200 из ${bots.length} записей</p>` : ''}`;
+}
+
+function filterBots() {
+  const reason = document.getElementById('bot-reason-filter').value;
+  const filtered = reason ? allBotVisits.filter(b => (b.bot_reason || 'Неизвестно') === reason) : allBotVisits;
+  renderBotsTable(filtered);
+}
+
+// ---------- Injection patterns ----------
+function renderInjections(patterns, anomalies) {
+  const el = document.getElementById('injections-section');
+  if (!patterns || patterns.length === 0) {
+    el.innerHTML = '<span style="color:#059669; font-weight:600">Паттернов подлива не обнаружено</span>';
+    return;
+  }
+
+  const anomalyDays = (anomalies.anomaly_days || []);
+  let comparisonHtml = '';
+  if (anomalyDays.length > 0) {
+    const firstAnomaly = anomalyDays[0].date;
+    comparisonHtml = `
+      <div style="margin-top:1rem; padding:1rem; background:#fef3c7; border:1px solid #fcd34d; border-radius:8px">
+        <h4 style="margin:0 0 .75rem; font-size:.9rem">Сравнение периодов (аномалия: ${firstAnomaly})</h4>
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:1rem; font-size:.85rem">
+          <div><div style="color:#6b7280; font-size:.75rem; margin-bottom:.25rem">ДО подлива</div>
+            <div>Базовый: ~${Math.round(anomalies.baseline_avg)} визитов/день</div></div>
+          <div><div style="color:#6b7280; font-size:.75rem; margin-bottom:.25rem">ВО ВРЕМЯ</div>
+            ${anomalyDays.map(d => `<div>${d.date}: <strong>${d.visits}</strong> (+${d.deviation}σ)</div>`).join('')}</div>
+          <div><div style="color:#6b7280; font-size:.75rem; margin-bottom:.25rem">ОТКЛОНЕНИЕ</div>
+            <div style="color:#dc2626; font-weight:600">+${Math.round((anomalyDays[0].visits - anomalies.baseline_avg) / anomalies.baseline_avg * 100)}%</div></div>
+        </div>
+      </div>`;
+  }
+
+  el.innerHTML = `
+    <div style="margin-bottom:.75rem; color:#7c3aed; font-weight:600">
+      Обнаружено паттернов: ${patterns.length}
+    </div>
+    ${patterns.map(p => `
+      <div style="background:#f5f3ff; border:1px solid #ddd6fe; border-radius:8px; padding:.75rem; margin-bottom:.75rem">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:.25rem">
+          <strong style="color:#7c3aed">${p.pattern}</strong>
+          <span class="badge" style="background:${p.confidence > 0.7 ? '#fee2e2' : '#fef3c7'};
+                color:${p.confidence > 0.7 ? '#991b1b' : '#92400e'}">
+            Уверенность: ${Math.round(p.confidence * 100)}%
+          </span>
+        </div>
+        <div style="font-size:.85rem; color:#374151">${p.evidence}</div>
+      </div>`).join('')}
+    ${comparisonHtml}`;
+}
+
+// ---------- Anomaly alert ----------
+function showAnomalyAlert(anomalyDays) {
+  document.getElementById('anomaly-alert').style.display = '';
+  document.getElementById('no-anomalies-ok').style.display = 'none';
+  document.getElementById('anomaly-details').innerHTML = anomalyDays.map(d =>
+    `<div>${d.date}: <strong>${d.visits}</strong> визитов (ожидалось ~${d.expected}, отклонение ${d.deviation}σ)</div>`
+  ).join('');
+}
+
+// ---------- Period comparison ----------
+function comparePeriods() {
+  if (!currentVisits.length) {
+    alert('Сначала загрузите данные сессии');
+    return;
+  }
+  const p1from = document.getElementById('period1-from').value;
+  const p1to = document.getElementById('period1-to').value;
+  const p2from = document.getElementById('period2-from').value;
+  const p2to = document.getElementById('period2-to').value;
+  if (!p1from || !p1to || !p2from || !p2to) { alert('Заполните все даты'); return; }
+
+  function periodStats(visits, from, to) {
+    const filtered = visits.filter(v => {
+      const d = v.timestamp.split('T')[0];
+      return d >= from && d <= to;
+    });
+    const total = filtered.length;
+    const bots = filtered.filter(v => v.is_bot).length;
+    const organic = filtered.filter(v => v.source === 'organic').length;
+    const direct = filtered.filter(v => v.source === 'direct').length;
+    const referral = filtered.filter(v => v.source === 'referral').length;
+    return {total, bots, organic, direct, referral,
+      botPct: total ? Math.round(bots/total*100) : 0};
+  }
+
+  const s1 = periodStats(currentVisits, p1from, p1to);
+  const s2 = periodStats(currentVisits, p2from, p2to);
+
+  function statsHtml(s) {
+    return `<div>Всего визитов: <strong>${s.total}</strong></div>
+      <div>Ботов: <strong style="color:#dc2626">${s.bots} (${s.botPct}%)</strong></div>
+      <div>Органика: ${s.organic}</div>
+      <div>Прямой: ${s.direct}</div>
+      <div>Реферал: ${s.referral}</div>`;
+  }
+
+  function deltaVal(v1, v2) {
+    if (!v1) return '+∞';
+    const pct = Math.round((v2-v1)/v1*100);
+    const color = pct > 0 ? '#dc2626' : '#059669';
+    return `<span style="color:${color}; font-weight:600">${pct > 0 ? '+' : ''}${pct}%</span>`;
+  }
+
+  document.getElementById('period1-stats').innerHTML = statsHtml(s1);
+  document.getElementById('period2-stats').innerHTML = statsHtml(s2);
+  document.getElementById('period-delta').innerHTML = `
+    <div>Визиты: ${deltaVal(s1.total, s2.total)}</div>
+    <div>Боты: ${deltaVal(s1.bots, s2.bots)}</div>
+    <div>Органика: ${deltaVal(s1.organic, s2.organic)}</div>
+  `;
+  document.getElementById('comparison-result').style.display = '';
+  document.getElementById('comparison-placeholder').style.display = 'none';
+}
+
+// ---------- Helpers ----------
+function setStatus(msg, color) {
   const el = document.getElementById('analysis-status');
-  if (data.error) { el.innerHTML = `<span style="color:#dc2626">${data.error}</span>`; return; }
-  el.innerHTML = `<span style="color:#059669">Записей: ${data.total}, ботов: ${data.bots}, людей: ${data.humans}</span>`;
-  setTimeout(() => location.reload(), 2000);
+  el.innerHTML = `<span style="color:${color}">${msg}</span>`;
 }
 </script>
 {% endblock %}
