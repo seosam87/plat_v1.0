@@ -313,3 +313,46 @@ def export_session_keywords_csv(keywords: list[dict]) -> str:
             k.get("delta", ""),
         ])
     return output.getvalue()
+
+
+async def export_session_csv(db: AsyncSession, session_id: uuid.UUID) -> str:
+    """Generate CSV string with keywords + positions for a session.
+
+    Fetches keywords stored in the session and their latest position data,
+    returns a CSV string ready for download.
+    """
+    keywords = await get_session_keywords(db, session_id)
+    if not keywords:
+        return export_session_keywords_csv([])
+
+    # Attempt to fetch position data for each keyword
+    kw_uuids = [uuid.UUID(k["id"]) for k in keywords]
+
+    latest_pos_sq = (
+        select(
+            KeywordPosition.keyword_id,
+            KeywordPosition.position,
+            KeywordPosition.delta,
+            KeywordPosition.url.label("ranking_url"),
+        )
+        .where(KeywordPosition.keyword_id.in_(kw_uuids))
+        .distinct(KeywordPosition.keyword_id)
+        .order_by(KeywordPosition.keyword_id, KeywordPosition.checked_at.desc())
+        .subquery()
+    )
+    pos_result = await db.execute(select(latest_pos_sq))
+    pos_map = {
+        str(row.keyword_id): {
+            "latest_position": row.position,
+            "delta": row.delta,
+            "latest_url": row.ranking_url,
+        }
+        for row in pos_result.all()
+    }
+
+    enriched = []
+    for k in keywords:
+        pos_data = pos_map.get(k["id"], {})
+        enriched.append({**k, **pos_data})
+
+    return export_session_keywords_csv(enriched)
