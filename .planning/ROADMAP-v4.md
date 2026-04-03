@@ -99,7 +99,11 @@ Plans:
   1. User can reach Content Audit, WP Pipeline, and DOCX Publisher via sidebar sub-items under «Контент»
   2. User can reach Проекты, Kanban, and Контент-план via sidebar sub-items under «Контент»
   3. User can reach Мониторинг изменений as a sub-item under «Контент»
-**Plans**: TBD
+**Plans**: 3 plans
+Plans:
+- [ ] v4-06-01-PLAN.md — Projects + Kanban + Content Plan Tailwind migration (form toggle, HTMX status transitions, create-draft)
+- [ ] v4-06-02-PLAN.md — Pipeline Jobs + DOCX Publisher Tailwind migration (diff modal, tabs, bulk actions, upload form)
+- [ ] v4-06-03-PLAN.md — Change Monitoring + Content Audit Tailwind migration (alert rules, digest, schema modal, filters)
 **UI hint**: yes
 
 ### Phase v4-07: Секция «Настройки»
@@ -151,7 +155,7 @@ Phases execute in order: v4-01 → (v4-02..v4-07 parallel) → v4-08 → v4-09
 | v4-03. Секция «Сайты» | 2/2 | Complete | 2026-04-03 |
 | v4-04. Секция «Позиции и ключи» | 3/3 | Complete | 2026-04-03 |
 | v4-05. Секция «Аналитика» | 0/3 | **Next** | - |
-| v4-06. Секция «Контент» | 0/TBD | Not started | - |
+| v4-06. Секция «Контент» | 0/3 | Not started | - |
 | v4-07. Секция «Настройки» | 0/TBD | Not started | - |
 | v4-08. UI Smoke Test Agent | 2/2 | Complete | 2026-04-03 |
 | v4-09. Visual Polish & Migration | 0/TBD | Not started | - |
