@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed v3-04-01-PLAN.md
-last_updated: "2026-04-03T07:27:15.739Z"
+stopped_at: Completed v3-04-04-PLAN.md
+last_updated: "2026-04-03T07:35:03.028Z"
 last_activity: 2026-04-03
 progress:
   total_phases: 12
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-03-31)
 ## Current Position
 
 Phase: v3-04-analytics (workspace) — EXECUTING
-Plan: 2 of 7
+Plan: 3 of 7
 Status: Ready to execute
 Last activity: 2026-04-03
 
@@ -68,6 +68,8 @@ Progress: [██░░░░░░░░] 18%
 | Phase v3-03 P02 | 10 | 5 tasks | 5 files |
 | Phase v3-03 P04 | 5 | 3 tasks | 4 files |
 | Phase v3-04 P01 | 3 | 3 tasks | 3 files |
+| Phase v3-04 P03 | 5 | 3 tasks | 3 files |
+| Phase v3-04 P04 | 3 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -105,6 +107,7 @@ Recent decisions affecting current work:
 - [Phase v3-04]: SessionStatus enum uses native_enum=False (VARCHAR storage) consistent with Phase 06.1 ProxyType pattern
 - [Phase v3-04]: AnalysisSession.keyword_ids is JSON (list of UUID strings) to avoid M2M join table for ephemeral workspace sessions
 - [Phase v3-04]: ContentBrief has both session_id and site_id FKs to enable listing briefs by site without session context
+- [Phase v3-04]: Pure functions (build_heading_structure, suggest_seo_fields, format_brief_text) separated from async DB layer in brief_service — enables fast unit tests without DB setup
 
 ### Pending Todos
 
@@ -128,6 +131,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-03T07:27:15.735Z
-Stopped at: Completed v3-04-01-PLAN.md
+Last session: 2026-04-03T07:35:03.024Z
+Stopped at: Completed v3-04-04-PLAN.md
 Resume file: None
