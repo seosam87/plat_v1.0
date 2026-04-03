@@ -145,8 +145,8 @@ Phases execute in order: v4-01 → (v4-02..v4-07 parallel) → v4-08 → v4-09
 | v4-01. Navigation Foundation | 1/1 | Complete | 2026-04-03 |
 | v4-02. Секция «Обзор» | 2/2 | Complete | 2026-04-03 |
 | v4-03. Секция «Сайты» | 2/2 | Complete | 2026-04-03 |
-| v4-04. Секция «Позиции и ключи» | 0/3 | **Next** | - |
-| v4-05. Секция «Аналитика» | 0/TBD | Not started | - |
+| v4-04. Секция «Позиции и ключи» | 3/3 | Complete | 2026-04-03 |
+| v4-05. Секция «Аналитика» | 0/TBD | **Next** | - |
 | v4-06. Секция «Контент» | 0/TBD | Not started | - |
 | v4-07. Секция «Настройки» | 0/TBD | Not started | - |
 | v4-08. UI Smoke Test Agent | 2/2 | Complete | 2026-04-03 |
