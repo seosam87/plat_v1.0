@@ -56,7 +56,10 @@ Plans:
   1. User can add, remove, and verify sites via sidebar sub-items in the «Сайты» section
   2. User can view crawl history and crawl schedule for the selected site within the Сайты section
   3. Navigating to the old site detail URL either redirects or is absent — the sidebar and section pages cover all its prior functions
-**Plans**: TBD
+**Plans**: 2 plans
+Plans:
+- [ ] v4-03-01-PLAN.md — Nav update, site list Tailwind redesign with metrics, schedule page, detail removal
+- [ ] v4-03-02-PLAN.md — Crawl history + change feed Tailwind migration, start crawl button
 **UI hint**: yes
 
 ### Phase v4-04: Секция «Позиции и ключи»
@@ -135,12 +138,12 @@ Phases execute in order: v4-01 → (v4-02..v4-07 parallel) → v4-08 → v4-09
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| v4-01. Navigation Foundation | 0/1 | In progress | - |
-| v4-02. Секция «Обзор» | 0/TBD | Not started | - |
-| v4-03. Секция «Сайты» | 0/TBD | Not started | - |
+| v4-01. Navigation Foundation | 1/1 | Complete | 2026-04-03 |
+| v4-02. Секция «Обзор» | 2/2 | Complete | 2026-04-03 |
+| v4-03. Секция «Сайты» | 0/2 | **Next** | - |
 | v4-04. Секция «Позиции и ключи» | 0/TBD | Not started | - |
 | v4-05. Секция «Аналитика» | 0/TBD | Not started | - |
 | v4-06. Секция «Контент» | 0/TBD | Not started | - |
 | v4-07. Секция «Настройки» | 0/TBD | Not started | - |
-| v4-08. UI Smoke Test Agent | 0/2 | Not started | - |
+| v4-08. UI Smoke Test Agent | 2/2 | Complete | 2026-04-03 |
 | v4-09. Visual Polish & Migration | 0/TBD | Not started | - |
