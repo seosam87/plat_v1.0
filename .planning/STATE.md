@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed v3-02-04-PLAN.md
-last_updated: "2026-04-03T06:58:00.533Z"
+stopped_at: Completed v3-03-01-PLAN.md
+last_updated: "2026-04-03T07:07:02.480Z"
 last_activity: 2026-04-03
 progress:
   total_phases: 12
@@ -21,12 +21,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-31)
 
 **Core value:** A team member or client can open the platform and immediately see the SEO health of any site — positions, recent changes, pending tasks — without switching between GSC, spreadsheets, and WP admin.
-**Current focus:** Phase v3-02-content — audit
+**Current focus:** Phase v3-03-change — monitoring
 
 ## Current Position
 
-Phase: v3-02-content
-Plan: Not started
+Phase: v3-03-change (monitoring) — EXECUTING
+Plan: 2 of 4
 Status: Ready to execute
 Last activity: 2026-04-03
 
@@ -64,6 +64,7 @@ Progress: [██░░░░░░░░] 18%
 | Phase v3-02 P03 | 5 | 2 tasks | 2 files |
 | Phase v3-02 P02 | 4 | 2 tasks | 2 files |
 | Phase v3-02 P04 | 5 | 4 tasks | 6 files |
+| Phase v3-03 P01 | 5 | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -92,6 +93,9 @@ Recent decisions affecting current work:
 - [Phase v3-02-04]: Audit router imports content_audit_service (not audit_service) for check engine — content_audit_service is dedicated check engine, audit_service retained for audit_log writes
 - [Phase v3-02-04]: Batch audit dispatched as Celery task (run_site_audit) to avoid blocking UI — runs up to 200 pages
 - [Phase v3-02-04]: Client-side filter (filterTable) avoids server round-trip; all page data encoded as data-* attributes on TR elements
+- [Phase v3-03]: ChangeAlertRule is global (no site_id): same severity rules apply to all sites
+- [Phase v3-03]: 9 default rules seeded in migration 0022: page_404/noindex_added/schema_removed=error, title/h1/canonical/meta=warning, content/new_page=info
+- [Phase v3-03]: DigestSchedule stores day_of_week+hour+minute for UI; cron_expression is derived field for redbeat
 
 ### Pending Todos
 
@@ -115,6 +119,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-03T06:53:36.119Z
-Stopped at: Completed v3-02-04-PLAN.md
+Last session: 2026-04-03T07:07:02.476Z
+Stopped at: Completed v3-03-01-PLAN.md
 Resume file: None
