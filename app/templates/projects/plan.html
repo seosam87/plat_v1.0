@@ -2,12 +2,12 @@
 {% block title %}Content Plan — {{ project_name }}{% endblock %}
 {% block content %}
 <div class="card">
-  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem">
-    <h2 style="margin:0">Content Plan: {{ project_name }}</h2>
+  <div class="flex justify-between items-center mb-6">
+    <h2 class="text-lg font-semibold text-gray-800 m-0">Content Plan: {{ project_name }}</h2>
   </div>
 
   {% if items %}
-  <table>
+  <table class="min-w-full divide-y divide-gray-200">
     <thead>
       <tr>
         <th>Title</th>
@@ -20,9 +20,15 @@
     <tbody>
       {% for item in items %}
       <tr>
-        <td style="font-weight:500">{{ item.proposed_title }}</td>
+        <td class="font-medium">{{ item.proposed_title }}</td>
         <td>
-          <span class="badge {% if item.status == 'published' %}badge-connected{% elif item.status == 'writing' %}badge-unknown{% else %}badge-failed{% endif %}">{{ item.status }}</span>
+          {% if item.status == 'published' %}
+          <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-700">{{ item.status }}</span>
+          {% elif item.status == 'writing' %}
+          <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-700">{{ item.status }}</span>
+          {% else %}
+          <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700">{{ item.status }}</span>
+          {% endif %}
         </td>
         <td>{{ item.planned_date or '—' }}</td>
         <td>
@@ -42,7 +48,7 @@
     </tbody>
   </table>
   {% else %}
-  <p style="color:#6b7280">No content plan items yet.</p>
+  <p class="text-gray-500">No content plan items yet.</p>
   {% endif %}
 </div>
 {% endblock %}

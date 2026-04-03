@@ -4,38 +4,38 @@
 <div class="breadcrumbs"><a href="/ui/dashboard">Dashboard</a><span>&rsaquo;</span>Projects</div>
 {% endblock %}
 {% block content %}
-<div class="card" style="margin-bottom:1.5rem">
-  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem">
-    <h2 style="margin:0">Projects <a class="help-trigger" onclick="openHelp()" title="Справка">?</a></h2>
-    <button class="btn btn-primary" onclick="document.getElementById('new-project-form').style.display='block'">+ New Project</button>
+<div class="card mb-6">
+  <div class="flex justify-between items-center mb-6">
+    <h2 class="text-lg font-semibold text-gray-800 m-0">Projects <a class="help-trigger" onclick="openHelp()" title="Справка">?</a></h2>
+    <button class="btn btn-primary" onclick="document.getElementById('new-project-form').classList.remove('hidden')">+ New Project</button>
   </div>
 
   <!-- New project form (hidden by default) -->
-  <form id="new-project-form" method="POST" action="/ui/projects/new" style="display:none; margin-bottom:1.5rem; padding:1rem; background:#f9fafb; border-radius:8px">
-    <div style="display:flex; gap:.75rem; flex-wrap:wrap; align-items:end">
-      <div style="flex:1; min-width:200px">
-        <label style="font-size:.85rem; color:#6b7280; display:block; margin-bottom:.25rem">Project Name</label>
-        <input type="text" name="name" required style="width:100%; padding:.4rem .75rem; border:1px solid #d1d5db; border-radius:4px">
+  <form id="new-project-form" method="POST" action="/ui/projects/new" class="hidden mb-6 p-4 bg-gray-50 rounded-lg">
+    <div class="flex gap-3 flex-wrap items-end">
+      <div class="flex-1 min-w-[200px]">
+        <label class="block text-sm text-gray-500 mb-1">Project Name</label>
+        <input type="text" name="name" required class="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-indigo-500 focus:border-indigo-500">
       </div>
-      <div style="min-width:200px">
-        <label style="font-size:.85rem; color:#6b7280; display:block; margin-bottom:.25rem">Site</label>
-        <select name="site_id" required style="padding:.4rem .75rem; border:1px solid #d1d5db; border-radius:4px">
+      <div class="min-w-[200px]">
+        <label class="block text-sm text-gray-500 mb-1">Site</label>
+        <select name="site_id" required class="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-indigo-500 focus:border-indigo-500">
           {% for s in sites %}
           <option value="{{ s.id }}">{{ s.name }}</option>
           {% endfor %}
         </select>
       </div>
-      <div style="flex:1; min-width:200px">
-        <label style="font-size:.85rem; color:#6b7280; display:block; margin-bottom:.25rem">Description</label>
-        <input type="text" name="description" style="width:100%; padding:.4rem .75rem; border:1px solid #d1d5db; border-radius:4px">
+      <div class="flex-1 min-w-[200px]">
+        <label class="block text-sm text-gray-500 mb-1">Description</label>
+        <input type="text" name="description" class="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-indigo-500 focus:border-indigo-500">
       </div>
       <button type="submit" class="btn btn-primary">Create</button>
-      <button type="button" class="btn" onclick="this.closest('form').style.display='none'">Cancel</button>
+      <button type="button" class="btn" onclick="this.closest('form').classList.add('hidden')">Cancel</button>
     </div>
   </form>
 
   {% if projects %}
-  <table>
+  <table class="min-w-full divide-y divide-gray-200">
     <thead>
       <tr>
         <th>Name</th>
@@ -49,23 +49,27 @@
     <tbody>
       {% for p in projects %}
       <tr>
-        <td style="font-weight:500">{{ p.name }}</td>
+        <td class="font-medium">{{ p.name }}</td>
         <td>{{ p.site_name or '—' }}</td>
         <td>
-          <span class="badge {% if p.status == 'active' %}badge-connected{% elif p.status == 'completed' %}badge-unknown{% else %}badge-failed{% endif %}">
-            {{ p.status }}
-          </span>
+          {% if p.status == 'active' %}
+          <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-700">{{ p.status }}</span>
+          {% elif p.status == 'completed' %}
+          <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700">{{ p.status }}</span>
+          {% else %}
+          <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700">{{ p.status }}</span>
+          {% endif %}
         </td>
         <td>
-          <span style="color:#059669">{{ p.open_tasks }}</span> open
-          / <span style="color:#2563eb">{{ p.in_progress_tasks }}</span> in progress
+          <span class="text-emerald-600">{{ p.open_tasks }}</span> open
+          / <span class="text-blue-600">{{ p.in_progress_tasks }}</span> in progress
         </td>
-        <td style="color:#6b7280; font-size:.85rem">{{ p.created_at[:10] if p.created_at else '' }}</td>
+        <td class="text-gray-500 text-sm">{{ p.created_at[:10] if p.created_at else '' }}</td>
         <td>
           <a href="/ui/projects/{{ p.id }}/kanban" class="btn btn-sm btn-primary">Kanban</a>
-          <a href="/ui/projects/{{ p.id }}/plan" class="btn btn-sm" style="margin-left:.3rem">Plan</a>
+          <a href="/ui/projects/{{ p.id }}/plan" class="btn btn-sm ml-1">Plan</a>
           {% if p.site_id %}
-          <a href="/ui/pipeline/{{ p.site_id }}" class="btn btn-sm" style="margin-left:.3rem; background:#7c3aed; color:white">Pipeline</a>
+          <a href="/ui/pipeline/{{ p.site_id }}" class="btn btn-sm ml-1 bg-violet-600 text-white hover:bg-violet-700">Pipeline</a>
           {% endif %}
         </td>
       </tr>
@@ -73,7 +77,7 @@
     </tbody>
   </table>
   {% else %}
-  <p style="color:#6b7280">No projects yet. Create one to start managing SEO tasks.</p>
+  <p class="text-gray-500">No projects yet. Create one to start managing SEO tasks.</p>
   {% endif %}
 </div>
 {% endblock %}
