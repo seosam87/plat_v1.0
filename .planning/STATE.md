@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: verifying
-stopped_at: Phase 06.1 complete — deploy and test pending
-last_updated: "2026-04-02T21:47:01.306Z"
-last_activity: 2026-04-02
+status: executing
+stopped_at: Completed v3-02-01-PLAN.md
+last_updated: "2026-04-03T06:42:37.582Z"
+last_activity: 2026-04-03
 progress:
   total_phases: 12
   completed_phases: 1
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-31)
 
 **Core value:** A team member or client can open the platform and immediately see the SEO health of any site — positions, recent changes, pending tasks — without switching between GSC, spreadsheets, and WP admin.
-**Current focus:** Phase 06.1 — proxy-management-xmlproxy-integration
+**Current focus:** Phase v3-02-content — audit
 
 ## Current Position
 
-Phase: 7
-Plan: Not started
-Status: Phase complete — ready for verification
-Last activity: 2026-04-02
+Phase: v3-02-content (audit) — EXECUTING
+Plan: 2 of 5
+Status: Ready to execute
+Last activity: 2026-04-03
 
 Progress: [██░░░░░░░░] 18%
 
@@ -60,6 +60,7 @@ Progress: [██░░░░░░░░] 18%
 | Phase 06.1 P01 | 5 | 2 tasks | 11 files |
 | Phase 06.1 P03 | 5 min | 2 tasks | 4 files |
 | Phase 06.1 P02 | 8 | 2 tasks | 7 files |
+| Phase v3-02 P01 | 15 | 5 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -77,6 +78,9 @@ Recent decisions affecting current work:
 - [Phase 06.1]: Yandex keywords exclusively routed to XMLProxy; Google keywords to DataForSEO or logged as skipped (D-17, D-18)
 - [Phase 06.1]: rucaptcha.com replaces anti-captcha.com in proxy_serp_service.py per D-15
 - [Phase 06.1]: Proxy admin router uses sync get_sync_db() context manager; tests use SQLite in-memory with monkey-patching
+- [Phase v3-02-01]: ContentType enum (informational/commercial/unknown) uses native PostgreSQL ENUM type consistent with PageType pattern
+- [Phase v3-02-01]: AuditResult UniqueConstraint on (site_id, page_url, check_code) enables safe upsert semantics in audit engine
+- [Phase v3-02-01]: SchemaTemplate.site_id nullable: NULL=system default, UUID=site-specific override
 
 ### Pending Todos
 
@@ -100,6 +104,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-02T21:47:01.303Z
-Stopped at: Phase 06.1 complete — deploy and test pending
-Resume file: .planning/phases/06.1-proxy-management-xmlproxy-integration/.continue-here.md
+Last session: 2026-04-03T06:42:37.578Z
+Stopped at: Completed v3-02-01-PLAN.md
+Resume file: None
