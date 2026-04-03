@@ -16,9 +16,9 @@
 
 ### Секция «Обзор»
 
-- [ ] **OVR-01**: Пользователь видит агрегированную сводку позиций по всем сайтам (TOP-3/10/100, тренд вверх/вниз за неделю) на главной странице
-- [ ] **OVR-02**: Пользователь видит задачи на сегодня (overdue + in progress) из Kanban на главной странице
-- [ ] **OVR-03**: Обзор загружается < 3с и является landing page после логина
+- [x] **OVR-01**: Пользователь видит агрегированную сводку позиций по всем сайтам (TOP-3/10/100, тренд вверх/вниз за неделю) на главной странице
+- [x] **OVR-02**: Пользователь видит задачи на сегодня (overdue + in progress) из Kanban на главной странице
+- [x] **OVR-03**: Обзор загружается < 3с и является landing page после логина
 
 ### Секция «Сайты»
 
@@ -234,9 +234,9 @@
 | NAV-04 | Phase v4-01: Navigation Foundation | Complete |
 | NAV-05 | Phase v4-01: Navigation Foundation | Complete |
 | NAV-06 | Phase v4-01: Navigation Foundation | Complete |
-| OVR-01 | Phase v4-02: Секция «Обзор» | Pending |
-| OVR-02 | Phase v4-02: Секция «Обзор» | Pending |
-| OVR-03 | Phase v4-02: Секция «Обзор» | Pending |
+| OVR-01 | Phase v4-02: Секция «Обзор» | Complete |
+| OVR-02 | Phase v4-02: Секция «Обзор» | Complete |
+| OVR-03 | Phase v4-02: Секция «Обзор» | Complete |
 | SITE-V4-01 | Phase v4-03: Секция «Сайты» | Pending |
 | SITE-V4-02 | Phase v4-03: Секция «Сайты» | Pending |
 | SITE-V4-03 | Phase v4-03: Секция «Сайты» | Pending |
