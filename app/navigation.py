@@ -99,8 +99,8 @@ def _url_to_pattern(url: str) -> re.Pattern[str]:
     url_path = url.split("#")[0]
     # Escape the URL, then replace placeholders
     escaped = re.escape(url_path)
-    # Replace escaped placeholder tokens \{...\} back to \d+ matchers
-    pattern_str = re.sub(r"\\{[^}]+\\}", r"\\d+", escaped)
+    # Replace escaped placeholder tokens \{...\} back to UUID matchers
+    pattern_str = re.sub(r"\\{[^}]+\\}", r"[0-9a-f\\-]+", escaped)
     return re.compile(r"^" + pattern_str + r"(/.*)?$")
 
 
@@ -148,7 +148,7 @@ def resolve_nav_context(request_path: str) -> dict:
     }
 
 
-def build_sidebar_sections(site_id: int | None, is_admin: bool) -> list[dict]:
+def build_sidebar_sections(site_id: str | None, is_admin: bool) -> list[dict]:
     """Build sidebar sections with resolved URLs for the given site_id.
 
     Replaces {site_id} and {project_id} placeholders with the actual site_id
@@ -168,17 +168,24 @@ def build_sidebar_sections(site_id: int | None, is_admin: bool) -> list[dict]:
             "children": [],
         }
         for child in section["children"]:
-            resolved_url = child.get("url") or "#"
+            raw_url = child.get("url") or "#"
+            needs_site = "{site_id}" in raw_url or "{project_id}" in raw_url
             if site_id is not None:
-                resolved_url = resolved_url.replace("{site_id}", str(site_id))
+                resolved_url = raw_url.replace("{site_id}", str(site_id))
                 resolved_url = resolved_url.replace("{project_id}", str(site_id))
+                disabled = False
+            elif needs_site:
+                resolved_url = "#"
+                disabled = True
             else:
-                resolved_url = re.sub(r"\{[^}]+\}", "#", resolved_url)
+                resolved_url = raw_url
+                disabled = False
             resolved_section["children"].append(
                 {
                     "id": child["id"],
                     "label": child["label"],
                     "url": resolved_url,
+                    "disabled": disabled,
                 }
             )
         result.append(resolved_section)

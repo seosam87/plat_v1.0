@@ -13,8 +13,12 @@
   var sel = document.getElementById('site-selector');
   if (!sel) return;
   // Load sites once on page load
-  fetch('/ui/api/sites').then(function(r){ return r.text(); }).then(function(html) {
-    sel.innerHTML = html;
+  fetch('/ui/api/sites', {credentials: 'same-origin'}).then(function(r){
+    if (!r.ok) { console.error('Site selector load failed:', r.status); return ''; }
+    return r.text();
+  }).then(function(html) {
+    if (!html) return;
+    sel.innerHTML = '<option value="">— выбрать сайт —</option>' + html;
     var saved = '{{ selected_site_id or "" }}';
     if (saved) sel.value = saved;
   });

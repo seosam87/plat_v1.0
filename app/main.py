@@ -95,7 +95,7 @@ class _HelpAwareTemplates:
             # Resolve selected_site_id from cookie
             try:
                 raw = request.cookies.get("selected_site_id")
-                selected_site_id = int(raw) if raw else None
+                selected_site_id = raw if raw else None
             except (ValueError, TypeError):
                 selected_site_id = None
             ctx["selected_site_id"] = selected_site_id
