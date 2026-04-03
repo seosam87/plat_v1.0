@@ -104,6 +104,15 @@ None - no external service configuration required.
 - digest_service.py and send_weekly_digest task are ready for use by plan v3-03-04 (monitoring router + UI with on-demand digest button)
 - DigestSchedule upsert endpoint can be wired from site admin settings in plan 04
 
+## Self-Check: PASSED
+
+- FOUND: app/services/digest_service.py
+- FOUND: app/tasks/digest_tasks.py
+- FOUND: tests/test_digest_service.py
+- FOUND: .planning/phases/v3-03-change-monitoring/v3-03-03-SUMMARY.md
+- FOUND: commit 9f83079 (feat(v3-03-03): add digest service, Celery Beat task, and redbeat schedule management)
+- Tests: 6 passed in 0.03s
+
 ---
 *Phase: v3-03-change-monitoring*
 *Completed: 2026-04-03*
