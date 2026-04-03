@@ -4,10 +4,10 @@
 <div class="breadcrumbs"><a href="/ui/dashboard">Dashboard</a><span>&rsaquo;</span><a href="/ui/sites">Sites</a><span>&rsaquo;</span><a href="/ui/sites/{{ site.id }}">{{ site.name }}</a><span>&rsaquo;</span>Analytics</div>
 {% endblock %}
 {% block content %}
-<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem">
-  <h2 style="margin:0">Аналитика: {{ site.name }}</h2>
-  <div style="display:flex; gap:.5rem; align-items:center">
-    <select id="session-selector" style="padding:.4rem .75rem; border:1px solid #d1d5db; border-radius:4px" onchange="loadSession(this.value)">
+<div class="flex justify-between items-center mb-6">
+  <h2 class="m-0 text-lg font-semibold text-gray-800">Аналитика: {{ site.name }}</h2>
+  <div class="flex gap-2 items-center">
+    <select id="session-selector" class="px-3 py-1.5 border border-gray-300 rounded text-sm focus:ring-indigo-500 focus:border-indigo-500" onchange="loadSession(this.value)">
       <option value="">Выберите сессию...</option>
       {% for s in sessions %}
       <option value="{{ s.id }}">{{ s.name }} ({{ s.keyword_count }} кл.)</option>
@@ -18,189 +18,204 @@
 </div>
 
 <!-- Step indicator -->
-<div style="display:flex; gap:.25rem; margin-bottom:1.5rem">
-  {% set steps = [("1","Фильтр ключей","#4f46e5"),("2","Сессия","#2563eb"),("3","Позиции","#7c3aed"),("4","SERP","#059669"),("5","Конкурент","#d97706"),("6","ТЗ","#dc2626")] %}
-  {% for num, label, color in steps %}
-  <div id="step-ind-{{ num }}" style="flex:1; text-align:center; padding:.5rem; border-radius:4px; font-size:.8rem; background:#f3f4f6; color:#6b7280; cursor:pointer" onclick="showStep({{ num }})">
+<div class="flex gap-1 mb-6">
+  {% set steps = [("1","Фильтр ключей"),("2","Сессия"),("3","Позиции"),("4","SERP"),("5","Конкурент"),("6","ТЗ")] %}
+  {% for num, label in steps %}
+  <div id="step-ind-{{ num }}" class="flex-1 text-center py-2 px-1 rounded text-xs cursor-pointer bg-gray-100 text-gray-500" onclick="showStep({{ num }})">
     <strong>{{ num }}</strong> {{ label }}
   </div>
   {% endfor %}
 </div>
 
 <!-- Step 1: Keyword filter -->
-<div id="step-1" class="step-panel">
-  <div class="card" style="margin-bottom:1rem">
-    <h3 style="margin:0 0 1rem">Фильтр ключей</h3>
-    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:.75rem; margin-bottom:1rem">
+<div id="step-1" class="step-panel transition-opacity duration-200">
+  <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-4">
+    <h3 class="m-0 mb-4 text-base font-semibold">Фильтр ключей</h3>
+    <div class="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-3 mb-4">
       <div>
-        <label style="font-size:.75rem; color:#6b7280; display:block">Поиск</label>
-        <input type="text" id="f-search" placeholder="Ключевая фраза..." style="width:100%; padding:.4rem .5rem; border:1px solid #d1d5db; border-radius:4px">
+        <label class="text-xs text-gray-500 block">Поиск</label>
+        <input type="text" id="f-search" placeholder="Ключевая фраза..." class="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-indigo-500 focus:border-indigo-500">
       </div>
       <div>
-        <label style="font-size:.75rem; color:#6b7280; display:block">Частотность от</label>
-        <input type="number" id="f-freq-min" style="width:100%; padding:.4rem .5rem; border:1px solid #d1d5db; border-radius:4px">
+        <label class="text-xs text-gray-500 block">Частотность от</label>
+        <input type="number" id="f-freq-min" class="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-indigo-500 focus:border-indigo-500">
       </div>
       <div>
-        <label style="font-size:.75rem; color:#6b7280; display:block">Частотность до</label>
-        <input type="number" id="f-freq-max" style="width:100%; padding:.4rem .5rem; border:1px solid #d1d5db; border-radius:4px">
+        <label class="text-xs text-gray-500 block">Частотность до</label>
+        <input type="number" id="f-freq-max" class="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-indigo-500 focus:border-indigo-500">
       </div>
       <div>
-        <label style="font-size:.75rem; color:#6b7280; display:block">Позиция от</label>
-        <input type="number" id="f-pos-min" style="width:100%; padding:.4rem .5rem; border:1px solid #d1d5db; border-radius:4px">
+        <label class="text-xs text-gray-500 block">Позиция от</label>
+        <input type="number" id="f-pos-min" class="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-indigo-500 focus:border-indigo-500">
       </div>
       <div>
-        <label style="font-size:.75rem; color:#6b7280; display:block">Позиция до</label>
-        <input type="number" id="f-pos-max" style="width:100%; padding:.4rem .5rem; border:1px solid #d1d5db; border-radius:4px">
+        <label class="text-xs text-gray-500 block">Позиция до</label>
+        <input type="number" id="f-pos-max" class="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-indigo-500 focus:border-indigo-500">
       </div>
       <div>
-        <label style="font-size:.75rem; color:#6b7280; display:block">Интент</label>
-        <select id="f-intent" style="width:100%; padding:.4rem .5rem; border:1px solid #d1d5db; border-radius:4px">
+        <label class="text-xs text-gray-500 block">Интент</label>
+        <select id="f-intent" class="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-indigo-500 focus:border-indigo-500">
           <option value="">Все</option>
           {% for i in filter_options.intents %}<option value="{{ i }}">{{ i }}</option>{% endfor %}
         </select>
       </div>
       <div>
-        <label style="font-size:.75rem; color:#6b7280; display:block">Кластер</label>
-        <select id="f-cluster" style="width:100%; padding:.4rem .5rem; border:1px solid #d1d5db; border-radius:4px">
+        <label class="text-xs text-gray-500 block">Кластер</label>
+        <select id="f-cluster" class="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-indigo-500 focus:border-indigo-500">
           <option value="">Все</option>
           {% for c in filter_options.clusters %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}
         </select>
       </div>
       <div>
-        <label style="font-size:.75rem; color:#6b7280; display:block">Группа</label>
-        <select id="f-group" style="width:100%; padding:.4rem .5rem; border:1px solid #d1d5db; border-radius:4px">
+        <label class="text-xs text-gray-500 block">Группа</label>
+        <select id="f-group" class="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-indigo-500 focus:border-indigo-500">
           <option value="">Все</option>
           {% for g in filter_options.groups %}<option value="{{ g.id }}">{{ g.name }}</option>{% endfor %}
         </select>
       </div>
       <div>
-        <label style="font-size:.75rem; color:#6b7280; display:block">Регион</label>
-        <select id="f-region" style="width:100%; padding:.4rem .5rem; border:1px solid #d1d5db; border-radius:4px">
+        <label class="text-xs text-gray-500 block">Регион</label>
+        <select id="f-region" class="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-indigo-500 focus:border-indigo-500">
           <option value="">Все</option>
           {% for r in filter_options.regions %}<option value="{{ r }}">{{ r }}</option>{% endfor %}
         </select>
       </div>
     </div>
-    <div style="display:flex; gap:.5rem; align-items:center">
-      <button class="btn" style="background:#4f46e5; color:white" onclick="searchKeywords()">Найти</button>
-      <span id="filter-count" style="font-size:.85rem; color:#6b7280"></span>
+    <div class="flex gap-2 items-center">
+      <button class="btn px-3 py-1.5 text-sm font-medium rounded bg-indigo-600 text-white hover:bg-indigo-700" onclick="searchKeywords()">Найти</button>
+      <span id="filter-count" class="text-sm text-gray-500"></span>
     </div>
   </div>
 
   <!-- Results -->
-  <div class="card">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:.75rem">
-      <h3 style="margin:0">Результаты</h3>
-      <label style="font-size:.85rem"><input type="checkbox" id="select-all" onchange="toggleAll(this.checked)"> Выбрать все</label>
+  <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+    <div class="flex justify-between items-center mb-3">
+      <h3 class="m-0 text-base font-semibold">Результаты</h3>
+      <label class="text-sm"><input type="checkbox" id="select-all" onchange="toggleAll(this.checked)"> Выбрать все</label>
     </div>
-    <div style="overflow-x:auto; max-height:400px; overflow-y:auto">
-      <table id="kw-results" style="font-size:.85rem">
-        <thead>
-          <tr><th></th><th>Фраза</th><th>Частотность</th><th>Позиция</th><th>Дельта</th><th>Кластер</th><th>Target URL</th></tr>
+    <div class="overflow-x-auto max-h-[400px] overflow-y-auto">
+      <table id="kw-results" class="min-w-full divide-y divide-gray-200 text-sm">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"></th>
+            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Фраза</th>
+            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Частотность</th>
+            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Позиция</th>
+            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Дельта</th>
+            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Кластер</th>
+            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Target URL</th>
+          </tr>
         </thead>
-        <tbody></tbody>
+        <tbody class="bg-white divide-y divide-gray-100"></tbody>
       </table>
     </div>
-    <div style="margin-top:1rem; display:flex; gap:.75rem; align-items:center">
-      <input type="text" id="session-name" placeholder="Название сессии..." style="padding:.4rem .75rem; border:1px solid #d1d5db; border-radius:4px; min-width:250px">
-      <button class="btn" style="background:#059669; color:white" onclick="saveSession()">Сохранить сессию</button>
-      <span id="session-status" style="font-size:.85rem"></span>
+    <div class="mt-4 flex gap-3 items-center">
+      <input type="text" id="session-name" placeholder="Название сессии..." class="px-3 py-1.5 border border-gray-300 rounded text-sm min-w-[250px] focus:ring-indigo-500 focus:border-indigo-500">
+      <button class="btn px-3 py-1.5 text-sm font-medium rounded bg-emerald-600 text-white hover:bg-emerald-700" onclick="saveSession()">Сохранить сессию</button>
+      <span id="session-status" class="text-sm"></span>
     </div>
   </div>
 </div>
 
 <!-- Step 2: Session detail -->
-<div id="step-2" class="step-panel" style="display:none">
-  <div class="card">
-    <h3 style="margin:0 0 1rem">Сессия: <span id="sess-name"></span></h3>
-    <div style="display:flex; gap:1rem; margin-bottom:1rem">
+<div id="step-2" class="step-panel hidden transition-opacity duration-200">
+  <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+    <h3 class="m-0 mb-4 text-base font-semibold">Сессия: <span id="sess-name"></span></h3>
+    <div class="flex gap-4 mb-4">
       <div>Ключей: <strong id="sess-count">0</strong></div>
-      <div>Статус: <span id="sess-status" class="badge" style="background:#f3f4f6">draft</span></div>
+      <div>Статус: <span id="sess-status" class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-500">draft</span></div>
       <div>Конкурент: <span id="sess-competitor">—</span></div>
     </div>
-    <div style="display:flex; gap:.5rem; margin-bottom:1rem">
-      <button class="btn" style="background:#7c3aed; color:white" onclick="checkPositions()">Проверить позиции</button>
-      <button class="btn" style="background:#059669; color:white" onclick="parseSERP()">Анализ SERP</button>
+    <div class="flex gap-2 mb-4">
+      <button class="btn px-3 py-1.5 text-sm font-medium rounded bg-violet-600 text-white hover:bg-violet-700" onclick="checkPositions()">Проверить позиции</button>
+      <button class="btn px-3 py-1.5 text-sm font-medium rounded bg-emerald-600 text-white hover:bg-emerald-700" onclick="parseSERP()">Анализ SERP</button>
       <button class="btn btn-sm" onclick="exportSession()">Экспорт CSV</button>
     </div>
-    <div id="sess-keywords-table" style="overflow-x:auto; max-height:300px; overflow-y:auto"></div>
+    <div id="sess-keywords-table" class="overflow-x-auto max-h-[300px] overflow-y-auto"></div>
   </div>
 </div>
 
 <!-- Step 3-4: SERP results -->
-<div id="step-3" class="step-panel" style="display:none">
-  <div class="card" style="margin-bottom:1rem">
-    <h3 style="margin:0 0 1rem">Результаты SERP-анализа</h3>
+<div id="step-3" class="step-panel hidden transition-opacity duration-200">
+  <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-4">
+    <h3 class="m-0 mb-4 text-base font-semibold">Результаты SERP-анализа</h3>
     <div id="serp-summary"></div>
   </div>
-  <div class="card">
-    <h3 style="margin:0 0 1rem">Топ конкуренты</h3>
+  <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+    <h3 class="m-0 mb-4 text-base font-semibold">Топ конкуренты</h3>
     <div id="competitors-table"></div>
-    <div style="margin-top:1rem; display:flex; gap:.5rem; align-items:center">
-      <input type="text" id="manual-competitor" placeholder="Домен конкурента..." style="padding:.4rem .75rem; border:1px solid #d1d5db; border-radius:4px">
+    <div class="mt-4 flex gap-2 items-center">
+      <input type="text" id="manual-competitor" placeholder="Домен конкурента..." class="px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-indigo-500 focus:border-indigo-500">
       <button class="btn btn-sm" onclick="setCompetitor()">Выбрать</button>
-      <select id="crawl-mode" style="padding:.4rem .5rem; border:1px solid #d1d5db; border-radius:4px">
+      <select id="crawl-mode" class="px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-indigo-500 focus:border-indigo-500">
         <option value="light">Лёгкий (SEO-поля)</option>
         <option value="full">Полный краул</option>
       </select>
-      <button class="btn" style="background:#d97706; color:white" onclick="crawlCompetitor()">Краулить конкурента</button>
+      <button class="btn px-3 py-1.5 text-sm font-medium rounded bg-amber-600 text-white hover:bg-amber-700" onclick="crawlCompetitor()">Краулить конкурента</button>
     </div>
   </div>
 </div>
 
 <!-- Step 5: Comparison -->
-<div id="step-4" class="step-panel" style="display:none">
-  <div class="card">
-    <h3 style="margin:0 0 1rem">Сравнение: наш сайт vs конкурент</h3>
-    <div id="comparison-table" style="overflow-x:auto"></div>
+<div id="step-4" class="step-panel hidden transition-opacity duration-200">
+  <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+    <h3 class="m-0 mb-4 text-base font-semibold">Сравнение: наш сайт vs конкурент</h3>
+    <div id="comparison-table" class="overflow-x-auto"></div>
   </div>
 </div>
 
 <!-- Step 6: Brief -->
-<div id="step-5" class="step-panel" style="display:none">
-  <div class="card">
-    <h3 style="margin:0 0 1rem">Создание ТЗ</h3>
-    <div style="display:flex; gap:1rem; margin-bottom:1rem; flex-wrap:wrap">
-      <div style="flex:1; min-width:200px">
-        <label style="font-size:.75rem; color:#6b7280; display:block">Целевой URL</label>
-        <input type="text" id="brief-url" placeholder="https://..." style="width:100%; padding:.4rem .5rem; border:1px solid #d1d5db; border-radius:4px">
+<div id="step-5" class="step-panel hidden transition-opacity duration-200">
+  <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+    <h3 class="m-0 mb-4 text-base font-semibold">Создание ТЗ</h3>
+    <div class="flex gap-4 mb-4 flex-wrap">
+      <div class="flex-1 min-w-[200px]">
+        <label class="text-xs text-gray-500 block">Целевой URL</label>
+        <input type="text" id="brief-url" placeholder="https://..." class="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-indigo-500 focus:border-indigo-500">
       </div>
-      <div style="flex:2; min-width:200px">
-        <label style="font-size:.75rem; color:#6b7280; display:block">Место в структуре</label>
-        <input type="text" id="brief-structure" placeholder="Раздел сайта, URL-структура..." style="width:100%; padding:.4rem .5rem; border:1px solid #d1d5db; border-radius:4px">
+      <div class="flex-[2] min-w-[200px]">
+        <label class="text-xs text-gray-500 block">Место в структуре</label>
+        <input type="text" id="brief-structure" placeholder="Раздел сайта, URL-структура..." class="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-indigo-500 focus:border-indigo-500">
       </div>
     </div>
-    <button class="btn" style="background:#dc2626; color:white" onclick="generateBrief()">Сгенерировать ТЗ</button>
-    <div id="brief-preview" style="margin-top:1rem"></div>
+    <button class="btn px-3 py-1.5 text-sm font-medium rounded bg-red-600 text-white hover:bg-red-700" onclick="generateBrief()">Сгенерировать ТЗ</button>
+    <div id="brief-preview" class="mt-4"></div>
   </div>
 </div>
 
 <!-- Step 6b: Brief result -->
-<div id="step-6" class="step-panel" style="display:none">
-  <div class="card">
-    <h3 style="margin:0 0 1rem">ТЗ готово</h3>
-    <div id="brief-content" style="white-space:pre-wrap; font-family:monospace; font-size:.85rem; background:#f9fafb; padding:1rem; border-radius:4px; max-height:500px; overflow-y:auto"></div>
-    <div style="margin-top:1rem; display:flex; gap:.5rem">
-      <button class="btn" style="background:#4f46e5; color:white" onclick="exportBriefText()">Экспорт ТЗ</button>
-      <button class="btn" style="background:#059669; color:white" onclick="exportBriefCsv()">Экспорт ключей (CSV)</button>
+<div id="step-6" class="step-panel hidden transition-opacity duration-200">
+  <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+    <h3 class="m-0 mb-4 text-base font-semibold">ТЗ готово</h3>
+    <div id="brief-content" class="whitespace-pre-wrap font-mono text-sm bg-gray-50 p-4 rounded max-h-[500px] overflow-y-auto"></div>
+    <div class="mt-4 flex gap-2">
+      <button class="btn px-3 py-1.5 text-sm font-medium rounded bg-indigo-600 text-white hover:bg-indigo-700" onclick="exportBriefText()">Экспорт ТЗ</button>
+      <button class="btn px-3 py-1.5 text-sm font-medium rounded bg-emerald-600 text-white hover:bg-emerald-700" onclick="exportBriefCsv()">Экспорт ключей (CSV)</button>
     </div>
   </div>
 </div>
 
 <!-- Briefs list -->
 {% if briefs %}
-<div class="card" style="margin-top:1.5rem">
-  <h3 style="margin:0 0 1rem">Сохранённые ТЗ</h3>
-  <table style="font-size:.85rem">
-    <thead><tr><th>Название</th><th>URL</th><th>Дата</th><th>Действия</th></tr></thead>
-    <tbody>
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mt-6">
+  <h3 class="m-0 mb-4 text-base font-semibold">Сохранённые ТЗ</h3>
+  <table class="min-w-full divide-y divide-gray-200 text-sm">
+    <thead class="bg-gray-50">
+      <tr>
+        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Название</th>
+        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">URL</th>
+        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Дата</th>
+        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Действия</th>
+      </tr>
+    </thead>
+    <tbody class="bg-white divide-y divide-gray-100">
       {% for b in briefs %}
       <tr>
-        <td>{{ b.title }}</td>
-        <td style="max-width:200px; overflow:hidden; text-overflow:ellipsis">{{ b.target_url or '—' }}</td>
-        <td>{{ b.created_at.strftime('%Y-%m-%d') if b.created_at else '—' }}</td>
-        <td>
-          <a href="/analytics/briefs/{{ b.id }}/export?format=text" class="btn btn-sm" style="font-size:.75rem">Скачать</a>
+        <td class="px-3 py-2">{{ b.title }}</td>
+        <td class="px-3 py-2 max-w-[200px] overflow-hidden text-ellipsis">{{ b.target_url or '—' }}</td>
+        <td class="px-3 py-2">{{ b.created_at.strftime('%Y-%m-%d') if b.created_at else '—' }}</td>
+        <td class="px-3 py-2">
+          <a href="/analytics/briefs/{{ b.id }}/export?format=text" class="btn btn-sm text-xs">Скачать</a>
         </td>
       </tr>
       {% endfor %}
@@ -209,8 +224,6 @@
 </div>
 {% endif %}
 
-<style>.step-panel { transition: opacity 0.2s; }</style>
-
 <script>
 const SITE_ID = '{{ site.id }}';
 let currentSessionId = null;
@@ -218,14 +231,18 @@ let currentBriefId = null;
 let selectedKwIds = new Set();
 
 function showStep(n) {
-  document.querySelectorAll('.step-panel').forEach(p => p.style.display = 'none');
+  document.querySelectorAll('.step-panel').forEach(p => p.classList.add('hidden'));
   const panel = document.getElementById('step-' + n);
-  if (panel) panel.style.display = '';
+  if (panel) panel.classList.remove('hidden');
   document.querySelectorAll('[id^="step-ind-"]').forEach(el => {
-    el.style.background = '#f3f4f6'; el.style.color = '#6b7280';
+    el.classList.remove('bg-indigo-600', 'text-white');
+    el.classList.add('bg-gray-100', 'text-gray-500');
   });
   const ind = document.getElementById('step-ind-' + n);
-  if (ind) { ind.style.background = '#4f46e5'; ind.style.color = 'white'; }
+  if (ind) {
+    ind.classList.remove('bg-gray-100', 'text-gray-500');
+    ind.classList.add('bg-indigo-600', 'text-white');
+  }
 }
 
 async function searchKeywords() {
@@ -243,8 +260,8 @@ async function searchKeywords() {
   selectedKwIds.clear();
   for (const kw of data.items) {
     const tr = document.createElement('tr');
-    const delta = kw.delta ? (kw.delta > 0 ? `<span style="color:#059669">+${kw.delta}</span>` : `<span style="color:#dc2626">${kw.delta}</span>`) : '—';
-    tr.innerHTML = `<td><input type="checkbox" data-id="${kw.id}" onchange="toggleKw(this)"></td><td>${kw.phrase}</td><td>${kw.frequency || '—'}</td><td>${kw.latest_position || '—'}</td><td>${delta}</td><td>${kw.cluster_name || '—'}</td><td style="max-width:150px;overflow:hidden;text-overflow:ellipsis">${kw.target_url || '—'}</td>`;
+    const delta = kw.delta ? (kw.delta > 0 ? `<span class="text-emerald-600">+${kw.delta}</span>` : `<span class="text-red-600">${kw.delta}</span>`) : '—';
+    tr.innerHTML = `<td class="px-3 py-2"><input type="checkbox" data-id="${kw.id}" onchange="toggleKw(this)"></td><td class="px-3 py-2">${kw.phrase}</td><td class="px-3 py-2">${kw.frequency || '—'}</td><td class="px-3 py-2">${kw.latest_position || '—'}</td><td class="px-3 py-2">${delta}</td><td class="px-3 py-2">${kw.cluster_name || '—'}</td><td class="px-3 py-2 max-w-[150px] overflow-hidden text-ellipsis">${kw.target_url || '—'}</td>`;
     tbody.appendChild(tr);
   }
 }
@@ -261,7 +278,7 @@ async function saveSession() {
   });
   const data = await resp.json();
   currentSessionId = data.id;
-  document.getElementById('session-status').innerHTML = '<span style="color:#059669">Сессия создана</span>';
+  document.getElementById('session-status').innerHTML = '<span class="text-emerald-600">Сессия создана</span>';
   loadSession(data.id);
   showStep(2);
 }
@@ -295,18 +312,18 @@ async function loadSerpResults() {
   if (!currentSessionId) return;
   const resp = await fetch(`/analytics/sessions/${currentSessionId}/serp-summary`);
   const data = await resp.json();
-  let html = `<div style="display:flex;gap:1rem;margin-bottom:1rem">`;
+  const typeClasses = {commercial:'bg-amber-100 text-amber-700', informational:'bg-blue-100 text-blue-700', aggregator:'bg-gray-100 text-gray-500'};
   const dist = data.site_type_distribution || {};
-  html += `<div class="card" style="padding:.75rem;text-align:center"><strong style="color:#d97706">${dist.commercial||0}</strong><div style="font-size:.75rem;color:#6b7280">Коммерческие</div></div>`;
-  html += `<div class="card" style="padding:.75rem;text-align:center"><strong style="color:#2563eb">${dist.informational||0}</strong><div style="font-size:.75rem;color:#6b7280">Информационные</div></div>`;
-  html += `<div class="card" style="padding:.75rem;text-align:center"><strong style="color:#6b7280">${dist.aggregator||0}</strong><div style="font-size:.75rem;color:#6b7280">Агрегаторы</div></div>`;
+  let html = `<div class="flex gap-4 mb-4">`;
+  html += `<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-3 text-center"><strong class="text-amber-600">${dist.commercial||0}</strong><div class="text-xs text-gray-500">Коммерческие</div></div>`;
+  html += `<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-3 text-center"><strong class="text-blue-600">${dist.informational||0}</strong><div class="text-xs text-gray-500">Информационные</div></div>`;
+  html += `<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-3 text-center"><strong class="text-gray-500">${dist.aggregator||0}</strong><div class="text-xs text-gray-500">Агрегаторы</div></div>`;
   html += `</div>`;
   document.getElementById('serp-summary').innerHTML = html;
 
-  let tbl = '<table style="font-size:.85rem"><thead><tr><th>Домен</th><th>Появлений</th><th>Ср. позиция</th><th>Тип</th></tr></thead><tbody>';
+  let tbl = '<table class="min-w-full divide-y divide-gray-200 text-sm"><thead class="bg-gray-50"><tr><th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Домен</th><th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Появлений</th><th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ср. позиция</th><th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Тип</th></tr></thead><tbody class="bg-white divide-y divide-gray-100">';
   for (const c of (data.top_competitors||[]).slice(0,15)) {
-    const typeColor = c.site_type==='commercial'?'#d97706':c.site_type==='informational'?'#2563eb':'#6b7280';
-    tbl += `<tr><td><strong>${c.domain}</strong></td><td>${c.appearances}</td><td>${c.avg_position}</td><td><span class="badge" style="background:${typeColor}22;color:${typeColor}">${c.site_type}</span></td></tr>`;
+    tbl += `<tr><td class="px-3 py-2"><strong>${c.domain}</strong></td><td class="px-3 py-2">${c.appearances}</td><td class="px-3 py-2">${c.avg_position}</td><td class="px-3 py-2"><span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${typeClasses[c.site_type] || 'bg-gray-100 text-gray-500'}">${c.site_type}</span></td></tr>`;
   }
   tbl += '</tbody></table>';
   document.getElementById('competitors-table').innerHTML = tbl;
@@ -332,12 +349,12 @@ async function loadComparison() {
   if (!currentSessionId) return;
   const resp = await fetch(`/analytics/sessions/${currentSessionId}/comparison`);
   const data = await resp.json();
-  let html = '<table style="font-size:.8rem"><thead><tr><th>Тип</th><th>URL</th><th>Title</th><th>H1</th><th>Schema</th><th>TOC</th><th>Words</th></tr></thead><tbody>';
+  let html = '<table class="min-w-full divide-y divide-gray-200 text-xs"><thead class="bg-gray-50"><tr><th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Тип</th><th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">URL</th><th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th><th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">H1</th><th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Schema</th><th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">TOC</th><th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Words</th></tr></thead><tbody class="bg-white divide-y divide-gray-100">';
   for (const p of data.our_pages||[]) {
-    html += `<tr style="background:#f0fdf4"><td>Наш</td><td style="max-width:200px;overflow:hidden;text-overflow:ellipsis">${p.url||''}</td><td>${(p.title||'').substring(0,40)}</td><td>${(p.h1||'').substring(0,30)}</td><td>${p.has_schema?'✓':'✗'}</td><td>${p.has_toc?'✓':'✗'}</td><td>${p.word_count||'—'}</td></tr>`;
+    html += `<tr class="bg-emerald-50"><td class="px-3 py-2">Наш</td><td class="px-3 py-2 max-w-[200px] overflow-hidden text-ellipsis">${p.url||''}</td><td class="px-3 py-2">${(p.title||'').substring(0,40)}</td><td class="px-3 py-2">${(p.h1||'').substring(0,30)}</td><td class="px-3 py-2">${p.has_schema?'✓':'✗'}</td><td class="px-3 py-2">${p.has_toc?'✓':'✗'}</td><td class="px-3 py-2">${p.word_count||'—'}</td></tr>`;
   }
   for (const p of data.competitor_pages||[]) {
-    html += `<tr style="background:#fef2f2"><td>Конк.</td><td style="max-width:200px;overflow:hidden;text-overflow:ellipsis">${p.url||''}</td><td>${(p.title||'').substring(0,40)}</td><td>${(p.h1||'').substring(0,30)}</td><td>${p.has_schema?'✓':'✗'}</td><td>${p.has_toc?'✓':'✗'}</td><td>${p.word_count||'—'}</td></tr>`;
+    html += `<tr class="bg-red-50"><td class="px-3 py-2">Конк.</td><td class="px-3 py-2 max-w-[200px] overflow-hidden text-ellipsis">${p.url||''}</td><td class="px-3 py-2">${(p.title||'').substring(0,40)}</td><td class="px-3 py-2">${(p.h1||'').substring(0,30)}</td><td class="px-3 py-2">${p.has_schema?'✓':'✗'}</td><td class="px-3 py-2">${p.has_toc?'✓':'✗'}</td><td class="px-3 py-2">${p.word_count||'—'}</td></tr>`;
   }
   html += '</tbody></table>';
   document.getElementById('comparison-table').innerHTML = html;
