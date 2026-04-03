@@ -126,6 +126,25 @@ A team member or client can open the platform and immediately see the SEO health
 | Bilingual UI (RU primary, EN in code) | Team is Russian-speaking; English code keeps codebase readable for Claude collaboration | — Pending |
 | Self-hosted VPS + Docker Compose | Cost, control, no cloud vendor lock-in; fits 20–100 sites load easily | — Pending |
 
+## Current Milestone: v4.0 UI Overhaul — Information Architecture
+
+**Goal:** Пересобрать интерфейс платформы с вертикальным sidebar, группировкой модулей по фазам SEO-процесса (Обзор → Сайты → Позиции и ключи → Аналитика → Контент → Настройки) и progressive disclosure.
+
+**Target features:**
+- Вертикальный sidebar с 6 секциями и collapsible подпунктами
+- Sticky site selector — выбор сайта без возврата к списку
+- Агрегированный Обзор (dashboard + alerts + position drops + tasks today)
+- Консистентный layout для всех site-scoped страниц
+- Responsive sidebar (сворачивается до иконок)
+- Перегруппировка всех 50+ страниц по новой IA
+- Удаление site detail как отдельной страницы (sidebar берёт эту роль)
+
+**Principles:**
+- Модульность — каждая секция sidebar самодостаточна
+- Progressive disclosure — сначала Обзор, глубже по клику
+- Консистентность — единый layout, единые паттерны навигации
+- Information architecture — группировка по SEO-процессу, не по техническим модулям
+
 ## Evolution
 
 This document evolves at phase transitions and milestone boundaries.
@@ -144,4 +163,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-31 after initial project questioning*
+*Last updated: 2026-04-03 — milestone v4.0 started*
