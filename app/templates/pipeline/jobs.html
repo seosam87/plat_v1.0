@@ -2,11 +2,11 @@
 {% block title %}Pipeline Jobs — {{ site_name }}{% endblock %}
 {% block content %}
 <div class="card">
-  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem">
-    <h2 style="margin:0">Content Pipeline: {{ site_name }} <a class="help-trigger" onclick="openHelp()" title="Справка">?</a></h2>
-    <div style="display:flex; gap:.5rem">
-      <button class="btn btn-sm" style="background:#059669;color:white" onclick="bulkAction('approve')">Approve All ✓</button>
-      <button class="btn btn-sm" style="background:#dc2626;color:white" onclick="bulkAction('reject')">Reject All ✗</button>
+  <div class="flex justify-between items-center mb-6">
+    <h2 class="text-lg font-semibold text-gray-800 m-0">Content Pipeline: {{ site_name }} <a class="help-trigger" onclick="openHelp()" title="Справка">?</a></h2>
+    <div class="flex gap-2">
+      <button class="px-3 py-1.5 text-sm font-medium rounded bg-emerald-600 text-white hover:bg-emerald-700" onclick="bulkAction('approve')">Approve All ✓</button>
+      <button class="px-3 py-1.5 text-sm font-medium rounded bg-red-600 text-white hover:bg-red-700" onclick="bulkAction('reject')">Reject All ✗</button>
       <button class="btn btn-primary"
         hx-post="/pipeline/sites/{{ site_id }}/batch" hx-swap="none"
         onclick="this.textContent='Running...'; this.disabled=true">Run Batch</button>
@@ -14,7 +14,7 @@
   </div>
 
   {% if jobs %}
-  <table>
+  <table class="min-w-full divide-y divide-gray-200">
     <thead>
       <tr>
         <th><input type="checkbox" id="select-all" onchange="toggleAll(this)"></th>
@@ -33,49 +33,55 @@
           <input type="checkbox" class="job-check" value="{{ job.id }}">
           {% endif %}
         </td>
-        <td style="max-width:300px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">
+        <td class="max-w-[300px] overflow-hidden text-ellipsis whitespace-nowrap">
           <a href="{{ job.page_url }}" target="_blank">{{ job.page_url }}</a>
         </td>
         <td>
-          <span class="badge {% if job.status == 'pushed' %}badge-connected{% elif job.status == 'awaiting_approval' %}badge-unknown{% elif job.status == 'failed' %}badge-failed{% elif job.status == 'rolled_back' %}badge-unknown{% else %}badge-unknown{% endif %}">
-            {{ job.status }}
-          </span>
+          {% if job.status == 'pushed' %}
+          <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-700">{{ job.status }}</span>
+          {% elif job.status == 'awaiting_approval' %}
+          <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-700">{{ job.status }}</span>
+          {% elif job.status == 'failed' %}
+          <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700">{{ job.status }}</span>
+          {% else %}
+          <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700">{{ job.status }}</span>
+          {% endif %}
         </td>
         <td>
           {% if job.has_changes %}
-          <a href="#" onclick="showDiff('{{ job.id }}'); return false" style="color:#2563eb">+{{ job.added_lines or 0 }}/−{{ job.removed_lines or 0 }}</a>
+          <a href="#" onclick="showDiff('{{ job.id }}'); return false" class="text-blue-600 hover:text-blue-800">+{{ job.added_lines or 0 }}/−{{ job.removed_lines or 0 }}</a>
           {% elif job.has_changes == false %}No{% else %}—{% endif %}
         </td>
         <td>{{ job.created_at[:16] if job.created_at else '' }}</td>
-        <td style="display:flex; gap:.25rem; flex-wrap:wrap">
+        <td class="flex gap-1 flex-wrap">
           {% if job.status == 'awaiting_approval' %}
-          <button class="btn btn-sm" style="background:#059669;color:white"
+          <button class="px-2 py-1 text-xs font-medium rounded bg-emerald-600 text-white hover:bg-emerald-700"
             hx-post="/pipeline/jobs/{{ job.id }}/approve" hx-swap="none"
             onclick="this.textContent='OK'; this.disabled=true">Approve</button>
-          <button class="btn btn-sm" style="background:#dc2626;color:white"
+          <button class="px-2 py-1 text-xs font-medium rounded bg-red-600 text-white hover:bg-red-700"
             hx-post="/pipeline/jobs/{{ job.id }}/reject" hx-swap="none">Reject</button>
           {% elif job.status == 'pushed' %}
-          <button class="btn btn-sm" style="background:#d97706;color:white"
+          <button class="px-2 py-1 text-xs font-medium rounded bg-amber-600 text-white hover:bg-amber-700"
             hx-post="/pipeline/jobs/{{ job.id }}/rollback" hx-swap="none"
             hx-confirm="Rollback?">Rollback</button>
           {% endif %}
-          <a href="/pipeline/sites/{{ site_id }}/history?url={{ job.page_url }}" class="btn btn-sm" style="font-size:.75rem" title="История">🕘</a>
+          <a href="/pipeline/sites/{{ site_id }}/history?url={{ job.page_url }}" class="px-2 py-1 text-xs rounded" title="История">🕘</a>
         </td>
       </tr>
       {% endfor %}
     </tbody>
   </table>
   {% else %}
-  <p style="color:#6b7280">No pipeline jobs yet. Run batch pipeline or trigger individual pages.</p>
+  <p class="text-gray-500">No pipeline jobs yet. Run batch pipeline or trigger individual pages.</p>
   {% endif %}
 </div>
 
 <!-- Diff viewer modal -->
-<div id="diff-modal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,.5); z-index:100; justify-content:center; align-items:center">
-  <div style="background:white; border-radius:8px; padding:2rem; max-width:900px; width:95%; max-height:85vh; overflow-y:auto; position:relative">
-    <button onclick="document.getElementById('diff-modal').style.display='none'" style="position:absolute; top:.5rem; right:1rem; background:none; border:none; font-size:1.5rem; cursor:pointer">&times;</button>
-    <h3 style="margin:0 0 1rem">Diff</h3>
-    <pre id="diff-content" style="background:#f9fafb; padding:1rem; border-radius:4px; font-size:.8rem; overflow-x:auto; white-space:pre-wrap; line-height:1.6"></pre>
+<div id="diff-modal" class="hidden fixed inset-0 bg-black/50 z-50 justify-center items-center">
+  <div class="bg-white rounded-lg p-8 max-w-4xl w-[95%] max-h-[85vh] overflow-y-auto relative">
+    <button onclick="document.getElementById('diff-modal').classList.add('hidden'); document.getElementById('diff-modal').classList.remove('flex')" class="absolute top-2 right-4 bg-transparent border-none text-2xl cursor-pointer text-gray-500 hover:text-gray-800">&times;</button>
+    <h3 class="text-base font-semibold m-0 mb-4">Diff</h3>
+    <pre id="diff-content" class="bg-gray-50 p-4 rounded text-xs overflow-x-auto whitespace-pre-wrap leading-relaxed"></pre>
   </div>
 </div>
 
@@ -101,7 +107,8 @@ async function bulkAction(action) {
 }
 
 async function showDiff(jobId) {
-  document.getElementById('diff-modal').style.display = 'flex';
+  document.getElementById('diff-modal').classList.remove('hidden');
+  document.getElementById('diff-modal').classList.add('flex');
   document.getElementById('diff-content').textContent = 'Загрузка...';
   const resp = await fetch('/pipeline/jobs/' + jobId);
   const data = await resp.json();
@@ -112,9 +119,9 @@ async function showDiff(jobId) {
       .split('\n')
       .map(line => {
         if (line.startsWith('+') && !line.startsWith('+++'))
-          return '<span style="color:#059669;background:#ecfdf5">' + escHtml(line) + '</span>';
+          return '<span class="text-emerald-600 bg-emerald-50">' + escHtml(line) + '</span>';
         if (line.startsWith('-') && !line.startsWith('---'))
-          return '<span style="color:#dc2626;background:#fef2f2">' + escHtml(line) + '</span>';
+          return '<span class="text-red-600 bg-red-50">' + escHtml(line) + '</span>';
         return escHtml(line);
       }).join('\n');
   } else {
@@ -127,7 +134,7 @@ function escHtml(s) {
 }
 
 document.getElementById('diff-modal').addEventListener('click', function(e) {
-  if (e.target === this) this.style.display = 'none';
+  if (e.target === this) { this.classList.add('hidden'); this.classList.remove('flex'); }
 });
 </script>
 {% endblock %}
