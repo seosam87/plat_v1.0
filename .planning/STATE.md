@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed v3-05-01-PLAN.md
-last_updated: "2026-04-03T07:54:19.011Z"
+stopped_at: Completed v3-05-02-PLAN.md
+last_updated: "2026-04-03T08:11:14.913Z"
 last_activity: 2026-04-03
 progress:
   total_phases: 12
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-03-31)
 ## Current Position
 
 Phase: v3-05-content (gap) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-04-03
 
@@ -62,6 +62,7 @@ Progress: [██░░░░░░░░] 18%
 | Phase 06.1 P02 | 8 | 2 tasks | 7 files |
 | Phase v3-04 P07 | 3 | 2 tasks | 3 files |
 | Phase v3-05 P01 | 3 | 3 tasks | 3 files |
+| Phase v3-05 P02 | 5 | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -83,6 +84,8 @@ Recent decisions affecting current work:
 - [Phase v3-04]: [Phase v3-04-07]: Integration tests are pure-function only (no async/DB) — fast feedback without infrastructure
 - [Phase v3-05-01]: GapKeyword.source uses String(50) not enum — accommodates future import sources without migrations
 - [Phase v3-05-01]: GapProposal.content_plan_item_id FK SET NULL so deleting content plan items doesn't cascade-delete proposals
+- [Phase v3-05]: SCORE_FORMULA_DESCRIPTION constant in gap_service for UI tooltip display
+- [Phase v3-05]: gap_parser uses find_column() for multi-format auto-detection (keys.so, Topvisor, generic)
 
 ### Pending Todos
 
@@ -106,6 +109,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-03T07:54:19.007Z
-Stopped at: Completed v3-05-01-PLAN.md
+Last session: 2026-04-03T08:11:14.909Z
+Stopped at: Completed v3-05-02-PLAN.md
 Resume file: None
