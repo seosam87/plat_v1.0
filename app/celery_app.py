@@ -18,6 +18,7 @@ celery_app = Celery(
         "app.tasks.digest_tasks",
         "app.tasks.analytics_tasks",
         "app.tasks.intent_tasks",
+        "app.tasks.smoke_tasks",
     ],
 )
 

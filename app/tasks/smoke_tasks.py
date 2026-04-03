@@ -6,6 +6,7 @@ import asyncio
 from loguru import logger
 
 from app.celery_app import celery_app
+from app.services.telegram_service import is_configured, send_message_sync
 
 
 @celery_app.task(
@@ -25,7 +26,6 @@ def run_ui_smoke_test(self, base_url: str | None = None) -> dict:
     Returns:
         dict with keys: total (int), errors (int), ok (bool)
     """
-    from app.services.telegram_service import is_configured, send_message_sync
     from tests.smoke_test import run_smoke_test
 
     logger.info("UI smoke test started", base_url=base_url)
