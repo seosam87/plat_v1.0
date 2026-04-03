@@ -1,76 +1,81 @@
 {% extends "base.html" %}
 {% block title %}Анализ трафика — {{ site.name }} — SEO Platform{% endblock %}
 {% block content %}
-<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem">
-  <h2 style="margin:0">Анализ трафика: {{ site.name }}</h2>
+<div class="flex justify-between items-center mb-6">
+  <h2 class="m-0 text-lg font-semibold text-gray-800">Анализ трафика: {{ site.name }}</h2>
   <a href="/ui/sites/{{ site.id }}" class="btn btn-sm">&larr; К сайту</a>
 </div>
 
 <!-- Analysis source -->
-<div class="card" style="margin-bottom:1.5rem">
-  <h3 style="margin:0 0 1rem">Источник данных</h3>
-  <div style="display:flex; gap:2rem; flex-wrap:wrap">
-    <div style="flex:1; min-width:250px">
-      <h4 style="margin:0 0 .5rem; font-size:.9rem; color:#374151">Анализ Метрики</h4>
-      <div style="display:flex; gap:.5rem; margin-bottom:.5rem; flex-wrap:wrap">
-        <input type="date" id="metrika-from" style="padding:.3rem .5rem; border:1px solid #d1d5db; border-radius:4px">
-        <input type="date" id="metrika-to" style="padding:.3rem .5rem; border:1px solid #d1d5db; border-radius:4px">
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+  <h3 class="m-0 mb-4 text-base font-semibold">Источник данных</h3>
+  <div class="flex gap-8 flex-wrap">
+    <div class="flex-1 min-w-[250px]">
+      <h4 class="m-0 mb-2 text-sm font-medium text-gray-700">Анализ Метрики</h4>
+      <div class="flex gap-2 mb-2 flex-wrap">
+        <input type="date" id="metrika-from" class="px-2 py-1 border border-gray-300 rounded text-sm">
+        <input type="date" id="metrika-to" class="px-2 py-1 border border-gray-300 rounded text-sm">
       </div>
-      <button class="btn" style="background:#4f46e5; color:white" onclick="analyzeMetrika()">Анализировать Метрику</button>
+      <button class="btn px-3 py-1.5 text-sm font-medium rounded bg-indigo-600 text-white hover:bg-indigo-700" onclick="analyzeMetrika()">Анализировать Метрику</button>
     </div>
-    <div style="flex:1; min-width:250px">
-      <h4 style="margin:0 0 .5rem; font-size:.9rem; color:#374151">Загрузить access.log</h4>
+    <div class="flex-1 min-w-[250px]">
+      <h4 class="m-0 mb-2 text-sm font-medium text-gray-700">Загрузить access.log</h4>
       <form id="log-form" enctype="multipart/form-data">
-        <input type="file" name="file" accept=".log,.txt" style="margin-bottom:.5rem; display:block">
-        <button type="button" class="btn" style="background:#059669; color:white" onclick="uploadLog()">Загрузить лог</button>
+        <input type="file" name="file" accept=".log,.txt" class="mb-2 block text-sm">
+        <button type="button" class="btn px-3 py-1.5 text-sm font-medium rounded bg-emerald-600 text-white hover:bg-emerald-700" onclick="uploadLog()">Загрузить лог</button>
       </form>
     </div>
   </div>
-  <div id="analysis-status" style="font-size:.85rem; margin-top:.75rem"></div>
+  <div id="analysis-status" class="text-sm mt-3"></div>
 </div>
 
 <!-- Anomaly alert -->
-<div id="anomaly-alert" style="display:none; background:#fee2e2; border:1px solid #fca5a5; border-radius:8px; padding:1rem; margin-bottom:1.5rem">
-  <h3 style="margin:0 0 .5rem; color:#dc2626">Аномалии обнаружены</h3>
-  <div id="anomaly-details" style="font-size:.85rem; color:#7f1d1d"></div>
+<div id="anomaly-alert" class="hidden bg-red-100 border border-red-300 rounded-lg p-4 mb-6">
+  <h3 class="m-0 mb-2 text-red-600 font-semibold">Аномалии обнаружены</h3>
+  <div id="anomaly-details" class="text-sm text-red-900"></div>
 </div>
-<div id="no-anomalies-ok" style="display:none; background:#d1fae5; border:1px solid #6ee7b7; border-radius:8px; padding:.75rem 1rem; margin-bottom:1.5rem">
-  <span style="color:#065f46; font-weight:600">Нет аномалий — трафик в норме</span>
+<div id="no-anomalies-ok" class="hidden bg-emerald-100 border border-emerald-300 rounded-lg px-4 py-3 mb-6">
+  <span class="text-emerald-800 font-semibold">Нет аномалий — трафик в норме</span>
 </div>
 
 <!-- Sessions history -->
-<div class="card" style="margin-bottom:1.5rem">
-  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem">
-    <h3 style="margin:0">История анализов</h3>
-    <span style="font-size:.8rem; color:#6b7280">Нажмите на сессию чтобы загрузить данные</span>
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+  <div class="flex justify-between items-center mb-4">
+    <h3 class="m-0 text-base font-semibold">История анализов</h3>
+    <span class="text-xs text-gray-500">Нажмите на сессию чтобы загрузить данные</span>
   </div>
   {% if sessions %}
-  <div style="overflow-x:auto">
-  <table style="font-size:.85rem">
-    <thead>
+  <div class="overflow-x-auto">
+  <table class="min-w-full divide-y divide-gray-200 text-sm">
+    <thead class="bg-gray-50">
       <tr>
-        <th>Название</th><th>Источник</th><th>Визиты</th><th>Боты</th>
-        <th>Аномалии</th><th>Период</th><th></th>
+        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Название</th>
+        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Источник</th>
+        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Визиты</th>
+        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Боты</th>
+        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Аномалии</th>
+        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Период</th>
+        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"></th>
       </tr>
     </thead>
-    <tbody>
+    <tbody class="bg-white divide-y divide-gray-100">
       {% for s in sessions %}
-      <tr style="cursor:pointer" onclick="loadSession('{{ s.id }}', '{{ s.name }}')" title="Загрузить данные сессии">
-        <td>{{ s.name }}</td>
-        <td>
-          <span class="badge" style="background:#f3f4f6;color:#6b7280">
+      <tr class="cursor-pointer hover:bg-gray-50" onclick="loadSession('{{ s.id }}', '{{ s.name }}')" title="Загрузить данные сессии">
+        <td class="px-3 py-2">{{ s.name }}</td>
+        <td class="px-3 py-2">
+          <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-500">
             {{ "Метрика" if s.source_type == "metrika" else "access.log" }}
           </span>
         </td>
-        <td>{{ s.total_visits }}</td>
-        <td style="{% if s.bot_visits > 0 %}color:#dc2626; font-weight:600{% endif %}">{{ s.bot_visits }}</td>
-        <td>
-          {% if s.anomaly_detected %}<span style="color:#dc2626; font-weight:600">Да</span>
-          {% else %}<span style="color:#059669">Нет</span>{% endif %}
+        <td class="px-3 py-2">{{ s.total_visits }}</td>
+        <td class="px-3 py-2 {% if s.bot_visits > 0 %}text-red-600 font-semibold{% endif %}">{{ s.bot_visits }}</td>
+        <td class="px-3 py-2">
+          {% if s.anomaly_detected %}<span class="text-red-600 font-semibold">Да</span>
+          {% else %}<span class="text-emerald-600">Нет</span>{% endif %}
         </td>
-        <td style="font-size:.8rem; color:#6b7280">{{ s.period_start }} — {{ s.period_end }}</td>
-        <td>
-          <button class="btn btn-sm" style="background:#4f46e5; color:white"
+        <td class="px-3 py-2 text-xs text-gray-500">{{ s.period_start }} — {{ s.period_end }}</td>
+        <td class="px-3 py-2">
+          <button class="btn btn-sm px-2 py-1 text-xs font-medium rounded bg-indigo-600 text-white hover:bg-indigo-700"
                   onclick="event.stopPropagation(); loadSession('{{ s.id }}', '{{ s.name }}')">
             Загрузить
           </button>
@@ -81,35 +86,35 @@
   </table>
   </div>
   {% else %}
-  <p style="color:#6b7280; text-align:center; padding:1rem 0">
+  <p class="text-gray-500 text-center py-4">
     Нет анализов. Запустите анализ Метрики или загрузите access.log.
   </p>
   {% endif %}
 </div>
 
 <!-- Traffic timeline chart -->
-<div class="card" style="margin-bottom:1.5rem">
-  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem">
-    <h3 style="margin:0">Timeline трафика</h3>
-    <span id="chart-session-label" style="font-size:.8rem; color:#6b7280">Нет загруженной сессии</span>
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+  <div class="flex justify-between items-center mb-4">
+    <h3 class="m-0 text-base font-semibold">Timeline трафика</h3>
+    <span id="chart-session-label" class="text-xs text-gray-500">Нет загруженной сессии</span>
   </div>
-  <canvas id="traffic-chart" style="max-height:320px"></canvas>
+  <canvas id="traffic-chart" class="max-h-[320px]"></canvas>
 </div>
 
 <!-- Traffic sources -->
-<div style="display:grid; grid-template-columns:1fr 1fr; gap:1.5rem; margin-bottom:1.5rem">
+<div class="grid grid-cols-2 gap-6 mb-6">
 
-  <div class="card">
-    <h3 style="margin:0 0 1rem">Источники трафика</h3>
-    <canvas id="sources-chart" style="max-height:220px"></canvas>
-    <div id="sources-summary" style="margin-top:.75rem; font-size:.85rem; display:none">
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:.25rem .5rem" id="sources-grid"></div>
+  <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+    <h3 class="m-0 mb-4 text-base font-semibold">Источники трафика</h3>
+    <canvas id="sources-chart" class="max-h-[220px]"></canvas>
+    <div id="sources-summary" class="mt-3 text-sm hidden">
+      <div class="grid grid-cols-2 gap-y-1 gap-x-2" id="sources-grid"></div>
     </div>
   </div>
 
-  <div class="card">
-    <h3 style="margin:0 0 1rem">Топ referers</h3>
-    <div id="referers-list" style="font-size:.85rem; color:#6b7280">
+  <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+    <h3 class="m-0 mb-4 text-base font-semibold">Топ referers</h3>
+    <div id="referers-list" class="text-sm text-gray-500">
       Нет данных. Загрузите сессию.
     </div>
   </div>
@@ -117,79 +122,79 @@
 </div>
 
 <!-- Top landing pages -->
-<div class="card" style="margin-bottom:1.5rem">
-  <h3 style="margin:0 0 1rem">Топ посадочных страниц</h3>
-  <div id="landings-list" style="font-size:.85rem; color:#6b7280">
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+  <h3 class="m-0 mb-4 text-base font-semibold">Топ посадочных страниц</h3>
+  <div id="landings-list" class="text-sm text-gray-500">
     Нет данных. Загрузите сессию.
   </div>
 </div>
 
 <!-- Bot detection -->
-<div class="card" style="margin-bottom:1.5rem">
-  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem">
-    <h3 style="margin:0">Обнаружение ботов</h3>
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+  <div class="flex justify-between items-center mb-4">
+    <h3 class="m-0 text-base font-semibold">Обнаружение ботов</h3>
     <div>
-      <label style="font-size:.85rem; margin-right:.5rem">Фильтр по причине:</label>
-      <select id="bot-reason-filter" onchange="filterBots()" style="padding:.25rem .5rem; border:1px solid #d1d5db; border-radius:4px; font-size:.85rem">
+      <label class="text-sm mr-2">Фильтр по причине:</label>
+      <select id="bot-reason-filter" onchange="filterBots()" class="px-2 py-1 border border-gray-300 rounded text-sm">
         <option value="">Все</option>
       </select>
     </div>
   </div>
-  <div id="bots-section" style="color:#6b7280; font-size:.85rem">
+  <div id="bots-section" class="text-sm text-gray-500">
     Нет данных. Загрузите сессию.
   </div>
 </div>
 
 <!-- Injection patterns -->
-<div class="card" style="margin-bottom:1.5rem">
-  <h3 style="margin:0 0 1rem">Паттерны подлива трафика</h3>
-  <div id="injections-section" style="color:#6b7280; font-size:.85rem">
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+  <h3 class="m-0 mb-4 text-base font-semibold">Паттерны подлива трафика</h3>
+  <div id="injections-section" class="text-sm text-gray-500">
     Нет данных. Загрузите сессию.
   </div>
 </div>
 
 <!-- Period comparison -->
-<div class="card" style="margin-bottom:1.5rem">
-  <h3 style="margin:0 0 1rem">Сравнение периодов</h3>
-  <div style="display:flex; gap:1rem; margin-bottom:1rem; flex-wrap:wrap; align-items:flex-end">
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+  <h3 class="m-0 mb-4 text-base font-semibold">Сравнение периодов</h3>
+  <div class="flex gap-4 mb-4 flex-wrap items-end">
     <div>
-      <label style="font-size:.8rem; color:#6b7280; display:block; margin-bottom:.25rem">Период 1 — с</label>
-      <input type="date" id="period1-from" style="padding:.3rem .5rem; border:1px solid #d1d5db; border-radius:4px">
+      <label class="text-xs text-gray-500 block mb-1">Период 1 — с</label>
+      <input type="date" id="period1-from" class="px-2 py-1 border border-gray-300 rounded text-sm">
     </div>
     <div>
-      <label style="font-size:.8rem; color:#6b7280; display:block; margin-bottom:.25rem">по</label>
-      <input type="date" id="period1-to" style="padding:.3rem .5rem; border:1px solid #d1d5db; border-radius:4px">
+      <label class="text-xs text-gray-500 block mb-1">по</label>
+      <input type="date" id="period1-to" class="px-2 py-1 border border-gray-300 rounded text-sm">
     </div>
-    <div style="width:1px; background:#e5e7eb; align-self:stretch"></div>
+    <div class="w-px bg-gray-200 self-stretch"></div>
     <div>
-      <label style="font-size:.8rem; color:#6b7280; display:block; margin-bottom:.25rem">Период 2 — с</label>
-      <input type="date" id="period2-from" style="padding:.3rem .5rem; border:1px solid #d1d5db; border-radius:4px">
+      <label class="text-xs text-gray-500 block mb-1">Период 2 — с</label>
+      <input type="date" id="period2-from" class="px-2 py-1 border border-gray-300 rounded text-sm">
     </div>
     <div>
-      <label style="font-size:.8rem; color:#6b7280; display:block; margin-bottom:.25rem">по</label>
-      <input type="date" id="period2-to" style="padding:.3rem .5rem; border:1px solid #d1d5db; border-radius:4px">
+      <label class="text-xs text-gray-500 block mb-1">по</label>
+      <input type="date" id="period2-to" class="px-2 py-1 border border-gray-300 rounded text-sm">
     </div>
-    <button class="btn" style="background:#4f46e5; color:white; align-self:flex-end" onclick="comparePeriods()">
+    <button class="btn px-3 py-1.5 text-sm font-medium rounded bg-indigo-600 text-white hover:bg-indigo-700 self-end" onclick="comparePeriods()">
       Сравнить
     </button>
   </div>
-  <div id="comparison-result" style="display:none">
-    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:1rem">
+  <div id="comparison-result" class="hidden">
+    <div class="grid grid-cols-3 gap-4">
       <div>
-        <div style="font-size:.75rem; color:#6b7280; font-weight:600; text-transform:uppercase; margin-bottom:.5rem">Период 1</div>
-        <div id="period1-stats" style="font-size:.85rem"></div>
+        <div class="text-xs text-gray-500 font-semibold uppercase mb-2">Период 1</div>
+        <div id="period1-stats" class="text-sm"></div>
       </div>
-      <div style="background:#f9fafb; border-radius:8px; padding:.75rem; text-align:center">
-        <div style="font-size:.75rem; color:#6b7280; font-weight:600; text-transform:uppercase; margin-bottom:.5rem">Изменение</div>
-        <div id="period-delta" style="font-size:.85rem"></div>
+      <div class="bg-gray-50 rounded-lg p-3 text-center">
+        <div class="text-xs text-gray-500 font-semibold uppercase mb-2">Изменение</div>
+        <div id="period-delta" class="text-sm"></div>
       </div>
       <div>
-        <div style="font-size:.75rem; color:#6b7280; font-weight:600; text-transform:uppercase; margin-bottom:.5rem">Период 2</div>
-        <div id="period2-stats" style="font-size:.85rem"></div>
+        <div class="text-xs text-gray-500 font-semibold uppercase mb-2">Период 2</div>
+        <div id="period2-stats" class="text-sm"></div>
       </div>
     </div>
   </div>
-  <p id="comparison-placeholder" style="color:#6b7280; font-size:.85rem">
+  <p id="comparison-placeholder" class="text-gray-500 text-sm">
     Выберите два периода и нажмите «Сравнить» для анализа данных текущей загруженной сессии.
   </p>
 </div>
@@ -266,8 +271,8 @@ async function loadSession(sessionId, sessionName) {
     if (anomalies.anomaly_detected && anomalies.anomaly_days.length > 0) {
       showAnomalyAlert(anomalies.anomaly_days);
     } else if (!anomalies.anomaly_detected) {
-      document.getElementById('no-anomalies-ok').style.display = '';
-      document.getElementById('anomaly-alert').style.display = 'none';
+      document.getElementById('no-anomalies-ok').classList.remove('hidden');
+      document.getElementById('anomaly-alert').classList.add('hidden');
     }
 
     setStatus(`Данные загружены. Визитов: ${currentVisits.length}, ботов: ${allBotVisits.length}`, '#059669');
@@ -349,6 +354,7 @@ function renderSourcesChart(summary) {
   const labels = ['Органика','Прямой','Реферал','Боты','Подлив'];
   const values = [summary.organic, summary.direct, summary.referral, summary.bot, summary.injection];
   const colors = ['#4f46e5','#0ea5e9','#f59e0b','#dc2626','#7c3aed'];
+  const colorTw = ['bg-indigo-600','bg-sky-500','bg-amber-400','bg-red-600','bg-violet-600'];
 
   if (sourcesChart) sourcesChart.destroy();
   const ctx = document.getElementById('sources-chart').getContext('2d');
@@ -360,32 +366,32 @@ function renderSourcesChart(summary) {
 
   const grid = document.getElementById('sources-grid');
   grid.innerHTML = labels.map((l,i) =>
-    `<div style="display:flex; align-items:center; gap:.3rem">
-      <span style="width:10px;height:10px;border-radius:50%;background:${colors[i]};flex-shrink:0"></span>
+    `<div class="flex items-center gap-1">
+      <span class="w-2.5 h-2.5 rounded-full flex-shrink-0 ${colorTw[i]}"></span>
       <span>${l}</span>
     </div>
-    <div style="text-align:right;font-weight:600">${values[i]}</div>`
+    <div class="text-right font-semibold">${values[i]}</div>`
   ).join('');
-  document.getElementById('sources-summary').style.display = '';
+  document.getElementById('sources-summary').classList.remove('hidden');
 }
 
 // ---------- Referers ----------
 function renderReferers(topReferers) {
   const el = document.getElementById('referers-list');
   if (!topReferers || topReferers.length === 0) {
-    el.innerHTML = '<span style="color:#6b7280">Нет данных о реферерах</span>';
+    el.innerHTML = '<span class="text-gray-500">Нет данных о реферерах</span>';
     return;
   }
   const max = topReferers[0][1] || 1;
   el.innerHTML = topReferers.map(([ref, cnt]) => `
-    <div style="display:flex; align-items:center; gap:.5rem; margin-bottom:.4rem">
-      <div style="flex:1; min-width:0">
-        <div style="font-size:.8rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis" title="${ref}">${ref || '(прямой)'}</div>
-        <div style="background:#e5e7eb; border-radius:2px; height:4px; margin-top:2px">
-          <div style="background:#4f46e5; height:4px; border-radius:2px; width:${Math.round(cnt/max*100)}%"></div>
+    <div class="flex items-center gap-2 mb-1">
+      <div class="flex-1 min-w-0">
+        <div class="text-xs whitespace-nowrap overflow-hidden text-ellipsis" title="${ref}">${ref || '(прямой)'}</div>
+        <div class="bg-gray-200 rounded-sm h-1 mt-0.5">
+          <div class="bg-indigo-600 h-1 rounded-sm" style="width:${Math.round(cnt/max*100)}%"></div>
         </div>
       </div>
-      <span style="font-weight:600; min-width:40px; text-align:right">${cnt}</span>
+      <span class="font-semibold min-w-[40px] text-right">${cnt}</span>
     </div>
   `).join('');
 }
@@ -394,21 +400,21 @@ function renderReferers(topReferers) {
 function renderLandings(topLandings) {
   const el = document.getElementById('landings-list');
   if (!topLandings || topLandings.length === 0) {
-    el.innerHTML = '<span style="color:#6b7280">Нет данных о страницах</span>';
+    el.innerHTML = '<span class="text-gray-500">Нет данных о страницах</span>';
     return;
   }
   const max = topLandings[0][1] || 1;
-  el.innerHTML = `<div style="overflow-x:auto"><table style="font-size:.82rem">
-    <thead><tr><th>URL</th><th style="text-align:right">Визиты</th><th style="min-width:120px">Доля</th></tr></thead>
+  el.innerHTML = `<div class="overflow-x-auto"><table class="min-w-full divide-y divide-gray-200 text-xs">
+    <thead><tr><th>URL</th><th class="text-right">Визиты</th><th class="min-w-[120px]">Доля</th></tr></thead>
     <tbody>${topLandings.map(([url, cnt]) => `
       <tr>
-        <td style="max-width:400px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap" title="${url}">
-          <a href="${url}" target="_blank" rel="noopener" style="color:#4f46e5; text-decoration:none">${url}</a>
+        <td class="max-w-[400px] overflow-hidden text-ellipsis whitespace-nowrap" title="${url}">
+          <a href="${url}" target="_blank" rel="noopener" class="text-indigo-600 no-underline hover:underline">${url}</a>
         </td>
-        <td style="text-align:right; font-weight:600">${cnt}</td>
+        <td class="text-right font-semibold">${cnt}</td>
         <td>
-          <div style="background:#e5e7eb; border-radius:2px; height:6px">
-            <div style="background:#0ea5e9; height:6px; border-radius:2px; width:${Math.round(cnt/max*100)}%"></div>
+          <div class="bg-gray-200 rounded-sm h-1.5">
+            <div class="bg-sky-500 h-1.5 rounded-sm" style="width:${Math.round(cnt/max*100)}%"></div>
           </div>
         </td>
       </tr>`).join('')}
@@ -420,7 +426,7 @@ function renderLandings(topLandings) {
 function renderBots(bots) {
   const el = document.getElementById('bots-section');
   if (!bots || bots.length === 0) {
-    el.innerHTML = '<span style="color:#059669; font-weight:600">Ботов не обнаружено</span>';
+    el.innerHTML = '<span class="text-emerald-600 font-semibold">Ботов не обнаружено</span>';
     return;
   }
 
@@ -435,10 +441,10 @@ function renderBots(bots) {
 
 function renderBotsTable(bots) {
   const el = document.getElementById('bots-section');
-  el.innerHTML = `<div style="margin-bottom:.5rem; color:#dc2626; font-weight:600">
+  el.innerHTML = `<div class="mb-2 text-red-600 font-semibold">
     Обнаружено ботов: ${bots.length}
   </div>
-  <div style="overflow-x:auto"><table style="font-size:.82rem">
+  <div class="overflow-x-auto"><table class="min-w-full divide-y divide-gray-200 text-xs">
     <thead>
       <tr>
         <th>Время</th><th>IP</th><th>User-Agent</th><th>Referer</th><th>URL</th><th>Причина</th>
@@ -446,16 +452,16 @@ function renderBotsTable(bots) {
     </thead>
     <tbody>
       ${bots.slice(0,200).map(b => `<tr>
-        <td style="white-space:nowrap">${b.timestamp ? b.timestamp.replace('T',' ').slice(0,16) : ''}</td>
-        <td style="font-family:monospace">${b.ip_address || ''}</td>
-        <td style="max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap" title="${b.user_agent || ''}">${b.user_agent || ''}</td>
-        <td style="max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap" title="${b.referer || ''}">${b.referer || ''}</td>
-        <td style="max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap" title="${b.page_url || ''}">${b.page_url || ''}</td>
-        <td><span class="badge" style="background:#fee2e2;color:#991b1b">${b.bot_reason || ''}</span></td>
+        <td class="whitespace-nowrap">${b.timestamp ? b.timestamp.replace('T',' ').slice(0,16) : ''}</td>
+        <td class="font-mono">${b.ip_address || ''}</td>
+        <td class="max-w-[200px] overflow-hidden text-ellipsis whitespace-nowrap" title="${b.user_agent || ''}">${b.user_agent || ''}</td>
+        <td class="max-w-[150px] overflow-hidden text-ellipsis whitespace-nowrap" title="${b.referer || ''}">${b.referer || ''}</td>
+        <td class="max-w-[180px] overflow-hidden text-ellipsis whitespace-nowrap" title="${b.page_url || ''}">${b.page_url || ''}</td>
+        <td><span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">${b.bot_reason || ''}</span></td>
       </tr>`).join('')}
     </tbody>
   </table></div>
-  ${bots.length > 200 ? `<p style="color:#6b7280;font-size:.8rem;margin-top:.5rem">Показаны первые 200 из ${bots.length} записей</p>` : ''}`;
+  ${bots.length > 200 ? `<p class="text-gray-500 text-xs mt-2">Показаны первые 200 из ${bots.length} записей</p>` : ''}`;
 }
 
 function filterBots() {
@@ -468,7 +474,7 @@ function filterBots() {
 function renderInjections(patterns, anomalies) {
   const el = document.getElementById('injections-section');
   if (!patterns || patterns.length === 0) {
-    el.innerHTML = '<span style="color:#059669; font-weight:600">Паттернов подлива не обнаружено</span>';
+    el.innerHTML = '<span class="text-emerald-600 font-semibold">Паттернов подлива не обнаружено</span>';
     return;
   }
 
@@ -477,41 +483,43 @@ function renderInjections(patterns, anomalies) {
   if (anomalyDays.length > 0) {
     const firstAnomaly = anomalyDays[0].date;
     comparisonHtml = `
-      <div style="margin-top:1rem; padding:1rem; background:#fef3c7; border:1px solid #fcd34d; border-radius:8px">
-        <h4 style="margin:0 0 .75rem; font-size:.9rem">Сравнение периодов (аномалия: ${firstAnomaly})</h4>
-        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:1rem; font-size:.85rem">
-          <div><div style="color:#6b7280; font-size:.75rem; margin-bottom:.25rem">ДО подлива</div>
+      <div class="mt-4 p-4 bg-amber-100 border border-amber-300 rounded-lg">
+        <h4 class="m-0 mb-3 text-sm font-medium">Сравнение периодов (аномалия: ${firstAnomaly})</h4>
+        <div class="grid grid-cols-3 gap-4 text-sm">
+          <div><div class="text-gray-500 text-xs mb-1">ДО подлива</div>
             <div>Базовый: ~${Math.round(anomalies.baseline_avg)} визитов/день</div></div>
-          <div><div style="color:#6b7280; font-size:.75rem; margin-bottom:.25rem">ВО ВРЕМЯ</div>
+          <div><div class="text-gray-500 text-xs mb-1">ВО ВРЕМЯ</div>
             ${anomalyDays.map(d => `<div>${d.date}: <strong>${d.visits}</strong> (+${d.deviation}σ)</div>`).join('')}</div>
-          <div><div style="color:#6b7280; font-size:.75rem; margin-bottom:.25rem">ОТКЛОНЕНИЕ</div>
-            <div style="color:#dc2626; font-weight:600">+${Math.round((anomalyDays[0].visits - anomalies.baseline_avg) / anomalies.baseline_avg * 100)}%</div></div>
+          <div><div class="text-gray-500 text-xs mb-1">ОТКЛОНЕНИЕ</div>
+            <div class="text-red-600 font-semibold">+${Math.round((anomalyDays[0].visits - anomalies.baseline_avg) / anomalies.baseline_avg * 100)}%</div></div>
         </div>
       </div>`;
   }
 
   el.innerHTML = `
-    <div style="margin-bottom:.75rem; color:#7c3aed; font-weight:600">
+    <div class="mb-3 text-violet-600 font-semibold">
       Обнаружено паттернов: ${patterns.length}
     </div>
-    ${patterns.map(p => `
-      <div style="background:#f5f3ff; border:1px solid #ddd6fe; border-radius:8px; padding:.75rem; margin-bottom:.75rem">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:.25rem">
-          <strong style="color:#7c3aed">${p.pattern}</strong>
-          <span class="badge" style="background:${p.confidence > 0.7 ? '#fee2e2' : '#fef3c7'};
-                color:${p.confidence > 0.7 ? '#991b1b' : '#92400e'}">
+    ${patterns.map(p => {
+      const confClass = p.confidence > 0.7 ? 'bg-red-100 text-red-800' : 'bg-amber-100 text-amber-800';
+      return `
+      <div class="bg-violet-50 border border-violet-200 rounded-lg p-3 mb-3">
+        <div class="flex justify-between items-center mb-1">
+          <strong class="text-violet-600">${p.pattern}</strong>
+          <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${confClass}">
             Уверенность: ${Math.round(p.confidence * 100)}%
           </span>
         </div>
-        <div style="font-size:.85rem; color:#374151">${p.evidence}</div>
-      </div>`).join('')}
+        <div class="text-sm text-gray-700">${p.evidence}</div>
+      </div>`;
+    }).join('')}
     ${comparisonHtml}`;
 }
 
 // ---------- Anomaly alert ----------
 function showAnomalyAlert(anomalyDays) {
-  document.getElementById('anomaly-alert').style.display = '';
-  document.getElementById('no-anomalies-ok').style.display = 'none';
+  document.getElementById('anomaly-alert').classList.remove('hidden');
+  document.getElementById('no-anomalies-ok').classList.add('hidden');
   document.getElementById('anomaly-details').innerHTML = anomalyDays.map(d =>
     `<div>${d.date}: <strong>${d.visits}</strong> визитов (ожидалось ~${d.expected}, отклонение ${d.deviation}σ)</div>`
   ).join('');
@@ -548,7 +556,7 @@ function comparePeriods() {
 
   function statsHtml(s) {
     return `<div>Всего визитов: <strong>${s.total}</strong></div>
-      <div>Ботов: <strong style="color:#dc2626">${s.bots} (${s.botPct}%)</strong></div>
+      <div>Ботов: <strong class="text-red-600">${s.bots} (${s.botPct}%)</strong></div>
       <div>Органика: ${s.organic}</div>
       <div>Прямой: ${s.direct}</div>
       <div>Реферал: ${s.referral}</div>`;
@@ -557,8 +565,8 @@ function comparePeriods() {
   function deltaVal(v1, v2) {
     if (!v1) return '+∞';
     const pct = Math.round((v2-v1)/v1*100);
-    const color = pct > 0 ? '#dc2626' : '#059669';
-    return `<span style="color:${color}; font-weight:600">${pct > 0 ? '+' : ''}${pct}%</span>`;
+    const cls = pct > 0 ? 'text-red-600 font-semibold' : 'text-emerald-600 font-semibold';
+    return `<span class="${cls}">${pct > 0 ? '+' : ''}${pct}%</span>`;
   }
 
   document.getElementById('period1-stats').innerHTML = statsHtml(s1);
@@ -568,14 +576,15 @@ function comparePeriods() {
     <div>Боты: ${deltaVal(s1.bots, s2.bots)}</div>
     <div>Органика: ${deltaVal(s1.organic, s2.organic)}</div>
   `;
-  document.getElementById('comparison-result').style.display = '';
-  document.getElementById('comparison-placeholder').style.display = 'none';
+  document.getElementById('comparison-result').classList.remove('hidden');
+  document.getElementById('comparison-placeholder').classList.add('hidden');
 }
 
 // ---------- Helpers ----------
 function setStatus(msg, color) {
   const el = document.getElementById('analysis-status');
-  el.innerHTML = `<span style="color:${color}">${msg}</span>`;
+  const colorMap = {'#4f46e5':'text-indigo-600','#059669':'text-emerald-600','#dc2626':'text-red-600'};
+  el.innerHTML = `<span class="${colorMap[color] || 'text-gray-500'}">${msg}</span>`;
 }
 </script>
 {% endblock %}
