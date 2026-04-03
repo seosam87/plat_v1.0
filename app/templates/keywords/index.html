@@ -4,23 +4,23 @@
 <div class="breadcrumbs"><a href="/ui/dashboard">Dashboard</a><span>&rsaquo;</span><a href="/ui/sites">Sites</a><span>&rsaquo;</span><a href="/ui/sites/{{ site_id }}">{{ site_name }}</a><span>&rsaquo;</span>Keywords</div>
 {% endblock %}
 {% block content %}
-<div class="card" style="margin-bottom:1.5rem">
-  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem">
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+  <div class="flex justify-between items-center mb-4">
     <div>
-      <h2 style="margin:0; display:inline">Keywords: {{ site_name }} <a class="help-trigger" onclick="openHelp()" title="Справка">?</a></h2>
-      <span style="color:#6b7280; margin-left:1rem">{{ total }} total</span>
+      <h2 class="text-lg font-semibold text-gray-800 m-0 inline">Keywords: {{ site_name }} <a class="help-trigger" onclick="openHelp()" title="Справка">?</a></h2>
+      <span class="text-gray-500 ml-4">{{ total }} total</span>
     </div>
-    <div style="display:flex; gap:.5rem">
-      <a href="/ui/positions/{{ site_id }}" class="btn btn-sm" style="background:#7c3aed;color:white">Positions</a>
-      <a href="/ui/clusters/{{ site_id }}" class="btn btn-sm" style="background:#0ea5e9;color:white">Clusters</a>
-      <a href="/ui/uploads" class="btn btn-sm" style="background:#059669;color:white">Import</a>
+    <div class="flex gap-2">
+      <a href="/ui/positions/{{ site_id }}" class="inline-flex items-center px-2 py-1 text-xs font-medium rounded bg-violet-600 text-white hover:bg-violet-700">Positions</a>
+      <a href="/ui/clusters/{{ site_id }}" class="inline-flex items-center px-2 py-1 text-xs font-medium rounded bg-sky-500 text-white hover:bg-sky-600">Clusters</a>
+      <a href="/ui/uploads" class="inline-flex items-center px-2 py-1 text-xs font-medium rounded bg-emerald-600 text-white hover:bg-emerald-700">Import</a>
     </div>
   </div>
 
   <!-- Group filter -->
   {% if groups %}
-  <div style="display:flex; gap:.5rem; margin-bottom:1rem; flex-wrap:wrap; align-items:center">
-    <span style="font-size:.85rem; color:#6b7280">Group:</span>
+  <div class="flex gap-2 mb-4 flex-wrap items-center">
+    <span class="text-sm text-gray-500">Group:</span>
     <a href="/ui/keywords/{{ site_id }}" class="btn btn-sm {% if not group_id %}btn-primary{% endif %}">All</a>
     {% for g in groups %}
     <a href="/ui/keywords/{{ site_id }}?group_id={{ g.id }}" class="btn btn-sm {% if group_id == g.id %}btn-primary{% endif %}">{{ g.name }}</a>
@@ -29,12 +29,12 @@
   {% endif %}
 
   <!-- Add keyword form -->
-  <form method="POST" action="/ui/keywords/{{ site_id }}/add" style="display:flex; gap:.5rem; margin-bottom:1.5rem; flex-wrap:wrap">
+  <form method="POST" action="/ui/keywords/{{ site_id }}/add" class="flex gap-2 mb-6 flex-wrap">
     <input type="text" name="phrase" placeholder="Keyword phrase" required
-      style="flex:1; min-width:200px; padding:.4rem .75rem; border:1px solid #d1d5db; border-radius:4px; font-size:.875rem">
+      class="flex-1 min-w-[200px] px-3 py-1.5 border border-gray-300 rounded text-sm focus:ring-indigo-500 focus:border-indigo-500">
     <input type="text" name="target_url" placeholder="Target URL (optional)"
-      style="width:250px; padding:.4rem .75rem; border:1px solid #d1d5db; border-radius:4px; font-size:.875rem">
-    <select name="group_id" style="padding:.4rem .75rem; border:1px solid #d1d5db; border-radius:4px; font-size:.875rem">
+      class="w-[250px] px-3 py-1.5 border border-gray-300 rounded text-sm focus:ring-indigo-500 focus:border-indigo-500">
+    <select name="group_id" class="px-3 py-1.5 border border-gray-300 rounded text-sm bg-white focus:ring-indigo-500 focus:border-indigo-500">
       <option value="">No group</option>
       {% for g in groups %}
       <option value="{{ g.id }}">{{ g.name }}</option>
@@ -44,63 +44,65 @@
   </form>
 
   {% if keywords %}
-  <table>
-    <thead>
-      <tr>
-        <th>Phrase</th>
-        <th>Frequency</th>
-        <th>Engine</th>
-        <th>Region</th>
-        <th>Group</th>
-        <th>Target URL</th>
-        <th>Cluster</th>
-        <th>Actions</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for kw in keywords %}
-      <tr id="kw-row-{{ kw.id }}">
-        <td style="font-weight:500">{{ kw.phrase }}</td>
-        <td>{{ kw.frequency if kw.frequency else '—' }}</td>
-        <td>{{ kw.engine or '—' }}</td>
-        <td>{{ kw.region or '—' }}</td>
-        <td>
-          <select style="padding:2px 4px;border:1px solid #d1d5db;border-radius:4px;font-size:.8rem"
-            hx-patch="/ui/keywords/{{ kw.id }}" hx-target="#kw-row-{{ kw.id }}" hx-swap="outerHTML"
-            hx-include="this" name="group_id">
-            <option value="">—</option>
-            {% for g in groups %}
-            <option value="{{ g.id }}" {% if kw.group_id and g.id == kw.group_id %}selected{% endif %}>{{ g.name }}</option>
-            {% endfor %}
-          </select>
-        </td>
-        <td>
-          <form style="display:flex;gap:4px" hx-patch="/ui/keywords/{{ kw.id }}" hx-target="#kw-row-{{ kw.id }}" hx-swap="outerHTML">
-            <input type="text" name="target_url" value="{{ kw.target_url or '' }}"
-              style="width:150px;padding:2px 4px;border:1px solid #d1d5db;border-radius:4px;font-size:.8rem"
-              placeholder="Target URL">
-            <button type="submit" class="btn btn-sm" style="padding:2px 8px;font-size:.75rem">OK</button>
-          </form>
-        </td>
-        <td>{{ kw.cluster_name or '—' }}</td>
-        <td>
-          <button class="btn btn-sm" style="background:#991b1b;color:white"
-            hx-delete="/ui/keywords/{{ kw.id }}"
-            hx-target="#kw-row-{{ kw.id }}" hx-swap="outerHTML swap:200ms"
-            hx-confirm="Delete keyword '{{ kw.phrase }}'?">&times;</button>
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  <div class="overflow-x-auto">
+    <table class="min-w-full divide-y divide-gray-200">
+      <thead class="bg-gray-50">
+        <tr>
+          <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phrase</th>
+          <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Frequency</th>
+          <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Engine</th>
+          <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Region</th>
+          <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Group</th>
+          <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Target URL</th>
+          <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cluster</th>
+          <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+        </tr>
+      </thead>
+      <tbody class="bg-white divide-y divide-gray-100">
+        {% for kw in keywords %}
+        <tr id="kw-row-{{ kw.id }}" class="hover:bg-gray-50">
+          <td class="px-3 py-2 font-medium">{{ kw.phrase }}</td>
+          <td class="px-3 py-2 text-sm">{{ kw.frequency if kw.frequency else '—' }}</td>
+          <td class="px-3 py-2 text-sm">{{ kw.engine or '—' }}</td>
+          <td class="px-3 py-2 text-sm">{{ kw.region or '—' }}</td>
+          <td class="px-3 py-2 text-sm">
+            <select class="px-1 py-0.5 border border-gray-300 rounded text-xs bg-white focus:ring-indigo-500 focus:border-indigo-500"
+              hx-patch="/ui/keywords/{{ kw.id }}" hx-target="#kw-row-{{ kw.id }}" hx-swap="outerHTML"
+              hx-include="this" name="group_id">
+              <option value="">—</option>
+              {% for g in groups %}
+              <option value="{{ g.id }}" {% if kw.group_id and g.id == kw.group_id %}selected{% endif %}>{{ g.name }}</option>
+              {% endfor %}
+            </select>
+          </td>
+          <td class="px-3 py-2 text-sm">
+            <form class="flex gap-1" hx-patch="/ui/keywords/{{ kw.id }}" hx-target="#kw-row-{{ kw.id }}" hx-swap="outerHTML">
+              <input type="text" name="target_url" value="{{ kw.target_url or '' }}"
+                class="w-[150px] px-1 py-0.5 border border-gray-300 rounded text-xs"
+                placeholder="Target URL">
+              <button type="submit" class="px-2 py-0.5 text-xs font-medium rounded bg-gray-100 text-gray-700 hover:bg-gray-200">OK</button>
+            </form>
+          </td>
+          <td class="px-3 py-2 text-sm">{{ kw.cluster_name or '—' }}</td>
+          <td class="px-3 py-2 text-sm">
+            <button class="px-2 py-1 text-xs font-medium rounded bg-red-800 text-white hover:bg-red-700"
+              hx-delete="/ui/keywords/{{ kw.id }}"
+              hx-target="#kw-row-{{ kw.id }}" hx-swap="outerHTML swap:200ms"
+              hx-confirm="Delete keyword '{{ kw.phrase }}'?">&times;</button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 
   <!-- Pagination -->
   {% if total > limit %}
-  <div style="margin-top:1rem; display:flex; gap:.5rem; justify-content:center">
+  <div class="mt-4 flex gap-2 justify-center">
     {% if offset > 0 %}
     <a href="?offset={{ offset - limit }}{% if group_id %}&group_id={{ group_id }}{% endif %}" class="btn btn-sm">&#8592; Prev</a>
     {% endif %}
-    <span style="padding:.25rem .6rem; color:#6b7280; font-size:.85rem">
+    <span class="px-2 py-1 text-gray-500 text-sm">
       {{ offset + 1 }}–{{ [offset + limit, total] | min }} of {{ total }}
     </span>
     {% if offset + limit < total %}
@@ -110,7 +112,7 @@
   {% endif %}
 
   {% else %}
-  <p style="color:#6b7280">No keywords yet. Add keywords manually above or <a href="/ui/uploads">import from file</a>.</p>
+  <p class="text-gray-500">No keywords yet. Add keywords manually above or <a href="/ui/uploads">import from file</a>.</p>
   {% endif %}
 </div>
 {% endblock %}
