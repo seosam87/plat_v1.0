@@ -217,6 +217,46 @@
 
 ## Traceability
 
+### v4.0 Requirements
+
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| NAV-01 | Phase v4-01: Navigation Foundation | Pending |
+| NAV-02 | Phase v4-01: Navigation Foundation | Pending |
+| NAV-03 | Phase v4-01: Navigation Foundation | Pending |
+| NAV-04 | Phase v4-01: Navigation Foundation | Pending |
+| NAV-05 | Phase v4-01: Navigation Foundation | Pending |
+| NAV-06 | Phase v4-01: Navigation Foundation | Pending |
+| OVR-01 | Phase v4-02: Секция «Обзор» | Pending |
+| OVR-02 | Phase v4-02: Секция «Обзор» | Pending |
+| OVR-03 | Phase v4-02: Секция «Обзор» | Pending |
+| SITE-V4-01 | Phase v4-03: Секция «Сайты» | Pending |
+| SITE-V4-02 | Phase v4-03: Секция «Сайты» | Pending |
+| SITE-V4-03 | Phase v4-03: Секция «Сайты» | Pending |
+| KW-V4-01 | Phase v4-04: Секция «Позиции и ключи» | Pending |
+| KW-V4-02 | Phase v4-04: Секция «Позиции и ключи» | Pending |
+| KW-V4-03 | Phase v4-04: Секция «Позиции и ключи» | Pending |
+| AN-V4-01 | Phase v4-05: Секция «Аналитика» | Pending |
+| AN-V4-02 | Phase v4-05: Секция «Аналитика» | Pending |
+| CNT-V4-01 | Phase v4-06: Секция «Контент» | Pending |
+| CNT-V4-02 | Phase v4-06: Секция «Контент» | Pending |
+| CNT-V4-03 | Phase v4-06: Секция «Контент» | Pending |
+| CFG-V4-01 | Phase v4-07: Секция «Настройки» | Pending |
+| CFG-V4-02 | Phase v4-07: Секция «Настройки» | Pending |
+| VIS-01 | Phase v4-01: Navigation Foundation | Pending |
+| VIS-02 | Phase v4-08: Visual Polish & Migration | Pending |
+| VIS-03 | Phase v4-01: Navigation Foundation | Pending |
+| MIG-01 | Phase v4-08: Visual Polish & Migration | Pending |
+| MIG-02 | Phase v4-08: Visual Polish & Migration | Pending |
+| MIG-03 | Phase v4-08: Visual Polish & Migration | Pending |
+
+**Coverage (v4.0):**
+- v4.0 requirements: 28 total
+- Mapped to phases: 28
+- Unmapped: 0 ✓
+
+### v1 Requirements
+
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | AUTH-01 | Phase 1: Stack & Auth | Pending |
@@ -296,11 +336,11 @@
 | SEC-04 | Phase 1: Stack & Auth | Pending |
 | SEC-05 | Phase 11: Hardening | Pending |
 
-**Coverage:**
+**Coverage (v1):**
 - v1 requirements: 60 total
 - Mapped to phases: 60
 - Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-03-31*
-*Last updated: 2026-03-31 after initial definition + research synthesis*
+*Last updated: 2026-04-03 — v4.0 traceability added*

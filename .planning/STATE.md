@@ -1,13 +1,13 @@
 ---
 gsd_state_version: 1.0
 milestone: v4.0
-milestone_name: UI Overhaul
-status: defining_requirements
-stopped_at: Milestone v4.0 started — defining requirements
+milestone_name: UI Overhaul — Information Architecture
+status: roadmap_ready
+stopped_at: Roadmap v4.0 created — ready for phase planning
 last_updated: "2026-04-03T12:00:00.000Z"
 last_activity: 2026-04-03
 progress:
-  total_phases: 0
+  total_phases: 8
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -18,19 +18,19 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-03-31)
+See: .planning/PROJECT.md (updated 2026-04-03)
 
 **Core value:** A team member or client can open the platform and immediately see the SEO health of any site — positions, recent changes, pending tasks — without switching between GSC, spreadsheets, and WP admin.
-**Current focus:** Phase v3-10-traffic — analysis
+**Current focus:** v4.0 milestone — Navigation Foundation (Phase v4-01)
 
 ## Current Position
 
-Phase: v3-10-traffic
+Phase: v4-01 (not started)
 Plan: Not started
-Status: Phase complete — ready for verification
+Status: Roadmap created — ready for phase planning
 Last activity: 2026-04-03
 
-Progress: [██░░░░░░░░] 18%
+Progress: [░░░░░░░░░░] 0%
 
 ## Performance Metrics
 
@@ -84,6 +84,9 @@ Recent decisions affecting current work:
 - [Phase v3-10]: parse_access_log lives in traffic_analysis_service (not separate parser module) — co-located with classifier for single import
 - [Phase v3-10]: Anomaly threshold: mean + 2*std_dev with minimum 7 data points to prevent false positives on sparse data
 - [Phase v3-10]: Traffic session data loaded on-demand via fetch() to avoid slow page loads with large visit datasets
+- [v4.0]: Layout migration is UI-only — no new backend features, no DB migrations
+- [v4.0]: Phase v4-01 (Navigation Foundation) must complete before any section migration phases begin
+- [v4.0]: Phase v4-08 (Visual Polish) depends on all 6 section phases being complete
 
 ### Pending Todos
 
@@ -98,6 +101,7 @@ None yet.
 ### Roadmap Evolution
 
 - Phase 06.1 inserted after Phase 6: Proxy Management & XMLProxy Integration (URGENT)
+- v4.0 milestone started: 8-phase UI overhaul roadmap created
 
 ### Blockers/Concerns
 
@@ -107,6 +111,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-03T10:03:49.523Z
-Stopped at: Completed v3-10-02-PLAN.md
+Last session: 2026-04-03T12:00:00.000Z
+Stopped at: ROADMAP-v4.md created — 8 phases, 28 requirements mapped
 Resume file: None
