@@ -156,7 +156,7 @@ function renderTree(data) {
     .attr('d', d3.linkHorizontal().x(d=>d.y).y(d=>d.x));
   const node = svg.append('g').selectAll('g').data(root.descendants()).join('g')
     .attr('transform', d => `translate(${d.y},${d.x})`);
-  node.append('circle').attr('r',4).attr('fill', d => d.children ? '#4f46e5' : '#059669');
+  node.append('circle').attr('r',4).attr('fill', d => ROLE_COLORS[d.data.role] || (d.children ? '#4f46e5' : '#059669'));
   node.append('text').attr('dy','0.32em').attr('x', d => d.children ? -8 : 8)
     .attr('text-anchor', d => d.children ? 'end' : 'start')
     .attr('font-size','11px').text(d => d.data.name)

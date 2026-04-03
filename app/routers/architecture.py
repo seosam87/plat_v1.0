@@ -160,10 +160,12 @@ async def url_tree(
     _: User = Depends(require_admin),
 ) -> dict:
     result = await db.execute(
-        select(Page.url).where(Page.site_id == site_id).distinct()
+        select(Page.url, Page.architecture_role).where(Page.site_id == site_id).distinct()
     )
-    urls = [r[0] for r in result.all()]
-    return arch.build_url_tree(urls)
+    rows = result.all()
+    urls = [r[0] for r in rows]
+    url_roles = {r[0]: r[1] for r in rows if r[1]}
+    return arch.build_url_tree(urls, url_roles=url_roles)
 
 
 # ---- Roles ----

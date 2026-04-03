@@ -172,9 +172,10 @@ async def compare_sitemap(
 # ---- URL Tree (pure) ----
 
 
-def build_url_tree(urls: list[str]) -> dict:
+def build_url_tree(urls: list[str], url_roles: dict[str, str] | None = None) -> dict:
     """Build a nested tree from URL path segments. D3.js-compatible format."""
-    root: dict = {"name": "/", "full_url": None, "children": [], "page_count": 0}
+    url_roles = url_roles or {}
+    root: dict = {"name": "/", "full_url": None, "role": url_roles.get("/"), "children": [], "page_count": 0}
     url_set = set()
 
     for url in urls:
@@ -186,6 +187,7 @@ def build_url_tree(urls: list[str]) -> dict:
 
         if not path:
             root["full_url"] = url
+            root["role"] = url_roles.get(url)
             root["page_count"] += 1
             url_set.add("")
             continue
@@ -203,6 +205,7 @@ def build_url_tree(urls: list[str]) -> dict:
                 found = {
                     "name": seg,
                     "full_url": url if i == len(segments) - 1 else None,
+                    "role": url_roles.get(url) if i == len(segments) - 1 else None,
                     "children": [],
                     "page_count": 0,
                 }
