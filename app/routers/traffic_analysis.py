@@ -193,3 +193,139 @@ async def session_detail(
         "total_visits": s.total_visits, "bot_visits": s.bot_visits,
         "organic_visits": s.organic_visits, "anomaly_detected": s.anomaly_detected,
     }
+
+
+@router.get("/sessions/{session_id}/visits")
+async def session_visits(
+    session_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_admin),
+) -> list[dict]:
+    """Visit data for Chart.js timeline."""
+    result = await db.execute(
+        select(TrafficVisit)
+        .where(TrafficVisit.session_id == session_id)
+        .order_by(TrafficVisit.timestamp)
+        .limit(5000)
+    )
+    visits = result.scalars().all()
+    return [
+        {
+            "timestamp": v.timestamp.isoformat(),
+            "page_url": v.page_url,
+            "source": v.source.value if v.source else "organic",
+            "is_bot": v.is_bot,
+            "bot_reason": v.bot_reason,
+            "referer": v.referer,
+            "user_agent": v.user_agent,
+            "ip_address": v.ip_address,
+            "geo_country": v.geo_country,
+        }
+        for v in visits
+    ]
+
+
+@router.get("/sessions/{session_id}/anomalies")
+async def session_anomalies(
+    session_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_admin),
+) -> dict:
+    """Anomaly detection results for a session."""
+    result = await db.execute(
+        select(TrafficAnalysisSession).where(TrafficAnalysisSession.id == session_id)
+    )
+    s = result.scalar_one_or_none()
+    if not s:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    # Load visits grouped by day
+    visits_result = await db.execute(
+        select(TrafficVisit)
+        .where(TrafficVisit.session_id == session_id)
+        .order_by(TrafficVisit.timestamp)
+    )
+    visits = visits_result.scalars().all()
+
+    from collections import Counter
+    daily: Counter = Counter()
+    for v in visits:
+        day = v.timestamp.date().isoformat()
+        daily[day] += 1
+
+    visits_by_day = [{"date": d, "visits": c} for d, c in sorted(daily.items())]
+    anomaly_result = tas.detect_anomalies(visits_by_day)
+
+    return {
+        "anomaly_detected": s.anomaly_detected or anomaly_result["anomaly_detected"],
+        "anomaly_days": anomaly_result["anomaly_days"],
+        "baseline_avg": anomaly_result["baseline_avg"],
+        "std_dev": anomaly_result["std_dev"],
+        "visits_by_day": visits_by_day,
+    }
+
+
+@router.get("/sessions/{session_id}/bots")
+async def session_bots(
+    session_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_admin),
+) -> list[dict]:
+    """Bot-flagged visits for a session."""
+    result = await db.execute(
+        select(TrafficVisit)
+        .where(TrafficVisit.session_id == session_id, TrafficVisit.is_bot == True)  # noqa: E712
+        .order_by(TrafficVisit.timestamp.desc())
+        .limit(1000)
+    )
+    visits = result.scalars().all()
+    return [
+        {
+            "timestamp": v.timestamp.isoformat(),
+            "ip_address": v.ip_address,
+            "user_agent": v.user_agent,
+            "referer": v.referer,
+            "page_url": v.page_url,
+            "bot_reason": v.bot_reason,
+        }
+        for v in visits
+    ]
+
+
+@router.get("/sessions/{session_id}/injections")
+async def session_injections(
+    session_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_admin),
+) -> dict:
+    """Injection patterns detected for a session."""
+    visits_result = await db.execute(
+        select(TrafficVisit)
+        .where(TrafficVisit.session_id == session_id)
+        .limit(10000)
+    )
+    visits = visits_result.scalars().all()
+    visits_dicts = [
+        {
+            "referer": v.referer,
+            "ip_address": v.ip_address,
+            "geo_country": v.geo_country,
+            "page_url": v.page_url,
+            "source": v.source.value if v.source else "organic",
+        }
+        for v in visits
+    ]
+    patterns = tas.detect_injection_patterns(visits_dicts)
+    sources = tas.analyze_traffic_sources(visits_dicts)
+    return {
+        "patterns": patterns,
+        "source_summary": {
+            "organic": sources["organic"],
+            "direct": sources["direct"],
+            "referral": sources["referral"],
+            "bot": sources["bot"],
+            "injection": sources["injection"],
+        },
+        "top_referers": list(sources["by_referer"].items())[:10],
+        "top_landings": list(sources["by_landing"].items())[:10],
+    }
