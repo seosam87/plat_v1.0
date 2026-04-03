@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 {% block title %}Аудит контента — {{ site.name }} — SEO Platform{% endblock %}
 {% block content %}
-<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem">
-  <h2 style="margin:0">Аудит контента: {{ site.name }}</h2>
-  <div style="display:flex; gap:.5rem">
-    <button class="btn" style="background:#4f46e5;color:white"
+<div class="flex justify-between items-center mb-6">
+  <h2 class="text-lg font-semibold text-gray-800 m-0">Аудит контента: {{ site.name }}</h2>
+  <div class="flex gap-2">
+    <button class="px-3 py-1.5 text-sm font-medium rounded bg-indigo-600 text-white hover:bg-indigo-700"
       hx-post="/audit/{{ site.id }}/run" hx-swap="none"
       onclick="this.textContent='Запуск...'; this.disabled=true; setTimeout(()=>location.reload(), 10000)">
       Запустить аудит
@@ -14,38 +14,38 @@
 </div>
 
 <!-- Summary stats -->
-<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); gap:1rem; margin-bottom:1.5rem">
-  <div class="card" style="text-align:center; padding:1rem">
-    <div style="font-size:1.75rem; font-weight:700; color:#2563eb">{{ total_pages }}</div>
-    <div style="color:#6b7280; font-size:.85rem">Всего страниц</div>
+<div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+  <div class="bg-white rounded-lg shadow-sm border border-gray-200 text-center p-4">
+    <div class="text-3xl font-bold text-blue-600">{{ total_pages }}</div>
+    <div class="text-gray-500 text-sm">Всего страниц</div>
   </div>
-  <div class="card" style="text-align:center; padding:1rem">
-    <div style="font-size:1.75rem; font-weight:700; color:#dc2626">{{ pages_with_issues }}</div>
-    <div style="color:#6b7280; font-size:.85rem">С проблемами</div>
+  <div class="bg-white rounded-lg shadow-sm border border-gray-200 text-center p-4">
+    <div class="text-3xl font-bold text-red-600">{{ pages_with_issues }}</div>
+    <div class="text-gray-500 text-sm">С проблемами</div>
   </div>
-  <div class="card" style="text-align:center; padding:1rem">
-    <div style="font-size:1.75rem; font-weight:700; color:#059669">{{ pages_all_pass }}</div>
-    <div style="color:#6b7280; font-size:.85rem">Без проблем</div>
+  <div class="bg-white rounded-lg shadow-sm border border-gray-200 text-center p-4">
+    <div class="text-3xl font-bold text-emerald-600">{{ pages_all_pass }}</div>
+    <div class="text-gray-500 text-sm">Без проблем</div>
   </div>
-  <div class="card" style="text-align:center; padding:1rem">
-    <div style="font-size:1.75rem; font-weight:700; color:#6b7280">{{ pages_unchecked }}</div>
-    <div style="color:#6b7280; font-size:.85rem">Не проверено</div>
+  <div class="bg-white rounded-lg shadow-sm border border-gray-200 text-center p-4">
+    <div class="text-3xl font-bold text-gray-500">{{ pages_unchecked }}</div>
+    <div class="text-gray-500 text-sm">Не проверено</div>
   </div>
 </div>
 
 <!-- Filters -->
-<div class="card" style="margin-bottom:1.5rem; padding:1rem">
-  <div style="display:flex; gap:1rem; flex-wrap:wrap; align-items:center">
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+  <div class="flex gap-4 flex-wrap items-center">
     <input type="text" id="search-input" placeholder="Поиск по URL или title..." value="{{ search }}"
-      style="flex:1; min-width:200px; padding:.4rem .75rem; border:1px solid #d1d5db; border-radius:4px"
+      class="flex-1 min-w-[200px] px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-indigo-500 focus:border-indigo-500"
       oninput="filterTable()">
-    <select id="type-filter" style="padding:.4rem .75rem; border:1px solid #d1d5db; border-radius:4px" onchange="filterTable()">
+    <select id="type-filter" class="px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-indigo-500 focus:border-indigo-500" onchange="filterTable()">
       <option value="all">Все типы</option>
       <option value="informational">Информационные</option>
       <option value="commercial">Коммерческие</option>
       <option value="unknown">Не определён</option>
     </select>
-    <select id="status-filter" style="padding:.4rem .75rem; border:1px solid #d1d5db; border-radius:4px" onchange="filterTable()">
+    <select id="status-filter" class="px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-indigo-500 focus:border-indigo-500" onchange="filterTable()">
       <option value="all">Все</option>
       <option value="has_issues">С проблемами</option>
       <option value="all_pass">Без проблем</option>
@@ -54,19 +54,19 @@
 </div>
 
 <!-- Pages table -->
-<div class="card" style="margin-bottom:1.5rem; overflow-x:auto">
-  <table id="audit-table">
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-6 overflow-x-auto">
+  <table id="audit-table" class="min-w-full divide-y divide-gray-200">
     <thead>
       <tr>
         <th>Страница</th>
         <th>Тип</th>
-        <th style="text-align:center">TOC</th>
-        <th style="text-align:center">Schema</th>
-        <th style="text-align:center">Автор</th>
-        <th style="text-align:center">Статьи</th>
-        <th style="text-align:center">CTA</th>
-        <th style="text-align:center">Ссылки</th>
-        <th style="text-align:center">noindex</th>
+        <th class="text-center">TOC</th>
+        <th class="text-center">Schema</th>
+        <th class="text-center">Автор</th>
+        <th class="text-center">Статьи</th>
+        <th class="text-center">CTA</th>
+        <th class="text-center">Ссылки</th>
+        <th class="text-center">noindex</th>
         <th>Действия</th>
       </tr>
     </thead>
@@ -81,12 +81,12 @@
           data-type="{{ ct }}"
           data-has-issues="{{ 'yes' if has_issue else 'no' }}"
           data-has-results="{{ 'yes' if pr else 'no' }}">
-        <td style="max-width:300px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">
-          <a href="{{ p.url }}" target="_blank" title="{{ p.url }}" style="font-size:.85rem">{{ p.url | truncate(60) }}</a>
-          {% if p.title %}<div style="color:#6b7280; font-size:.75rem">{{ p.title | truncate(50) }}</div>{% endif %}
+        <td class="max-w-[300px] overflow-hidden text-ellipsis whitespace-nowrap">
+          <a href="{{ p.url }}" target="_blank" title="{{ p.url }}" class="text-sm text-blue-600 hover:text-blue-800">{{ p.url | truncate(60) }}</a>
+          {% if p.title %}<div class="text-gray-500 text-xs">{{ p.title | truncate(50) }}</div>{% endif %}
         </td>
         <td>
-          <select style="font-size:.75rem; padding:.2rem .4rem; border:1px solid #d1d5db; border-radius:4px"
+          <select class="text-xs px-1.5 py-1 border border-gray-300 rounded focus:ring-indigo-500 focus:border-indigo-500"
             onchange="updateContentType('{{ p.id }}', this.value)">
             <option value="informational" {% if ct == 'informational' %}selected{% endif %}>Инфо</option>
             <option value="commercial" {% if ct == 'commercial' %}selected{% endif %}>Комм</option>
@@ -95,16 +95,16 @@
         </td>
         {% set check_map = {"toc_present":"toc","schema_present":"schema","author_block":"author","related_posts":"related","cta_present":"cta","internal_links":"links","noindex_check":"noindex"} %}
         {% for code in ["toc_present","schema_present","author_block","related_posts","cta_present","internal_links","noindex_check"] %}
-        <td style="text-align:center">
+        <td class="text-center">
           {% set st = pr.get(code, "—") %}
-          {% if st == "pass" %}<span style="color:#059669; font-weight:700">✓</span>
-          {% elif st == "fail" %}<span style="color:#dc2626; font-weight:700">✗</span>
-          {% elif st == "warning" %}<span style="color:#f59e0b; font-weight:700">⚠</span>
-          {% else %}<span style="color:#d1d5db">—</span>{% endif %}
+          {% if st == "pass" %}<span class="text-emerald-600 font-bold">&#10003;</span>
+          {% elif st == "fail" %}<span class="text-red-600 font-bold">&#10007;</span>
+          {% elif st == "warning" %}<span class="text-amber-500 font-bold">&#9888;</span>
+          {% else %}<span class="text-gray-300">&mdash;</span>{% endif %}
         </td>
         {% endfor %}
         <td>
-          <button class="btn btn-sm" style="font-size:.75rem"
+          <button class="px-2 py-1 text-xs font-medium rounded"
             onclick="runSingleAudit('{{ p.url }}')">Проверить</button>
         </td>
       </tr>
@@ -112,15 +112,15 @@
     </tbody>
   </table>
   {% if not pages %}
-  <p style="padding:1rem; color:#6b7280; text-align:center">Нет страниц для аудита. Запустите краулинг сайта.</p>
+  <p class="p-4 text-gray-500 text-center">Нет страниц для аудита. Запустите краулинг сайта.</p>
   {% endif %}
 </div>
 
 <!-- Check definitions (collapsible) -->
-<details class="card" style="margin-bottom:1.5rem">
-  <summary style="cursor:pointer; font-weight:600; padding:.75rem">Настройка проверок ({{ check_defs|length }})</summary>
-  <div style="padding:0 .75rem .75rem">
-    <table style="font-size:.85rem">
+<details class="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+  <summary class="cursor-pointer font-semibold p-3">Настройка проверок ({{ check_defs|length }})</summary>
+  <div class="px-3 pb-3">
+    <table class="min-w-full divide-y divide-gray-200 text-sm">
       <thead>
         <tr><th>Код</th><th>Название</th><th>Тип</th><th>Серьёзность</th><th>Авто-фикс</th><th>Активен</th></tr>
       </thead>
@@ -130,15 +130,15 @@
           <td><code>{{ c.code }}</code></td>
           <td>{{ c.name }}</td>
           <td>
-            {% if c.applies_to == 'informational' %}<span class="badge" style="background:#dbeafe;color:#2563eb">Инфо</span>
-            {% elif c.applies_to == 'commercial' %}<span class="badge" style="background:#fef3c7;color:#d97706">Комм</span>
-            {% else %}<span class="badge" style="background:#f3f4f6;color:#6b7280">Все</span>{% endif %}
+            {% if c.applies_to == 'informational' %}<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-600">Инфо</span>
+            {% elif c.applies_to == 'commercial' %}<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-600">Комм</span>
+            {% else %}<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-500">Все</span>{% endif %}
           </td>
           <td>
-            {% if c.severity == 'error' %}<span style="color:#dc2626; font-weight:600">Ошибка</span>
-            {% else %}<span style="color:#f59e0b">Предупреждение</span>{% endif %}
+            {% if c.severity == 'error' %}<span class="text-red-600 font-semibold">Ошибка</span>
+            {% else %}<span class="text-amber-500">Предупреждение</span>{% endif %}
           </td>
-          <td>{% if c.auto_fixable %}<span style="color:#059669">Да</span>{% else %}—{% endif %}</td>
+          <td>{% if c.auto_fixable %}<span class="text-emerald-600">Да</span>{% else %}—{% endif %}</td>
           <td>
             <input type="checkbox" {% if c.is_active %}checked{% endif %}
               onchange="toggleCheck('{{ c.id }}', this.checked)">
@@ -151,21 +151,21 @@
 </details>
 
 <!-- CTA Template -->
-<div class="card" style="margin-bottom:1.5rem">
-  <h3 style="margin:0 0 .75rem">CTA-шаблон</h3>
-  <p style="font-size:.85rem; color:#6b7280; margin-bottom:.5rem">HTML-код блока призыва к действию. Вставляется в конец контента коммерческих страниц.</p>
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+  <h3 class="text-base font-semibold text-gray-800 m-0 mb-3">CTA-шаблон</h3>
+  <p class="text-sm text-gray-500 mb-2">HTML-код блока призыва к действию. Вставляется в конец контента коммерческих страниц.</p>
   <textarea id="cta-textarea" rows="5"
-    style="width:100%; font-family:monospace; font-size:.85rem; padding:.5rem; border:1px solid #d1d5db; border-radius:4px; resize:vertical"
+    class="w-full font-mono text-sm p-2 border border-gray-300 rounded resize-y"
     placeholder="<div class='cta-block'>...</div>">{{ site.cta_template_html or '' }}</textarea>
-  <button class="btn" style="margin-top:.5rem; background:#059669; color:white" onclick="saveCta()">Сохранить CTA</button>
-  <span id="cta-status" style="margin-left:.5rem; font-size:.85rem"></span>
+  <button class="mt-2 px-3 py-1.5 text-sm font-medium rounded bg-emerald-600 text-white hover:bg-emerald-700" onclick="saveCta()">Сохранить CTA</button>
+  <span id="cta-status" class="ml-2 text-sm"></span>
 </div>
 
 <!-- Schema Templates -->
-<div class="card" style="margin-bottom:1.5rem">
-  <h3 style="margin:0 0 .75rem">Schema-шаблоны</h3>
-  <p style="font-size:.85rem; color:#6b7280; margin-bottom:.5rem">JSON-LD шаблоны schema.org. Используйте <code>{% raw %}{{title}}{% endraw %}</code>, <code>{% raw %}{{url}}{% endraw %}</code>, <code>{% raw %}{{description}}{% endraw %}</code> для подстановки.</p>
-  <table style="font-size:.85rem">
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+  <h3 class="text-base font-semibold text-gray-800 m-0 mb-3">Schema-шаблоны</h3>
+  <p class="text-sm text-gray-500 mb-2">JSON-LD шаблоны schema.org. Используйте <code>{% raw %}{{title}}{% endraw %}</code>, <code>{% raw %}{{url}}{% endraw %}</code>, <code>{% raw %}{{description}}{% endraw %}</code> для подстановки.</p>
+  <table class="min-w-full divide-y divide-gray-200 text-sm">
     <thead>
       <tr><th>Тип</th><th>Название</th><th>Источник</th><th>Действия</th></tr>
     </thead>
@@ -174,12 +174,12 @@
       <tr>
         <td><code>{{ t.schema_type }}</code></td>
         <td>{{ t.name }}</td>
-        <td>{% if t.is_default %}<span class="badge" style="background:#f3f4f6;color:#6b7280">По умолчанию</span>
-        {% else %}<span class="badge" style="background:#dbeafe;color:#2563eb">Свой</span>{% endif %}</td>
+        <td>{% if t.is_default %}<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-500">По умолчанию</span>
+        {% else %}<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-600">Свой</span>{% endif %}</td>
         <td>
-          <button class="btn btn-sm" style="font-size:.75rem" onclick="editTemplate('{{ t.id }}', '{{ t.schema_type }}', `{{ t.template_json|e }}`)">Редактировать</button>
+          <button class="px-2 py-1 text-xs font-medium rounded" onclick="editTemplate('{{ t.id }}', '{{ t.schema_type }}', `{{ t.template_json|e }}`)">Редактировать</button>
           {% if not t.is_default %}
-          <button class="btn btn-sm" style="font-size:.75rem; background:#991b1b; color:white"
+          <button class="px-2 py-1 text-xs font-medium rounded bg-red-800 text-white hover:bg-red-900"
             onclick="deleteTemplate('{{ t.id }}')">Удалить</button>
           {% endif %}
         </td>
@@ -190,17 +190,17 @@
 </div>
 
 <!-- Schema edit modal (hidden by default) -->
-<div id="schema-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:100; justify-content:center; align-items:center">
-  <div class="card" style="width:600px; max-height:80vh; overflow-y:auto; padding:1.5rem">
-    <h3 style="margin:0 0 1rem">Редактирование шаблона: <span id="modal-schema-type"></span></h3>
-    <label style="font-size:.85rem; color:#6b7280">Название:</label>
-    <input type="text" id="modal-name" style="width:100%; padding:.4rem .75rem; border:1px solid #d1d5db; border-radius:4px; margin-bottom:.75rem">
-    <label style="font-size:.85rem; color:#6b7280">JSON-LD шаблон:</label>
+<div id="schema-modal" class="hidden fixed inset-0 bg-black/50 z-50 justify-center items-center">
+  <div class="bg-white rounded-lg p-6 w-[600px] max-h-[80vh] overflow-y-auto">
+    <h3 class="text-base font-semibold m-0 mb-4">Редактирование шаблона: <span id="modal-schema-type"></span></h3>
+    <label class="text-sm text-gray-500">Название:</label>
+    <input type="text" id="modal-name" class="w-full px-2 py-1.5 border border-gray-300 rounded text-sm mb-3 focus:ring-indigo-500 focus:border-indigo-500">
+    <label class="text-sm text-gray-500">JSON-LD шаблон:</label>
     <textarea id="modal-json" rows="10"
-      style="width:100%; font-family:monospace; font-size:.85rem; padding:.5rem; border:1px solid #d1d5db; border-radius:4px; resize:vertical; margin-bottom:.75rem"></textarea>
-    <div style="display:flex; gap:.5rem">
-      <button class="btn" style="background:#4f46e5; color:white" onclick="saveTemplate()">Сохранить</button>
-      <button class="btn" onclick="closeModal()">Отмена</button>
+      class="w-full font-mono text-sm p-2 border border-gray-300 rounded resize-y mb-3"></textarea>
+    <div class="flex gap-2">
+      <button class="px-3 py-1.5 text-sm font-medium rounded bg-indigo-600 text-white hover:bg-indigo-700" onclick="saveTemplate()">Сохранить</button>
+      <button class="px-3 py-1.5 text-sm font-medium rounded border border-gray-300 text-gray-700 hover:bg-gray-50" onclick="closeModal()">Отмена</button>
     </div>
   </div>
 </div>
@@ -258,7 +258,7 @@ async function saveCta() {
     body: JSON.stringify({cta_html: html})
   });
   const el = document.getElementById('cta-status');
-  el.innerHTML = resp.ok ? '<span style="color:#059669">Сохранено</span>' : '<span style="color:#dc2626">Ошибка</span>';
+  el.innerHTML = resp.ok ? '<span class="text-emerald-600">Сохранено</span>' : '<span class="text-red-600">Ошибка</span>';
   setTimeout(() => el.innerHTML = '', 3000);
 }
 
@@ -272,11 +272,13 @@ function editTemplate(id, schemaType, json) {
   } catch(e) {
     document.getElementById('modal-json').value = json;
   }
-  document.getElementById('schema-modal').style.display = 'flex';
+  document.getElementById('schema-modal').classList.remove('hidden');
+  document.getElementById('schema-modal').classList.add('flex');
 }
 
 function closeModal() {
-  document.getElementById('schema-modal').style.display = 'none';
+  document.getElementById('schema-modal').classList.add('hidden');
+  document.getElementById('schema-modal').classList.remove('flex');
 }
 
 async function saveTemplate() {
