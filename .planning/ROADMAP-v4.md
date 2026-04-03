@@ -70,7 +70,11 @@ Plans:
   1. User can reach keywords, positions, clusters, cannibalization, intent, and bulk operations via sidebar sub-items under «Позиции и ключи»
   2. When the user changes the selected site in the sticky site selector, content in this section reloads for the new site without a full page navigation
   3. User can upload Topvisor, Key Collector, and SF files from within this section
-**Plans**: TBD
+**Plans**: 3 plans
+Plans:
+- [ ] v4-04-01-PLAN.md — Keywords + Positions Tailwind migration (table, forms, HTMX edits, distribution bar, Chart.js modals, async polling)
+- [ ] v4-04-02-PLAN.md — Clusters + Cannibalization Tailwind migration (cards, intent dropdown, resolution forms, status history)
+- [ ] v4-04-03-PLAN.md — Intent + Bulk operations Tailwind migration (async detection, proposals, filters, import/export)
 **UI hint**: yes
 
 ### Phase v4-05: Секция «Аналитика»
@@ -141,7 +145,7 @@ Phases execute in order: v4-01 → (v4-02..v4-07 parallel) → v4-08 → v4-09
 | v4-01. Navigation Foundation | 1/1 | Complete | 2026-04-03 |
 | v4-02. Секция «Обзор» | 2/2 | Complete | 2026-04-03 |
 | v4-03. Секция «Сайты» | 2/2 | Complete | 2026-04-03 |
-| v4-04. Секция «Позиции и ключи» | 0/TBD | **Next** | - |
+| v4-04. Секция «Позиции и ключи» | 0/3 | **Next** | - |
 | v4-05. Секция «Аналитика» | 0/TBD | Not started | - |
 | v4-06. Секция «Контент» | 0/TBD | Not started | - |
 | v4-07. Секция «Настройки» | 0/TBD | Not started | - |
