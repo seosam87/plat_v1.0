@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: Completed v4-03-02-PLAN.md
-last_updated: "2026-04-03T21:17:23.523Z"
+status: verifying
+stopped_at: Completed v4-03-01-PLAN.md
+last_updated: "2026-04-03T21:18:32.554Z"
 last_activity: 2026-04-03
 progress:
   total_phases: 12
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-04-03)
 
 Phase: v4-03-section (sites) — EXECUTING
 Plan: 2 of 2
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-04-03
 
 Progress: [░░░░░░░░░░] 0%
@@ -69,6 +69,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase v4-02-section-overview P01 | 8 | 2 tasks | 3 files |
 | Phase v4-02-section-overview P02 | 5 | 1 tasks | 1 files |
 | Phase v4-03-section-sites P02 | 2 | 2 tasks | 3 files |
+| Phase v4-03-section-sites P01 | 8 | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -103,6 +104,8 @@ Recent decisions affecting current work:
 - [Phase v4-02-section-overview]: asyncio.gather() in ui_dashboard runs aggregated_positions and todays_tasks concurrently
 - [Phase v4-02-section-overview]: Dashboard template rewrite uses explicit Tailwind classes throughout — zero inline style= attributes; existing .card CSS class retained for table sections
 - [Phase v4-03-section-sites]: Start Crawl button in crawl history uses hx-post /sites/site_id/crawl with hx-swap=none — fire-and-forget matching existing trigger_crawl endpoint
+- [Phase v4-03-01]: sites-detail removed from NAV_SECTIONS; replaced with sites-schedule child; detail route returns 301 redirect to /ui/sites
+- [Phase v4-03-01]: site_metrics dict computed per-site in ui_sites handler (count_keywords + SQL counts) and passed to sites/index.html template
 
 ### Pending Todos
 
@@ -127,6 +130,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-03T21:17:23.519Z
-Stopped at: Completed v4-03-02-PLAN.md
+Last session: 2026-04-03T21:18:32.550Z
+Stopped at: Completed v4-03-01-PLAN.md
 Resume file: None
