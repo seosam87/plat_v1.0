@@ -81,9 +81,17 @@ class _NavAwareTemplates:
             nav_ctx = resolve_nav_context(path)
             ctx.update(nav_ctx)
 
-            # Selected site from cookie
+            # Selected site: sync from URL if it contains a UUID
+            import re as _re
             raw = request.cookies.get("selected_site_id")
-            ctx["selected_site_id"] = raw if raw else None
+            url_uuid_match = _re.search(r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}', path)
+            url_site_id = url_uuid_match.group(0) if url_uuid_match else None
+            # If URL has a site_id, use it (and flag cookie update needed)
+            if url_site_id and url_site_id != raw:
+                ctx["selected_site_id"] = url_site_id
+                ctx["_sync_site_cookie"] = url_site_id
+            else:
+                ctx["selected_site_id"] = raw if raw else None
 
             # Admin check from JWT cookie
             is_admin = False
@@ -100,7 +108,17 @@ class _NavAwareTemplates:
         # Ensure request is in context for old-style Starlette rendering
         if "request" not in ctx and request is not None:
             ctx["request"] = request
-        return self._t.TemplateResponse(name, ctx, **kwargs)
+
+        sync_cookie = ctx.pop("_sync_site_cookie", None)
+        response = self._t.TemplateResponse(name, ctx, **kwargs)
+
+        # Auto-sync selected_site_id cookie when URL contains a different site
+        if sync_cookie:
+            response.set_cookie(
+                key="selected_site_id", value=sync_cookie,
+                path="/", max_age=31536000, samesite="lax", httponly=False,
+            )
+        return response
 
 
 templates = _NavAwareTemplates(_jinja_templates)
