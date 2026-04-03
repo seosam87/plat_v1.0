@@ -35,3 +35,9 @@ def test_page_link_fields():
         anchor_text="link text",
     )
     assert pl.anchor_text == "link text"
+
+
+def test_architecture_role_all_values():
+    expected = {"pillar", "service", "subservice", "article", "trigger", "authority", "link_accelerator", "unknown"}
+    actual = {r.value for r in ArchitectureRole}
+    assert actual == expected
