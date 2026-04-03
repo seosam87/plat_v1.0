@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed v3-02-02-PLAN.md
-last_updated: "2026-04-03T06:48:26.248Z"
+stopped_at: Completed v3-02-04-PLAN.md
+last_updated: "2026-04-03T06:53:36.123Z"
 last_activity: 2026-04-03
 progress:
   total_phases: 12
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-03-31)
 ## Current Position
 
 Phase: v3-02-content (audit) — EXECUTING
-Plan: 4 of 5
+Plan: 5 of 5
 Status: Ready to execute
 Last activity: 2026-04-03
 
@@ -63,6 +63,7 @@ Progress: [██░░░░░░░░] 18%
 | Phase v3-02 P01 | 15 | 5 tasks | 5 files |
 | Phase v3-02 P03 | 5 | 2 tasks | 2 files |
 | Phase v3-02 P02 | 4 | 2 tasks | 2 files |
+| Phase v3-02 P04 | 5 | 4 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -88,6 +89,9 @@ Recent decisions affecting current work:
 - [Phase v3-02-03]: select_schema_type_for_page defaults to Article for unknown content/page types — safe fallback for unrecognized content
 - [Phase v3-02]: Check engine functions added to existing audit_service.py to match plan acceptance criteria while preserving log_action for audit logging
 - [Phase v3-02]: applies_to=unknown convention: checks that apply to all content types use unknown as sentinel; specific values are exclusive
+- [Phase v3-02-04]: Audit router imports content_audit_service (not audit_service) for check engine — content_audit_service is dedicated check engine, audit_service retained for audit_log writes
+- [Phase v3-02-04]: Batch audit dispatched as Celery task (run_site_audit) to avoid blocking UI — runs up to 200 pages
+- [Phase v3-02-04]: Client-side filter (filterTable) avoids server round-trip; all page data encoded as data-* attributes on TR elements
 
 ### Pending Todos
 
@@ -111,6 +115,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-03T06:48:26.245Z
-Stopped at: Completed v3-02-02-PLAN.md
+Last session: 2026-04-03T06:53:36.119Z
+Stopped at: Completed v3-02-04-PLAN.md
 Resume file: None
