@@ -1,46 +1,46 @@
 {% extends "base.html" %}
 {% block title %}Competitors — {{ site_name }}{% endblock %}
 {% block content %}
-<div class="card" style="margin-bottom:1.5rem">
-  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem">
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+  <div class="flex justify-between items-center mb-4">
     <div>
-      <h2 style="margin:0; display:inline">Competitors: {{ site_name }} <a class="help-trigger" onclick="openHelp()" title="Справка">?</a></h2>
-      <span style="color:#6b7280; margin-left:1rem">{{ competitors | length }} competitors</span>
+      <h2 class="m-0 inline text-lg font-semibold text-gray-800">Competitors: {{ site_name }} <a class="help-trigger" onclick="openHelp()" title="Справка">?</a></h2>
+      <span class="text-gray-500 ml-4">{{ competitors | length }} competitors</span>
     </div>
-    <div style="display:flex; gap:.5rem">
-      <button class="btn btn-sm" style="background:#7c3aed;color:white" onclick="detectCompetitors()">Auto-Detect</button>
+    <div class="flex gap-2">
+      <button class="btn btn-sm px-2 py-1 text-xs font-medium rounded bg-violet-600 text-white hover:bg-violet-700" onclick="detectCompetitors()">Auto-Detect</button>
     </div>
   </div>
 
   <!-- Add competitor form -->
-  <form method="POST" action="/ui/competitors/{{ site_id }}/add" style="display:flex; gap:.5rem; margin-bottom:1.5rem">
+  <form method="POST" action="/ui/competitors/{{ site_id }}/add" class="flex gap-2 mb-6 flex-wrap">
     <input type="text" name="domain" placeholder="example.com" required
-      style="flex:1; min-width:200px; padding:.4rem .75rem; border:1px solid #d1d5db; border-radius:4px; font-size:.875rem">
+      class="flex-1 min-w-[200px] px-3 py-1.5 border border-gray-300 rounded text-sm focus:ring-indigo-500 focus:border-indigo-500">
     <input type="text" name="name" placeholder="Name (optional)"
-      style="width:200px; padding:.4rem .75rem; border:1px solid #d1d5db; border-radius:4px; font-size:.875rem">
+      class="w-[200px] px-3 py-1.5 border border-gray-300 rounded text-sm focus:ring-indigo-500 focus:border-indigo-500">
     <button type="submit" class="btn btn-primary">Add</button>
   </form>
 
   {% if competitors %}
-  <table>
-    <thead>
+  <table class="min-w-full divide-y divide-gray-200 text-sm">
+    <thead class="bg-gray-50">
       <tr>
-        <th>Domain</th>
-        <th>Name</th>
-        <th>Notes</th>
-        <th>Actions</th>
+        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Domain</th>
+        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Notes</th>
+        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
       </tr>
     </thead>
-    <tbody>
+    <tbody class="bg-white divide-y divide-gray-100">
       {% for c in competitors %}
-      <tr id="comp-{{ c.id }}">
-        <td style="font-weight:500">{{ c.domain }}</td>
-        <td>{{ c.name }}</td>
-        <td style="font-size:.85rem; color:#6b7280; max-width:200px; overflow:hidden; text-overflow:ellipsis">{{ c.notes or '—' }}</td>
-        <td style="display:flex; gap:.25rem">
-          <button class="btn btn-sm" style="background:#2563eb;color:white"
+      <tr id="comp-{{ c.id }}" class="hover:bg-gray-50">
+        <td class="px-3 py-2 font-medium">{{ c.domain }}</td>
+        <td class="px-3 py-2">{{ c.name }}</td>
+        <td class="px-3 py-2 text-sm text-gray-500 max-w-[200px] overflow-hidden text-ellipsis">{{ c.notes or '—' }}</td>
+        <td class="px-3 py-2 flex gap-1">
+          <button class="btn btn-sm px-2 py-1 text-xs font-medium rounded bg-blue-600 text-white hover:bg-blue-700"
             onclick="comparePositions('{{ c.id }}', '{{ c.domain }}')">Compare</button>
-          <button class="btn btn-sm" style="background:#991b1b;color:white"
+          <button class="btn btn-sm px-2 py-1 text-xs font-medium rounded bg-red-800 text-white hover:bg-red-700"
             hx-delete="/ui/competitors/{{ c.id }}" hx-target="#comp-{{ c.id }}" hx-swap="outerHTML swap:200ms"
             hx-confirm="Remove {{ c.domain }}?">&times;</button>
         </td>
@@ -49,31 +49,32 @@
     </tbody>
   </table>
   {% else %}
-  <p style="color:#6b7280">No competitors yet. Add manually or run auto-detection from SERP data.</p>
+  <p class="text-gray-500">No competitors yet. Add manually or run auto-detection from SERP data.</p>
   {% endif %}
 </div>
 
 <!-- Compare modal -->
-<div id="compare-modal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,.5); z-index:100; justify-content:center; align-items:center">
-  <div style="background:white; border-radius:8px; padding:2rem; max-width:900px; width:95%; max-height:85vh; overflow-y:auto; position:relative">
-    <button onclick="document.getElementById('compare-modal').style.display='none'" style="position:absolute; top:.5rem; right:1rem; background:none; border:none; font-size:1.5rem; cursor:pointer">&times;</button>
-    <h3 id="compare-title" style="margin:0 0 1rem"></h3>
-    <div id="compare-result" style="color:#6b7280">Loading...</div>
+<div id="compare-modal" class="hidden fixed inset-0 bg-black/50 z-[100] justify-center items-center">
+  <div class="bg-white rounded-lg p-8 max-w-[900px] w-[95%] max-h-[85vh] overflow-y-auto relative">
+    <button onclick="const m=document.getElementById('compare-modal'); m.classList.add('hidden'); m.classList.remove('flex')" class="absolute top-2 right-4 bg-transparent border-none text-2xl cursor-pointer">&times;</button>
+    <h3 id="compare-title" class="m-0 mb-4"></h3>
+    <div id="compare-result" class="text-gray-500">Loading...</div>
   </div>
 </div>
 
 <!-- Detect modal -->
-<div id="detect-modal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,.5); z-index:100; justify-content:center; align-items:center">
-  <div style="background:white; border-radius:8px; padding:2rem; max-width:700px; width:90%; max-height:80vh; overflow-y:auto; position:relative">
-    <button onclick="document.getElementById('detect-modal').style.display='none'" style="position:absolute; top:.5rem; right:1rem; background:none; border:none; font-size:1.5rem; cursor:pointer">&times;</button>
-    <h3 style="margin:0 0 1rem">Auto-Detected Competitors</h3>
-    <div id="detect-result" style="color:#6b7280">Loading...</div>
+<div id="detect-modal" class="hidden fixed inset-0 bg-black/50 z-[100] justify-center items-center">
+  <div class="bg-white rounded-lg p-8 max-w-[700px] w-[90%] max-h-[80vh] overflow-y-auto relative">
+    <button onclick="const m=document.getElementById('detect-modal'); m.classList.add('hidden'); m.classList.remove('flex')" class="absolute top-2 right-4 bg-transparent border-none text-2xl cursor-pointer">&times;</button>
+    <h3 class="m-0 mb-4">Auto-Detected Competitors</h3>
+    <div id="detect-result" class="text-gray-500">Loading...</div>
   </div>
 </div>
 
 <script>
 async function comparePositions(compId, domain) {
-  document.getElementById('compare-modal').style.display = 'flex';
+  const modal = document.getElementById('compare-modal');
+  modal.classList.remove('hidden'); modal.classList.add('flex');
   document.getElementById('compare-title').textContent = 'vs ' + domain;
   document.getElementById('compare-result').innerHTML = 'Loading...';
 
@@ -93,9 +94,9 @@ async function comparePositions(compId, domain) {
     let delta = '—';
     if (r.delta != null && r.delta !== 0) {
       delta = r.delta > 0
-        ? '<span style="color:#dc2626">we are ' + r.delta + ' behind</span>'
-        : '<span style="color:#059669">we are ' + Math.abs(r.delta) + ' ahead</span>';
-    } else if (r.delta === 0) { delta = '<span style="color:#6b7280">same</span>'; }
+        ? '<span class="text-red-600">we are ' + r.delta + ' behind</span>'
+        : '<span class="text-emerald-600">we are ' + Math.abs(r.delta) + ' ahead</span>';
+    } else if (r.delta === 0) { delta = '<span class="text-gray-500">same</span>'; }
     html += '<tr><td>' + (r.phrase || '') + '</td><td>' + ours + '</td><td>' + theirs + '</td><td>' + delta + '</td></tr>';
   });
   html += '</tbody></table>';
@@ -103,7 +104,8 @@ async function comparePositions(compId, domain) {
 }
 
 async function detectCompetitors() {
-  document.getElementById('detect-modal').style.display = 'flex';
+  const modal = document.getElementById('detect-modal');
+  modal.classList.remove('hidden'); modal.classList.add('flex');
   document.getElementById('detect-result').innerHTML = 'Analyzing SERP data...';
 
   const resp = await fetch('/competitors/sites/{{ site_id }}/detect?min_shared=3');
@@ -117,14 +119,14 @@ async function detectCompetitors() {
 
   let html = '<table><thead><tr><th>Domain</th><th>Shared Keywords</th><th>Avg Position</th></tr></thead><tbody>';
   comps.forEach(c => {
-    html += '<tr><td style="font-weight:500">' + c.domain + '</td><td>' + c.shared_keywords + '</td><td>' + c.avg_position + '</td></tr>';
+    html += '<tr><td class="font-medium">' + c.domain + '</td><td>' + c.shared_keywords + '</td><td>' + c.avg_position + '</td></tr>';
   });
   html += '</tbody></table>';
-  html += '<p style="font-size:.85rem;color:#6b7280;margin-top:1rem">Add interesting domains manually using the form above.</p>';
+  html += '<p class="text-sm text-gray-500 mt-4">Add interesting domains manually using the form above.</p>';
   document.getElementById('detect-result').innerHTML = html;
 }
 
-document.getElementById('compare-modal').addEventListener('click', function(e) { if (e.target === this) this.style.display = 'none'; });
-document.getElementById('detect-modal').addEventListener('click', function(e) { if (e.target === this) this.style.display = 'none'; });
+document.getElementById('compare-modal').addEventListener('click', function(e) { if (e.target === this) { this.classList.add('hidden'); this.classList.remove('flex'); } });
+document.getElementById('detect-modal').addEventListener('click', function(e) { if (e.target === this) { this.classList.add('hidden'); this.classList.remove('flex'); } });
 </script>
 {% endblock %}
