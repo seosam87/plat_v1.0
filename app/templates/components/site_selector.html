@@ -1,0 +1,28 @@
+{# Sticky site selector — loaded in sidebar header area #}
+<div class="site-selector" style="padding:0.75rem 0.75rem 0.5rem;border-bottom:1px solid #312e81;">
+  <label style="display:block;font-size:0.7rem;font-weight:600;color:#a5b4fc;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.35rem;" class="sidebar-label">Сайт</label>
+  <select
+    id="site-selector"
+    style="width:100%;background:#eef2ff;border:1px solid #c7d2fe;border-radius:6px;padding:0.4rem 0.5rem;font-size:0.82rem;color:#1e1b4b;cursor:pointer;outline:none;"
+    hx-get="/ui/api/sites"
+    hx-trigger="load"
+    hx-swap="innerHTML"
+    hx-post="/ui/api/select-site"
+    hx-vals="js:{site_id: document.getElementById('site-selector').value}"
+    hx-trigger="change"
+    hx-swap="none"
+    hx-on::after-request="if(event.detail.successful) window.location.reload()"
+  >
+    <option value="">— выбрать сайт —</option>
+  </select>
+</div>
+<script>
+document.body.addEventListener('htmx:afterSettle', function(e) {
+  if (e.target && e.target.id === 'site-selector') {
+    var sel = document.getElementById('site-selector');
+    if (sel) {
+      sel.value = '{{ selected_site_id or "" }}';
+    }
+  }
+});
+</script>

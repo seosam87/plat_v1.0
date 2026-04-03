@@ -1,0 +1,95 @@
+{# Sidebar navigation component — 6 sections with icons and collapsible sub-items #}
+<aside id="sidebar" style="position:fixed;top:0;left:0;width:16rem;height:100vh;background:#1e1b4b;color:white;display:flex;flex-direction:column;z-index:40;overflow:hidden;transition:width 0.2s;">
+
+  {# App header #}
+  <div style="padding:1rem 0.75rem 0.5rem;border-bottom:1px solid #312e81;flex-shrink:0;">
+    <a href="/ui/dashboard" style="color:white;text-decoration:none;display:flex;align-items:center;gap:0.5rem;">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width:1.5rem;height:1.5rem;flex-shrink:0;color:#818cf8;">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z" />
+      </svg>
+      <span class="sidebar-label" style="font-weight:700;font-size:0.95rem;white-space:nowrap;overflow:hidden;">SEO Platform</span>
+    </a>
+  </div>
+
+  {# Site selector #}
+  {% include "components/site_selector.html" %}
+
+  {# Nav sections — scrollable #}
+  <nav style="flex:1;overflow-y:auto;padding:0.5rem 0;" aria-label="Основная навигация">
+    {% for section in nav_sections %}
+      {% set is_active_section = (active_section == section.id) %}
+      {% if section.children %}
+        {# Collapsible section #}
+        <div class="sidebar-section">
+          <button
+            type="button"
+            onclick="toggleSection('{{ section.id }}')"
+            class="sidebar-section-header{% if is_active_section %} active{% endif %}"
+            style="width:100%;display:flex;align-items:center;gap:0.6rem;padding:0.6rem 0.75rem;border:none;background:{% if is_active_section %}#3730a3{% else %}transparent{% endif %};color:white;cursor:pointer;border-radius:6px;margin:1px 0.375rem;text-align:left;transition:background 0.15s;"
+            aria-expanded="{{ 'true' if is_active_section else 'false' }}"
+          >
+            {# Section icon #}
+            {% if section.icon == 'chart-bar' %}
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="sidebar-icon" style="width:1.25rem;height:1.25rem;flex-shrink:0;"><path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z" /></svg>
+            {% elif section.icon == 'globe-alt' %}
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="sidebar-icon" style="width:1.25rem;height:1.25rem;flex-shrink:0;"><path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 0 0 8.716-6.747M12 21a9.004 9.004 0 0 1-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 0 1 7.843 4.582M12 3a8.997 8.997 0 0 0-7.843 4.582m15.686 0A11.953 11.953 0 0 1 12 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0 1 21 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0 1 12 16.5a17.92 17.92 0 0 1-8.716-2.247m0 0A9.015 9.015 0 0 1 3 12c0-1.605.42-3.113 1.157-4.418" /></svg>
+            {% elif section.icon == 'key' %}
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="sidebar-icon" style="width:1.25rem;height:1.25rem;flex-shrink:0;"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 5.25a3 3 0 0 1 3 3m3 0a6 6 0 0 1-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1 1 21.75 8.25Z" /></svg>
+            {% elif section.icon == 'magnifying-glass' %}
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="sidebar-icon" style="width:1.25rem;height:1.25rem;flex-shrink:0;"><path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" /></svg>
+            {% elif section.icon == 'document-text' %}
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="sidebar-icon" style="width:1.25rem;height:1.25rem;flex-shrink:0;"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" /></svg>
+            {% elif section.icon == 'cog-6-tooth' %}
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="sidebar-icon" style="width:1.25rem;height:1.25rem;flex-shrink:0;"><path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /></svg>
+            {% endif %}
+            <span class="sidebar-label" style="font-size:0.875rem;font-weight:500;white-space:nowrap;overflow:hidden;flex:1;">{{ section.label }}</span>
+            <svg class="sidebar-label" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" id="chevron-{{ section.id }}" style="width:0.85rem;height:0.85rem;flex-shrink:0;transition:transform 0.2s;{% if is_active_section %}transform:rotate(180deg){% endif %}">
+              <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+            </svg>
+          </button>
+          <ul id="children-{{ section.id }}" style="list-style:none;margin:0;padding:0 0.375rem;{% if not is_active_section %}display:none{% endif %}">
+            {% for child in section.children %}
+              {% set is_active_child = (active_child == child.id) %}
+              <li>
+                <a
+                  href="{{ child.url }}"
+                  class="sidebar-child{% if is_active_child %} active{% endif %}"
+                  style="display:block;padding:0.4rem 0.75rem 0.4rem 2.5rem;font-size:0.825rem;color:{% if is_active_child %}white{% else %}#c7d2fe{% endif %};text-decoration:none;border-radius:5px;background:{% if is_active_child %}#4338ca{% else %}transparent{% endif %};font-weight:{% if is_active_child %}600{% else %}400{% endif %};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:background 0.15s;"
+                  onmouseover="if(!this.classList.contains('active')) this.style.background='#4338ca'"
+                  onmouseout="if(!this.classList.contains('active')) this.style.background='transparent'"
+                >
+                  <span class="sidebar-child-label">{{ child.label }}</span>
+                </a>
+              </li>
+            {% endfor %}
+          </ul>
+        </div>
+      {% else %}
+        {# Top-level link (e.g. Обзор) #}
+        <a
+          href="{{ section.url or '#' }}"
+          class="sidebar-section-header{% if is_active_section %} active{% endif %}"
+          style="display:flex;align-items:center;gap:0.6rem;padding:0.6rem 0.75rem;color:white;text-decoration:none;border-radius:6px;margin:1px 0.375rem;background:{% if is_active_section %}#3730a3{% else %}transparent{% endif %};transition:background 0.15s;"
+          onmouseover="if(!this.classList.contains('active')) this.style.background='#312e81'"
+          onmouseout="if(!this.classList.contains('active')) this.style.background='transparent'"
+        >
+          {% if section.icon == 'chart-bar' %}
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="sidebar-icon" style="width:1.25rem;height:1.25rem;flex-shrink:0;"><path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z" /></svg>
+          {% endif %}
+          <span class="sidebar-label" style="font-size:0.875rem;font-weight:500;white-space:nowrap;overflow:hidden;">{{ section.label }}</span>
+        </a>
+      {% endif %}
+    {% endfor %}
+  </nav>
+
+  {# Footer — logout link #}
+  <div style="padding:0.75rem;border-top:1px solid #312e81;flex-shrink:0;">
+    <a href="/ui/logout" style="display:flex;align-items:center;gap:0.5rem;color:#a5b4fc;text-decoration:none;font-size:0.825rem;padding:0.4rem 0.5rem;border-radius:5px;transition:background 0.15s;" onmouseover="this.style.background='#312e81'" onmouseout="this.style.background='transparent'">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width:1.1rem;height:1.1rem;flex-shrink:0;">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15M12 9l-3 3m0 0 3 3m-3-3h12.75" />
+      </svg>
+      <span class="sidebar-footer-text sidebar-label">Выход</span>
+    </a>
+  </div>
+
+</aside>

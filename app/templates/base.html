@@ -1,15 +1,52 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}SEO Platform{% endblock %}</title>
   <script src="https://unpkg.com/htmx.org@2.0.3/dist/htmx.min.js"></script>
   <style>
+    /* --- Reset & Base --- */
     body { font-family: system-ui, sans-serif; margin: 0; padding: 0; background: #f5f5f5; }
-    nav { background: #1a1a2e; color: white; padding: 1rem 2rem; }
-    nav a { color: white; text-decoration: none; margin-right: 1.5rem; }
-    main { max-width: 1100px; margin: 2rem auto; padding: 0 1rem; }
+
+    /* --- Sidebar --- */
+    #sidebar { position: fixed; top: 0; left: 0; width: 16rem; height: 100vh; background: #1e1b4b; color: white; display: flex; flex-direction: column; z-index: 40; overflow: hidden; transition: width 0.2s; }
+    #sidebar .sidebar-section-header { cursor: pointer; }
+    #sidebar .sidebar-section-header.active { background: #3730a3 !important; }
+    #sidebar .sidebar-child.active { background: #4338ca !important; color: white !important; font-weight: 600 !important; }
+    .site-selector select { width: 100%; background: #eef2ff; border: 1px solid #c7d2fe; border-radius: 6px; padding: 0.4rem 0.5rem; font-size: 0.82rem; color: #1e1b4b; cursor: pointer; outline: none; }
+
+    /* --- Main content --- */
+    .main-content { margin-left: 16rem; padding: 1.5rem 2rem; min-height: 100vh; }
+
+    /* --- Responsive --- */
+    @media (max-width: 1023px) {
+      #sidebar { width: 4rem; }
+      #sidebar .sidebar-label,
+      #sidebar .sidebar-child-label,
+      #sidebar .site-selector,
+      #sidebar .sidebar-footer-text { display: none; }
+      #sidebar:hover { width: 16rem; }
+      #sidebar:hover .sidebar-label,
+      #sidebar:hover .sidebar-child-label,
+      #sidebar:hover .site-selector,
+      #sidebar:hover .sidebar-footer-text { display: block; }
+      .main-content { margin-left: 4rem; }
+    }
+    @media (max-width: 767px) {
+      #sidebar { transform: translateX(-100%); width: 16rem; position: fixed; z-index: 50; transition: transform 0.3s; }
+      #sidebar.mobile-open { transform: translateX(0); }
+      #sidebar .sidebar-label,
+      #sidebar .sidebar-child-label,
+      #sidebar .site-selector,
+      #sidebar .sidebar-footer-text { display: block; }
+      .main-content { margin-left: 0; padding-top: 3.5rem; }
+      .mobile-hamburger { display: flex !important; }
+      .sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 45; }
+      .sidebar-overlay.active { display: block; }
+    }
+
+    /* --- Preserved existing classes (child templates depend on these) --- */
     .card { background: white; border-radius: 8px; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,.1); }
     table { width: 100%; border-collapse: collapse; }
     th, td { text-align: left; padding: .75rem 1rem; border-bottom: 1px solid #e5e7eb; }
@@ -38,26 +75,22 @@
   </style>
 </head>
 <body>
-  <nav>
-    <a href="/ui/dashboard">Dashboard</a>
-    <a href="/ui/sites">Sites</a>
-    <a href="/ui/projects">Projects</a>
-    <a href="/ui/tasks">Tasks</a>
-    <a href="/ui/positions">Positions</a>
-    <a href="/ui/metrika">Трафик</a>
-    <a href="/ui/analytics">Аналитика</a>
-    <a href="/ui/uploads">Uploads</a>
-    <a href="/ui/admin/users" style="margin-left:2rem;color:#fbbf24">Users</a>
-    <a href="/ui/admin/groups" style="color:#fbbf24">Groups</a>
-    <a href="/ui/admin/issues" style="color:#fbbf24">Issues</a>
-    <a href="/ui/logout" style="margin-left:auto">Logout</a>
-  </nav>
-  <main>
+  <!-- Mobile hamburger (hidden on desktop) -->
+  <button class="mobile-hamburger" style="display:none;position:fixed;top:0.75rem;left:0.75rem;z-index:55;background:#1e1b4b;color:white;border:none;border-radius:6px;padding:0.5rem;cursor:pointer;" onclick="toggleMobileSidebar()">
+    <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" /></svg>
+  </button>
+  <div id="sidebar-overlay" class="sidebar-overlay" onclick="toggleMobileSidebar()"></div>
+
+  {% include "components/sidebar.html" %}
+
+  <div class="main-content">
+    {% include "components/breadcrumb.html" %}
     {% block breadcrumbs %}{% endblock %}
     {% block content %}{% endblock %}
-  </main>
-  <!-- Server log panel -->
-  <div id="log-panel" style="position:fixed;bottom:0;left:0;right:0;z-index:50;background:#1a1a2e;color:#e5e7eb;transition:height .3s">
+  </div>
+
+  <!-- Server log panel (preserved from previous base.html) -->
+  <div id="log-panel" style="position:fixed;bottom:0;left:16rem;right:0;z-index:50;background:#1a1a2e;color:#e5e7eb;transition:height .3s">
     <div style="display:flex;justify-content:space-between;align-items:center;padding:.4rem 1rem;cursor:pointer;border-top:1px solid #374151" onclick="toggleLogPanel()">
       <span style="font-size:.8rem;font-weight:600">Server Log</span>
       <span id="log-toggle-icon" style="font-size:.8rem">&#9650;</span>
@@ -97,6 +130,27 @@
     var d = e.detail || {};
     showToast(d.msg || 'Done', d.type || 'info');
   });
+
+  /* Sidebar section toggle */
+  function toggleSection(sectionId) {
+    var children = document.getElementById('children-' + sectionId);
+    var chevron = document.getElementById('chevron-' + sectionId);
+    if (children) {
+      var isOpen = children.style.display !== 'none';
+      children.style.display = isOpen ? 'none' : 'block';
+      if (chevron) {
+        chevron.style.transform = isOpen ? '' : 'rotate(180deg)';
+      }
+    }
+  }
+
+  /* Mobile sidebar toggle */
+  function toggleMobileSidebar() {
+    var sidebar = document.getElementById('sidebar');
+    var overlay = document.getElementById('sidebar-overlay');
+    sidebar.classList.toggle('mobile-open');
+    overlay.classList.toggle('active');
+  }
   </script>
   {% if help_module %}
   {% with hm=help_module %}
