@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: verifying
-stopped_at: Completed v3-05-03-PLAN.md
-last_updated: "2026-04-03T08:18:58.608Z"
+status: executing
+stopped_at: Completed v3-06-01-PLAN.md
+last_updated: "2026-04-03T08:24:47.246Z"
 last_activity: 2026-04-03
 progress:
   total_phases: 12
@@ -21,13 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-31)
 
 **Core value:** A team member or client can open the platform and immediately see the SEO health of any site — positions, recent changes, pending tasks — without switching between GSC, spreadsheets, and WP admin.
-**Current focus:** Phase v3-05-content — gap
+**Current focus:** Phase v3-06-site — architecture
 
 ## Current Position
 
-Phase: v3-05-content
-Plan: Not started
-Status: Phase complete — ready for verification
+Phase: v3-06-site (architecture) — EXECUTING
+Plan: 2 of 3
+Status: Ready to execute
 Last activity: 2026-04-03
 
 Progress: [██░░░░░░░░] 18%
@@ -64,6 +64,7 @@ Progress: [██░░░░░░░░] 18%
 | Phase v3-05 P01 | 3 | 3 tasks | 3 files |
 | Phase v3-05 P02 | 5 | 3 tasks | 3 files |
 | Phase v3-05 P03 | 5 | 3 tasks | 4 files |
+| Phase v3-06 P01 | 5 | 4 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -89,6 +90,8 @@ Recent decisions affecting current work:
 - [Phase v3-05]: gap_parser uses find_column() for multi-format auto-detection (keys.so, Topvisor, generic)
 - [Phase v3-05-03]: Gap router uses /gap/{site_id} prefix (not /gap/sites/{site_id}) for consistency with audit/monitoring pattern
 - [Phase v3-05-03]: score-formula endpoint at /gap/score-formula (no site_id) since formula is global
+- [Phase v3-06]: Page.source is String(20) not enum — crawl/sf_import free-form values avoid future migrations
+- [Phase v3-06]: ArchitectureRole uses native PostgreSQL ENUM for type safety (8 values: pillar, service, subservice, article, trigger, authority, link_accelerator, unknown)
 
 ### Pending Todos
 
@@ -112,6 +115,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-03T08:14:16.555Z
-Stopped at: Completed v3-05-03-PLAN.md
+Last session: 2026-04-03T08:24:47.243Z
+Stopped at: Completed v3-06-01-PLAN.md
 Resume file: None
