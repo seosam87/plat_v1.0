@@ -6,8 +6,8 @@
 {% block content %}
 
 {# ─── Page header ─── #}
-<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem">
-  <h2 style="margin:0; font-size:1.25rem; font-weight:600">Трафик: {{ site.name }}</h2>
+<div class="flex justify-between items-center mb-6">
+  <h2 class="m-0 text-xl font-semibold text-gray-800">Трафик: {{ site.name }}</h2>
   <button class="btn btn-verify"
     hx-post="/metrika/{{ site.id }}/fetch"
     hx-vals='{"date1": null, "date2": null}'
@@ -19,16 +19,16 @@
 
 {# ─── Empty state: no counter configured ─── #}
 {% if not site.metrika_counter_id %}
-<div class="card" style="margin-bottom:1.5rem">
-  <p style="color:#6b7280; margin:0">
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+  <p class="text-gray-500 m-0">
     Счётчик Метрики не настроен. Добавьте ID счётчика и токен в настройках сайта.
   </p>
 </div>
 
 {# ─── Empty state: counter set but no data ─── #}
 {% elif not daily_data %}
-<div class="card" style="margin-bottom:1.5rem">
-  <p style="color:#6b7280; margin:0">
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+  <p class="text-gray-500 m-0">
     Данные ещё не загружены. Нажмите «Загрузить данные Метрики».
   </p>
 </div>
@@ -42,39 +42,38 @@
 {% set totals_depth  = last.get('page_depth', 0) if last else 0 %}
 {% set totals_dur    = last.get('avg_duration_seconds', 0) if last else 0 %}
 
-<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(160px,1fr)); gap:1rem; margin-bottom:1.5rem">
+<div class="grid grid-cols-[repeat(auto-fit,minmax(160px,1fr))] gap-4 mb-6">
 
   {# Визиты #}
-  <div class="card" style="text-align:center">
-    <div style="font-size:.875rem; color:#6b7280; margin-bottom:.5rem">Визиты</div>
-    <div style="font-size:1.75rem; font-weight:600; color:#2563eb">{{ totals_visits }}</div>
+  <div class="bg-white rounded-lg shadow-sm border border-gray-200 text-center p-4">
+    <div class="text-sm text-gray-500 mb-2">Визиты</div>
+    <div class="text-3xl font-semibold text-blue-600">{{ totals_visits }}</div>
   </div>
 
   {# Отказы #}
-  <div class="card" style="text-align:center">
-    <div style="font-size:.875rem; color:#6b7280; margin-bottom:.5rem">Отказы</div>
+  <div class="bg-white rounded-lg shadow-sm border border-gray-200 text-center p-4">
+    <div class="text-sm text-gray-500 mb-2">Отказы</div>
     {% if totals_bounce > 50 %}
-      {% set bounce_color = '#dc2626' %}
+    <div class="text-3xl font-semibold text-red-600">{{ totals_bounce }}%</div>
     {% elif totals_bounce < 30 %}
-      {% set bounce_color = '#059669' %}
+    <div class="text-3xl font-semibold text-emerald-600">{{ totals_bounce }}%</div>
     {% else %}
-      {% set bounce_color = '#6b7280' %}
+    <div class="text-3xl font-semibold text-gray-500">{{ totals_bounce }}%</div>
     {% endif %}
-    <div style="font-size:1.75rem; font-weight:600; color:{{ bounce_color }}">{{ totals_bounce }}%</div>
   </div>
 
   {# Глубина просмотра #}
-  <div class="card" style="text-align:center">
-    <div style="font-size:.875rem; color:#6b7280; margin-bottom:.5rem">Глубина просмотра</div>
-    <div style="font-size:1.75rem; font-weight:600; color:#7c3aed">{{ totals_depth }}</div>
+  <div class="bg-white rounded-lg shadow-sm border border-gray-200 text-center p-4">
+    <div class="text-sm text-gray-500 mb-2">Глубина просмотра</div>
+    <div class="text-3xl font-semibold text-violet-600">{{ totals_depth }}</div>
   </div>
 
   {# Время на сайте #}
-  <div class="card" style="text-align:center">
-    <div style="font-size:.875rem; color:#6b7280; margin-bottom:.5rem">Время на сайте</div>
+  <div class="bg-white rounded-lg shadow-sm border border-gray-200 text-center p-4">
+    <div class="text-sm text-gray-500 mb-2">Время на сайте</div>
     {% set dur_min = (totals_dur // 60) | int %}
     {% set dur_sec = (totals_dur % 60) | int %}
-    <div style="font-size:1.75rem; font-weight:600; color:#0ea5e9">{{ dur_min }}м {{ dur_sec }}с</div>
+    <div class="text-3xl font-semibold text-sky-500">{{ dur_min }}м {{ dur_sec }}с</div>
   </div>
 
 </div>
@@ -83,37 +82,37 @@
 
 {# ─── Traffic chart card ─── #}
 {% if site.metrika_counter_id %}
-<div class="card" style="margin-bottom:1.5rem">
-  <h3 style="margin:0 0 1rem; font-size:1rem; font-weight:600">График посещаемости</h3>
-  <canvas id="traffic-chart" style="height:300px"></canvas>
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+  <h3 class="m-0 mb-4 text-base font-semibold">График посещаемости</h3>
+  <canvas id="traffic-chart" class="h-[300px]"></canvas>
 
   {# Date range pickers for chart #}
-  <div style="display:flex; gap:1rem; margin-top:1rem; align-items:center; flex-wrap:wrap">
-    <label style="font-size:.875rem; color:#6b7280">Период A:</label>
-    <input type="date" id="date_a_start" style="padding:.4rem .75rem; border:1px solid #d1d5db; border-radius:4px; font-size:.875rem">
-    <span style="font-size:.875rem; color:#6b7280">—</span>
-    <input type="date" id="date_a_end" style="padding:.4rem .75rem; border:1px solid #d1d5db; border-radius:4px; font-size:.875rem">
+  <div class="flex gap-4 mt-4 items-center flex-wrap">
+    <label class="text-sm text-gray-500">Период A:</label>
+    <input type="date" id="date_a_start" class="px-3 py-1.5 border border-gray-300 rounded text-sm focus:ring-indigo-500 focus:border-indigo-500">
+    <span class="text-sm text-gray-500">—</span>
+    <input type="date" id="date_a_end" class="px-3 py-1.5 border border-gray-300 rounded text-sm focus:ring-indigo-500 focus:border-indigo-500">
 
-    <label style="font-size:.875rem; color:#6b7280; margin-left:1rem">Период Б:</label>
-    <input type="date" id="date_b_start" style="padding:.4rem .75rem; border:1px solid #d1d5db; border-radius:4px; font-size:.875rem">
-    <span style="font-size:.875rem; color:#6b7280">—</span>
-    <input type="date" id="date_b_end" style="padding:.4rem .75rem; border:1px solid #d1d5db; border-radius:4px; font-size:.875rem">
+    <label class="text-sm text-gray-500 ml-4">Период Б:</label>
+    <input type="date" id="date_b_start" class="px-3 py-1.5 border border-gray-300 rounded text-sm focus:ring-indigo-500 focus:border-indigo-500">
+    <span class="text-sm text-gray-500">—</span>
+    <input type="date" id="date_b_end" class="px-3 py-1.5 border border-gray-300 rounded text-sm focus:ring-indigo-500 focus:border-indigo-500">
 
     <button class="btn btn-primary" onclick="fetchComparison()">Сравнить периоды</button>
   </div>
 </div>
 
 {# ─── Event markers card ─── #}
-<div class="card" style="margin-bottom:1.5rem">
-  <h3 style="margin:0 0 1rem; font-size:1rem; font-weight:600">События на графике</h3>
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+  <h3 class="m-0 mb-4 text-base font-semibold">События на графике</h3>
 
-  <ul id="events-list" style="list-style:none; margin:0 0 1rem; padding:0">
+  <ul id="events-list" class="list-none m-0 mb-4 p-0">
     {% for ev in events %}
-    <li style="display:flex; align-items:center; gap:.5rem; padding:.4rem 0; border-bottom:1px solid #e5e7eb">
-      <span style="width:12px; height:12px; border-radius:50%; background:{{ ev.color }}; display:inline-block"></span>
-      <span style="font-size:.875rem; color:#6b7280">{{ ev.event_date.strftime('%Y-%m-%d') if ev.event_date else '' }}</span>
-      <span style="font-size:.875rem">{{ ev.label }}</span>
-      <button class="btn btn-sm" style="margin-left:auto; background:#991b1b; color:white; font-size:.75rem"
+    <li class="flex items-center gap-2 py-1 border-b border-gray-200">
+      <span class="w-3 h-3 rounded-full inline-block flex-shrink-0" style="background:{{ ev.color }}"></span>
+      <span class="text-sm text-gray-500">{{ ev.event_date.strftime('%Y-%m-%d') if ev.event_date else '' }}</span>
+      <span class="text-sm">{{ ev.label }}</span>
+      <button class="btn btn-sm ml-auto text-xs bg-red-800 text-white hover:bg-red-700"
         hx-delete="/metrika/{{ site.id }}/events/{{ ev.id }}"
         hx-confirm="Удалить это событие?"
         hx-target="closest li"
@@ -121,7 +120,7 @@
     </li>
     {% endfor %}
     {% if not events %}
-    <li style="padding:.5rem 0; color:#6b7280; font-size:.875rem">
+    <li class="py-2 text-gray-500 text-sm">
       Нет событий. Добавьте метку на графике, чтобы связать действие с изменением трафика.
     </li>
     {% endif %}
@@ -132,58 +131,58 @@
         hx-target="#events-list"
         hx-swap="innerHTML"
         hx-encoding="multipart/form-data"
-        style="display:flex; gap:.5rem; align-items:center; flex-wrap:wrap; border-top:1px solid #e5e7eb; padding-top:1rem">
-    <label style="font-size:.875rem; color:#6b7280">Дата:</label>
+        class="flex gap-2 items-center flex-wrap border-t border-gray-200 pt-4">
+    <label class="text-sm text-gray-500">Дата:</label>
     <input type="date" name="event_date" required
-      style="padding:.4rem .75rem; border:1px solid #d1d5db; border-radius:4px; font-size:.875rem">
+      class="px-3 py-1.5 border border-gray-300 rounded text-sm">
 
-    <label style="font-size:.875rem; color:#6b7280">Метка:</label>
+    <label class="text-sm text-gray-500">Метка:</label>
     <input type="text" name="label" required placeholder="Описание события"
-      style="padding:.4rem .75rem; border:1px solid #d1d5db; border-radius:4px; font-size:.875rem; min-width:180px">
+      class="px-3 py-1.5 border border-gray-300 rounded text-sm min-w-[180px]">
 
-    <label style="font-size:.875rem; color:#6b7280">Цвет:</label>
+    <label class="text-sm text-gray-500">Цвет:</label>
     <input type="color" name="color" value="#7c3aed"
-      style="width:40px; height:34px; border:1px solid #d1d5db; border-radius:4px; cursor:pointer; padding:2px">
+      class="w-10 h-[34px] border border-gray-300 rounded cursor-pointer p-0.5">
 
     <button type="submit" class="btn btn-primary">Добавить событие</button>
   </form>
 </div>
 
 {# ─── Period comparison card ─── #}
-<div class="card" style="margin-bottom:1.5rem">
-  <h3 style="margin:0 0 1rem; font-size:1rem; font-weight:600">Сравнение периодов</h3>
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+  <h3 class="m-0 mb-4 text-base font-semibold">Сравнение периодов</h3>
 
-  <div style="display:flex; gap:.5rem; margin-bottom:1rem; flex-wrap:wrap">
+  <div class="flex gap-2 mb-4 flex-wrap">
     <button class="btn btn-sm btn-primary" id="filter-all" onclick="filterRows('all')">Все страницы</button>
     <button class="btn btn-sm" id="filter-new" onclick="filterRows('new')">Новые</button>
     <button class="btn btn-sm" id="filter-lost" onclick="filterRows('lost')">Потери</button>
   </div>
 
   <div id="compare-result">
-    <p style="color:#6b7280; font-size:.875rem">
+    <p class="text-gray-500 text-sm">
       Нет данных за выбранный период. Выберите другие даты или загрузите данные.
     </p>
   </div>
 </div>
 
 {# ─── Metrika Settings section ─── #}
-<div class="card" style="margin-bottom:1.5rem">
-  <h3 style="margin:0 0 1rem; font-size:1rem; font-weight:600">Настройки Метрики</h3>
-  <div style="display:flex; flex-direction:column; gap:.75rem; max-width:480px">
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+  <h3 class="m-0 mb-4 text-base font-semibold">Настройки Метрики</h3>
+  <div class="flex flex-col gap-3 max-w-[480px]">
     <div>
-      <label style="font-size:.875rem; color:#6b7280; display:block; margin-bottom:.3rem">ID счётчика Метрики</label>
+      <label class="text-sm text-gray-500 block mb-1">ID счётчика Метрики</label>
       <input type="text" id="settings-counter-id"
         value="{{ site.metrika_counter_id or '' }}"
         placeholder="12345678"
-        style="width:100%; padding:.4rem .75rem; border:1px solid #d1d5db; border-radius:4px; font-size:.875rem; box-sizing:border-box">
+        class="w-full px-3 py-1.5 border border-gray-300 rounded text-sm focus:ring-indigo-500 focus:border-indigo-500">
     </div>
     <div>
-      <label style="font-size:.875rem; color:#6b7280; display:block; margin-bottom:.3rem">API-токен</label>
+      <label class="text-sm text-gray-500 block mb-1">API-токен</label>
       <input type="password" id="settings-token"
         placeholder="••••••••"
-        style="width:100%; padding:.4rem .75rem; border:1px solid #d1d5db; border-radius:4px; font-size:.875rem; box-sizing:border-box">
+        class="w-full px-3 py-1.5 border border-gray-300 rounded text-sm focus:ring-indigo-500 focus:border-indigo-500">
     </div>
-    <div style="display:flex; align-items:center; gap:1rem">
+    <div class="flex items-center gap-4">
       <button class="btn btn-primary" onclick="saveSettings()">Сохранить настройки</button>
       <span id="settings-status">
         {% if site.metrika_counter_id %}
@@ -193,7 +192,7 @@
         {% endif %}
       </span>
     </div>
-    <div id="settings-msg" style="font-size:.875rem"></div>
+    <div id="settings-msg" class="text-sm"></div>
   </div>
 </div>
 
@@ -304,7 +303,7 @@ async function fetchComparison() {
   const resp = await fetch(url);
   if (!resp.ok) {
     document.getElementById('compare-result').innerHTML =
-      '<p style="color:#dc2626">Ошибка загрузки данных.</p>';
+      '<p class="text-red-600">Ошибка загрузки данных.</p>';
     return;
   }
   const rows = await resp.json();
@@ -314,7 +313,7 @@ async function fetchComparison() {
 function renderCompareTable(rows, labelA, labelB) {
   const container = document.getElementById('compare-result');
   if (!rows || !rows.length) {
-    container.innerHTML = '<p style="color:#6b7280; font-size:.875rem">Нет данных за выбранный период. Выберите другие даты или загрузите данные.</p>';
+    container.innerHTML = '<p class="text-gray-500 text-sm">Нет данных за выбранный период. Выберите другие даты или загрузите данные.</p>';
     return;
   }
 
@@ -341,11 +340,11 @@ function renderCompareTable(rows, labelA, labelB) {
     } else {
       const d = r.delta || 0;
       if (d > 0) {
-        deltaHtml = '<span style="color:#059669">▲ +' + d + '</span>';
+        deltaHtml = '<span class="text-emerald-600">▲ +' + d + '</span>';
       } else if (d < 0) {
-        deltaHtml = '<span style="color:#dc2626">▼ ' + d + '</span>';
+        deltaHtml = '<span class="text-red-600">▼ ' + d + '</span>';
       } else {
-        deltaHtml = '<span style="color:#6b7280">=</span>';
+        deltaHtml = '<span class="text-gray-500">=</span>';
       }
     }
 
@@ -355,7 +354,7 @@ function renderCompareTable(rows, labelA, labelB) {
     const durStr = durMin + 'м ' + durSec + 'с';
 
     html += '<tr data-row-type="' + rowClass + '">'
-      + '<td style="max-width:300px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap"><a href="' + (r.page_url || '#') + '" target="_blank">' + (r.page_url || '—') + '</a></td>'
+      + '<td class="max-w-[300px] overflow-hidden text-ellipsis whitespace-nowrap"><a href="' + (r.page_url || '#') + '" target="_blank">' + (r.page_url || '—') + '</a></td>'
       + '<td>' + (r.visits_a || 0) + '</td>'
       + '<td>' + (r.visits_b || 0) + '</td>'
       + '<td>' + deltaHtml + '</td>'
@@ -407,7 +406,7 @@ async function saveSettings() {
   const msgEl     = document.getElementById('settings-msg');
 
   if (!counterId || !token) {
-    msgEl.innerHTML = '<span style="color:#dc2626">Заполните ID счётчика и токен.</span>';
+    msgEl.innerHTML = '<span class="text-red-600">Заполните ID счётчика и токен.</span>';
     return;
   }
 
@@ -418,13 +417,13 @@ async function saveSettings() {
   });
 
   if (resp.ok) {
-    msgEl.innerHTML = '<span style="color:#059669">Настройки сохранены.</span>';
+    msgEl.innerHTML = '<span class="text-emerald-600">Настройки сохранены.</span>';
     document.getElementById('settings-status').innerHTML =
       '<span class="badge badge-connected">Настроен</span>';
     setTimeout(() => location.reload(), 1500);
   } else {
     const err = await resp.json().catch(() => ({}));
-    msgEl.innerHTML = '<span style="color:#dc2626">Ошибка: ' + (err.detail || 'не удалось сохранить') + '</span>';
+    msgEl.innerHTML = '<span class="text-red-600">Ошибка: ' + (err.detail || 'не удалось сохранить') + '</span>';
   }
 }
 
