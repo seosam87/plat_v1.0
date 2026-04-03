@@ -39,7 +39,7 @@
 
 ### Секция «Контент»
 
-- [ ] **CNT-V4-01**: Content Audit, WP Pipeline, DOCX Publisher доступны через подпункты sidebar
+- [x] **CNT-V4-01**: Content Audit, WP Pipeline, DOCX Publisher доступны через подпункты sidebar
 - [x] **CNT-V4-02**: Проекты, Kanban и Контент-план доступны как подпункты секции «Контент»
 - [ ] **CNT-V4-03**: Мониторинг изменений доступен как подпункт секции «Контент»
 
@@ -245,7 +245,7 @@
 | KW-V4-03 | Phase v4-04: Секция «Позиции и ключи» | Complete |
 | AN-V4-01 | Phase v4-05: Секция «Аналитика» | Complete |
 | AN-V4-02 | Phase v4-05: Секция «Аналитика» | Complete |
-| CNT-V4-01 | Phase v4-06: Секция «Контент» | Pending |
+| CNT-V4-01 | Phase v4-06: Секция «Контент» | Complete |
 | CNT-V4-02 | Phase v4-06: Секция «Контент» | Complete |
 | CNT-V4-03 | Phase v4-06: Секция «Контент» | Pending |
 | CFG-V4-01 | Phase v4-07: Секция «Настройки» | Pending |
