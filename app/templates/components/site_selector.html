@@ -31,7 +31,15 @@
       headers: {'Content-Type': 'application/x-www-form-urlencoded'},
       body: 'site_id=' + encodeURIComponent(siteId)
     }).then(function() {
-      window.location.reload();
+      // Replace old site_id in current URL with new one, or just reload
+      var path = window.location.pathname;
+      var uuidRe = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
+      if (uuidRe.test(path)) {
+        // URL contains a UUID — replace it with new site_id
+        window.location.href = path.replace(uuidRe, siteId);
+      } else {
+        window.location.reload();
+      }
     });
   });
 })();
