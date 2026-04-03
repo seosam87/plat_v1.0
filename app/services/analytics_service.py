@@ -103,6 +103,16 @@ async def filter_keywords(
         )
         cluster_names = {row.id: row.name for row in cl_result.all()}
 
+    # Get group names
+    from app.models.keyword import KeywordGroup
+    group_ids = {k.group_id for k in keywords if k.group_id}
+    group_names: dict = {}
+    if group_ids:
+        gr_result = await db.execute(
+            select(KeywordGroup.id, KeywordGroup.name).where(KeywordGroup.id.in_(group_ids))
+        )
+        group_names = {row.id: row.name for row in gr_result.all()}
+
     # Build result dicts
     items = []
     for k in keywords:
@@ -137,6 +147,7 @@ async def filter_keywords(
             "cluster_id": str(k.cluster_id) if k.cluster_id else None,
             "cluster_name": cluster_names.get(k.cluster_id, ""),
             "group_id": str(k.group_id) if k.group_id else None,
+            "group_name": group_names.get(k.group_id, ""),
             "target_url": k.target_url,
             "intent": kw_intent,
             "latest_position": pos_val,

@@ -61,8 +61,8 @@
   <div class="card" style="flex:1; min-width:250px">
     <h3 style="margin:0 0 .75rem">Экспорт</h3>
     <div style="display:flex; gap:.5rem">
-      <a href="/bulk/{{ site.id }}/export?format=csv" class="btn" style="background:#059669;color:white">Экспорт CSV</a>
-      <a href="/bulk/{{ site.id }}/export?format=xlsx" class="btn" style="background:#2563eb;color:white">Экспорт XLSX</a>
+      <a id="export-csv" href="/bulk/{{ site.id }}/export?format=csv" class="btn" style="background:#059669;color:white" onclick="this.href=buildExportUrl('csv');return true">Экспорт CSV</a>
+      <a id="export-xlsx" href="/bulk/{{ site.id }}/export?format=xlsx" class="btn" style="background:#2563eb;color:white" onclick="this.href=buildExportUrl('xlsx');return true">Экспорт XLSX</a>
     </div>
   </div>
   <div class="card" style="flex:1; min-width:250px">
@@ -102,10 +102,17 @@ async function searchKeywords() {
   selectedIds.clear();
   for (const kw of data.items) {
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td><input type="checkbox" class="kw-cb" data-id="${kw.id}" onchange="this.checked?selectedIds.add(this.dataset.id):selectedIds.delete(this.dataset.id);updateCount()"></td><td>${kw.phrase}</td><td>${kw.frequency||'—'}</td><td>${kw.latest_position||'—'}</td><td>${kw.cluster_name||'—'}</td><td>${kw.cluster_name||'—'}</td><td style="max-width:150px;overflow:hidden;text-overflow:ellipsis">${kw.target_url||'—'}</td>`;
+    tr.innerHTML = `<td><input type="checkbox" class="kw-cb" data-id="${kw.id}" onchange="this.checked?selectedIds.add(this.dataset.id):selectedIds.delete(this.dataset.id);updateCount()"></td><td>${kw.phrase}</td><td>${kw.frequency||'—'}</td><td>${kw.latest_position||'—'}</td><td>${kw.group_name||'—'}</td><td>${kw.cluster_name||'—'}</td><td style="max-width:150px;overflow:hidden;text-overflow:ellipsis">${kw.target_url||'—'}</td>`;
     tbody.appendChild(tr);
   }
   updateCount();
+}
+
+function buildExportUrl(format) {
+  const params = new URLSearchParams({format});
+  const map = {search:'f-search', frequency_min:'f-freq-min', frequency_max:'f-freq-max', cluster_id:'f-cluster', group_id:'f-group'};
+  for (const [k,id] of Object.entries(map)) { const v = document.getElementById(id).value; if (v) params.set(k, v); }
+  return `/bulk/${SITE_ID}/export?${params}`;
 }
 
 async function moveToGroup() {

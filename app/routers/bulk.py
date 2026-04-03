@@ -125,17 +125,34 @@ async def delete_keywords(
 async def export_keywords(
     site_id: uuid.UUID,
     format: str = "csv",
+    search: str | None = None,
+    frequency_min: int | None = None,
+    frequency_max: int | None = None,
+    cluster_id: str | None = None,
+    group_id: str | None = None,
     db: AsyncSession = Depends(get_db),
     _: User = Depends(require_admin),
 ):
+    filters: dict = {}
+    if search:
+        filters["search"] = search
+    if frequency_min is not None:
+        filters["frequency_min"] = frequency_min
+    if frequency_max is not None:
+        filters["frequency_max"] = frequency_max
+    if cluster_id:
+        filters["cluster_id"] = cluster_id
+    if group_id:
+        filters["group_id"] = group_id
+
     if format == "xlsx":
-        data = await bs.export_keywords_xlsx(db, site_id)
+        data = await bs.export_keywords_xlsx(db, site_id, **filters)
         return Response(
             content=data,
             media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             headers={"Content-Disposition": f"attachment; filename=keywords_{site_id}.xlsx"},
         )
-    data = await bs.export_keywords_csv(db, site_id)
+    data = await bs.export_keywords_csv(db, site_id, **filters)
     return PlainTextResponse(
         data, media_type="text/csv",
         headers={"Content-Disposition": f"attachment; filename=keywords_{site_id}.csv"},
