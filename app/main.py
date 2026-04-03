@@ -786,11 +786,13 @@ async def ui_datasources(request: Request, db: AsyncSession = Depends(get_db)) -
 
 @app.get("/ui/dashboard", response_class=HTMLResponse)
 async def ui_dashboard(request: Request, db: AsyncSession = Depends(get_db)) -> HTMLResponse:
+    import asyncio
     from app.services.report_service import dashboard_summary
     from app.models.project import Project
     from sqlalchemy import select as sa_select
 
     from app.services.report_service import site_overview
+    from app.services.overview_service import aggregated_positions, todays_tasks
 
     stats = await dashboard_summary(db)
     projects = (await db.execute(
@@ -821,8 +823,18 @@ async def ui_dashboard(request: Request, db: AsyncSession = Depends(get_db)) -> 
         except Exception:
             sites_overview.append({"id": str(s.id), "name": s.name, "keyword_count": 0, "top3": 0, "top10": 0, "top30": 0, "open_tasks": 0})
 
+    # Aggregated cross-site position summary and today's tasks (parallel)
+    pos_summary, tasks_today = await asyncio.gather(
+        aggregated_positions(db),
+        todays_tasks(db),
+    )
+
     return templates.TemplateResponse(request, "dashboard/index.html", {
-        "stats": stats, "projects": projects_data, "sites_overview": sites_overview,
+        "stats": stats,
+        "projects": projects_data,
+        "sites_overview": sites_overview,
+        "pos_summary": pos_summary,      # dict: top3, top10, top100, trend_up, trend_down
+        "tasks_today": tasks_today,      # list of task dicts
     })
 
 
