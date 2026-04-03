@@ -1,0 +1,227 @@
+{% extends "base.html" %}
+{% block title %}Определение интента — {{ site.domain }} — SEO Platform{% endblock %}
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="/ui/dashboard">Dashboard</a><span>&rsaquo;</span>
+  <a href="/ui/sites">Sites</a><span>&rsaquo;</span>
+  <a href="/ui/sites/{{ site_id }}">{{ site.domain }}</a><span>&rsaquo;</span>
+  Определение интента
+</div>
+{% endblock %}
+{% block content %}
+<div class="card" style="margin-bottom:1.5rem">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.25rem">
+    <div>
+      <h2 style="margin:0">Определение интента: {{ site.domain }}</h2>
+      <span style="color:#6b7280">{{ unclustered | length }} ключевых слов без интента</span>
+    </div>
+    <div style="display:flex; gap:.5rem">
+      <a href="/clusters/sites/{{ site_id }}" class="btn btn-sm" style="background:#6b7280;color:white">← Кластеры</a>
+      <button id="btn-detect" class="btn btn-primary" onclick="runDetect()">Запустить анализ</button>
+    </div>
+  </div>
+
+  <!-- Status bar -->
+  <div id="detect-status" style="display:none; padding:.75rem 1rem; border-radius:6px; margin-bottom:1rem; background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe">
+    <span id="detect-msg">Анализ запущен...</span>
+  </div>
+
+  <!-- Unclustered keywords table -->
+  {% if unclustered %}
+  <div style="margin-bottom:1.5rem">
+    <h3 style="margin:0 0 .75rem; font-size:1rem; color:#374151">Ключевые слова без интента</h3>
+    <table>
+      <thead>
+        <tr>
+          <th><input type="checkbox" id="chk-all" onchange="toggleAll(this)"></th>
+          <th>Ключевая фраза</th>
+          <th>Частотность</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for kw in unclustered %}
+        <tr>
+          <td><input type="checkbox" class="kw-chk" value="{{ kw.id }}"></td>
+          <td>{{ kw.phrase }}</td>
+          <td>{{ kw.frequency or '—' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p style="color:#6b7280; text-align:center; padding:2rem 0">Все ключевые слова уже имеют интент.</p>
+  {% endif %}
+</div>
+
+<!-- Proposals section (populated after detection) -->
+<div id="proposals-section" style="display:none">
+  <div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem">
+      <h3 style="margin:0">Предложения интента</h3>
+      <button class="btn btn-primary" onclick="confirmAll()" id="btn-confirm-all">Подтвердить все</button>
+    </div>
+    <div id="proposals-status" style="display:none; padding:.5rem; margin-bottom:.75rem; border-radius:4px; font-size:.875rem"></div>
+    <table id="proposals-table">
+      <thead>
+        <tr>
+          <th>Ключевая фраза</th>
+          <th>Интент</th>
+          <th>Уверенность</th>
+          <th>Ком. / Инф.</th>
+          <th>Действия</th>
+        </tr>
+      </thead>
+      <tbody id="proposals-tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+const SITE_ID = "{{ site_id }}";
+let _proposals = [];
+
+function toggleAll(cb) {
+  document.querySelectorAll('.kw-chk').forEach(c => c.checked = cb.checked);
+}
+
+function getSelectedIds() {
+  return Array.from(document.querySelectorAll('.kw-chk:checked')).map(c => c.value);
+}
+
+async function runDetect() {
+  const btn = document.getElementById('btn-detect');
+  const statusEl = document.getElementById('detect-status');
+  const msgEl = document.getElementById('detect-msg');
+
+  const selected = getSelectedIds();
+  btn.disabled = true;
+  btn.textContent = 'Анализ...';
+  statusEl.style.display = 'block';
+  msgEl.textContent = 'Запрос к SERP...';
+
+  try {
+    // Trigger async task
+    const body = selected.length ? {keyword_ids: selected} : {};
+    const triggerResp = await fetch(`/intent/${SITE_ID}/detect`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(body),
+    });
+    const triggerData = await triggerResp.json();
+    msgEl.textContent = 'Задача поставлена в очередь. Загружаем предложения...';
+
+    // Load proposals from cache
+    await loadProposals(selected);
+
+  } catch (err) {
+    statusEl.style.background = '#fef2f2';
+    statusEl.style.color = '#991b1b';
+    statusEl.style.borderColor = '#fecaca';
+    msgEl.textContent = 'Ошибка: ' + err.message;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Запустить анализ';
+  }
+}
+
+async function loadProposals(selectedIds) {
+  const resp = await fetch(`/intent/${SITE_ID}/proposals`);
+  const proposals = await resp.json();
+  _proposals = proposals;
+  renderProposals(proposals);
+}
+
+function renderProposals(proposals) {
+  if (!proposals.length) return;
+
+  document.getElementById('proposals-section').style.display = 'block';
+  const tbody = document.getElementById('proposals-tbody');
+  tbody.innerHTML = '';
+
+  proposals.forEach((p, idx) => {
+    const confidence = Math.round(p.confidence * 100);
+    let confColor = '#16a34a'; // green >= 80%
+    if (confidence < 60) confColor = '#dc2626'; // red < 60%
+    else if (confidence < 80) confColor = '#d97706'; // yellow 60-80%
+
+    const intentLabels = {commercial: '💰 Коммерческий', informational: '📖 Информационный', mixed: '⚖️ Смешанный', unknown: '❓ Неизвестно'};
+    const intentLabel = intentLabels[p.proposed_intent] || p.proposed_intent;
+
+    const row = document.createElement('tr');
+    row.id = `row-${idx}`;
+    row.innerHTML = `
+      <td>${p.phrase}</td>
+      <td>
+        <select id="intent-sel-${idx}" style="padding:2px 6px; border:1px solid #d1d5db; border-radius:4px; font-size:.85rem">
+          <option value="commercial" ${p.proposed_intent==='commercial'?'selected':''}>💰 Коммерческий</option>
+          <option value="informational" ${p.proposed_intent==='informational'?'selected':''}>📖 Информационный</option>
+          <option value="mixed" ${p.proposed_intent==='mixed'?'selected':''}>⚖️ Смешанный</option>
+        </select>
+      </td>
+      <td><span style="font-weight:600; color:${confColor}">${confidence}%</span></td>
+      <td style="font-size:.85rem; color:#6b7280">Ком: ${p.commercial_count} / Инф: ${p.informational_count}</td>
+      <td>
+        <button class="btn btn-sm" style="background:#059669;color:white;margin-right:.25rem" onclick="confirmOne(${idx}, '${p.keyword_id}')">Подтвердить</button>
+        <button class="btn btn-sm" style="background:#6b7280;color:white" onclick="skipOne(${idx})">Пропустить</button>
+      </td>
+    `;
+    tbody.appendChild(row);
+  });
+}
+
+async function confirmOne(idx, keywordId) {
+  const sel = document.getElementById(`intent-sel-${idx}`);
+  const intent = sel.value;
+  try {
+    await fetch(`/intent/${SITE_ID}/confirm`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({keyword_id: keywordId, intent}),
+    });
+    const row = document.getElementById(`row-${idx}`);
+    row.style.background = '#d1fae5';
+    row.querySelector('td:last-child').innerHTML = '<span style="color:#065f46">✓ Подтверждено</span>';
+  } catch (err) {
+    alert('Ошибка: ' + err.message);
+  }
+}
+
+function skipOne(idx) {
+  const row = document.getElementById(`row-${idx}`);
+  row.style.opacity = '0.4';
+  row.querySelector('td:last-child').innerHTML = '<span style="color:#6b7280">Пропущено</span>';
+}
+
+async function confirmAll() {
+  const btn = document.getElementById('btn-confirm-all');
+  btn.disabled = true;
+  btn.textContent = 'Подтверждение...';
+
+  const statusEl = document.getElementById('proposals-status');
+  statusEl.style.display = 'block';
+  statusEl.style.background = '#eff6ff';
+  statusEl.style.color = '#1d4ed8';
+  statusEl.textContent = 'Применяем интенты...';
+
+  try {
+    const resp = await fetch(`/intent/${SITE_ID}/bulk-confirm`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({proposals: _proposals}),
+    });
+    const data = await resp.json();
+    statusEl.style.background = '#d1fae5';
+    statusEl.style.color = '#065f46';
+    statusEl.textContent = `Подтверждено: ${data.confirmed} интентов`;
+    setTimeout(() => location.reload(), 1500);
+  } catch (err) {
+    statusEl.style.background = '#fef2f2';
+    statusEl.style.color = '#991b1b';
+    statusEl.textContent = 'Ошибка: ' + err.message;
+    btn.disabled = false;
+    btn.textContent = 'Подтвердить все';
+  }
+}
+</script>
+{% endblock %}

@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: verifying
-stopped_at: Completed v3-08-01-PLAN.md
-last_updated: "2026-04-03T09:07:13.160Z"
-last_activity: 2026-04-03
+stopped_at: Completed v3-09-01-PLAN.md
+last_updated: "2026-04-03T09:14:18.779Z"
+last_activity: 2026-04-02
 progress:
   total_phases: 12
   completed_phases: 1
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-31)
 
 **Core value:** A team member or client can open the platform and immediately see the SEO health of any site — positions, recent changes, pending tasks — without switching between GSC, spreadsheets, and WP admin.
-**Current focus:** Phase v3-08 — cannibalization
+**Current focus:** Phase 06.1 — proxy-management-xmlproxy-integration
 
 ## Current Position
 
-Phase: v3-08
+Phase: 7
 Plan: Not started
 Status: Phase complete — ready for verification
-Last activity: 2026-04-03
+Last activity: 2026-04-02
 
 Progress: [██░░░░░░░░] 18%
 
@@ -60,14 +60,7 @@ Progress: [██░░░░░░░░] 18%
 | Phase 06.1 P01 | 5 | 2 tasks | 11 files |
 | Phase 06.1 P03 | 5 min | 2 tasks | 4 files |
 | Phase 06.1 P02 | 8 | 2 tasks | 7 files |
-| Phase v3-04 P07 | 3 | 2 tasks | 3 files |
-| Phase v3-05 P01 | 3 | 3 tasks | 3 files |
-| Phase v3-05 P02 | 5 | 3 tasks | 3 files |
-| Phase v3-05 P03 | 5 | 3 tasks | 4 files |
-| Phase v3-06 P01 | 5 | 4 tasks | 4 files |
-| Phase v3-06 P02 | 5 | 2 tasks | 2 files |
-| Phase v3-07 P01 | 5 | 2 tasks | 2 files |
-| Phase v3-08 P01 | 4 | 4 tasks | 6 files |
+| Phase v3-09 P01 | 3 | 5 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -85,21 +78,7 @@ Recent decisions affecting current work:
 - [Phase 06.1]: Yandex keywords exclusively routed to XMLProxy; Google keywords to DataForSEO or logged as skipped (D-17, D-18)
 - [Phase 06.1]: rucaptcha.com replaces anti-captcha.com in proxy_serp_service.py per D-15
 - [Phase 06.1]: Proxy admin router uses sync get_sync_db() context manager; tests use SQLite in-memory with monkey-patching
-- [Phase v3-04]: analytics_page fetches filter_options + sessions + briefs synchronously before template render — no lazy loading needed for initial page
-- [Phase v3-04]: [Phase v3-04-07]: Integration tests are pure-function only (no async/DB) — fast feedback without infrastructure
-- [Phase v3-05-01]: GapKeyword.source uses String(50) not enum — accommodates future import sources without migrations
-- [Phase v3-05-01]: GapProposal.content_plan_item_id FK SET NULL so deleting content plan items doesn't cascade-delete proposals
-- [Phase v3-05]: SCORE_FORMULA_DESCRIPTION constant in gap_service for UI tooltip display
-- [Phase v3-05]: gap_parser uses find_column() for multi-format auto-detection (keys.so, Topvisor, generic)
-- [Phase v3-05-03]: Gap router uses /gap/{site_id} prefix (not /gap/sites/{site_id}) for consistency with audit/monitoring pattern
-- [Phase v3-05-03]: score-formula endpoint at /gap/score-formula (no site_id) since formula is global
-- [Phase v3-06]: Page.source is String(20) not enum — crawl/sf_import free-form values avoid future migrations
-- [Phase v3-06]: ArchitectureRole uses native PostgreSQL ENUM for type safety (8 values: pillar, service, subservice, article, trigger, authority, link_accelerator, unknown)
-- [Phase v3-06]: SF import uses synthetic crawl_job_id (uuid4()) per import — sitemap unique constraint is (crawl_job_id, url)
-- [Phase v3-06]: save_page_links is sync (Session) for Celery task context; all other DB functions are async
-- [Phase v3-07]: bulk_service uses SQLAlchemy UPDATE/DELETE statements (not row-by-row loops) for batch operations performance
-- [Phase v3-08]: check_resolution uses 'phrase' key (not 'keyword') from detect_cannibalization dict
-- [Phase v3-08]: ui_cannibalization handler serializes resolution ORM objects to dicts before template — avoids lazy-load in Jinja2
+- [Phase v3-09]: Intent router prefix /intent/{site_id}; bulk-confirm skips mixed; proposals cache-first; detection thresholds >=7 for commercial/informational
 
 ### Pending Todos
 
@@ -123,6 +102,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-03T08:58:35.876Z
-Stopped at: Completed v3-08-01-PLAN.md
+Last session: 2026-04-03T09:14:18.775Z
+Stopped at: Completed v3-09-01-PLAN.md
 Resume file: None

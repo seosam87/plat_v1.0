@@ -39,6 +39,7 @@ from app.routers.gap import router as gap_router
 from app.routers.architecture import router as architecture_router
 from app.routers.bulk import router as bulk_router
 from app.routers.traffic_analysis import router as traffic_analysis_router
+from app.routers.intent import router as intent_router
 from app.services.schedule_service import get_all_schedules, upsert_schedule
 from app.services.site_service import get_site, get_sites
 from app.models.schedule import ScheduleType
@@ -177,6 +178,7 @@ app.include_router(gap_router)
 app.include_router(architecture_router)
 app.include_router(bulk_router)
 app.include_router(traffic_analysis_router)
+app.include_router(intent_router)
 
 
 @app.get("/ui/sites", response_class=HTMLResponse)
