@@ -27,7 +27,9 @@ This milestone restructures the platform's UI from a top-nav layout into a verti
   3. The current sidebar section and sub-item are visually highlighted (active state) on every page
   4. User sees a breadcrumb trail (Section > Site > Page) on every page
   5. All existing pages load without errors and display the new sidebar layout
-**Plans**: TBD
+**Plans**: 1 plan
+Plans:
+- [ ] v4-01-01-PLAN.md — Sidebar layout, site selector, breadcrumbs, navigation config, active states
 **UI hint**: yes
 
 ### Phase v4-02: Секция «Обзор»
@@ -114,7 +116,7 @@ Phases execute in order: v4-01 → v4-02 → v4-03 → v4-04 → v4-05 → v4-06
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| v4-01. Navigation Foundation | 0/TBD | Not started | - |
+| v4-01. Navigation Foundation | 0/1 | Planned | - |
 | v4-02. Секция «Обзор» | 0/TBD | Not started | - |
 | v4-03. Секция «Сайты» | 0/TBD | Not started | - |
 | v4-04. Секция «Позиции и ключи» | 0/TBD | Not started | - |
