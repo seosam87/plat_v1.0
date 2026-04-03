@@ -5,137 +5,139 @@
 {% endblock %}
 {% block content %}
 <div class="card">
-  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem">
-    <h2 style="margin:0">Positions: {{ site_name }} <a class="help-trigger" onclick="openHelp()" title="Справка">?</a></h2>
-    <span id="check-status" style="font-size:.85rem;color:#6b7280;margin-right:.5rem"></span>
+  <div class="flex justify-between items-center mb-4">
+    <h2 class="text-lg font-semibold text-gray-800 m-0">Positions: {{ site_name }} <a class="help-trigger" onclick="openHelp()" title="Справка">?</a></h2>
+    <span id="check-status" class="text-sm text-gray-500 mr-2"></span>
     <button id="check-btn" class="btn btn-primary" onclick="startPositionCheck()">Check Positions</button>
   </div>
 
   <!-- Distribution bar -->
   {% if distribution and distribution.total > 0 %}
-  <div style="margin-bottom:1.5rem">
-    <div style="display:flex; gap:1rem; font-size:.85rem; margin-bottom:.5rem">
-      <span style="color:#059669">&#9632; TOP-3: {{ distribution.top3 }}</span>
-      <span style="color:#2563eb">&#9632; TOP-10: {{ distribution.top10 }}</span>
-      <span style="color:#6b7280">&#9632; TOP-30: {{ distribution.top30 }}</span>
-      <span style="color:#f59e0b">&#9632; TOP-100: {{ distribution.top100 }}</span>
-      <span style="color:#dc2626">&#9632; Не в ТОП: {{ distribution.not_ranked }}</span>
-      <span style="color:#374151; margin-left:auto">Всего: {{ distribution.total }}</span>
+  <div class="mb-6">
+    <div class="flex gap-4 text-sm mb-2">
+      <span class="text-emerald-600">&#9632; TOP-3: {{ distribution.top3 }}</span>
+      <span class="text-blue-600">&#9632; TOP-10: {{ distribution.top10 }}</span>
+      <span class="text-gray-500">&#9632; TOP-30: {{ distribution.top30 }}</span>
+      <span class="text-amber-500">&#9632; TOP-100: {{ distribution.top100 }}</span>
+      <span class="text-red-600">&#9632; Не в ТОП: {{ distribution.not_ranked }}</span>
+      <span class="text-gray-700 ml-auto">Всего: {{ distribution.total }}</span>
     </div>
     {% set t = distribution.total %}
-    <div style="display:flex; height:8px; border-radius:4px; overflow:hidden; background:#e5e7eb">
-      {% if distribution.top3 > 0 %}<div style="width:{{ (distribution.top3 / t * 100)|round(1) }}%; background:#059669" title="TOP-3"></div>{% endif %}
-      {% if distribution.top10 - distribution.top3 > 0 %}<div style="width:{{ ((distribution.top10 - distribution.top3) / t * 100)|round(1) }}%; background:#2563eb" title="TOP 4-10"></div>{% endif %}
-      {% if distribution.top30 - distribution.top10 > 0 %}<div style="width:{{ ((distribution.top30 - distribution.top10) / t * 100)|round(1) }}%; background:#6b7280" title="TOP 11-30"></div>{% endif %}
-      {% if distribution.top100 - distribution.top30 > 0 %}<div style="width:{{ ((distribution.top100 - distribution.top30) / t * 100)|round(1) }}%; background:#f59e0b" title="TOP 31-100"></div>{% endif %}
-      {% if distribution.not_ranked > 0 %}<div style="width:{{ (distribution.not_ranked / t * 100)|round(1) }}%; background:#dc2626" title="Не ранжируется"></div>{% endif %}
+    <div class="flex h-2 rounded overflow-hidden bg-gray-200">
+      {% if distribution.top3 > 0 %}<div class="bg-emerald-600" style="width:{{ (distribution.top3 / t * 100)|round(1) }}%" title="TOP-3"></div>{% endif %}
+      {% if distribution.top10 - distribution.top3 > 0 %}<div class="bg-blue-600" style="width:{{ ((distribution.top10 - distribution.top3) / t * 100)|round(1) }}%" title="TOP 4-10"></div>{% endif %}
+      {% if distribution.top30 - distribution.top10 > 0 %}<div class="bg-gray-500" style="width:{{ ((distribution.top30 - distribution.top10) / t * 100)|round(1) }}%" title="TOP 11-30"></div>{% endif %}
+      {% if distribution.top100 - distribution.top30 > 0 %}<div class="bg-amber-500" style="width:{{ ((distribution.top100 - distribution.top30) / t * 100)|round(1) }}%" title="TOP 31-100"></div>{% endif %}
+      {% if distribution.not_ranked > 0 %}<div class="bg-red-600" style="width:{{ (distribution.not_ranked / t * 100)|round(1) }}%" title="Не ранжируется"></div>{% endif %}
     </div>
   </div>
   {% endif %}
 
   <!-- Filters -->
-  <div style="display:flex; gap:.75rem; margin-bottom:1rem; flex-wrap:wrap; align-items:center">
-    <label style="font-size:.85rem; color:#6b7280">Top:</label>
+  <div class="flex gap-3 mb-4 flex-wrap items-center">
+    <label class="text-sm text-gray-500">Top:</label>
     <a href="?{% if engine %}engine={{ engine }}&{% endif %}top_n=" class="btn btn-sm {% if not top_n %}btn-primary{% endif %}">All</a>
     <a href="?{% if engine %}engine={{ engine }}&{% endif %}top_n=3" class="btn btn-sm {% if top_n == '3' %}btn-primary{% endif %}">Top 3</a>
     <a href="?{% if engine %}engine={{ engine }}&{% endif %}top_n=10" class="btn btn-sm {% if top_n == '10' %}btn-primary{% endif %}">Top 10</a>
     <a href="?{% if engine %}engine={{ engine }}&{% endif %}top_n=100" class="btn btn-sm {% if top_n == '100' %}btn-primary{% endif %}">Top 100</a>
-    <span style="margin-left:1rem; font-size:.85rem; color:#6b7280">Engine:</span>
+    <span class="ml-4 text-sm text-gray-500">Engine:</span>
     <a href="?{% if top_n %}top_n={{ top_n }}&{% endif %}engine=" class="btn btn-sm {% if not engine %}btn-primary{% endif %}">All</a>
     <a href="?{% if top_n %}top_n={{ top_n }}&{% endif %}engine=google" class="btn btn-sm {% if engine == 'google' %}btn-primary{% endif %}">Google</a>
     <a href="?{% if top_n %}top_n={{ top_n }}&{% endif %}engine=yandex" class="btn btn-sm {% if engine == 'yandex' %}btn-primary{% endif %}">Yandex</a>
   </div>
 
   <!-- URL filter -->
-  <div style="display:flex; gap:.5rem; margin-bottom:1rem; align-items:center">
-    <form method="GET" style="display:flex; gap:.5rem; align-items:center">
+  <div class="flex gap-2 mb-4 items-center">
+    <form method="GET" class="flex gap-2 items-center">
       {% if engine %}<input type="hidden" name="engine" value="{{ engine }}">{% endif %}
       {% if top_n %}<input type="hidden" name="top_n" value="{{ top_n }}">{% endif %}
-      <label style="font-size:.85rem; color:#6b7280">URL:</label>
+      <label class="text-sm text-gray-500">URL:</label>
       <input type="text" name="url" value="{{ url_filter or '' }}" placeholder="Фильтр по URL (часть адреса)"
-        style="width:300px; padding:.4rem .6rem; border:1px solid #d1d5db; border-radius:4px; font-size:.85rem">
+        class="w-[300px] px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-indigo-500 focus:border-indigo-500">
       <button type="submit" class="btn btn-sm">Найти</button>
       {% if url_filter %}<a href="?{% if engine %}engine={{ engine }}&{% endif %}{% if top_n %}top_n={{ top_n }}{% endif %}" class="btn btn-sm">Сбросить</a>{% endif %}
     </form>
-    <span style="margin-left:auto; display:flex; gap:.5rem">
-      <button class="btn btn-sm" style="background:#7c3aed;color:white" onclick="document.getElementById('compare-modal').style.display='flex'">Сравнить даты</button>
-      <button class="btn btn-sm" style="background:#059669;color:white" onclick="loadLostGained()">Lost / Gained</button>
+    <span class="ml-auto flex gap-2">
+      <button class="px-2 py-1 text-xs font-medium rounded bg-violet-600 text-white hover:bg-violet-700" onclick="document.getElementById('compare-modal').classList.remove('hidden'); document.getElementById('compare-modal').classList.add('flex')">Сравнить даты</button>
+      <button class="px-2 py-1 text-xs font-medium rounded bg-emerald-600 text-white hover:bg-emerald-700" onclick="loadLostGained()">Lost / Gained</button>
     </span>
   </div>
 
   {% if positions %}
-  <table>
-    <thead>
-      <tr>
-        <th>Keyword</th>
-        <th>Position</th>
-        <th>Delta</th>
-        <th>URL</th>
-        <th>Engine</th>
-        <th>Region</th>
-        <th>Chart</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for p in positions %}
-      <tr>
-        <td style="font-weight:500">{{ p.phrase or p.keyword_id }}</td>
-        <td>
-          {% if p.position %}
-            <span style="font-weight:700; {% if p.position <= 3 %}color:#059669{% elif p.position <= 10 %}color:#2563eb{% elif p.position <= 30 %}color:#6b7280{% else %}color:#dc2626{% endif %}">
-              {{ p.position }}
-            </span>
-          {% else %}—{% endif %}
-        </td>
-        <td>
-          {% if p.delta is not none and p.delta != 0 %}
-            {% if p.delta > 0 %}
-              <span style="color:#059669">&#9650; +{{ p.delta }}</span>
-            {% else %}
-              <span style="color:#dc2626">&#9660; {{ p.delta }}</span>
-            {% endif %}
-          {% elif p.delta == 0 %}
-            <span style="color:#6b7280">=</span>
-          {% else %}—{% endif %}
-        </td>
-        <td style="max-width:250px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">
-          {% if p.url %}<a href="{{ p.url }}" target="_blank">{{ p.url }}</a>{% else %}—{% endif %}
-        </td>
-        <td><span class="badge badge-unknown">{{ p.engine }}</span></td>
-        <td>{{ p.region or '—' }}</td>
-        <td>
-          <button class="btn btn-sm" onclick="showChart('{{ p.keyword_id }}', '{{ p.phrase or '' }}', '{{ p.engine }}')">
-            &#128200;
-          </button>
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  <div class="overflow-x-auto">
+    <table class="min-w-full divide-y divide-gray-200">
+      <thead class="bg-gray-50">
+        <tr>
+          <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Keyword</th>
+          <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Position</th>
+          <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Delta</th>
+          <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">URL</th>
+          <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Engine</th>
+          <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Region</th>
+          <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Chart</th>
+        </tr>
+      </thead>
+      <tbody class="bg-white divide-y divide-gray-100">
+        {% for p in positions %}
+        <tr class="hover:bg-gray-50">
+          <td class="px-3 py-2 font-medium">{{ p.phrase or p.keyword_id }}</td>
+          <td class="px-3 py-2">
+            {% if p.position %}
+              <span {% if p.position <= 3 %}class="font-bold text-emerald-600"{% elif p.position <= 10 %}class="font-bold text-blue-600"{% elif p.position <= 30 %}class="font-bold text-gray-500"{% else %}class="font-bold text-red-600"{% endif %}>
+                {{ p.position }}
+              </span>
+            {% else %}—{% endif %}
+          </td>
+          <td class="px-3 py-2 text-sm">
+            {% if p.delta is not none and p.delta != 0 %}
+              {% if p.delta > 0 %}
+                <span class="text-emerald-600">&#9650; +{{ p.delta }}</span>
+              {% else %}
+                <span class="text-red-600">&#9660; {{ p.delta }}</span>
+              {% endif %}
+            {% elif p.delta == 0 %}
+              <span class="text-gray-500">=</span>
+            {% else %}—{% endif %}
+          </td>
+          <td class="px-3 py-2 text-sm max-w-[250px] overflow-hidden text-ellipsis whitespace-nowrap">
+            {% if p.url %}<a href="{{ p.url }}" target="_blank" class="text-indigo-500 hover:underline">{{ p.url }}</a>{% else %}—{% endif %}
+          </td>
+          <td class="px-3 py-2 text-sm"><span class="badge badge-unknown">{{ p.engine }}</span></td>
+          <td class="px-3 py-2 text-sm">{{ p.region or '—' }}</td>
+          <td class="px-3 py-2 text-sm">
+            <button class="btn btn-sm" onclick="showChart('{{ p.keyword_id }}', '{{ p.phrase or '' }}', '{{ p.engine }}')">
+              &#128200;
+            </button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
   {% else %}
-  <p style="color:#6b7280">No position data yet. Import keywords and run a position check.</p>
+  <p class="text-gray-500">No position data yet. Import keywords and run a position check.</p>
   {% endif %}
 </div>
 
 <!-- Chart modal -->
-<div id="chart-modal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,.5); z-index:100; justify-content:center; align-items:center">
-  <div style="background:white; border-radius:8px; padding:2rem; max-width:800px; width:90%; max-height:80vh; position:relative">
-    <button onclick="closeChart()" style="position:absolute; top:.5rem; right:1rem; background:none; border:none; font-size:1.5rem; cursor:pointer">&times;</button>
-    <h3 id="chart-title" style="margin:0 0 1rem"></h3>
+<div id="chart-modal" class="hidden fixed inset-0 bg-black/50 z-[100] justify-center items-center">
+  <div class="bg-white rounded-lg p-8 max-w-[800px] w-[90%] max-h-[80vh] relative">
+    <button onclick="closeChart()" class="absolute top-2 right-4 bg-transparent border-none text-2xl cursor-pointer">&times;</button>
+    <h3 id="chart-title" class="m-0 mb-4"></h3>
     <canvas id="position-chart" height="300"></canvas>
   </div>
 </div>
 
 <!-- Compare dates modal -->
-<div id="compare-modal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,.5); z-index:100; justify-content:center; align-items:center">
-  <div style="background:white; border-radius:8px; padding:2rem; max-width:900px; width:95%; max-height:85vh; overflow-y:auto; position:relative">
-    <button onclick="document.getElementById('compare-modal').style.display='none'" style="position:absolute; top:.5rem; right:1rem; background:none; border:none; font-size:1.5rem; cursor:pointer">&times;</button>
-    <h3 style="margin:0 0 1rem">Сравнение позиций по датам</h3>
-    <form onsubmit="loadCompare(event)" style="display:flex; gap:.5rem; margin-bottom:1rem; align-items:center">
-      <label style="font-size:.85rem">Дата A:</label>
-      <input type="date" id="compare-date-a" required style="padding:.3rem .5rem; border:1px solid #d1d5db; border-radius:4px">
-      <label style="font-size:.85rem; margin-left:.5rem">Дата B:</label>
-      <input type="date" id="compare-date-b" required style="padding:.3rem .5rem; border:1px solid #d1d5db; border-radius:4px">
+<div id="compare-modal" class="hidden fixed inset-0 bg-black/50 z-[100] justify-center items-center">
+  <div class="bg-white rounded-lg p-8 max-w-[900px] w-[95%] max-h-[85vh] overflow-y-auto relative">
+    <button onclick="document.getElementById('compare-modal').classList.add('hidden'); document.getElementById('compare-modal').classList.remove('flex')" class="absolute top-2 right-4 bg-transparent border-none text-2xl cursor-pointer">&times;</button>
+    <h3 class="m-0 mb-4">Сравнение позиций по датам</h3>
+    <form onsubmit="loadCompare(event)" class="flex gap-2 mb-4 items-center">
+      <label class="text-sm">Дата A:</label>
+      <input type="date" id="compare-date-a" required class="px-2 py-1 border border-gray-300 rounded">
+      <label class="text-sm ml-2">Дата B:</label>
+      <input type="date" id="compare-date-b" required class="px-2 py-1 border border-gray-300 rounded">
       <button type="submit" class="btn btn-sm btn-primary">Сравнить</button>
     </form>
     <div id="compare-result"></div>
@@ -143,11 +145,11 @@
 </div>
 
 <!-- Lost/Gained modal -->
-<div id="lg-modal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,.5); z-index:100; justify-content:center; align-items:center">
-  <div style="background:white; border-radius:8px; padding:2rem; max-width:700px; width:90%; max-height:80vh; overflow-y:auto; position:relative">
-    <button onclick="document.getElementById('lg-modal').style.display='none'" style="position:absolute; top:.5rem; right:1rem; background:none; border:none; font-size:1.5rem; cursor:pointer">&times;</button>
-    <h3 style="margin:0 0 1rem">Lost / Gained (7 дней, TOP-10)</h3>
-    <div id="lg-result" style="color:#6b7280">Загрузка...</div>
+<div id="lg-modal" class="hidden fixed inset-0 bg-black/50 z-[100] justify-center items-center">
+  <div class="bg-white rounded-lg p-8 max-w-[700px] w-[90%] max-h-[80vh] overflow-y-auto relative">
+    <button onclick="document.getElementById('lg-modal').classList.add('hidden'); document.getElementById('lg-modal').classList.remove('flex')" class="absolute top-2 right-4 bg-transparent border-none text-2xl cursor-pointer">&times;</button>
+    <h3 class="m-0 mb-4">Lost / Gained (7 дней, TOP-10)</h3>
+    <div id="lg-result" class="text-gray-500">Загрузка...</div>
   </div>
 </div>
 
@@ -156,7 +158,9 @@
 let chartInstance = null;
 
 async function showChart(keywordId, phrase, engine) {
-  document.getElementById('chart-modal').style.display = 'flex';
+  const modal = document.getElementById('chart-modal');
+  modal.classList.remove('hidden');
+  modal.classList.add('flex');
   document.getElementById('chart-title').textContent = phrase + ' (' + engine + ')';
 
   const resp = await fetch('/positions/keywords/' + keywordId + '/history?engine=' + engine + '&days=90');
@@ -195,7 +199,9 @@ async function showChart(keywordId, phrase, engine) {
 }
 
 function closeChart() {
-  document.getElementById('chart-modal').style.display = 'none';
+  const modal = document.getElementById('chart-modal');
+  modal.classList.add('hidden');
+  modal.classList.remove('flex');
   if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
 }
 
@@ -213,15 +219,15 @@ async function loadCompare(e) {
   const resp = await fetch(url);
   const data = await resp.json();
   const rows = data.positions || [];
-  if (!rows.length) { document.getElementById('compare-result').innerHTML = '<p style="color:#6b7280">Нет данных за выбранные даты.</p>'; return; }
+  if (!rows.length) { document.getElementById('compare-result').innerHTML = '<p class="text-gray-500">Нет данных за выбранные даты.</p>'; return; }
   let html = '<table><thead><tr><th>Keyword</th><th>' + a + '</th><th>' + b + '</th><th>Delta</th></tr></thead><tbody>';
   rows.forEach(r => {
     const pa = r.position_a != null ? r.position_a : '—';
     const pb = r.position_b != null ? r.position_b : '—';
     let delta = '—';
     if (r.delta != null && r.delta !== 0) {
-      delta = r.delta > 0 ? '<span style="color:#059669">&#9650; +' + r.delta + '</span>' : '<span style="color:#dc2626">&#9660; ' + r.delta + '</span>';
-    } else if (r.delta === 0) { delta = '<span style="color:#6b7280">=</span>'; }
+      delta = r.delta > 0 ? '<span class="text-emerald-600">&#9650; +' + r.delta + '</span>' : '<span class="text-red-600">&#9660; ' + r.delta + '</span>';
+    } else if (r.delta === 0) { delta = '<span class="text-gray-500">=</span>'; }
     html += '<tr><td>' + (r.keyword_id || '') + '</td><td>' + pa + '</td><td>' + pb + '</td><td>' + delta + '</td></tr>';
   });
   html += '</tbody></table>';
@@ -229,8 +235,10 @@ async function loadCompare(e) {
 }
 
 async function loadLostGained() {
-  document.getElementById('lg-modal').style.display = 'flex';
-  document.getElementById('lg-result').innerHTML = 'Загрузка...';
+  const modal = document.getElementById('lg-modal');
+  modal.classList.remove('hidden');
+  modal.classList.add('flex');
+  document.getElementById('lg-result').innerHTML = '<span class="text-gray-500">Загрузка...</span>';
   const engine = '{{ engine or "" }}';
   let url = '/positions/sites/{{ site_id }}/lost-gained?days=7&threshold=10';
   if (engine) url += '&engine=' + engine;
@@ -238,23 +246,23 @@ async function loadLostGained() {
   const data = await resp.json();
   let html = '';
   if (data.gained && data.gained.length) {
-    html += '<h4 style="color:#059669; margin:0 0 .5rem">&#9650; Gained (вошли в TOP-10): ' + data.gained.length + '</h4><ul>';
+    html += '<h4 class="text-emerald-600 mt-0 mb-2">&#9650; Gained (вошли в TOP-10): ' + data.gained.length + '</h4><ul>';
     data.gained.forEach(g => { html += '<li>' + g.keyword_id + ' — ' + (g.old_position || 'нет') + ' → <b>' + g.new_position + '</b></li>'; });
     html += '</ul>';
-  } else { html += '<p style="color:#6b7280">Нет новых ключей в TOP-10.</p>'; }
+  } else { html += '<p class="text-gray-500">Нет новых ключей в TOP-10.</p>'; }
   if (data.lost && data.lost.length) {
-    html += '<h4 style="color:#dc2626; margin:1rem 0 .5rem">&#9660; Lost (выпали из TOP-10): ' + data.lost.length + '</h4><ul>';
+    html += '<h4 class="text-red-600 mt-4 mb-2">&#9660; Lost (выпали из TOP-10): ' + data.lost.length + '</h4><ul>';
     data.lost.forEach(l => { html += '<li>' + l.keyword_id + ' — <b>' + l.old_position + '</b> → ' + (l.new_position || 'нет') + '</li>'; });
     html += '</ul>';
-  } else { html += '<p style="color:#6b7280">Нет потерянных ключей из TOP-10.</p>'; }
+  } else { html += '<p class="text-gray-500">Нет потерянных ключей из TOP-10.</p>'; }
   document.getElementById('lg-result').innerHTML = html;
 }
 
 document.getElementById('compare-modal').addEventListener('click', function(e) {
-  if (e.target === this) this.style.display = 'none';
+  if (e.target === this) { this.classList.add('hidden'); this.classList.remove('flex'); }
 });
 document.getElementById('lg-modal').addEventListener('click', function(e) {
-  if (e.target === this) this.style.display = 'none';
+  if (e.target === this) { this.classList.add('hidden'); this.classList.remove('flex'); }
 });
 
 async function startPositionCheck() {
@@ -267,7 +275,7 @@ async function startPositionCheck() {
   try {
     const resp = await fetch('/positions/sites/{{ site_id }}/check', {method: 'POST'});
     if (!resp.ok) {
-      status.innerHTML = '<span style="color:#dc2626">Error: ' + resp.status + '</span>';
+      status.innerHTML = '<span class="text-red-600">Error: ' + resp.status + '</span>';
       btn.disabled = false;
       btn.textContent = 'Check Positions';
       return;
@@ -275,10 +283,10 @@ async function startPositionCheck() {
     const data = await resp.json();
     const taskId = data.task_id;
     btn.textContent = 'Checking...';
-    status.innerHTML = '<span style="color:#2563eb">⏳ Task queued, waiting for worker...</span>';
+    status.innerHTML = '<span class="text-blue-600">⏳ Task queued, waiting for worker...</span>';
     pollTaskStatus(taskId);
   } catch(e) {
-    status.innerHTML = '<span style="color:#dc2626">Network error</span>';
+    status.innerHTML = '<span class="text-red-600">Network error</span>';
     btn.disabled = false;
     btn.textContent = 'Check Positions';
   }
@@ -296,23 +304,23 @@ function pollTaskStatus(taskId) {
       const data = await resp.json();
 
       if (data.status === 'PENDING') {
-        status.innerHTML = '<span style="color:#2563eb">⏳ In queue... (' + elapsed + 's)</span>';
+        status.innerHTML = '<span class="text-blue-600">⏳ In queue... (' + elapsed + 's)</span>';
       } else if (data.status === 'STARTED') {
-        status.innerHTML = '<span style="color:#2563eb">⚙️ Checking positions... (' + elapsed + 's)</span>';
+        status.innerHTML = '<span class="text-blue-600">⚙️ Checking positions... (' + elapsed + 's)</span>';
       } else if (data.status === 'SUCCESS') {
         clearInterval(interval);
         const r = data.result || {};
-        status.innerHTML = '<span style="color:#059669">✓ Done! Positions: ' + (r.positions_written || 0) + ', alerts: ' + (r.alerts_sent || 0) + '</span>';
+        status.innerHTML = '<span class="text-emerald-600">✓ Done! Positions: ' + (r.positions_written || 0) + ', alerts: ' + (r.alerts_sent || 0) + '</span>';
         btn.disabled = false;
         btn.textContent = 'Check Positions';
         setTimeout(() => location.reload(), 2000);
       } else if (data.status === 'FAILURE') {
         clearInterval(interval);
-        status.innerHTML = '<span style="color:#dc2626">✗ Failed: ' + (data.error || 'unknown error') + '</span>';
+        status.innerHTML = '<span class="text-red-600">✗ Failed: ' + (data.error || 'unknown error') + '</span>';
         btn.disabled = false;
         btn.textContent = 'Check Positions';
       } else {
-        status.innerHTML = '<span style="color:#6b7280">' + data.status + ' (' + elapsed + 's)</span>';
+        status.innerHTML = '<span class="text-gray-500">' + data.status + ' (' + elapsed + 's)</span>';
       }
     } catch(e) {
       // Network hiccup, keep polling
@@ -320,7 +328,7 @@ function pollTaskStatus(taskId) {
 
     if (elapsed > 660) {
       clearInterval(interval);
-      status.innerHTML = '<span style="color:#dc2626">Timeout — check logs</span>';
+      status.innerHTML = '<span class="text-red-600">Timeout — check logs</span>';
       btn.disabled = false;
       btn.textContent = 'Check Positions';
     }
