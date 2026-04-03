@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: verifying
-stopped_at: Phase 06.1 complete — deploy and test pending
-last_updated: "2026-04-02T21:47:01.306Z"
+stopped_at: Completed v3-09-01-PLAN.md
+last_updated: "2026-04-03T09:14:18.779Z"
 last_activity: 2026-04-02
 progress:
   total_phases: 12
@@ -60,6 +60,7 @@ Progress: [██░░░░░░░░] 18%
 | Phase 06.1 P01 | 5 | 2 tasks | 11 files |
 | Phase 06.1 P03 | 5 min | 2 tasks | 4 files |
 | Phase 06.1 P02 | 8 | 2 tasks | 7 files |
+| Phase v3-09 P01 | 3 | 5 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -77,6 +78,7 @@ Recent decisions affecting current work:
 - [Phase 06.1]: Yandex keywords exclusively routed to XMLProxy; Google keywords to DataForSEO or logged as skipped (D-17, D-18)
 - [Phase 06.1]: rucaptcha.com replaces anti-captcha.com in proxy_serp_service.py per D-15
 - [Phase 06.1]: Proxy admin router uses sync get_sync_db() context manager; tests use SQLite in-memory with monkey-patching
+- [Phase v3-09]: Intent router prefix /intent/{site_id}; bulk-confirm skips mixed; proposals cache-first; detection thresholds >=7 for commercial/informational
 
 ### Pending Todos
 
@@ -100,6 +102,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-02T21:47:01.303Z
-Stopped at: Phase 06.1 complete — deploy and test pending
-Resume file: .planning/phases/06.1-proxy-management-xmlproxy-integration/.continue-here.md
+Last session: 2026-04-03T09:14:18.775Z
+Stopped at: Completed v3-09-01-PLAN.md
+Resume file: None
