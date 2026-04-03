@@ -241,6 +241,17 @@ Plans:
 - [x] 11-03: slowapi rate limiting on all API endpoints; `GET /health` endpoint (DB ping + Redis ping + Celery inspect ping + Beat schedule count assert); Celery Flower configured with basic auth in docker-compose; HTTPS via Nginx reverse proxy in docker-compose
 - [x] 11-04: OpenAPI docs verified at `/docs`; README: prerequisites + clone + env setup + `docker-compose up --build` + first login; deploy walkthrough tested end-to-end; version pins locked in requirements.txt
 
+### Phase v4-07: Settings Section
+**Goal**: Migrate the Settings section pages (users, groups, data sources, proxies, parameters, audit log) to the new sidebar layout with Tailwind CSS. Settings section visible only to admin users.
+**Depends on**: Phase v4-06
+**Requirements**: CFG-V4-01, CFG-V4-02
+**Success Criteria** (what must be TRUE):
+  1. Users, groups, data sources, proxies, parameters, and audit log pages are accessible through sidebar sub-items under «Настройки»
+  2. Settings section and all its sub-items are only visible to users with admin role
+  3. All Settings pages use Tailwind utility classes (zero inline style= attributes)
+  4. All existing functionality preserved: CRUD operations, form submissions, HTMX interactions
+**Plans**: 0 plans
+
 ## Progress
 
 **Execution Order:**
