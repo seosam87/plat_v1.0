@@ -7,12 +7,12 @@
 
 ### Layout & Navigation Shell
 
-- [ ] **NAV-01**: Пользователь видит вертикальный sidebar с 6 секциями (Обзор, Сайты, Позиции и ключи, Аналитика, Контент, Настройки), каждая с иконкой и раскрываемыми подпунктами
-- [ ] **NAV-02**: Пользователь может выбрать сайт в sticky site selector (верх sidebar), и выбор сохраняется при переключении между разделами
-- [ ] **NAV-03**: Sidebar сворачивается до иконок на экранах < 1024px и появляется как overlay на мобильных (< 768px) по hamburger-кнопке
-- [ ] **NAV-04**: Пользователь видит breadcrumb trail (Секция > Сайт > Страница) на каждой странице для ориентации
-- [ ] **NAV-05**: Текущая секция и подпункт sidebar визуально выделены (active state)
-- [ ] **NAV-06**: base.html заменён на новый layout с sidebar вместо top nav; все существующие страницы наследуют новый layout без потери функциональности
+- [x] **NAV-01**: Пользователь видит вертикальный sidebar с 6 секциями (Обзор, Сайты, Позиции и ключи, Аналитика, Контент, Настройки), каждая с иконкой и раскрываемыми подпунктами
+- [x] **NAV-02**: Пользователь может выбрать сайт в sticky site selector (верх sidebar), и выбор сохраняется при переключении между разделами
+- [x] **NAV-03**: Sidebar сворачивается до иконок на экранах < 1024px и появляется как overlay на мобильных (< 768px) по hamburger-кнопке
+- [x] **NAV-04**: Пользователь видит breadcrumb trail (Секция > Сайт > Страница) на каждой странице для ориентации
+- [x] **NAV-05**: Текущая секция и подпункт sidebar визуально выделены (active state)
+- [x] **NAV-06**: base.html заменён на новый layout с sidebar вместо top nav; все существующие страницы наследуют новый layout без потери функциональности
 
 ### Секция «Обзор»
 
@@ -50,9 +50,9 @@
 
 ### Визуальная консистентность
 
-- [ ] **VIS-01**: Все site-scoped страницы используют единый layout: sidebar + breadcrumb + content area
+- [x] **VIS-01**: Все site-scoped страницы используют единый layout: sidebar + breadcrumb + content area
 - [ ] **VIS-02**: Dark mode через toggle в sidebar footer, Tailwind dark: классы на всех страницах
-- [ ] **VIS-03**: Единая цветовая палитра (indigo primary, emerald success, red danger)
+- [x] **VIS-03**: Единая цветовая палитра (indigo primary, emerald success, red danger)
 
 ### Миграция страниц
 
@@ -221,12 +221,12 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| NAV-01 | Phase v4-01: Navigation Foundation | Pending |
-| NAV-02 | Phase v4-01: Navigation Foundation | Pending |
-| NAV-03 | Phase v4-01: Navigation Foundation | Pending |
-| NAV-04 | Phase v4-01: Navigation Foundation | Pending |
-| NAV-05 | Phase v4-01: Navigation Foundation | Pending |
-| NAV-06 | Phase v4-01: Navigation Foundation | Pending |
+| NAV-01 | Phase v4-01: Navigation Foundation | Complete |
+| NAV-02 | Phase v4-01: Navigation Foundation | Complete |
+| NAV-03 | Phase v4-01: Navigation Foundation | Complete |
+| NAV-04 | Phase v4-01: Navigation Foundation | Complete |
+| NAV-05 | Phase v4-01: Navigation Foundation | Complete |
+| NAV-06 | Phase v4-01: Navigation Foundation | Complete |
 | OVR-01 | Phase v4-02: Секция «Обзор» | Pending |
 | OVR-02 | Phase v4-02: Секция «Обзор» | Pending |
 | OVR-03 | Phase v4-02: Секция «Обзор» | Pending |
@@ -243,9 +243,9 @@
 | CNT-V4-03 | Phase v4-06: Секция «Контент» | Pending |
 | CFG-V4-01 | Phase v4-07: Секция «Настройки» | Pending |
 | CFG-V4-02 | Phase v4-07: Секция «Настройки» | Pending |
-| VIS-01 | Phase v4-01: Navigation Foundation | Pending |
+| VIS-01 | Phase v4-01: Navigation Foundation | Complete |
 | VIS-02 | Phase v4-08: Visual Polish & Migration | Pending |
-| VIS-03 | Phase v4-01: Navigation Foundation | Pending |
+| VIS-03 | Phase v4-01: Navigation Foundation | Complete |
 | MIG-01 | Phase v4-08: Visual Polish & Migration | Pending |
 | MIG-02 | Phase v4-08: Visual Polish & Migration | Pending |
 | MIG-03 | Phase v4-08: Visual Polish & Migration | Pending |

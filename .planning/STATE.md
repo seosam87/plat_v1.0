@@ -1,16 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v4.0
-milestone_name: UI Overhaul — Information Architecture
-status: roadmap_ready
-stopped_at: Roadmap v4.0 created — ready for phase planning
-last_updated: "2026-04-03T12:00:00.000Z"
+milestone: v1.0
+milestone_name: milestone
+status: verifying
+stopped_at: Completed v4-01-01-PLAN.md — Task 3 pending human visual verification
+last_updated: "2026-04-03T11:27:27.390Z"
 last_activity: 2026-04-03
 progress:
-  total_phases: 8
-  completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  total_phases: 12
+  completed_phases: 1
+  total_plans: 14
+  completed_plans: 6
   percent: 0
 ---
 
@@ -21,13 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-03)
 
 **Core value:** A team member or client can open the platform and immediately see the SEO health of any site — positions, recent changes, pending tasks — without switching between GSC, spreadsheets, and WP admin.
-**Current focus:** v4.0 milestone — Navigation Foundation (Phase v4-01)
+**Current focus:** Phase v4-01-navigation — foundation
 
 ## Current Position
 
-Phase: v4-01 (not started)
-Plan: Not started
-Status: Roadmap created — ready for phase planning
+Phase: v4-01-navigation (foundation) — EXECUTING
+Plan: 1 of 1
+Status: Phase complete — ready for verification
 Last activity: 2026-04-03
 
 Progress: [░░░░░░░░░░] 0%
@@ -63,6 +63,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase v3-09 P01 | 3 | 5 tasks | 4 files |
 | Phase v3-10 P01 | 5 | 3 tasks | 4 files |
 | Phase v3-10 P02 | 8 | 2 tasks | 2 files |
+| Phase v4-01-navigation-foundation P01 | 8 | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -87,6 +88,8 @@ Recent decisions affecting current work:
 - [v4.0]: Layout migration is UI-only — no new backend features, no DB migrations
 - [v4.0]: Phase v4-01 (Navigation Foundation) must complete before any section migration phases begin
 - [v4.0]: Phase v4-08 (Visual Polish) depends on all 6 section phases being complete
+- [Phase v4-01]: Sidebar section labels rendered dynamically from NAV_SECTIONS in navigation.py — not hardcoded in templates
+- [Phase v4-01]: site_selector cookie set as httponly=False to allow JS access; samesite=lax for security
 
 ### Pending Todos
 
@@ -111,6 +114,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-03T12:00:00.000Z
-Stopped at: ROADMAP-v4.md created — 8 phases, 28 requirements mapped
+Last session: 2026-04-03T11:27:27.386Z
+Stopped at: Completed v4-01-01-PLAN.md — Task 3 pending human visual verification
 Resume file: None
