@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: Completed v4-08-01-PLAN.md
-last_updated: "2026-04-03T14:20:35.637Z"
+status: verifying
+stopped_at: Completed v4-08-02-PLAN.md
+last_updated: "2026-04-03T14:23:18.334Z"
 last_activity: 2026-04-03
 progress:
   total_phases: 12
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-04-03)
 
 Phase: v4-08-ui-smoke-test (agent) — EXECUTING
 Plan: 2 of 2
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-04-03
 
 Progress: [░░░░░░░░░░] 0%
@@ -65,6 +65,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase v3-10 P02 | 8 | 2 tasks | 2 files |
 | Phase v4-01-navigation-foundation P01 | 8 | 2 tasks | 6 files |
 | Phase v4-08-ui-smoke-test P01 | 8 | 2 tasks | 2 files |
+| Phase v4-08 P02 | 2min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -93,6 +94,8 @@ Recent decisions affecting current work:
 - [Phase v4-01]: site_selector cookie set as httponly=False to allow JS access; samesite=lax for security
 - [Phase v4-08-01]: Auth uses POST /ui/login (form fields: email, password) not /auth/token — sets httponly cookie read by UIAuthMiddleware
 - [Phase v4-08-01]: Smoke test routes with {crawl_job_id}, {job_id}, {module}, /ui/api/ patterns are skipped (not errors)
+- [Phase v4-08]: Module-level telegram_service imports (not lazy) enable clean unittest.mock patching of send_message_sync and is_configured
+- [Phase v4-08]: Smoke task skipped entries excluded from error count; error list capped at 20 items for Telegram 4096-char limit
 
 ### Pending Todos
 
@@ -117,6 +120,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-03T14:20:35.633Z
-Stopped at: Completed v4-08-01-PLAN.md
+Last session: 2026-04-03T14:23:18.330Z
+Stopped at: Completed v4-08-02-PLAN.md
 Resume file: None
