@@ -4,25 +4,31 @@
   <select
     id="site-selector"
     style="width:100%;background:#eef2ff;border:1px solid #c7d2fe;border-radius:6px;padding:0.4rem 0.5rem;font-size:0.82rem;color:#1e1b4b;cursor:pointer;outline:none;"
-    hx-get="/ui/api/sites"
-    hx-trigger="load"
-    hx-swap="innerHTML"
-    hx-post="/ui/api/select-site"
-    hx-vals="js:{site_id: document.getElementById('site-selector').value}"
-    hx-trigger="change"
-    hx-swap="none"
-    hx-on::after-request="if(event.detail.successful) window.location.reload()"
   >
     <option value="">— выбрать сайт —</option>
   </select>
 </div>
 <script>
-document.body.addEventListener('htmx:afterSettle', function(e) {
-  if (e.target && e.target.id === 'site-selector') {
-    var sel = document.getElementById('site-selector');
-    if (sel) {
-      sel.value = '{{ selected_site_id or "" }}';
-    }
-  }
-});
+(function() {
+  var sel = document.getElementById('site-selector');
+  if (!sel) return;
+  // Load sites once on page load
+  fetch('/ui/api/sites').then(function(r){ return r.text(); }).then(function(html) {
+    sel.innerHTML = html;
+    var saved = '{{ selected_site_id or "" }}';
+    if (saved) sel.value = saved;
+  });
+  // On change — save selection via POST, then reload to update context
+  sel.addEventListener('change', function() {
+    var siteId = sel.value;
+    if (!siteId) return;
+    fetch('/ui/api/select-site', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+      body: 'site_id=' + encodeURIComponent(siteId)
+    }).then(function() {
+      window.location.reload();
+    });
+  });
+})();
 </script>
