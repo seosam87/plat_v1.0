@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed v3-03-01-PLAN.md
-last_updated: "2026-04-03T07:07:02.480Z"
+stopped_at: Completed v3-03-02-PLAN.md
+last_updated: "2026-04-03T07:12:00.123Z"
 last_activity: 2026-04-03
 progress:
   total_phases: 12
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-03-31)
 ## Current Position
 
 Phase: v3-03-change (monitoring) — EXECUTING
-Plan: 2 of 4
+Plan: 3 of 4
 Status: Ready to execute
 Last activity: 2026-04-03
 
@@ -65,6 +65,7 @@ Progress: [██░░░░░░░░] 18%
 | Phase v3-02 P02 | 4 | 2 tasks | 2 files |
 | Phase v3-02 P04 | 5 | 4 tasks | 6 files |
 | Phase v3-03 P01 | 5 | 3 tasks | 3 files |
+| Phase v3-03 P02 | 10 | 5 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -96,6 +97,8 @@ Recent decisions affecting current work:
 - [Phase v3-03]: ChangeAlertRule is global (no site_id): same severity rules apply to all sites
 - [Phase v3-03]: 9 default rules seeded in migration 0022: page_404/noindex_added/schema_removed=error, title/h1/canonical/meta=warning, content/new_page=info
 - [Phase v3-03]: DigestSchedule stores day_of_week+hour+minute for UI; cron_expression is derived field for redbeat
+- [Phase v3-03]: detect_changes() is pure function with no DB deps — simplifies testing and Celery reuse
+- [Phase v3-03]: Immediate Telegram dispatch only for error severity; warning/info saved for weekly digest only
 
 ### Pending Todos
 
@@ -119,6 +122,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-03T07:07:02.476Z
-Stopped at: Completed v3-03-01-PLAN.md
+Last session: 2026-04-03T07:12:00.119Z
+Stopped at: Completed v3-03-02-PLAN.md
 Resume file: None
