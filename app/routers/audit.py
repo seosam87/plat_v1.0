@@ -14,6 +14,7 @@ from app.models.audit import AuditCheckDefinition, SchemaTemplate
 from app.models.crawl import Page
 from app.models.site import Site
 from app.models.user import User
+from app.models.wp_content_job import JobStatus
 from app.services import content_audit_service as cas
 from app.services import schema_service as ss
 from app.services import audit_fix_service as afs
