@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed v3-03-04-PLAN.md
-last_updated: "2026-04-03T07:20:38.065Z"
+stopped_at: Completed v3-04-01-PLAN.md
+last_updated: "2026-04-03T07:27:15.739Z"
 last_activity: 2026-04-03
 progress:
   total_phases: 12
@@ -21,12 +21,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-31)
 
 **Core value:** A team member or client can open the platform and immediately see the SEO health of any site — positions, recent changes, pending tasks — without switching between GSC, spreadsheets, and WP admin.
-**Current focus:** Phase v3-03-change — monitoring
+**Current focus:** Phase v3-04-analytics — workspace
 
 ## Current Position
 
-Phase: v3-03-change
-Plan: Not started
+Phase: v3-04-analytics (workspace) — EXECUTING
+Plan: 2 of 7
 Status: Ready to execute
 Last activity: 2026-04-03
 
@@ -67,6 +67,7 @@ Progress: [██░░░░░░░░] 18%
 | Phase v3-03 P01 | 5 | 3 tasks | 3 files |
 | Phase v3-03 P02 | 10 | 5 tasks | 5 files |
 | Phase v3-03 P04 | 5 | 3 tasks | 4 files |
+| Phase v3-04 P01 | 3 | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -101,6 +102,9 @@ Recent decisions affecting current work:
 - [Phase v3-03]: detect_changes() is pure function with no DB deps — simplifies testing and Celery reuse
 - [Phase v3-03]: Immediate Telegram dispatch only for error severity; warning/info saved for weekly digest only
 - [Phase v3-03]: Monitoring router registered with prefix=/monitoring, 8 endpoints covering rules CRUD, alert history, digest schedule CRUD, and manual digest trigger
+- [Phase v3-04]: SessionStatus enum uses native_enum=False (VARCHAR storage) consistent with Phase 06.1 ProxyType pattern
+- [Phase v3-04]: AnalysisSession.keyword_ids is JSON (list of UUID strings) to avoid M2M join table for ephemeral workspace sessions
+- [Phase v3-04]: ContentBrief has both session_id and site_id FKs to enable listing briefs by site without session context
 
 ### Pending Todos
 
@@ -124,6 +128,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-03T07:16:15.398Z
-Stopped at: Completed v3-03-04-PLAN.md
+Last session: 2026-04-03T07:27:15.735Z
+Stopped at: Completed v3-04-01-PLAN.md
 Resume file: None
