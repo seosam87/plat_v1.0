@@ -42,7 +42,10 @@ Plans:
   2. User sees aggregated position summary across all sites (TOP-3/10/100 counts, weekly trend up/down)
   3. User sees overdue and in-progress tasks for today from the Kanban board
   4. The Обзор page loads in under 3 seconds
-**Plans**: TBD
+**Plans**: 2 plans
+Plans:
+- [ ] v4-02-01-PLAN.md — overview_service: cross-site position aggregation + today's tasks + Redis cache + unit tests
+- [ ] v4-02-02-PLAN.md — dashboard/index.html rewrite: position summary cards, trend row, tasks widget (Tailwind)
 **UI hint**: yes
 
 ### Phase v4-03: Секция «Сайты»
