@@ -156,5 +156,5 @@ async def check_resolution(
         return {"error": "not found"}
 
     cannibs = await detect_cannibalization(db, r.site_id)
-    still = any(c.get("keyword") == r.keyword_phrase for c in cannibs)
+    still = any(c.get("phrase") == r.keyword_phrase for c in cannibs)
     return {"still_cannibalized": still, "keyword": r.keyword_phrase}
