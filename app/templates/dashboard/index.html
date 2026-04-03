@@ -1,52 +1,144 @@
 {% extends "base.html" %}
 {% block title %}Dashboard — SEO Platform{% endblock %}
 {% block content %}
-<div class="card" style="margin-bottom:1.5rem">
-  <h2 style="margin:0 0 1.5rem">Dashboard <a class="help-trigger" onclick="openHelp()" title="Справка">?</a></h2>
-  <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(170px, 1fr)); gap:1rem">
-    <a href="/ui/sites" style="text-decoration:none; background:#f0f9ff; border-radius:8px; padding:1.5rem; text-align:center; display:block">
-      <div style="font-size:2rem; font-weight:700; color:#0ea5e9">{{ stats.sites }}</div>
-      <div style="color:#6b7280; margin-top:.25rem">Sites</div>
+
+{# ─── Stats header row ─── #}
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+  <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5">
+    <a href="/ui/sites" class="flex flex-col items-center justify-center bg-sky-50 border border-sky-200 rounded-lg px-4 py-5 text-center no-underline hover:bg-sky-100 transition-colors">
+      <span class="text-3xl font-bold text-sky-600">{{ stats.sites }}</span>
+      <span class="text-sm text-gray-500 mt-1">Sites</span>
     </a>
-    <a href="/ui/projects" style="text-decoration:none; background:#eff6ff; border-radius:8px; padding:1.5rem; text-align:center; display:block">
-      <div style="font-size:2rem; font-weight:700; color:#2563eb">{{ stats.projects }}</div>
-      <div style="color:#6b7280; margin-top:.25rem">Projects</div>
+    <a href="/ui/projects" class="flex flex-col items-center justify-center bg-indigo-50 border border-indigo-200 rounded-lg px-4 py-5 text-center no-underline hover:bg-indigo-100 transition-colors">
+      <span class="text-3xl font-bold text-indigo-700">{{ stats.projects }}</span>
+      <span class="text-sm text-gray-500 mt-1">Projects</span>
     </a>
-    <div style="background:#f0fdf4; border-radius:8px; padding:1.5rem; text-align:center">
-      <div style="font-size:2rem; font-weight:700; color:#059669">{{ stats.total_keywords }}</div>
-      <div style="color:#6b7280; margin-top:.25rem">Keywords</div>
+    <div class="flex flex-col items-center justify-center bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-5 text-center">
+      <span class="text-3xl font-bold text-emerald-700">{{ stats.total_keywords }}</span>
+      <span class="text-sm text-gray-500 mt-1">Keywords</span>
     </div>
-    <a href="/ui/tasks?status=open" style="text-decoration:none; background:#fef3c7; border-radius:8px; padding:1.5rem; text-align:center; display:block">
-      <div style="font-size:2rem; font-weight:700; color:#d97706">{{ stats.open_tasks }}</div>
-      <div style="color:#6b7280; margin-top:.25rem">Open Tasks</div>
+    <a href="/ui/tasks?status=open" class="flex flex-col items-center justify-center bg-amber-50 border border-amber-200 rounded-lg px-4 py-5 text-center no-underline hover:bg-amber-100 transition-colors">
+      <span class="text-3xl font-bold text-amber-600">{{ stats.open_tasks }}</span>
+      <span class="text-sm text-gray-500 mt-1">Open Tasks</span>
     </a>
-    <a href="/ui/tasks?status=in_progress" style="text-decoration:none; background:#ede9fe; border-radius:8px; padding:1.5rem; text-align:center; display:block">
-      <div style="font-size:2rem; font-weight:700; color:#7c3aed">{{ stats.in_progress_tasks }}</div>
-      <div style="color:#6b7280; margin-top:.25rem">In Progress</div>
+    <a href="/ui/tasks?status=in_progress" class="flex flex-col items-center justify-center bg-violet-50 border border-violet-200 rounded-lg px-4 py-5 text-center no-underline hover:bg-violet-100 transition-colors">
+      <span class="text-3xl font-bold text-violet-700">{{ stats.in_progress_tasks }}</span>
+      <span class="text-sm text-gray-500 mt-1">In Progress</span>
     </a>
   </div>
 </div>
 
-<!-- Sites quick overview -->
+{# ─── Section 1: Cross-Site Position Summary (OVR-01) ─── #}
+<div class="mb-6">
+  <h2 class="text-lg font-semibold text-gray-800 mb-3">Позиции по всем сайтам</h2>
+
+  <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+    {# Card A — TOP-3 #}
+    <div class="bg-emerald-50 border border-emerald-200 rounded-lg p-5 flex flex-col items-center justify-center text-center shadow-sm">
+      <span class="text-3xl font-bold text-emerald-700">{{ pos_summary.top3 }}</span>
+      <span class="text-sm text-gray-500 mt-1">TOP-3</span>
+    </div>
+
+    {# Card B — TOP-10 #}
+    <div class="bg-indigo-50 border border-indigo-200 rounded-lg p-5 flex flex-col items-center justify-center text-center shadow-sm">
+      <span class="text-3xl font-bold text-indigo-700">{{ pos_summary.top10 }}</span>
+      <span class="text-sm text-gray-500 mt-1">TOP-10</span>
+    </div>
+
+    {# Card C — TOP-100 #}
+    <div class="bg-gray-50 border border-gray-200 rounded-lg p-5 flex flex-col items-center justify-center text-center shadow-sm">
+      <span class="text-3xl font-bold text-gray-700">{{ pos_summary.top100 }}</span>
+      <span class="text-sm text-gray-500 mt-1">TOP-100</span>
+    </div>
+  </div>
+
+  {# Trend row #}
+  <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mt-3 flex items-center gap-4 flex-wrap">
+    <span class="text-sm text-gray-600 font-medium">Тренд за неделю:</span>
+    <span class="text-sm font-semibold text-emerald-600">&#9650; {{ pos_summary.trend_up }} выросли</span>
+    <span class="text-sm font-semibold text-red-600">&#9660; {{ pos_summary.trend_down }} упали</span>
+  </div>
+</div>
+
+{# ─── Section 2: Tasks Today (OVR-02) ─── #}
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mt-4 mb-6">
+  <h3 class="text-base font-semibold text-gray-800 mb-3">Задачи на сегодня</h3>
+
+  {% if not tasks_today %}
+  <p class="text-gray-400 text-sm mt-2">Нет задач на сегодня</p>
+  {% else %}
+  <ul class="divide-y divide-gray-100">
+    {% for task in tasks_today %}
+    <li class="flex items-center gap-3 py-2 border-b border-gray-100 last:border-0 hover:bg-gray-50">
+      <a href="/ui/tasks" class="flex items-center gap-3 w-full min-w-0 no-underline text-gray-800">
+
+        {# Priority badge #}
+        {% if task.priority == 'p1' %}
+        <span class="text-xs font-bold text-red-600 bg-red-50 px-1.5 py-0.5 rounded shrink-0">P1</span>
+        {% elif task.priority == 'p2' %}
+        <span class="text-xs font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded shrink-0">P2</span>
+        {% elif task.priority == 'p3' %}
+        <span class="text-xs font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded shrink-0">P3</span>
+        {% else %}
+        <span class="text-xs font-bold text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded shrink-0">P4</span>
+        {% endif %}
+
+        {# Overdue badge #}
+        {% if task.is_overdue %}
+        <span class="text-xs font-semibold text-red-600 bg-red-50 px-1.5 py-0.5 rounded shrink-0">Просрочено</span>
+        {% endif %}
+
+        {# Task title (truncated) #}
+        <span class="text-sm text-gray-700 truncate flex-1">{{ task.title | truncate(60) }}</span>
+
+        {# Status badge #}
+        {% if task.status == 'in_progress' %}
+        <span class="text-xs font-semibold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded shrink-0">В работе</span>
+        {% elif task.status == 'review' %}
+        <span class="text-xs font-semibold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded shrink-0">Проверка</span>
+        {% else %}
+        <span class="text-xs font-semibold text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded shrink-0">Открыто</span>
+        {% endif %}
+
+        {# Due date #}
+        <span class="text-xs text-gray-400 shrink-0 ml-auto">{{ task.due_date or '—' }}</span>
+      </a>
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+</div>
+
+{# ─── Section 3: Sites Overview (preserved) ─── #}
 {% if sites_overview %}
-<div class="card" style="margin-bottom:1.5rem">
-  <h3 style="margin:0 0 1rem">Sites Overview</h3>
+<div class="card mb-6">
+  <h3 class="text-base font-semibold text-gray-800 mb-3">Sites Overview</h3>
   <table>
     <thead>
-      <tr><th>Site</th><th>Keywords</th><th>TOP-3</th><th>TOP-10</th><th>TOP-30</th><th>Open Tasks</th><th>Actions</th></tr>
+      <tr>
+        <th>Site</th>
+        <th>Keywords</th>
+        <th>TOP-3</th>
+        <th>TOP-10</th>
+        <th>TOP-30</th>
+        <th>Open Tasks</th>
+        <th>Actions</th>
+      </tr>
     </thead>
     <tbody>
       {% for s in sites_overview %}
       <tr>
-        <td style="font-weight:500"><a href="/ui/sites/{{ s.id }}/detail">{{ s.name }}</a></td>
+        <td>
+          <a href="/ui/sites/{{ s.id }}/detail" class="font-semibold text-indigo-600 hover:underline">{{ s.name }}</a>
+        </td>
         <td>{{ s.keyword_count }}</td>
-        <td style="color:#059669; font-weight:700">{{ s.top3 }}</td>
-        <td style="color:#2563eb; font-weight:700">{{ s.top10 }}</td>
+        <td class="text-emerald-700 font-bold">{{ s.top3 }}</td>
+        <td class="text-indigo-600 font-bold">{{ s.top10 }}</td>
         <td>{{ s.top30 }}</td>
         <td>{{ s.open_tasks }}</td>
         <td>
           <a href="/ui/positions/{{ s.id }}" class="btn btn-sm">Positions</a>
-          <a href="/ui/keywords/{{ s.id }}" class="btn btn-sm" style="margin-left:.25rem">Keywords</a>
+          <a href="/ui/keywords/{{ s.id }}" class="btn btn-sm ml-1">Keywords</a>
         </td>
       </tr>
       {% endfor %}
@@ -55,9 +147,10 @@
 </div>
 {% endif %}
 
+{# ─── Section 4: Projects (preserved) ─── #}
 {% if projects %}
 <div class="card">
-  <h3 style="margin:0 0 1rem">Projects</h3>
+  <h3 class="text-base font-semibold text-gray-800 mb-3">Projects</h3>
   <table>
     <thead>
       <tr><th>Name</th><th>Site</th><th>Status</th><th>Actions</th></tr>
@@ -65,12 +158,16 @@
     <tbody>
       {% for p in projects %}
       <tr>
-        <td style="font-weight:500">{{ p.name }}</td>
-        <td style="font-size:.85rem">{{ p.site_name or '—' }}</td>
-        <td><span class="badge {% if p.status == 'active' %}badge-connected{% elif p.status == 'paused' %}badge-unknown{% else %}badge-failed{% endif %}">{{ p.status }}</span></td>
+        <td class="font-medium text-gray-700">{{ p.name }}</td>
+        <td class="text-sm text-gray-500">{{ p.site_name or '—' }}</td>
+        <td>
+          <span class="badge {% if p.status == 'active' %}badge-connected{% elif p.status == 'paused' %}badge-unknown{% else %}badge-failed{% endif %}">
+            {{ p.status }}
+          </span>
+        </td>
         <td>
           <a href="/ui/projects/{{ p.id }}/kanban" class="btn btn-sm">Kanban</a>
-          <a href="/ui/projects/{{ p.id }}/plan" class="btn btn-sm" style="margin-left:.3rem">Plan</a>
+          <a href="/ui/projects/{{ p.id }}/plan" class="btn btn-sm ml-1">Plan</a>
         </td>
       </tr>
       {% endfor %}
@@ -78,4 +175,5 @@
   </table>
 </div>
 {% endif %}
+
 {% endblock %}
