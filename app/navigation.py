@@ -74,14 +74,15 @@ NAV_SECTIONS = [
         "label": "Настройки",
         "icon": "cog-6-tooth",
         "url": None,
-        "admin_only": True,
+        "admin_only": False,
         "children": [
-            {"id": "users", "label": "Пользователи", "url": "/ui/admin/users"},
-            {"id": "groups", "label": "Группы", "url": "/ui/admin/groups"},
-            {"id": "datasources", "label": "Источники данных", "url": "/ui/datasources"},
-            {"id": "proxy", "label": "Прокси и настройки", "url": "/ui/admin/settings"},
-            {"id": "issues", "label": "Задачи платформы", "url": "/ui/admin/issues"},
-            {"id": "audit-log", "label": "Журнал аудита", "url": "/ui/admin/audit"},
+            {"id": "users", "label": "Пользователи", "url": "/ui/admin/users", "admin_only": True},
+            {"id": "groups", "label": "Группы", "url": "/ui/admin/groups", "admin_only": True},
+            {"id": "datasources", "label": "Источники данных", "url": "/ui/datasources", "admin_only": False},
+            {"id": "proxy", "label": "Прокси", "url": "/ui/admin/proxy", "admin_only": False},
+            {"id": "parameters", "label": "Параметры", "url": "/ui/admin/parameters", "admin_only": False},
+            {"id": "issues", "label": "Задачи платформы", "url": "/ui/admin/issues", "admin_only": False},
+            {"id": "audit-log", "label": "Журнал аудита", "url": "/ui/admin/audit", "admin_only": True},
         ],
     },
 ]
@@ -166,6 +167,8 @@ def build_sidebar_sections(site_id: str | None, is_admin: bool) -> list[dict]:
             "children": [],
         }
         for child in section["children"]:
+            if child.get("admin_only", False) and not is_admin:
+                continue
             raw_url = child.get("url") or "#"
             needs_site = "{site_id}" in raw_url or "{project_id}" in raw_url
             if site_id is not None:

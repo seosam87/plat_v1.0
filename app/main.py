@@ -808,6 +808,10 @@ async def ui_datasources(request: Request, db: AsyncSession = Depends(get_db)) -
     from app.models.oauth_token import OAuthToken
     from sqlalchemy import select as sa_select
 
+    current_user = await _get_current_user_from_cookie(request, db)
+    if not current_user or current_user.role.value not in ("admin", "manager"):
+        return RedirectResponse("/ui/dashboard", status_code=303)
+
     # GSC status
     gsc_tokens = (await db.execute(
         sa_select(OAuthToken).where(OAuthToken.provider == "gsc")
@@ -1740,8 +1744,8 @@ async def ui_admin_issues(request: Request, db: AsyncSession = Depends(get_db)) 
     from sqlalchemy import select as sa_select
 
     current_user = await _get_current_user_from_cookie(request, db)
-    if not current_user:
-        return RedirectResponse("/ui/login", status_code=302)
+    if not current_user or current_user.role.value not in ("admin", "manager"):
+        return RedirectResponse("/ui/dashboard", status_code=303)
 
     result = await db.execute(
         sa_select(PlatformIssue).order_by(PlatformIssue.created_at.desc())
@@ -1771,8 +1775,8 @@ async def ui_admin_create_issue(
     import uuid as _uuid
 
     current_user = await _get_current_user_from_cookie(request, db)
-    if not current_user:
-        return RedirectResponse("/ui/login", status_code=302)
+    if not current_user or current_user.role.value not in ("admin", "manager"):
+        return RedirectResponse("/ui/dashboard", status_code=303)
 
     issue = PlatformIssue(
         id=_uuid.uuid4(),
@@ -1899,19 +1903,15 @@ async def ui_admin_change_password(
     return RedirectResponse("/ui/admin/users", status_code=303)
 
 
-# ---- Admin: System Settings ----
+# ---- Admin: System Settings (split into proxy + parameters) ----
 
 
-@app.get("/ui/admin/settings", response_class=HTMLResponse)
-async def ui_admin_settings(request: Request, db: AsyncSession = Depends(get_db)) -> HTMLResponse:
+@app.get("/ui/admin/parameters", response_class=HTMLResponse)
+async def ui_admin_parameters(request: Request, db: AsyncSession = Depends(get_db)) -> HTMLResponse:
     from app.config import settings as app_settings
-    from app.database import get_sync_db as _get_sync_db
-    from app.models.proxy import Proxy as _Proxy
-    from app.services.service_credential_service import get_credential_sync as _get_cred
-    from sqlalchemy import select as _select
 
     current_user = await _get_current_user_from_cookie(request, db)
-    if not current_user or current_user.role.value != "admin":
+    if not current_user or current_user.role.value not in ("admin", "manager"):
         return RedirectResponse("/ui/dashboard", status_code=303)
 
     settings_data = {
@@ -1923,8 +1923,20 @@ async def ui_admin_settings(request: Request, db: AsyncSession = Depends(get_db)
         "yandex_configured": bool(app_settings.YANDEX_WEBMASTER_TOKEN),
         "dataforseo_configured": bool(app_settings.DATAFORSEO_LOGIN and app_settings.DATAFORSEO_PASSWORD),
     }
+    return templates.TemplateResponse(request, "admin/parameters.html", {"settings": settings_data})
 
-    # Load proxy pool and service credentials via sync session
+
+@app.get("/ui/admin/proxy", response_class=HTMLResponse)
+async def ui_admin_proxy(request: Request, db: AsyncSession = Depends(get_db)) -> HTMLResponse:
+    from app.database import get_sync_db as _get_sync_db
+    from app.models.proxy import Proxy as _Proxy
+    from app.services.service_credential_service import get_credential_sync as _get_cred
+    from sqlalchemy import select as _select
+
+    current_user = await _get_current_user_from_cookie(request, db)
+    if not current_user or current_user.role.value not in ("admin", "manager"):
+        return RedirectResponse("/ui/dashboard", status_code=303)
+
     proxies = []
     xmlproxy_creds = None
     anticaptcha_creds = None
@@ -1938,13 +1950,17 @@ async def ui_admin_settings(request: Request, db: AsyncSession = Depends(get_db)
     except Exception:
         pass  # DB may not be migrated yet in dev/test
 
-    return templates.TemplateResponse(request, "admin/settings.html", {
-        "settings": settings_data,
+    return templates.TemplateResponse(request, "admin/proxy.html", {
         "proxies": proxies,
         "xmlproxy_creds": xmlproxy_creds,
         "anticaptcha_creds": anticaptcha_creds,
         "rucaptcha_creds": rucaptcha_creds,
     })
+
+
+@app.get("/ui/admin/settings", response_class=HTMLResponse)
+async def ui_admin_settings_redirect(request: Request) -> HTMLResponse:
+    return RedirectResponse("/ui/admin/parameters", status_code=301)
 
 
 # ---- Admin: Audit Log UI ----
