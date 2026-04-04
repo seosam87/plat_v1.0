@@ -1,178 +1,197 @@
 {% extends "base.html" %}
 {% block title %}Users — SEO Platform{% endblock %}
 {% block content %}
-<div class="card">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem">
-    <h2 style="margin:0">User Management</h2>
-    <button class="btn btn-primary" onclick="document.getElementById('add-user-modal').style.display='flex'">+ Add User</button>
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+  <div class="flex justify-between items-center mb-6">
+    <h2 class="text-xl font-semibold text-gray-800">User Management</h2>
+    <button class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-4 py-2 rounded-md"
+            onclick="openAddModal()">+ Add User</button>
   </div>
 
   {% if users %}
-  <table>
-    <thead>
-      <tr>
-        <th>Username</th>
-        <th>Email</th>
-        <th>Role</th>
-        <th>Status</th>
-        <th>Groups</th>
-        <th>Created</th>
-        <th>Actions</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for u in users %}
-      <tr id="user-row-{{ u.id }}">
-        <td>{{ u.username }}</td>
-        <td>{{ u.email }}</td>
-        <td>
-          <span class="badge" style="
-            {% if u.role == 'admin' %}background:#fef3c7;color:#92400e
-            {% elif u.role == 'manager' %}background:#dbeafe;color:#1e40af
-            {% else %}background:#f3f4f6;color:#6b7280{% endif %}
-          ">{{ u.role }}</span>
-        </td>
-        <td>
-          {% if u.is_active %}
-          <span class="badge" style="background:#d1fae5;color:#065f46">Active</span>
-          {% else %}
-          <span class="badge" style="background:#fee2e2;color:#991b1b">Inactive</span>
-          {% endif %}
-        </td>
-        <td>
-          {% set ugroups = user_groups.get(u.id, []) %}
-          {% if ugroups %}
-            {% for g in ugroups %}
-            <span class="badge" style="background:#dbeafe;color:#1e40af;margin-right:.25rem">{{ g }}</span>
-            {% endfor %}
-          {% else %}
-          <span style="color:#6b7280">—</span>
-          {% endif %}
-        </td>
-        <td style="color:#6b7280;font-size:.85rem">{{ u.created_at[:10] if u.created_at else '' }}</td>
-        <td>
-          <button class="btn btn-sm"
-                  style="background:#4f46e5;color:white"
-                  onclick="openEditModal('{{ u.id }}','{{ u.username }}','{{ u.email }}','{{ u.role }}')"
-          >Edit</button>
-          {% if u.is_active %}
-          <form class="inline">
-            <button class="btn btn-sm"
-                    style="background:#ef4444;color:white;margin-left:.5rem"
-                    hx-post="/ui/admin/users/{{ u.id }}/deactivate"
-                    hx-target="#user-row-{{ u.id }}"
-                    hx-swap="outerHTML"
-                    hx-confirm="Deactivate user '{{ u.username }}'?"
-            >Deactivate</button>
-          </form>
-          {% else %}
-          <form class="inline">
-            <button class="btn btn-sm"
-                    style="background:#22c55e;color:white;margin-left:.5rem"
-                    hx-post="/ui/admin/users/{{ u.id }}/activate"
-                    hx-target="#user-row-{{ u.id }}"
-                    hx-swap="outerHTML"
-            >Activate</button>
-          </form>
-          {% endif %}
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  <div class="overflow-x-auto">
+    <table class="min-w-full divide-y divide-gray-200 text-sm">
+      <thead class="bg-gray-50">
+        <tr>
+          <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Username</th>
+          <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+          <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+          <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+          <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Groups</th>
+          <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
+          <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+        </tr>
+      </thead>
+      <tbody class="bg-white divide-y divide-gray-100">
+        {% for u in users %}
+        <tr id="user-row-{{ u.id }}">
+          <td class="px-4 py-3 text-gray-700">{{ u.username }}</td>
+          <td class="px-4 py-3 text-gray-700">{{ u.email }}</td>
+          <td class="px-4 py-3">
+            {% if u.role == 'admin' %}
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">{{ u.role }}</span>
+            {% elif u.role == 'manager' %}
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">{{ u.role }}</span>
+            {% else %}
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">{{ u.role }}</span>
+            {% endif %}
+          </td>
+          <td class="px-4 py-3">
+            {% if u.is_active %}
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">Active</span>
+            {% else %}
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">Inactive</span>
+            {% endif %}
+          </td>
+          <td class="px-4 py-3">
+            {% set ugroups = user_groups.get(u.id, []) %}
+            {% if ugroups %}
+              {% for g in ugroups %}
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mr-1">{{ g }}</span>
+              {% endfor %}
+            {% else %}
+            <span class="text-gray-400">—</span>
+            {% endif %}
+          </td>
+          <td class="px-4 py-3 text-gray-500 text-xs">{{ u.created_at[:10] if u.created_at else '' }}</td>
+          <td class="px-4 py-3">
+            <button class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium px-3 py-1.5 rounded"
+                    onclick="openEditModal('{{ u.id }}','{{ u.username }}','{{ u.email }}','{{ u.role }}')"
+            >Edit</button>
+            {% if u.is_active %}
+            <form class="inline">
+              <button class="bg-red-500 hover:bg-red-600 text-white text-xs font-medium px-3 py-1.5 rounded ml-1"
+                      hx-post="/ui/admin/users/{{ u.id }}/deactivate"
+                      hx-target="#user-row-{{ u.id }}"
+                      hx-swap="outerHTML"
+                      hx-confirm="Deactivate user '{{ u.username }}'?"
+              >Deactivate</button>
+            </form>
+            {% else %}
+            <form class="inline">
+              <button class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium px-3 py-1.5 rounded ml-1"
+                      hx-post="/ui/admin/users/{{ u.id }}/activate"
+                      hx-target="#user-row-{{ u.id }}"
+                      hx-swap="outerHTML"
+              >Activate</button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
   {% else %}
-  <p style="color:#6b7280">No users found.</p>
+  <p class="text-gray-500">No users found.</p>
   {% endif %}
 </div>
 
 <!-- Add User Modal -->
-<div id="add-user-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;align-items:center;justify-content:center">
-  <div class="card" style="max-width:450px;width:100%">
-    <h3 style="margin-top:0">Add User</h3>
+<div id="add-user-modal" class="hidden fixed inset-0 bg-black/50 z-50 items-center justify-center">
+  <div class="bg-white rounded-lg shadow-xl p-6 max-w-md w-full mx-4">
+    <h3 class="text-lg font-semibold text-gray-800 mb-4">Add User</h3>
     <form method="post" action="/ui/admin/users">
-      <div style="margin-bottom:.8rem">
-        <label style="display:block;font-weight:600;margin-bottom:.2rem;font-size:.85rem">Username</label>
-        <input type="text" name="username" required style="width:100%;padding:.4rem;border:1px solid #d1d5db;border-radius:4px">
+      <div class="mb-3">
+        <label class="block text-sm font-medium text-gray-700 mb-1">Username</label>
+        <input type="text" name="username" required class="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
       </div>
-      <div style="margin-bottom:.8rem">
-        <label style="display:block;font-weight:600;margin-bottom:.2rem;font-size:.85rem">Email</label>
-        <input type="email" name="email" required style="width:100%;padding:.4rem;border:1px solid #d1d5db;border-radius:4px">
+      <div class="mb-3">
+        <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+        <input type="email" name="email" required class="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
       </div>
-      <div style="margin-bottom:.8rem">
-        <label style="display:block;font-weight:600;margin-bottom:.2rem;font-size:.85rem">Password</label>
-        <div style="display:flex;gap:.5rem">
-          <input type="text" name="password" id="add-password" required minlength="8" style="flex:1;padding:.4rem;border:1px solid #d1d5db;border-radius:4px;font-family:monospace">
-          <button type="button" class="btn btn-sm" style="background:#4f46e5;color:white;white-space:nowrap" onclick="generatePassword('add-password')">Generate</button>
-          <button type="button" class="btn btn-sm" style="background:#059669;color:white" onclick="copyField('add-password')" title="Copy">Copy</button>
+      <div class="mb-3">
+        <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+        <div class="flex gap-2">
+          <input type="text" name="password" id="add-password" required minlength="8" class="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500">
+          <button type="button" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium px-3 py-1.5 rounded whitespace-nowrap" onclick="generatePassword('add-password')">Generate</button>
+          <button type="button" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium px-3 py-1.5 rounded" onclick="copyField('add-password')" title="Copy">Copy</button>
         </div>
       </div>
-      <div style="margin-bottom:1rem">
-        <label style="display:block;font-weight:600;margin-bottom:.2rem;font-size:.85rem">Role</label>
-        <select name="role" style="width:100%;padding:.4rem;border:1px solid #d1d5db;border-radius:4px;background:white">
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-700 mb-1">Role</label>
+        <select name="role" class="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
           <option value="client">Client</option>
           <option value="manager">Manager</option>
           <option value="admin">Admin</option>
         </select>
       </div>
-      <div style="display:flex;gap:.5rem">
-        <button type="submit" class="btn btn-primary">Create</button>
-        <button type="button" class="btn" style="background:#e5e7eb;color:#374151" onclick="document.getElementById('add-user-modal').style.display='none'">Cancel</button>
+      <div class="flex gap-2">
+        <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-4 py-2 rounded-md">Create</button>
+        <button type="button" class="bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium px-4 py-2 rounded-md" onclick="closeAddModal()">Cancel</button>
       </div>
     </form>
   </div>
 </div>
 
 <!-- Edit User Modal -->
-<div id="edit-user-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;align-items:center;justify-content:center">
-  <div class="card" style="max-width:450px;width:100%">
-    <h3 style="margin-top:0">Edit User</h3>
+<div id="edit-user-modal" class="hidden fixed inset-0 bg-black/50 z-50 items-center justify-center">
+  <div class="bg-white rounded-lg shadow-xl p-6 max-w-md w-full mx-4">
+    <h3 class="text-lg font-semibold text-gray-800 mb-4">Edit User</h3>
     <form id="edit-user-form" method="post" action="">
-      <div style="margin-bottom:.8rem">
-        <label style="display:block;font-weight:600;margin-bottom:.2rem;font-size:.85rem">Username</label>
-        <input type="text" name="username" id="edit-username" required style="width:100%;padding:.4rem;border:1px solid #d1d5db;border-radius:4px">
+      <div class="mb-3">
+        <label class="block text-sm font-medium text-gray-700 mb-1">Username</label>
+        <input type="text" name="username" id="edit-username" required class="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
       </div>
-      <div style="margin-bottom:.8rem">
-        <label style="display:block;font-weight:600;margin-bottom:.2rem;font-size:.85rem">Email</label>
-        <input type="email" name="email" id="edit-email" required style="width:100%;padding:.4rem;border:1px solid #d1d5db;border-radius:4px">
+      <div class="mb-3">
+        <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+        <input type="email" name="email" id="edit-email" required class="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
       </div>
-      <div style="margin-bottom:.8rem">
-        <label style="display:block;font-weight:600;margin-bottom:.2rem;font-size:.85rem">New Password <span style="color:#9ca3af;font-weight:400">(leave empty to keep current)</span></label>
-        <div style="display:flex;gap:.5rem">
-          <input type="text" name="password" id="edit-password" minlength="8" style="flex:1;padding:.4rem;border:1px solid #d1d5db;border-radius:4px;font-family:monospace" placeholder="Leave empty to keep current">
-          <button type="button" class="btn btn-sm" style="background:#4f46e5;color:white;white-space:nowrap" onclick="generatePassword('edit-password')">Generate</button>
-          <button type="button" class="btn btn-sm" style="background:#059669;color:white" onclick="copyField('edit-password')" title="Copy">Copy</button>
+      <div class="mb-3">
+        <label class="block text-sm font-medium text-gray-700 mb-1">New Password <span class="text-gray-400 font-normal">(leave empty to keep current)</span></label>
+        <div class="flex gap-2">
+          <input type="text" name="password" id="edit-password" minlength="8" placeholder="Leave empty to keep current" class="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500">
+          <button type="button" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium px-3 py-1.5 rounded whitespace-nowrap" onclick="generatePassword('edit-password')">Generate</button>
+          <button type="button" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium px-3 py-1.5 rounded" onclick="copyField('edit-password')" title="Copy">Copy</button>
         </div>
       </div>
-      <div style="margin-bottom:1rem">
-        <label style="display:block;font-weight:600;margin-bottom:.2rem;font-size:.85rem">Role</label>
-        <select name="role" id="edit-role" style="width:100%;padding:.4rem;border:1px solid #d1d5db;border-radius:4px;background:white">
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-700 mb-1">Role</label>
+        <select name="role" id="edit-role" class="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
           <option value="client">Client</option>
           <option value="manager">Manager</option>
           <option value="admin">Admin</option>
         </select>
       </div>
-      <div style="display:flex;gap:.5rem">
-        <button type="submit" class="btn btn-primary">Save</button>
-        <button type="button" class="btn" style="background:#e5e7eb;color:#374151" onclick="document.getElementById('edit-user-modal').style.display='none'">Cancel</button>
+      <div class="flex gap-2">
+        <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-4 py-2 rounded-md">Save</button>
+        <button type="button" class="bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium px-4 py-2 rounded-md" onclick="closeEditModal()">Cancel</button>
       </div>
     </form>
   </div>
 </div>
 
 {% if error %}
-<div style="position:fixed;bottom:1rem;right:1rem;background:#fee2e2;color:#991b1b;padding:.75rem 1.25rem;border-radius:6px;box-shadow:0 2px 8px rgba(0,0,0,.15);z-index:200">
+<div class="fixed bottom-4 right-4 bg-red-50 border border-red-200 text-red-800 px-5 py-3 rounded-lg shadow-lg z-50">
   {{ error }}
 </div>
 {% endif %}
 
 <script>
+function openAddModal() {
+  const m = document.getElementById('add-user-modal');
+  m.classList.remove('hidden');
+  m.classList.add('flex');
+}
+function closeAddModal() {
+  const m = document.getElementById('add-user-modal');
+  m.classList.add('hidden');
+  m.classList.remove('flex');
+}
 function openEditModal(id, username, email, role) {
   document.getElementById('edit-username').value = username;
   document.getElementById('edit-email').value = email;
   document.getElementById('edit-role').value = role;
   document.getElementById('edit-password').value = '';
   document.getElementById('edit-user-form').action = '/ui/admin/users/' + id + '/edit';
-  document.getElementById('edit-user-modal').style.display = 'flex';
+  const m = document.getElementById('edit-user-modal');
+  m.classList.remove('hidden');
+  m.classList.add('flex');
+}
+function closeEditModal() {
+  const m = document.getElementById('edit-user-modal');
+  m.classList.add('hidden');
+  m.classList.remove('flex');
 }
 function generatePassword(fieldId) {
   const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%';
