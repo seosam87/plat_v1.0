@@ -163,4 +163,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-04 — Phase v4-06 complete (content section Tailwind migration: projects, pipeline, monitoring, audit templates)*
+*Last updated: 2026-04-04 — Phase v4-07 complete (settings section Tailwind migration: users, groups, datasources, proxy, parameters, issues, audit log — per-child admin_only sidebar filtering)*
