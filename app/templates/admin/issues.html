@@ -4,81 +4,87 @@
 <div class="breadcrumbs"><a href="/ui/dashboard">Dashboard</a><span>&rsaquo;</span>Platform Issues</div>
 {% endblock %}
 {% block content %}
-<div class="card" style="margin-bottom:1.5rem">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem">
-    <h2 style="margin:0">Platform Issues</h2>
-    <button class="btn btn-primary" onclick="document.getElementById('add-issue-modal').style.display='flex'">+ Report Issue</button>
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+  <div class="flex justify-between items-center mb-6">
+    <h2 class="text-lg font-semibold text-gray-800">Platform Issues</h2>
+    <button class="inline-flex items-center px-3 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700"
+            onclick="document.getElementById('add-issue-modal').classList.remove('hidden'); document.getElementById('add-issue-modal').classList.add('flex')">
+      + Report Issue
+    </button>
   </div>
 
   {% if issues %}
-  <table>
-    <thead>
-      <tr>
-        <th>Title</th>
-        <th>Status</th>
-        <th>Created By</th>
-        <th>Created</th>
-        <th>Actions</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for i in issues %}
-      <tr>
-        <td>
-          <strong>{{ i.title }}</strong>
-          {% if i.description %}
-          <div style="font-size:.8rem;color:#6b7280;margin-top:.25rem;white-space:pre-wrap;max-width:500px">{{ i.description[:300] }}{% if i.description|length > 300 %}...{% endif %}</div>
-          {% endif %}
-        </td>
-        <td>
-          <span class="badge" style="{% if i.status == 'open' %}background:#fee2e2;color:#991b1b{% elif i.status == 'in_progress' %}background:#fef3c7;color:#92400e{% else %}background:#d1fae5;color:#065f46{% endif %}">
-            {{ i.status.replace('_', ' ') }}
-          </span>
-        </td>
-        <td style="font-size:.85rem;color:#6b7280">{{ i.created_by or '—' }}</td>
-        <td style="font-size:.85rem;color:#6b7280">{{ i.created_at[:16] }}</td>
-        <td>
-          {% if i.status != 'resolved' %}
-          <form class="inline">
-            <select name="status" style="padding:.2rem .4rem;border:1px solid #d1d5db;border-radius:4px;font-size:.8rem"
-                    hx-post="/ui/admin/issues/{{ i.id }}/status" hx-include="this" hx-swap="none"
-                    hx-on::after-request="location.reload()">
-              <option value="open" {% if i.status == 'open' %}selected{% endif %}>Open</option>
-              <option value="in_progress" {% if i.status == 'in_progress' %}selected{% endif %}>In Progress</option>
-              <option value="resolved" {% if i.status == 'resolved' %}selected{% endif %}>Resolved</option>
-            </select>
-          </form>
-          {% else %}
-          <span style="color:#059669;font-size:.85rem">Done</span>
-          {% endif %}
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  <div class="overflow-x-auto">
+    <table class="min-w-full divide-y divide-gray-200 text-sm">
+      <thead class="bg-gray-50">
+        <tr>
+          <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
+          <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+          <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created By</th>
+          <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
+          <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+        </tr>
+      </thead>
+      <tbody class="bg-white divide-y divide-gray-100">
+        {% for i in issues %}
+        <tr>
+          <td class="px-4 py-3 text-gray-700">
+            <strong>{{ i.title }}</strong>
+            {% if i.description %}
+            <div class="text-xs text-gray-400 mt-1 whitespace-pre-wrap max-w-lg">{{ i.description[:300] }}{% if i.description|length > 300 %}...{% endif %}</div>
+            {% endif %}
+          </td>
+          <td class="px-4 py-3">
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if i.status == 'open' %}bg-red-100 text-red-700{% elif i.status == 'in_progress' %}bg-amber-100 text-amber-800{% else %}bg-emerald-100 text-emerald-700{% endif %}">
+              {{ i.status.replace('_', ' ') }}
+            </span>
+          </td>
+          <td class="px-4 py-3 text-xs text-gray-500">{{ i.created_by or '—' }}</td>
+          <td class="px-4 py-3 text-xs text-gray-500">{{ i.created_at[:16] }}</td>
+          <td class="px-4 py-3">
+            {% if i.status != 'resolved' %}
+            <form class="inline">
+              <select name="status" class="block rounded border border-gray-300 px-2 py-1 text-xs bg-white"
+                      hx-post="/ui/admin/issues/{{ i.id }}/status" hx-include="this" hx-swap="none"
+                      hx-on::after-request="location.reload()">
+                <option value="open" {% if i.status == 'open' %}selected{% endif %}>Open</option>
+                <option value="in_progress" {% if i.status == 'in_progress' %}selected{% endif %}>In Progress</option>
+                <option value="resolved" {% if i.status == 'resolved' %}selected{% endif %}>Resolved</option>
+              </select>
+            </form>
+            {% else %}
+            <span class="text-xs text-emerald-600 font-medium">Done</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
   {% else %}
-  <p style="color:#6b7280">No issues reported yet.</p>
+  <p class="text-sm text-gray-500">No issues reported yet.</p>
   {% endif %}
 </div>
 
 <!-- Add Issue Modal -->
-<div id="add-issue-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;align-items:center;justify-content:center">
-  <div class="card" style="max-width:550px;width:100%">
-    <h3 style="margin-top:0">Report Issue</h3>
+<div id="add-issue-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 items-center justify-content-center justify-center">
+  <div class="bg-white rounded-lg shadow-lg border border-gray-200 p-6 max-w-lg w-full mx-4">
+    <h3 class="text-base font-semibold text-gray-800 mt-0 mb-4">Report Issue</h3>
     <form method="post" action="/ui/admin/issues">
-      <div style="margin-bottom:.8rem">
-        <label style="display:block;font-weight:600;margin-bottom:.2rem;font-size:.85rem">Title</label>
+      <div class="mb-3">
+        <label class="block font-semibold text-sm text-gray-700 mb-1">Title</label>
         <input type="text" name="title" required placeholder="Brief description of the issue"
-               style="width:100%;padding:.4rem;border:1px solid #d1d5db;border-radius:4px">
+               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm">
       </div>
-      <div style="margin-bottom:1rem">
-        <label style="display:block;font-weight:600;margin-bottom:.2rem;font-size:.85rem">Description</label>
+      <div class="mb-4">
+        <label class="block font-semibold text-sm text-gray-700 mb-1">Description</label>
         <textarea name="description" rows="5" placeholder="Details, steps to reproduce, error messages..."
-                  style="width:100%;padding:.4rem;border:1px solid #d1d5db;border-radius:4px;font-family:inherit;resize:vertical"></textarea>
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm font-inherit resize-y"></textarea>
       </div>
-      <div style="display:flex;gap:.5rem">
-        <button type="submit" class="btn btn-primary">Submit</button>
-        <button type="button" class="btn" style="background:#e5e7eb;color:#374151" onclick="document.getElementById('add-issue-modal').style.display='none'">Cancel</button>
+      <div class="flex gap-2">
+        <button type="submit" class="inline-flex items-center px-3 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700">Submit</button>
+        <button type="button" class="inline-flex items-center px-3 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-200"
+                onclick="document.getElementById('add-issue-modal').classList.add('hidden'); document.getElementById('add-issue-modal').classList.remove('flex')">Cancel</button>
       </div>
     </form>
   </div>
