@@ -269,7 +269,7 @@ Plans:
 **Plans**: 1 plan
 
 Plans:
-- [ ] v4-09-01-PLAN.md — Fix hx-put to hx-post in schedule.html, fix back-to-site links in 14 templates, delete orphaned admin/settings.html
+- [x] v4-09-01-PLAN.md — Fix hx-put to hx-post in schedule.html, fix back-to-site links in 14 templates, delete orphaned admin/settings.html
 
 ## Progress
 

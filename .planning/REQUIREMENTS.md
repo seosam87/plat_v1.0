@@ -23,8 +23,8 @@
 ### Секция «Сайты»
 
 - [x] **SITE-V4-01**: Пользователь может управлять сайтами через подпункты sidebar секции «Сайты»
-- [ ] **SITE-V4-02**: Пользователь видит историю краулов и расписания для выбранного сайта в этой секции
-- [ ] **SITE-V4-03**: Страница site detail убрана — её функции распределены между sidebar и соответствующими секциями
+- [x] **SITE-V4-02**: Пользователь видит историю краулов и расписания для выбранного сайта в этой секции
+- [x] **SITE-V4-03**: Страница site detail убрана — её функции распределены между sidebar и соответствующими секциями
 
 ### Секция «Позиции и ключи»
 
@@ -238,8 +238,8 @@
 | OVR-02 | Phase v4-02: Секция «Обзор» | Complete |
 | OVR-03 | Phase v4-02: Секция «Обзор» | Complete |
 | SITE-V4-01 | Phase v4-03: Секция «Сайты» | Complete |
-| SITE-V4-02 | Phase v4-09: Fix Runtime Route Gaps | Pending |
-| SITE-V4-03 | Phase v4-09: Fix Runtime Route Gaps | Pending |
+| SITE-V4-02 | Phase v4-09: Fix Runtime Route Gaps | Complete |
+| SITE-V4-03 | Phase v4-09: Fix Runtime Route Gaps | Complete |
 | KW-V4-01 | Phase v4-04: Секция «Позиции и ключи» | Complete |
 | KW-V4-02 | Phase v4-04: Секция «Позиции и ключи» | Complete |
 | KW-V4-03 | Phase v4-04: Секция «Позиции и ключи» | Complete |
