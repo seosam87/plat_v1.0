@@ -257,6 +257,17 @@ Plans:
 - [x] v4-07-02-PLAN.md — Tailwind migration: users.html, groups.html, proxy.html (new) + proxy partials
 - [x] v4-07-03-PLAN.md — Tailwind migration: parameters.html (new), issues.html, audit.html, datasources/index.html
 
+### Phase v4-09: Fix Runtime Route Gaps
+**Goal**: Fix 2 runtime-broken routes found by milestone audit — crawl schedule save (405) and back-to-site navigation (405 in 13 templates). Delete orphaned admin/settings.html.
+**Depends on**: Phase v4-03
+**Requirements**: SITE-V4-02, SITE-V4-03
+**Gap Closure:** Closes gaps from v1.0-MILESTONE-AUDIT.md
+**Success Criteria** (what must be TRUE):
+  1. Crawl schedule form submits successfully (hx-post, not hx-put)
+  2. Back-to-site links in all 13 templates navigate to /ui/sites without 405
+  3. Orphaned admin/settings.html is deleted
+**Plans**: 0 plans
+
 ## Progress
 
 **Execution Order:**
