@@ -1,31 +1,32 @@
 <tr id="proxy-{{ p.id }}">
-  <td>{{ p.url }}</td>
-  <td><span class="badge">{{ p.proxy_type }}</span></td>
-  <td>
-    <span class="badge" style="background:{{ '#22c55e' if p.status == 'active' else '#ef4444' if p.status == 'dead' else '#9ca3af' }};color:white">
-      {{ p.status }}
-    </span>
+  <td class="px-4 py-3 text-gray-700 text-sm">{{ p.url }}</td>
+  <td class="px-4 py-3">
+    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700">{{ p.proxy_type }}</span>
   </td>
-  <td>{{ p.response_time_ms or '---' }} ms</td>
-  <td>{{ p.last_checked_at.strftime('%d.%m %H:%M') if p.last_checked_at else '---' }}</td>
-  <td>
-    <!-- Edit inline form (toggled by JS or HTMX) -->
-    <form hx-put="/admin/proxies/{{ p.id }}" hx-target="#proxy-{{ p.id }}" hx-swap="outerHTML" style="display:inline">
+  <td class="px-4 py-3">
+    {% if p.status == 'active' %}
+    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">{{ p.status }}</span>
+    {% elif p.status == 'dead' %}
+    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">{{ p.status }}</span>
+    {% else %}
+    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">{{ p.status }}</span>
+    {% endif %}
+  </td>
+  <td class="px-4 py-3 text-gray-700 text-sm">{{ p.response_time_ms or '---' }} ms</td>
+  <td class="px-4 py-3 text-gray-500 text-sm">{{ p.last_checked_at.strftime('%d.%m %H:%M') if p.last_checked_at else '---' }}</td>
+  <td class="px-4 py-3">
+    <form hx-put="/admin/proxies/{{ p.id }}" hx-target="#proxy-{{ p.id }}" hx-swap="outerHTML" class="inline">
       <input type="hidden" name="url" value="{{ p.url }}">
       <input type="hidden" name="proxy_type" value="{{ p.proxy_type }}">
-      <button type="button" class="btn btn-sm"
-              onclick="this.closest('tr').querySelector('.edit-form').style.display='block';this.closest('tr').querySelector('.view-row').style.display='none'">
-        Edit
-      </button>
     </form>
-    <button class="btn btn-sm" style="background:#ef4444;color:white"
+    <button class="bg-red-500 hover:bg-red-600 text-white text-xs font-medium px-3 py-1.5 rounded mr-1"
             hx-delete="/admin/proxies/{{ p.id }}"
             hx-target="#proxy-{{ p.id }}"
             hx-swap="outerHTML swap:200ms"
             hx-confirm="Delete proxy?">
       Delete
     </button>
-    <button class="btn btn-sm"
+    <button class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium px-3 py-1.5 rounded"
             hx-post="/admin/proxies/{{ p.id }}/check"
             hx-target="#proxy-{{ p.id }}"
             hx-swap="outerHTML">

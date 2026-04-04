@@ -1,24 +1,47 @@
 <div id="proxy-section">
-  <table style="width:100%;border-collapse:collapse;font-size:.9rem">
-    <thead>
-      <tr style="border-bottom:2px solid #e5e7eb;text-align:left">
-        <th style="padding:.5rem">URL</th>
-        <th style="padding:.5rem">Type</th>
-        <th style="padding:.5rem">Status</th>
-        <th style="padding:.5rem">Response Time</th>
-        <th style="padding:.5rem">Last Checked</th>
-        <th style="padding:.5rem">Actions</th>
-      </tr>
-    </thead>
-    <tbody id="proxy-table-body">
-      {% for p in proxies %}
-        {% include "admin/partials/proxy_row.html" %}
-      {% endfor %}
-    </tbody>
-  </table>
+  <div class="overflow-x-auto mb-4">
+    <table class="min-w-full divide-y divide-gray-200 text-sm">
+      <thead class="bg-gray-50">
+        <tr>
+          <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">URL</th>
+          <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+          <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+          <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Response Time</th>
+          <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Checked</th>
+          <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="proxy-table-body" class="bg-white divide-y divide-gray-100">
+        {% for p in proxies %}
+          {% include "admin/partials/proxy_row.html" %}
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
   {% if xmlproxy_balance %}
-  <p style="font-size:.85rem;color:#6b7280;margin-top:.5rem">
+  <p class="text-sm text-gray-500 mt-2">
     XMLProxy balance: {{ xmlproxy_balance.data }} | Cost: {{ xmlproxy_balance.cur_cost }} | Max: {{ xmlproxy_balance.max_cost }}
   </p>
   {% endif %}
+
+  <!-- Add proxy form -->
+  <form hx-post="/admin/proxies"
+        hx-target="#proxy-table-body"
+        hx-swap="beforeend"
+        class="flex gap-3 items-end flex-wrap mb-4">
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">Proxy URL</label>
+      <input type="text" name="url" required placeholder="http://user:pass@host:port"
+             class="block rounded-md border border-gray-300 px-3 py-2 text-sm min-w-[280px] focus:outline-none focus:ring-2 focus:ring-indigo-500">
+    </div>
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">Type</label>
+      <select name="proxy_type"
+              class="block rounded-md border border-gray-300 px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        <option value="http">HTTP</option>
+        <option value="socks5">SOCKS5</option>
+      </select>
+    </div>
+    <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium px-3 py-1.5 rounded">Добавить</button>
+  </form>
 </div>
