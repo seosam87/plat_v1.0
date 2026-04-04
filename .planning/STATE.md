@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: verifying
-stopped_at: Phase v4-07 context gathered
-last_updated: "2026-04-03T23:30:00.838Z"
-last_activity: 2026-04-03
+status: executing
+stopped_at: Completed v4-07-01-PLAN.md
+last_updated: "2026-04-04T15:26:00.456Z"
+last_activity: 2026-04-04
 progress:
   total_phases: 13
   completed_phases: 1
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-03)
 
 **Core value:** A team member or client can open the platform and immediately see the SEO health of any site — positions, recent changes, pending tasks — without switching between GSC, spreadsheets, and WP admin.
-**Current focus:** Phase v4-06-section — content
+**Current focus:** Phase v4-07-settings — section
 
 ## Current Position
 
-Phase: v4-06-section
-Plan: Not started
-Status: Phase complete — ready for verification
-Last activity: 2026-04-03
+Phase: v4-07-settings (section) — EXECUTING
+Plan: 2 of 3
+Status: Ready to execute
+Last activity: 2026-04-04
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -78,6 +78,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase v4-06-section-content P01 | 3 | 2 tasks | 3 files |
 | Phase v4-06-section-content P02 | 164s | 2 tasks | 2 files |
 | Phase v4-06-section-content P03 | 8 | 2 tasks | 2 files |
+| Phase v4-07-settings-section P01 | 5 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -128,6 +129,9 @@ Recent decisions affecting current work:
 - [Phase v4-06-02]: Diff modal uses classList toggle (hidden/flex) not style.display — consistent with v4-04/v4-05 patterns
 - [Phase v4-06-02]: Tab panel show/hide uses classList.add/remove('hidden') not style.display — zero inline style constraint
 - [Phase v4-06-03]: option elements style= removed — cross-browser option coloring unreliable; row.style.display kept in filterAlerts()/filterTable() for <tr> runtime filtering only (not template HTML); schema modal uses classList hidden/flex toggle matching v4-04/v4-05 pattern
+- [Phase v4-07-01]: Settings section-level admin_only changed to False; per-child admin_only flags control manager visibility; managers see 4 of 7 settings children
+- [Phase v4-07-01]: ui_admin_settings split into ui_admin_parameters + ui_admin_proxy; old /ui/admin/settings returns 301 redirect to /ui/admin/parameters
+- [Phase v4-07-01]: Issues route guards upgraded from login-only to admin+manager; /ui/datasources missing auth guard added (Rule 2)
 
 ### Pending Todos
 
@@ -152,6 +156,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-03T23:30:00.834Z
-Stopped at: Phase v4-07 context gathered
-Resume file: .planning/phases/v4-07-settings-section/v4-07-CONTEXT.md
+Last session: 2026-04-04T15:26:00.452Z
+Stopped at: Completed v4-07-01-PLAN.md
+Resume file: None

@@ -253,7 +253,7 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] v4-07-01-PLAN.md — Navigation infrastructure: per-child admin_only filtering, settings route split (proxy + parameters), role guards
+- [x] v4-07-01-PLAN.md — Navigation infrastructure: per-child admin_only filtering, settings route split (proxy + parameters), role guards
 - [ ] v4-07-02-PLAN.md — Tailwind migration: users.html, groups.html, proxy.html (new) + proxy partials
 - [ ] v4-07-03-PLAN.md — Tailwind migration: parameters.html (new), issues.html, audit.html, datasources/index.html
 
