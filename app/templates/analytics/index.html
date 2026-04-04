@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Аналитика — {{ site.name }} — SEO Platform{% endblock %}
 {% block breadcrumbs %}
-<div class="breadcrumbs"><a href="/ui/dashboard">Dashboard</a><span>&rsaquo;</span><a href="/ui/sites">Sites</a><span>&rsaquo;</span><a href="/ui/sites/{{ site.id }}">{{ site.name }}</a><span>&rsaquo;</span>Analytics</div>
+<div class="breadcrumbs"><a href="/ui/dashboard">Dashboard</a><span>&rsaquo;</span><a href="/ui/sites">Sites</a><span>&rsaquo;</span><a href="/ui/sites">{{ site.name }}</a><span>&rsaquo;</span>Analytics</div>
 {% endblock %}
 {% block content %}
 <div class="flex justify-between items-center mb-6">
@@ -13,7 +13,7 @@
       <option value="{{ s.id }}">{{ s.name }} ({{ s.keyword_count }} кл.)</option>
       {% endfor %}
     </select>
-    <a href="/ui/sites/{{ site.id }}" class="btn btn-sm">&larr; К сайту</a>
+    <a href="/ui/sites" class="btn btn-sm">&larr; К сайту</a>
   </div>
 </div>
 

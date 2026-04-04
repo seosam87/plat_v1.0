@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Трафик — {{ site.name }} — SEO Platform{% endblock %}
 {% block breadcrumbs %}
-<div class="breadcrumbs"><a href="/ui/dashboard">Dashboard</a><span>&rsaquo;</span><a href="/ui/sites">Sites</a><span>&rsaquo;</span>{% if site %}<a href="/ui/sites/{{ site.id }}">{{ site.name }}</a><span>&rsaquo;</span>{% endif %}Metrika</div>
+<div class="breadcrumbs"><a href="/ui/dashboard">Dashboard</a><span>&rsaquo;</span><a href="/ui/sites">Sites</a><span>&rsaquo;</span>{% if site %}<a href="/ui/sites">{{ site.name }}</a><span>&rsaquo;</span>{% endif %}Metrika</div>
 {% endblock %}
 {% block content %}
 
