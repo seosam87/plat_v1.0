@@ -250,7 +250,12 @@ Plans:
   2. Settings section and all its sub-items are only visible to users with admin role
   3. All Settings pages use Tailwind utility classes (zero inline style= attributes)
   4. All existing functionality preserved: CRUD operations, form submissions, HTMX interactions
-**Plans**: 0 plans
+**Plans**: 3 plans
+
+Plans:
+- [ ] v4-07-01-PLAN.md — Navigation infrastructure: per-child admin_only filtering, settings route split (proxy + parameters), role guards
+- [ ] v4-07-02-PLAN.md — Tailwind migration: users.html, groups.html, proxy.html (new) + proxy partials
+- [ ] v4-07-03-PLAN.md — Tailwind migration: parameters.html (new), issues.html, audit.html, datasources/index.html
 
 ## Progress
 
