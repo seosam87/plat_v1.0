@@ -1,65 +1,65 @@
 {% extends "base.html" %}
 {% block title %}Data Sources — SEO Platform{% endblock %}
 {% block content %}
-<div class="card" style="margin-bottom:1.5rem">
-  <h2 style="margin:0 0 1.5rem">Data Sources <a class="help-trigger" onclick="openHelp()" title="Справка">?</a></h2>
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+  <h2 class="text-lg font-semibold text-gray-800 mb-6">Data Sources <a class="help-trigger" onclick="openHelp()" title="Справка">?</a></h2>
 
-  <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:1rem">
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4">
     <!-- GSC -->
-    <div style="border:1px solid #e5e7eb; border-radius:8px; padding:1.25rem">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:.75rem">
-        <strong>Google Search Console</strong>
-        <span class="badge {% if gsc_connected %}badge-connected{% else %}badge-unknown{% endif %}">
+    <div class="border border-gray-200 rounded-lg p-5">
+      <div class="flex justify-between items-center mb-3">
+        <strong class="text-sm font-semibold text-gray-800">Google Search Console</strong>
+        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if gsc_connected %}bg-emerald-100 text-emerald-700{% else %}bg-gray-100 text-gray-500{% endif %}">
           {{ 'connected' if gsc_connected else 'not connected' }}
         </span>
       </div>
-      <p style="font-size:.85rem; color:#6b7280; margin:0 0 .75rem">Клики, показы, CTR, позиции из поиска Google</p>
+      <p class="text-sm text-gray-500 mb-3">Клики, показы, CTR, позиции из поиска Google</p>
       {% if gsc_connected %}
-      <span style="font-size:.85rem; color:#059669">Токен сохранён для {{ gsc_sites_count }} сайт(ов)</span>
+      <span class="text-sm text-emerald-600">Токен сохранён для {{ gsc_sites_count }} сайт(ов)</span>
       {% else %}
-      <p style="font-size:.85rem; color:#6b7280">Подключите через OAuth на странице сайта</p>
+      <p class="text-sm text-gray-500">Подключите через OAuth на странице сайта</p>
       {% endif %}
     </div>
 
     <!-- Yandex Webmaster -->
-    <div style="border:1px solid #e5e7eb; border-radius:8px; padding:1.25rem">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:.75rem">
-        <strong>Yandex Webmaster</strong>
-        <span class="badge {% if yandex_configured %}badge-connected{% else %}badge-unknown{% endif %}">
+    <div class="border border-gray-200 rounded-lg p-5">
+      <div class="flex justify-between items-center mb-3">
+        <strong class="text-sm font-semibold text-gray-800">Yandex Webmaster</strong>
+        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if yandex_configured %}bg-emerald-100 text-emerald-700{% else %}bg-gray-100 text-gray-500{% endif %}">
           {{ 'configured' if yandex_configured else 'not configured' }}
         </span>
       </div>
-      <p style="font-size:.85rem; color:#6b7280; margin:0 0 .75rem">Запросы, показы, позиции в Яндексе</p>
+      <p class="text-sm text-gray-500 mb-3">Запросы, показы, позиции в Яндексе</p>
       {% if yandex_configured %}
-      <span style="font-size:.85rem; color:#059669">Токен задан</span>
+      <span class="text-sm text-emerald-600">Токен задан</span>
       {% else %}
-      <p style="font-size:.85rem; color:#6b7280">Укажите YANDEX_WEBMASTER_TOKEN в настройках</p>
+      <p class="text-sm text-gray-500">Укажите YANDEX_WEBMASTER_TOKEN в настройках</p>
       {% endif %}
     </div>
 
     <!-- SERP Parser -->
-    <div style="border:1px solid #e5e7eb; border-radius:8px; padding:1.25rem">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:.75rem">
-        <strong>SERP Parser (Playwright)</strong>
-        <span class="badge badge-connected">active</span>
+    <div class="border border-gray-200 rounded-lg p-5">
+      <div class="flex justify-between items-center mb-3">
+        <strong class="text-sm font-semibold text-gray-800">SERP Parser (Playwright)</strong>
+        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">active</span>
       </div>
-      <p style="font-size:.85rem; color:#6b7280; margin:0 0 .75rem">Парсинг выдачи Google и Яндекс</p>
-      <div style="font-size:.85rem">
+      <p class="text-sm text-gray-500 mb-3">Парсинг выдачи Google и Яндекс</p>
+      <div class="text-sm text-gray-700 mb-2">
         Использовано сегодня: <strong>{{ serp_usage.used }}</strong> / {{ serp_usage.limit }}
       </div>
-      <div style="margin-top:.5rem; height:6px; border-radius:3px; background:#e5e7eb">
-        {% set pct = (serp_usage.used / serp_usage.limit * 100) if serp_usage.limit > 0 else 0 %}
-        <div style="width:{{ pct|round(1) }}%; height:100%; border-radius:3px; background:{% if pct > 80 %}#dc2626{% elif pct > 50 %}#f59e0b{% else %}#059669{% endif %}"></div>
+      {% set pct = (serp_usage.used / serp_usage.limit * 100) if serp_usage.limit > 0 else 0 %}
+      <div class="w-full bg-gray-200 rounded-full h-2.5">
+        <div class="h-2.5 rounded-full {% if pct > 80 %}bg-red-600{% elif pct > 50 %}bg-amber-400{% else %}bg-emerald-500{% endif %}" style="width:{{ pct|round(1) }}%"></div>
       </div>
     </div>
 
     <!-- Yandex Metrika -->
-    <div style="border:1px solid #e5e7eb; border-radius:8px; padding:1.25rem">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:.75rem">
-        <strong>Yandex Metrika</strong>
-        <span class="badge badge-unknown">planned</span>
+    <div class="border border-gray-200 rounded-lg p-5">
+      <div class="flex justify-between items-center mb-3">
+        <strong class="text-sm font-semibold text-gray-800">Yandex Metrika</strong>
+        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">planned</span>
       </div>
-      <p style="font-size:.85rem; color:#6b7280; margin:0">Органический трафик, визиты, глубина — планируется</p>
+      <p class="text-sm text-gray-500">Органический трафик, визиты, глубина — планируется</p>
     </div>
   </div>
 </div>
