@@ -1,31 +1,25 @@
 {
   "version": "1.0",
-  "timestamp": "2026-04-03T14:00:00.000Z",
-  "phase": "v4-02",
-  "phase_name": "section-overview",
-  "phase_dir": ".planning/phases/v4-02-section-overview",
-  "plan": 2,
+  "timestamp": "2026-04-04T17:34:36.810Z",
+  "phase": "v4-09",
+  "phase_name": "Fix Runtime Route Gaps",
+  "phase_dir": ".planning/phases/v4-09-fix-runtime-route-gaps",
+  "plan": 1,
   "task": 2,
   "total_tasks": 2,
-  "status": "checkpoint",
+  "status": "paused",
   "completed_tasks": [
-    {"id": 1, "name": "v4-02-01 T1: overview_service.py", "status": "done", "commit": "770afdf"},
-    {"id": 2, "name": "v4-02-01 T2: wire into ui_dashboard", "status": "done", "commit": "7358841"},
-    {"id": 3, "name": "v4-02-02 T1: dashboard template rewrite", "status": "done", "commit": "9748148"}
+    {"id": 1, "name": "Fix hx-put to hx-post + back-to-site links in 14 templates", "status": "done", "commit": "168e671"},
+    {"id": 2, "name": "Delete orphaned admin/settings.html", "status": "done", "commit": "481e9c8"}
   ],
-  "remaining_tasks": [
-    {"id": 4, "name": "v4-02-02 T2: visual verification", "status": "awaiting_human"}
-  ],
+  "remaining_tasks": [],
   "blockers": [],
-  "human_actions_pending": [
-    {"action": "Deploy and visually verify /ui/dashboard", "context": "Check position cards, trend arrows, tasks widget, <3s load", "blocking": true}
-  ],
+  "human_actions_pending": [],
   "decisions": [
-    {"decision": "overview_service separate from report_service", "rationale": "Different concern"},
-    {"decision": "Redis cache 300s TTL for position aggregation", "rationale": "Performance <3s"},
-    {"decision": "Dashboard fully rewritten to Tailwind", "rationale": "Consistency with new sidebar layout"}
+    {"decision": "Grouped all 3 audit gaps into a single phase v4-09", "rationale": "All gaps are simple template fixes — no reason to split", "phase": "v4-09"},
+    {"decision": "Deferred 7 tech debt items from audit", "rationale": "Not blocking requirements — tracked in MILESTONE-AUDIT.md tech_debt section", "phase": "v4-09"}
   ],
   "uncommitted_files": [],
-  "next_action": "Deploy, verify /ui/dashboard visually, type 'approved' to complete phase",
-  "context_notes": "v4-01 complete, v4-08 smoke test complete. v4-02 is first section migration. After approval: v4-03..v4-07 section migrations, v4-09 polish."
+  "next_action": "Run /gsd:plan-milestone-gaps to create phases for the 4 unsatisfied requirements (VIS-02, MIG-01, MIG-02, MIG-03) and the Tailwind CSS gap. Or decide to defer VIS-02/MIG-* and proceed with /gsd:complete-milestone v1.0 accepting tech debt.",
+  "context_notes": "Session completed: gap closure (v4-09) + re-audit. v4-09 fixed all 3 previous audit gaps (schedule 405, back-to-site 405, orphaned settings.html). Re-audit found NEW critical issue: Tailwind CSS is never loaded in base.html — 35 templates use Tailwind utility classes with no CSS definitions. Also found 4 unsatisfied requirements: VIS-02 (dark mode), MIG-01/02/03 (migration audit). User needs to decide: fix Tailwind + MIG requirements, or accept as tech debt and complete milestone."
 }
