@@ -266,7 +266,10 @@ Plans:
   1. Crawl schedule form submits successfully (hx-post, not hx-put)
   2. Back-to-site links in all 13 templates navigate to /ui/sites without 405
   3. Orphaned admin/settings.html is deleted
-**Plans**: 0 plans
+**Plans**: 1 plan
+
+Plans:
+- [ ] v4-09-01-PLAN.md — Fix hx-put to hx-post in schedule.html, fix back-to-site links in 14 templates, delete orphaned admin/settings.html
 
 ## Progress
 
