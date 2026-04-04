@@ -163,4 +163,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-04 — Phase v4-07 complete (settings section Tailwind migration: users, groups, datasources, proxy, parameters, issues, audit log — per-child admin_only sidebar filtering)*
+*Last updated: 2026-04-04 — Phase v4-09 complete (gap closure: fixed schedule 405 hx-put→hx-post, fixed 14 back-to-site 405 links, deleted orphaned admin/settings.html)*
