@@ -129,10 +129,9 @@ async def fetch_page_traffic(
         "date2": date2,
         "dimensions": "ym:s:startURL",
         "metrics": page_metrics,
-        "filters": ORGANIC_FILTER,
         "sort": "-ym:s:visits",
         "limit": limit,
-        "offset": 0,
+        "offset": 1,
     }
 
     all_rows: list[dict] = []
@@ -171,7 +170,7 @@ async def fetch_page_traffic(
             if len(all_rows) >= total_rows or len(records) < limit:
                 break
 
-            params["offset"] = params["offset"] + limit  # type: ignore[assignment]
+            params["offset"] = params["offset"] + limit
 
     logger.info(
         "Metrika page traffic fetched",
