@@ -213,7 +213,7 @@ Plans:
 
 Plans:
 - [ ] 09.1-01-PLAN.md — Fix kanban (task creation form, breadcrumbs, comment 422) and plan page (breadcrumbs, add-item form, context, empty state)
-- [ ] 09.1-02-PLAN.md — Fix pipeline page (batch feedback with job count, helpful empty state with prerequisites)
+- [x] 09.1-02-PLAN.md — Fix pipeline page (batch feedback with job count, helpful empty state with prerequisites)
 
 ### Phase 10: Reports & Ads
 **Goal**: User can view a live dashboard aggregating all projects, export project reports as PDF and Excel, schedule automatic delivery via Telegram or email, and upload/compare ad traffic data.
