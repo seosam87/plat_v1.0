@@ -49,9 +49,9 @@
 {# ─── KPI stats row ─── #}
 {% set last = daily_data[-1] if daily_data else {} %}
 {% set totals_visits = daily_data | sum(attribute='visits') %}
-{% set totals_bounce = last.get('bounce_rate', 0) if last else 0 %}
-{% set totals_depth  = last.get('page_depth', 0) if last else 0 %}
-{% set totals_dur    = last.get('avg_duration_seconds', 0) if last else 0 %}
+{% set totals_bounce = (last.get('bounce_rate') or 0) if last else 0 %}
+{% set totals_depth  = (last.get('page_depth') or 0) if last else 0 %}
+{% set totals_dur    = (last.get('avg_duration_seconds') or 0) if last else 0 %}
 
 <div class="grid grid-cols-[repeat(auto-fit,minmax(160px,1fr))] gap-4 mb-6">
 

@@ -156,8 +156,8 @@ async def fetch_page_traffic(
                 metrics = record.get("metrics", [])
 
                 raw_url = dims[0].get("name", "") if dims else ""
-                # Strip query parameters for URL normalization
-                normalized_url = urlsplit(raw_url)._replace(query="", fragment="").geturl()
+                # Strip query parameters, fragment, and trailing slash for URL normalization
+                normalized_url = urlsplit(raw_url)._replace(query="", fragment="").geturl().rstrip("/")
 
                 all_rows.append({
                     "page_url": normalized_url,
