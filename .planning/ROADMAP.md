@@ -209,10 +209,10 @@ Plans:
 **Goal:** Position check returns structured diagnostics explaining why 0 results were written (no credentials, no balance, no keywords, API error), and frontend displays them with color-coded severity (green/amber/red) instead of misleading green "Done. 0 results".
 **Requirements**: POSDIAG-01, POSDIAG-02, POSDIAG-03
 **Depends on:** Phase 09
-**Plans:** 1 plan
+**Plans:** 1/1 plans complete
 
 Plans:
-- [ ] 09.2-01-PLAN.md — Add diagnostics list to Celery task return value + color-coded diagnostic display in frontend polling JS
+- [x] 09.2-01-PLAN.md — Add diagnostics list to Celery task return value + color-coded diagnostic display in frontend polling JS
 
 ### Phase 09.1: Fix project UI bugs — task creation, breadcrumbs, comments, plan page, pipeline feedback (INSERTED)
 
