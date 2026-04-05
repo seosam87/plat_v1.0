@@ -209,10 +209,10 @@ Plans:
 **Goal:** Fix 6 bugs across project management and pipeline pages: missing task creation UI, broken breadcrumbs, comment form 422 error, dead-end plan page, silent batch execution, and unhelpful empty states.
 **Requirements**: BUG-01, BUG-02, BUG-03, BUG-04, BUG-05, BUG-06
 **Depends on:** Phase 09
-**Plans:** 2 plans
+**Plans:** 2/2 plans complete
 
 Plans:
-- [ ] 09.1-01-PLAN.md — Fix kanban (task creation form, breadcrumbs, comment 422) and plan page (breadcrumbs, add-item form, context, empty state)
+- [x] 09.1-01-PLAN.md — Fix kanban (task creation form, breadcrumbs, comment 422) and plan page (breadcrumbs, add-item form, context, empty state)
 - [x] 09.1-02-PLAN.md — Fix pipeline page (batch feedback with job count, helpful empty state with prerequisites)
 
 ### Phase 10: Reports & Ads
