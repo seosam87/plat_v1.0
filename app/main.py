@@ -945,7 +945,7 @@ async def ui_plan(project_id: str, request: Request, db: AsyncSession = Depends(
          "wp_post_id": i.wp_post_id, "wp_post_url": i.wp_post_url, "notes": i.notes}
         for i in items
     ]
-    return templates.TemplateResponse(request, "projects/plan.html", {"project_name": project.name, "items": items_data})
+    return templates.TemplateResponse(request, "projects/plan.html", {"project_name": project.name, "project_id": project_id, "items": items_data})
 
 
 @app.get("/ui/pipeline/{site_id}", response_class=HTMLResponse)
