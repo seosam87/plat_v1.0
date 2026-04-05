@@ -160,10 +160,10 @@ async def trigger_fetch(
             detail="Metrika counter ID and token must be configured before fetching data.",
         )
 
-    # Defaults: date1 = 90 days ago, date2 = yesterday
+    # Defaults: date1 = 90 days ago, date2 = yesterday (Metrika has no data for today)
     yesterday = (date.today() - timedelta(days=1)).isoformat()
     date1 = payload.date1 or (date.today() - timedelta(days=90)).isoformat()
-    date2 = payload.date2 or yesterday
+    date2 = min(payload.date2 or yesterday, yesterday)
 
     task = fetch_metrika_data.delay(str(site_id), date1, date2)
     return {"status": "queued", "task_id": task.id}
