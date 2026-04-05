@@ -2582,6 +2582,36 @@ async def ui_ads_compare(
     )
 
 
+@app.get("/ui/reports/{project_id}", response_class=HTMLResponse)
+async def ui_reports(project_id: str, request: Request, db: AsyncSession = Depends(get_db)) -> HTMLResponse:
+    """Report generation page: select brief/detailed type and download PDF or Excel."""
+    import uuid as _uuid
+    from app.models.project import Project
+    from sqlalchemy import select as sa_select
+
+    token = request.cookies.get("access_token", "")
+    try:
+        from app.auth.jwt import decode_access_token
+        decode_access_token(token)
+    except Exception:
+        return RedirectResponse(f"/ui/login?next=/ui/reports/{project_id}", status_code=302)
+
+    try:
+        pid = _uuid.UUID(project_id)
+    except ValueError:
+        return HTMLResponse("Invalid project ID", status_code=400)
+
+    project = (await db.execute(sa_select(Project).where(Project.id == pid))).scalar_one_or_none()
+    if not project:
+        return HTMLResponse("Project not found", status_code=404)
+
+    return templates.TemplateResponse(request, "reports/generate.html", {
+        "project": project,
+        "project_id": project_id,
+        "project_name": project.name,
+    })
+
+
 @app.get("/")
 async def root():
     return RedirectResponse("/ui/dashboard")

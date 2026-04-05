@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block title %}Generate Report — {{ project_name }}{% endblock %}
+
+{% block content %}
+<div class="flex items-center gap-2 text-sm text-gray-500 mb-6">
+  <a href="/ui/dashboard" class="hover:text-indigo-600">Dashboard</a>
+  <span>/</span>
+  <a href="/ui/dashboard" class="hover:text-indigo-600">Reports</a>
+  <span>/</span>
+  <span class="text-gray-800 font-medium">{{ project_name }}</span>
+</div>
+
+<h1 class="text-2xl font-bold text-gray-900 mb-6">Generate Report — {{ project_name }}</h1>
+
+<div class="card max-w-2xl">
+  <h2 class="text-lg font-semibold text-gray-800 mb-4">Select Report Type</h2>
+
+  <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 mb-6" id="report-type-cards">
+
+    <!-- Brief Card -->
+    <label class="report-card cursor-pointer" data-type="brief">
+      <input type="radio" name="report_type" value="brief" class="sr-only" checked>
+      <div id="card-brief" class="border-2 border-indigo-500 rounded-lg p-4 bg-indigo-50 transition-colors">
+        <div class="flex items-center justify-between mb-2">
+          <span class="font-semibold text-gray-900">Brief</span>
+          <span class="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full">1-2 pages</span>
+        </div>
+        <p class="text-sm text-gray-600">Position trends, task summary, top movers.</p>
+      </div>
+    </label>
+
+    <!-- Detailed Card -->
+    <label class="report-card cursor-pointer" data-type="detailed">
+      <input type="radio" name="report_type" value="detailed" class="sr-only">
+      <div id="card-detailed" class="border-2 border-gray-200 rounded-lg p-4 bg-white hover:border-indigo-300 transition-colors">
+        <div class="flex items-center justify-between mb-2">
+          <span class="font-semibold text-gray-900">Detailed</span>
+          <span class="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">5-10 pages</span>
+        </div>
+        <p class="text-sm text-gray-600">Full keyword table, all tasks, site changes.</p>
+      </div>
+    </label>
+
+  </div>
+
+  <div class="flex flex-col sm:flex-row gap-3">
+    <a
+      id="pdf-link"
+      href="/reports/projects/{{ project_id }}/pdf?type=brief"
+      class="inline-flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors"
+    >
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+      </svg>
+      Download PDF
+    </a>
+
+    <a
+      href="/reports/projects/{{ project_id }}/excel"
+      class="inline-flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors"
+    >
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+      </svg>
+      Download Excel
+    </a>
+  </div>
+</div>
+
+<script>
+(function () {
+  var cards = document.querySelectorAll('.report-card');
+  var pdfLink = document.getElementById('pdf-link');
+
+  cards.forEach(function (label) {
+    label.addEventListener('click', function () {
+      var selectedType = label.getAttribute('data-type');
+
+      // Update PDF link href
+      var baseHref = '/reports/projects/{{ project_id }}/pdf?type=';
+      pdfLink.href = baseHref + selectedType;
+
+      // Update card styles
+      cards.forEach(function (l) {
+        var type = l.getAttribute('data-type');
+        var cardDiv = document.getElementById('card-' + type);
+        if (type === selectedType) {
+          cardDiv.classList.remove('border-gray-200', 'bg-white', 'hover:border-indigo-300');
+          cardDiv.classList.add('border-indigo-500', 'bg-indigo-50');
+        } else {
+          cardDiv.classList.remove('border-indigo-500', 'bg-indigo-50');
+          cardDiv.classList.add('border-gray-200', 'bg-white', 'hover:border-indigo-300');
+        }
+      });
+    });
+  });
+}());
+</script>
+{% endblock %}

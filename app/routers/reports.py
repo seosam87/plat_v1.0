@@ -36,6 +36,24 @@ async def site_overview(
     return await report_service.site_overview(db, site_id)
 
 
+@router.get("/projects/{project_id}/pdf")
+async def export_pdf(
+    project_id: uuid.UUID,
+    type: str = "brief",
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_admin),
+) -> Response:
+    """Generate and download a PDF report for a project (brief or detailed)."""
+    if type not in ("brief", "detailed"):
+        type = "brief"
+    pdf_bytes = await report_service.generate_pdf_report(db, project_id, type)
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="report_{project_id}_{type}.pdf"'},
+    )
+
+
 @router.get("/projects/{project_id}/excel")
 async def export_excel(
     project_id: uuid.UUID,
