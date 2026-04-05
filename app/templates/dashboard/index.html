@@ -28,24 +28,19 @@
   </div>
 </div>
 
-{# ─── Section 1: Cross-Site Position Summary (OVR-01) ─── #}
+{# ─── Section 1: Cross-Site Position Summary ─── #}
 <div class="mb-6">
   <h2 class="text-lg font-semibold text-gray-800 mb-3">Позиции по всем сайтам</h2>
 
   <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
-    {# Card A — TOP-3 #}
     <div class="bg-emerald-50 border border-emerald-200 rounded-lg p-5 flex flex-col items-center justify-center text-center shadow-sm">
       <span class="text-3xl font-bold text-emerald-700">{{ pos_summary.top3 }}</span>
       <span class="text-sm text-gray-500 mt-1">TOP-3</span>
     </div>
-
-    {# Card B — TOP-10 #}
     <div class="bg-indigo-50 border border-indigo-200 rounded-lg p-5 flex flex-col items-center justify-center text-center shadow-sm">
       <span class="text-3xl font-bold text-indigo-700">{{ pos_summary.top10 }}</span>
       <span class="text-sm text-gray-500 mt-1">TOP-10</span>
     </div>
-
-    {# Card C — TOP-100 #}
     <div class="bg-gray-50 border border-gray-200 rounded-lg p-5 flex flex-col items-center justify-center text-center shadow-sm">
       <span class="text-3xl font-bold text-gray-700">{{ pos_summary.top100 }}</span>
       <span class="text-sm text-gray-500 mt-1">TOP-100</span>
@@ -60,7 +55,7 @@
   </div>
 </div>
 
-{# ─── Section 2: Tasks Today (OVR-02) ─── #}
+{# ─── Section 2: Tasks Today ─── #}
 <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mt-4 mb-6">
   <h3 class="text-base font-semibold text-gray-800 mb-3">Задачи на сегодня</h3>
 
@@ -109,71 +104,71 @@
   {% endif %}
 </div>
 
-{# ─── Section 3: Sites Overview (preserved) ─── #}
-{% if sites_overview %}
-<div class="card mb-6">
-  <h3 class="text-base font-semibold text-gray-800 mb-3">Sites Overview</h3>
-  <table>
-    <thead>
-      <tr>
-        <th>Site</th>
-        <th>Keywords</th>
-        <th>TOP-3</th>
-        <th>TOP-10</th>
-        <th>TOP-30</th>
-        <th>Open Tasks</th>
-        <th>Actions</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for s in sites_overview %}
-      <tr>
-        <td>
-          <a href="/ui/sites" class="font-semibold text-indigo-600 hover:underline">{{ s.name }}</a>
-        </td>
-        <td>{{ s.keyword_count }}</td>
-        <td class="text-emerald-700 font-bold">{{ s.top3 }}</td>
-        <td class="text-indigo-600 font-bold">{{ s.top10 }}</td>
-        <td>{{ s.top30 }}</td>
-        <td>{{ s.open_tasks }}</td>
-        <td>
-          <a href="/ui/positions/{{ s.id }}" class="btn btn-sm">Positions</a>
-          <a href="/ui/keywords/{{ s.id }}" class="btn btn-sm ml-1">Keywords</a>
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-</div>
-{% endif %}
+{# ─── Section 3: Per-Project Table (D-01) ─── #}
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+  <div class="px-4 py-3 border-b border-gray-200">
+    <h3 class="text-base font-semibold text-gray-800">Проекты</h3>
+  </div>
 
-{# ─── Section 4: Projects (preserved) ─── #}
-{% if projects %}
-<div class="card">
-  <h3 class="text-base font-semibold text-gray-800 mb-3">Projects</h3>
-  <table>
-    <thead>
-      <tr><th>Name</th><th>Site</th><th>Status</th><th>Actions</th></tr>
-    </thead>
-    <tbody>
-      {% for p in projects %}
-      <tr>
-        <td class="font-medium text-gray-700">{{ p.name }}</td>
-        <td class="text-sm text-gray-500">{{ p.site_name or '—' }}</td>
-        <td>
-          <span class="badge {% if p.status == 'active' %}badge-connected{% elif p.status == 'paused' %}badge-unknown{% else %}badge-failed{% endif %}">
-            {{ p.status }}
-          </span>
-        </td>
-        <td>
-          <a href="/ui/projects/{{ p.id }}/kanban" class="btn btn-sm">Kanban</a>
-          <a href="/ui/projects/{{ p.id }}/plan" class="btn btn-sm ml-1">Plan</a>
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  {% if not projects_table_data %}
+  <div class="px-4 py-6 text-center text-gray-400 text-sm">Нет активных проектов</div>
+  {% else %}
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead>
+        <tr class="border-b border-gray-200 bg-gray-50">
+          <th class="text-left font-semibold text-gray-600 px-4 py-3">Проект</th>
+          <th class="text-left font-semibold text-gray-600 px-4 py-3">Сайт</th>
+          <th class="text-center font-semibold text-emerald-700 px-3 py-3">TOP-3</th>
+          <th class="text-center font-semibold text-indigo-700 px-3 py-3">TOP-10</th>
+          <th class="text-center font-semibold text-gray-600 px-3 py-3">TOP-30</th>
+          <th class="text-center font-semibold text-amber-700 px-3 py-3">Откр.</th>
+          <th class="text-center font-semibold text-violet-700 px-3 py-3">В работе</th>
+          <th class="text-left font-semibold text-gray-600 px-3 py-3">Статус</th>
+          <th class="text-left font-semibold text-gray-600 px-4 py-3">Действия</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-100">
+        {% for p in projects_table_data %}
+        <tr class="hover:bg-gray-50 transition-colors">
+          <td class="px-4 py-3">
+            <a href="/ui/projects/{{ p.id }}/kanban" class="font-medium text-indigo-600 hover:text-indigo-800 hover:underline">
+              {{ p.name }}
+            </a>
+          </td>
+          <td class="px-4 py-3 text-gray-500 text-xs">{{ p.site_name }}</td>
+          <td class="px-3 py-3 text-center">
+            <span class="font-bold text-emerald-700">{{ p.top3 }}</span>
+          </td>
+          <td class="px-3 py-3 text-center">
+            <span class="font-bold text-indigo-600">{{ p.top10 }}</span>
+          </td>
+          <td class="px-3 py-3 text-center text-gray-600">{{ p.top30 }}</td>
+          <td class="px-3 py-3 text-center text-amber-700 font-medium">{{ p.open_tasks }}</td>
+          <td class="px-3 py-3 text-center text-violet-700 font-medium">{{ p.in_progress_tasks }}</td>
+          <td class="px-3 py-3">
+            {% if p.status == 'active' %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-emerald-100 text-emerald-800">Активен</span>
+            {% elif p.status == 'paused' %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-amber-100 text-amber-800">Пауза</span>
+            {% elif p.status == 'completed' %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-gray-100 text-gray-700">Завершён</span>
+            {% else %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-gray-100 text-gray-500">{{ p.status }}</span>
+            {% endif %}
+          </td>
+          <td class="px-4 py-3">
+            <div class="flex items-center gap-2">
+              <a href="/ui/projects/{{ p.id }}/kanban" class="inline-flex items-center px-2.5 py-1 rounded text-xs font-medium bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors">Kanban</a>
+              <a href="/ui/reports/{{ p.id }}" class="inline-flex items-center px-2.5 py-1 rounded text-xs font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors">Отчёт</a>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
 </div>
-{% endif %}
 
 {% endblock %}
