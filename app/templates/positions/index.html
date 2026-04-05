@@ -310,10 +310,51 @@ function pollTaskStatus(taskId) {
       } else if (data.status === 'SUCCESS') {
         clearInterval(interval);
         const r = data.result || {};
-        status.innerHTML = '<span class="text-emerald-600">✓ Done! Positions: ' + (r.positions_written || 0) + ', alerts: ' + (r.alerts_sent || 0) + '</span>';
+        const diags = r.diagnostics || [];
+        const written = r.positions_written || 0;
+        const alerts = r.alerts_sent || 0;
+
+        // Determine overall status color from diagnostics
+        const hasError = diags.some(d => d.level === 'error');
+        const hasWarning = diags.some(d => d.level === 'warning');
+
+        let headerColor, headerIcon;
+        if (hasError) {
+            headerColor = 'text-red-600';
+            headerIcon = '✗';
+        } else if (hasWarning && written === 0) {
+            headerColor = 'text-amber-600';
+            headerIcon = '⚠';
+        } else {
+            headerColor = 'text-emerald-600';
+            headerIcon = '✓';
+        }
+
+        let html = '<div>';
+        html += '<span class="' + headerColor + ' font-medium">' + headerIcon + ' Done. Positions: ' + written + ', alerts: ' + alerts + '</span>';
+
+        // Render diagnostics messages (one per diagnostics entry)
+        if (diags.length > 0) {
+            html += '<ul class="mt-2 text-sm space-y-1">';
+            for (const d of diags) {
+                let dColor = 'text-gray-600';
+                let dIcon = 'i';
+                if (d.level === 'error') { dColor = 'text-red-600'; dIcon = '✗'; }
+                else if (d.level === 'warning') { dColor = 'text-amber-600'; dIcon = '⚠'; }
+                else { dColor = 'text-gray-500'; dIcon = 'i'; }
+                html += '<li class="' + dColor + '">' + dIcon + ' ' + d.message + '</li>';
+            }
+            html += '</ul>';
+        }
+
+        html += '</div>';
+        status.innerHTML = html;
         btn.disabled = false;
         btn.textContent = 'Check Positions';
-        setTimeout(() => location.reload(), 2000);
+        // Only auto-reload if positions were actually written
+        if (written > 0) {
+            setTimeout(() => location.reload(), 3000);
+        }
       } else if (data.status === 'FAILURE') {
         clearInterval(interval);
         status.innerHTML = '<span class="text-red-600">✗ Failed: ' + (data.error || 'unknown error') + '</span>';
