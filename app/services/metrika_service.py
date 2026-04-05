@@ -172,6 +172,19 @@ async def fetch_page_traffic(
 
             params["offset"] = params["offset"] + limit
 
+    # Deduplicate by normalized URL — sum visits, keep last bounce/depth/duration
+    merged: dict[str, dict] = {}
+    for row in all_rows:
+        url = row["page_url"]
+        if url in merged:
+            merged[url]["visits"] += row["visits"]
+            for k in ("bounce_rate", "page_depth", "avg_duration_seconds"):
+                if row[k] is not None:
+                    merged[url][k] = row[k]
+        else:
+            merged[url] = dict(row)
+    all_rows = list(merged.values())
+
     logger.info(
         "Metrika page traffic fetched",
         counter_id=counter_id,
