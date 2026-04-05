@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import io
 from datetime import date
+from typing import Optional
+from uuid import UUID
 
 import openpyxl
 from loguru import logger
@@ -164,14 +166,22 @@ async def ad_traffic_comparison(
 
     sources = sorted(set(list(a.keys()) + list(b.keys())))
     comparison = []
-    for src in sources:
-        va = a.get(src, {"sessions": 0, "conversions": 0, "cost": 0})
-        vb = b.get(src, {"sessions": 0, "conversions": 0, "cost": 0})
 
-        def _delta(old, new):
-            if old == 0:
-                return None
-            return round((new - old) / old * 100, 1)
+    def _delta(old, new):
+        if old is None or old == 0:
+            return None
+        return round((new - old) / old * 100, 1)
+
+    for src in sources:
+        va = a.get(src, {"sessions": 0, "conversions": 0, "cost": 0.0})
+        vb = b.get(src, {"sessions": 0, "conversions": 0, "cost": 0.0})
+
+        cr_a = round(va["conversions"] / va["sessions"] * 100, 2) if va["sessions"] > 0 else 0.0
+        cr_b = round(vb["conversions"] / vb["sessions"] * 100, 2) if vb["sessions"] > 0 else 0.0
+        cpc_a = round(va["cost"] / va["conversions"], 2) if va["conversions"] > 0 else None
+        cpc_b = round(vb["cost"] / vb["conversions"], 2) if vb["conversions"] > 0 else None
+        delta_cr_pct = _delta(cr_a, cr_b)
+        delta_cpc_pct = _delta(cpc_a, cpc_b) if cpc_a is not None and cpc_b is not None else None
 
         comparison.append({
             "source": src,
@@ -180,6 +190,78 @@ async def ad_traffic_comparison(
             "delta_sessions_pct": _delta(va["sessions"], vb["sessions"]),
             "delta_conversions_pct": _delta(va["conversions"], vb["conversions"]),
             "delta_cost_pct": _delta(va["cost"], vb["cost"]),
+            "cr_a": cr_a,
+            "cr_b": cr_b,
+            "delta_cr_pct": delta_cr_pct,
+            "cpc_a": cpc_a,
+            "cpc_b": cpc_b,
+            "delta_cpc_pct": delta_cpc_pct,
         })
 
     return comparison
+
+
+async def ad_traffic_trend(
+    db: AsyncSession,
+    site_id: UUID,
+    granularity: str = "weekly",
+) -> dict:
+    """Return Chart.js-compatible trend data for ad traffic per source.
+
+    Args:
+        db: Async database session.
+        site_id: Site UUID to filter by.
+        granularity: 'weekly' or 'monthly'.
+
+    Returns:
+        dict with 'labels' (sorted unique periods as strings) and
+        'datasets' (list of {label, data} per source).
+    """
+    gran = "week" if granularity == "weekly" else "month"
+
+    result = await db.execute(
+        text("""
+            SELECT source,
+                   date_trunc(:gran, traffic_date)::date AS period,
+                   SUM(sessions) AS sessions
+            FROM ad_traffic
+            WHERE site_id = :sid
+            GROUP BY source, period
+            ORDER BY period
+        """),
+        {"gran": gran, "sid": str(site_id)},
+    )
+    rows = result.mappings().all()
+
+    # Collect all unique periods and sources
+    periods_set: set[str] = set()
+    sources_set: set[str] = set()
+    data_map: dict[str, dict[str, int]] = {}  # source -> {period_str -> sessions}
+
+    for row in rows:
+        period_str = str(row["period"])
+        src = row["source"]
+        sessions = int(row["sessions"] or 0)
+        periods_set.add(period_str)
+        sources_set.add(src)
+        data_map.setdefault(src, {})[period_str] = sessions
+
+    labels = sorted(periods_set)
+    sources = sorted(sources_set)
+
+    # Tailwind-palette hex colors for up to 4 sources
+    colors = ["#6366f1", "#10b981", "#f59e0b", "#ef4444"]
+
+    datasets = []
+    for idx, src in enumerate(sources):
+        color = colors[idx % len(colors)]
+        src_data = data_map.get(src, {})
+        datasets.append({
+            "label": src,
+            "data": [src_data.get(p, 0) for p in labels],
+            "borderColor": color,
+            "backgroundColor": color + "33",  # 20% opacity fill
+            "tension": 0.3,
+        })
+
+    return {"labels": labels, "datasets": datasets}

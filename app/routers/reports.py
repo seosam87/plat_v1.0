@@ -121,3 +121,16 @@ async def compare_ad_traffic(
         payload.period_b_start, payload.period_b_end,
     )
     return {"comparison": comparison}
+
+
+@router.get("/sites/{site_id}/ad-traffic/trend")
+async def ad_traffic_trend(
+    site_id: uuid.UUID,
+    granularity: str = "weekly",
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_admin),
+) -> dict:
+    """Return Chart.js-compatible weekly/monthly trend data per source."""
+    if granularity not in ("weekly", "monthly"):
+        granularity = "weekly"
+    return await report_service.ad_traffic_trend(db, site_id, granularity)
