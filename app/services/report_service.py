@@ -136,7 +136,7 @@ async def generate_pdf_report(
     # Fetch site name
     from app.models.site import Site
     site = (await db.execute(select(Site).where(Site.id == project.site_id))).scalar_one_or_none()
-    site_name = site.domain if site else "Unknown"
+    site_name = site.name if site else "Unknown"
 
     # Fetch position overview
     overview = await site_overview(db, project.site_id)

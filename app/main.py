@@ -2540,7 +2540,15 @@ async def ui_ads(site_id: str, request: Request, db: AsyncSession = Depends(get_
 
     site = await get_site(db, sid)
     if not site:
-        return HTMLResponse("Site not found", status_code=404)
+        from sqlalchemy import func as _func, select as _sel
+        from app.models.site import Site as _Site
+        from loguru import logger as _logger
+        total = (await db.execute(_sel(_func.count()).select_from(_Site))).scalar()
+        _logger.warning("ads: site_id=%s not found (total sites in DB: %d)", site_id, total)
+        return RedirectResponse(
+            f"/ui/sites?error=site_not_found&context=ads",
+            status_code=302,
+        )
 
     return templates.TemplateResponse(request, "ads/index.html", {"site": site})
 
