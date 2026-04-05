@@ -28,14 +28,18 @@ def search_yandex_sync(
     key: str,
     query: str,
     lr: int = 213,
+    max_position: int = 200,
 ) -> dict:
     """Perform a Yandex search via XMLProxy and return parsed results.
+
+    Fetches up to ``max_position`` results (multiple pages of 100).
 
     Args:
         user: XMLProxy account login.
         key: XMLProxy API key.
         query: Search query string.
         lr: Yandex region code (default 213 = Moscow).
+        max_position: Search depth (default 200).
 
     Returns:
         dict with keys ``results`` (list of dicts) and ``error_code`` (None).
@@ -44,18 +48,34 @@ def search_yandex_sync(
         XMLProxyError: If the XML response contains an error element.
         httpx.HTTPError: On network/HTTP failures.
     """
-    params = {
-        "user": user,
-        "key": key,
-        "query": query,
-        "lr": str(lr),
-        "groupby": "attr=d.mode=deep.groups-on-page=10",
-        "ydomain": "ru",
-    }
+    per_page = 100
+    pages_needed = (max_position + per_page - 1) // per_page
+    all_results: list[dict] = []
+
     with httpx.Client(timeout=30) as client:
-        resp = client.get(XMLPROXY_SEARCH, params=params)
-        resp.raise_for_status()
-    return _parse_yandex_xml(resp.text)
+        for page in range(pages_needed):
+            params = {
+                "user": user,
+                "key": key,
+                "query": query,
+                "lr": str(lr),
+                "groupby": f"attr=d.mode=deep.groups-on-page={per_page}",
+                "page": str(page),
+                "ydomain": "ru",
+            }
+            resp = client.get(XMLPROXY_SEARCH, params=params)
+            resp.raise_for_status()
+            parsed = _parse_yandex_xml(resp.text)
+
+            if not parsed["results"]:
+                break
+
+            # Offset positions by page
+            for item in parsed["results"]:
+                item["position"] = item["position"] + page * per_page
+            all_results.extend(parsed["results"])
+
+    return {"results": all_results, "error_code": None}
 
 
 def fetch_balance_sync(user: str, key: str) -> dict | None:
