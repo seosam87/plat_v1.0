@@ -96,7 +96,7 @@ def check_positions(self, site_id: str) -> dict:
     return {"status": "done", "site_id": site_id, "positions_written": written, "alerts_sent": alerts_sent, "diagnostics": diagnostics}
 
 
-def _check_via_xmlproxy(self_task, site_id: str, keywords, diagnostics: list) -> int:
+def _check_via_xmlproxy(self_task, site_id: str, keywords, diagnostics: list | None = None) -> int:
     """Check Yandex positions via XMLProxy. Per D-01, D-02, D-03.
 
     Args:
@@ -108,6 +108,9 @@ def _check_via_xmlproxy(self_task, site_id: str, keywords, diagnostics: list) ->
     Returns:
         Number of position records written.
     """
+    if diagnostics is None:
+        diagnostics = []
+
     from app.services.xmlproxy_service import search_yandex_sync, fetch_balance_sync, XMLProxyError
     from app.services.service_credential_service import get_credential_sync
     from app.services.telegram_service import send_message_sync, is_configured
@@ -211,8 +214,11 @@ def _check_via_xmlproxy(self_task, site_id: str, keywords, diagnostics: list) ->
     return written
 
 
-def _check_via_dataforseo(site_id: str, keywords, diagnostics: list) -> int:
+def _check_via_dataforseo(site_id: str, keywords, diagnostics: list | None = None) -> int:
     """Batch check via DataForSEO SERP API (sync wrapper). Google keywords only."""
+    if diagnostics is None:
+        diagnostics = []
+
     import asyncio
     from app.services.dataforseo_service import fetch_serp_batch
     from app.services.position_service import write_position_sync
