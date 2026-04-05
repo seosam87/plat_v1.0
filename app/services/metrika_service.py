@@ -23,7 +23,7 @@ from app.models.metrika import MetrikaTrafficDaily, MetrikaTrafficPage, MetrikaE
 
 API_BASE = "https://api-metrika.yandex.net/stat/v1"
 TIMEOUT = 30.0
-ORGANIC_FILTER = "ym:s:trafficSource=='organic' AND ym:s:isRobot=='No'"
+ORGANIC_FILTER = "ym:s:trafficSource=='organic'"
 METRICS = "ym:s:visits,ym:s:users,ym:s:bounceRate,ym:s:pageDepth,ym:s:avgVisitDurationSeconds"
 METRIC_KEYS = ["visits", "users", "bounce_rate", "page_depth", "avg_duration_seconds"]
 
@@ -65,6 +65,8 @@ async def fetch_daily_traffic(
             params=params,
             headers=_headers(token),
         )
+        if resp.status_code != 200:
+            logger.error("Metrika daily API error", status=resp.status_code, body=resp.text[:500])
         resp.raise_for_status()
         data = resp.json()
 
@@ -142,6 +144,8 @@ async def fetch_page_traffic(
                 params=params,
                 headers=_headers(token),
             )
+            if resp.status_code != 200:
+                logger.error("Metrika page API error", status=resp.status_code, body=resp.text[:500])
             resp.raise_for_status()
             data = resp.json()
 
