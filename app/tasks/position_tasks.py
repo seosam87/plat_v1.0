@@ -24,14 +24,21 @@ def check_positions(self, site_id: str) -> dict:
     Engine split (per D-17, D-18):
       - engine='yandex' -> XMLProxy (per D-01, only Yandex source)
       - engine='google' or engine=None -> DataForSEO if configured, else logged as skipped
+
+    Returns a dict that always includes a `diagnostics` key with a list of
+    {"level": "info"|"warning"|"error", "message": str} entries explaining
+    what happened during the check.
     """
     skip = site_active_guard(site_id)
     if skip:
+        skip["diagnostics"] = [{"level": "warning", "message": f"Task skipped: {skip.get('reason', 'unknown')}"}]
         return skip
 
     from app.models.keyword import Keyword
     from app.config import settings
     from sqlalchemy import select
+
+    diagnostics = []  # list of {"level": "info"|"warning"|"error", "message": str}
 
     with get_sync_db() as db:
         keywords = db.execute(
@@ -39,7 +46,8 @@ def check_positions(self, site_id: str) -> dict:
         ).scalars().all()
 
     if not keywords:
-        return {"status": "skipped", "reason": "no keywords", "site_id": site_id}
+        diagnostics.append({"level": "warning", "message": "No keywords found for this site. Import keywords first."})
+        return {"status": "skipped", "reason": "no keywords", "site_id": site_id, "positions_written": 0, "alerts_sent": 0, "diagnostics": diagnostics}
 
     logger.info("Position check started", site_id=site_id, keywords=len(keywords))
 
@@ -47,18 +55,27 @@ def check_positions(self, site_id: str) -> dict:
     yandex_kws = [kw for kw in keywords if kw.engine and kw.engine.value == "yandex"]
     google_kws = [kw for kw in keywords if not kw.engine or kw.engine.value == "google"]
 
+    # Diagnostic info about keyword split
+    if yandex_kws:
+        diagnostics.append({"level": "info", "message": f"Found {len(yandex_kws)} Yandex keyword(s) — will check via XMLProxy"})
+    if google_kws:
+        diagnostics.append({"level": "info", "message": f"Found {len(google_kws)} Google keyword(s)"})
+    if not yandex_kws and not google_kws:
+        diagnostics.append({"level": "warning", "message": "Keywords exist but none matched engine filter"})
+
     written = 0
 
     # Process Yandex keywords via XMLProxy (per D-01: ONLY source for Yandex)
     if yandex_kws:
-        written += _check_via_xmlproxy(self, site_id, yandex_kws)
+        written += _check_via_xmlproxy(self, site_id, yandex_kws, diagnostics)
 
     # Process Google keywords via DataForSEO or log as skipped (per D-17)
     if google_kws:
         if settings.DATAFORSEO_LOGIN and settings.DATAFORSEO_PASSWORD:
-            written += _check_via_dataforseo(site_id, google_kws)
+            written += _check_via_dataforseo(site_id, google_kws, diagnostics)
         else:
             # Per D-17: Google parsing out of scope for this phase
+            diagnostics.append({"level": "warning", "message": f"{len(google_kws)} Google keyword(s) skipped — DataForSEO not configured. Go to Settings > Data Sources."})
             for kw in google_kws:
                 logger.info(
                     "Google keyword skipped: no source configured",
@@ -70,16 +87,23 @@ def check_positions(self, site_id: str) -> dict:
     alerts_sent = _send_drop_alerts(site_id)
 
     logger.info("Position check done", site_id=site_id, written=written, alerts=alerts_sent)
-    return {"status": "done", "site_id": site_id, "positions_written": written, "alerts_sent": alerts_sent}
+
+    if written == 0 and not diagnostics:
+        diagnostics.append({"level": "warning", "message": "Check completed but no positions were recorded. Verify API credentials and keyword configuration."})
+    elif written > 0:
+        diagnostics.append({"level": "info", "message": f"Successfully recorded {written} position(s)"})
+
+    return {"status": "done", "site_id": site_id, "positions_written": written, "alerts_sent": alerts_sent, "diagnostics": diagnostics}
 
 
-def _check_via_xmlproxy(self_task, site_id: str, keywords) -> int:
+def _check_via_xmlproxy(self_task, site_id: str, keywords, diagnostics: list) -> int:
     """Check Yandex positions via XMLProxy. Per D-01, D-02, D-03.
 
     Args:
         self_task: Celery task instance (for retry).
         site_id: Site UUID as string.
         keywords: List of Keyword model instances with engine='yandex'.
+        diagnostics: List to append diagnostic messages to.
 
     Returns:
         Number of position records written.
@@ -97,6 +121,7 @@ def _check_via_xmlproxy(self_task, site_id: str, keywords) -> int:
 
     if not creds or not creds.get("user") or not creds.get("key"):
         logger.warning("XMLProxy not configured, skipping Yandex keywords", site_id=site_id)
+        diagnostics.append({"level": "error", "message": "XMLProxy credentials not configured. Go to Settings > Data Sources to add XMLProxy user/key."})
         return 0
 
     user, key = creds["user"], creds["key"]
@@ -107,6 +132,7 @@ def _check_via_xmlproxy(self_task, site_id: str, keywords) -> int:
         balance = balance_data.get("data", 0)
         if balance <= 0:
             logger.warning("XMLProxy balance zero — skipping Yandex keywords", site_id=site_id)
+            diagnostics.append({"level": "error", "message": "XMLProxy balance is 0 RUB. Top up your XMLProxy account."})
             if is_configured():
                 send_message_sync(
                     f"XMLProxy balance is 0. Yandex position checks paused for site {site_id}."
@@ -115,6 +141,7 @@ def _check_via_xmlproxy(self_task, site_id: str, keywords) -> int:
         threshold = getattr(settings, "XMLPROXY_LOW_BALANCE_THRESHOLD", 50)
         if balance < threshold:
             logger.warning("XMLProxy balance low", balance=balance, threshold=threshold, site_id=site_id)
+            diagnostics.append({"level": "warning", "message": f"XMLProxy balance low: {balance} RUB (threshold: {threshold})"})
             if is_configured():
                 send_message_sync(
                     f"XMLProxy balance low: {balance} RUB (threshold: {threshold})"
@@ -127,6 +154,7 @@ def _check_via_xmlproxy(self_task, site_id: str, keywords) -> int:
 
     if not site:
         logger.warning("Site not found for XMLProxy check", site_id=site_id)
+        diagnostics.append({"level": "error", "message": "Site not found in database"})
         return 0
 
     site_domain = site.url.rstrip("/").replace("https://", "").replace("http://", "")
@@ -144,12 +172,14 @@ def _check_via_xmlproxy(self_task, site_id: str, keywords) -> int:
             elif e.code == -32:
                 # Insufficient funds — alert and stop
                 logger.error("XMLProxy balance zero (-32)", keyword=kw.phrase)
+                diagnostics.append({"level": "error", "message": "XMLProxy insufficient funds (error -32). Top up account."})
                 if is_configured():
                     send_message_sync("XMLProxy: insufficient funds. Yandex checks stopped.")
                 return written
             elif e.code == -34:
                 # Invalid credentials
                 logger.error("XMLProxy invalid credentials (-34)", keyword=kw.phrase)
+                diagnostics.append({"level": "error", "message": "XMLProxy credentials are invalid. Check Settings > Data Sources."})
                 if is_configured():
                     send_message_sync("XMLProxy: invalid credentials. Check settings.")
                 return written
@@ -181,7 +211,7 @@ def _check_via_xmlproxy(self_task, site_id: str, keywords) -> int:
     return written
 
 
-def _check_via_dataforseo(site_id: str, keywords) -> int:
+def _check_via_dataforseo(site_id: str, keywords, diagnostics: list) -> int:
     """Batch check via DataForSEO SERP API (sync wrapper). Google keywords only."""
     import asyncio
     from app.services.dataforseo_service import fetch_serp_batch
@@ -193,6 +223,7 @@ def _check_via_dataforseo(site_id: str, keywords) -> int:
         site = db.execute(select(Site).where(Site.id == uuid.UUID(site_id))).scalar_one_or_none()
 
     if not site:
+        diagnostics.append({"level": "error", "message": "Site not found for DataForSEO check"})
         return 0
 
     site_domain = site.url.rstrip("/").replace("https://", "").replace("http://", "")
@@ -205,6 +236,7 @@ def _check_via_dataforseo(site_id: str, keywords) -> int:
         loop.close()
     except Exception as exc:
         logger.warning("DataForSEO batch failed", error=str(exc))
+        diagnostics.append({"level": "error", "message": f"DataForSEO batch request failed: {str(exc)}"})
         return 0
 
     # Match results back to keywords and find position for our domain
