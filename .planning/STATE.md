@@ -160,6 +160,7 @@ None yet.
 - Phase 06.1 inserted after Phase 6: Proxy Management & XMLProxy Integration (URGENT)
 - v4.0 milestone started: 8-phase UI overhaul roadmap created
 - Phase 09.1 inserted after Phase 09: Fix project UI bugs — task creation, breadcrumbs, comments, plan page, pipeline feedback (URGENT)
+- Phase 09.2 inserted after Phase 09: Fix position check silent failure — add diagnostic feedback (URGENT)
 
 ### Blockers/Concerns
 

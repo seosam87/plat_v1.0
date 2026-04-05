@@ -204,6 +204,16 @@ Plans:
 - [x] 09-02: Kanban board UI — To Do / In Progress / Done columns; HTMX drag-and-drop status updates; auto-task creation wiring for missing pages + cannibalization + no-schema triggers; manual task create/edit/assign/due-date
 - [x] 09-03: Content plan model (keyword → title → status → date → WP post link); content plan UI; one-click WP draft creation from content plan row; template-based page brief generator (H1–H3 + keywords + volume); WeasyPrint PDF export; brief linked to task or content plan row
 
+### Phase 09.2: Fix position check silent failure — add diagnostic feedback (INSERTED)
+
+**Goal:** [Urgent work - to be planned]
+**Requirements**: TBD
+**Depends on:** Phase 09
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd:plan-phase 09.2 to break down)
+
 ### Phase 09.1: Fix project UI bugs — task creation, breadcrumbs, comments, plan page, pipeline feedback (INSERTED)
 
 **Goal:** Fix 6 bugs across project management and pipeline pages: missing task creation UI, broken breadcrumbs, comment form 422 error, dead-end plan page, silent batch execution, and unhelpful empty states.
