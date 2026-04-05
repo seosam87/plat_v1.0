@@ -2612,6 +2612,114 @@ async def ui_reports(project_id: str, request: Request, db: AsyncSession = Depen
     })
 
 
+@app.get("/ui/admin/report-schedule", response_class=HTMLResponse)
+async def ui_admin_report_schedule_get(
+    request: Request, db: AsyncSession = Depends(get_db)
+) -> HTMLResponse:
+    """Admin page to configure morning digest and weekly report schedule."""
+    from sqlalchemy import select as sa_select
+
+    from app.models.report_schedule import ReportSchedule
+
+    current_user = await _get_current_user_from_cookie(request, db)
+    if not current_user or current_user.role.value != "admin":
+        return RedirectResponse("/ui/dashboard", status_code=302)
+
+    # Load or create default singleton schedule (id=1)
+    schedule = (await db.execute(
+        sa_select(ReportSchedule).where(ReportSchedule.id == 1)
+    )).scalar_one_or_none()
+
+    if not schedule:
+        schedule = ReportSchedule(
+            id=1,
+            morning_digest_enabled=False,
+            morning_hour=9,
+            morning_minute=0,
+            weekly_report_enabled=False,
+            weekly_day_of_week=1,
+            weekly_hour=10,
+            weekly_minute=0,
+            smtp_to=None,
+        )
+        db.add(schedule)
+        await db.commit()
+        await db.refresh(schedule)
+
+    success = request.query_params.get("success", "")
+    return templates.TemplateResponse(
+        request,
+        "admin/report_schedule.html",
+        {"schedule": schedule, "success": success},
+    )
+
+
+@app.post("/ui/admin/report-schedule", response_class=HTMLResponse)
+async def ui_admin_report_schedule_post(
+    request: Request, db: AsyncSession = Depends(get_db)
+) -> HTMLResponse:
+    """Save the report schedule configuration."""
+    from sqlalchemy import select as sa_select
+
+    from app.models.report_schedule import ReportSchedule
+    from app.tasks.report_tasks import register_report_beats
+
+    current_user = await _get_current_user_from_cookie(request, db)
+    if not current_user or current_user.role.value != "admin":
+        return RedirectResponse("/ui/dashboard", status_code=302)
+
+    form = await request.form()
+
+    morning_digest_enabled = bool(form.get("morning_digest_enabled"))
+    morning_hour = int(form.get("morning_hour", 9))
+    morning_minute = int(form.get("morning_minute", 0))
+    weekly_report_enabled = bool(form.get("weekly_report_enabled"))
+    weekly_day_of_week = int(form.get("weekly_day_of_week", 1))
+    weekly_hour = int(form.get("weekly_hour", 10))
+    weekly_minute = int(form.get("weekly_minute", 0))
+    smtp_to = form.get("smtp_to", "") or None
+
+    # Upsert singleton row
+    schedule = (await db.execute(
+        sa_select(ReportSchedule).where(ReportSchedule.id == 1)
+    )).scalar_one_or_none()
+
+    if schedule:
+        schedule.morning_digest_enabled = morning_digest_enabled
+        schedule.morning_hour = morning_hour
+        schedule.morning_minute = morning_minute
+        schedule.weekly_report_enabled = weekly_report_enabled
+        schedule.weekly_day_of_week = weekly_day_of_week
+        schedule.weekly_hour = weekly_hour
+        schedule.weekly_minute = weekly_minute
+        schedule.smtp_to = smtp_to
+    else:
+        schedule = ReportSchedule(
+            id=1,
+            morning_digest_enabled=morning_digest_enabled,
+            morning_hour=morning_hour,
+            morning_minute=morning_minute,
+            weekly_report_enabled=weekly_report_enabled,
+            weekly_day_of_week=weekly_day_of_week,
+            weekly_hour=weekly_hour,
+            weekly_minute=weekly_minute,
+            smtp_to=smtp_to,
+        )
+        db.add(schedule)
+
+    await db.commit()
+    await db.refresh(schedule)
+
+    # Sync to Celery Beat (best-effort — Redis may not be available in dev)
+    try:
+        register_report_beats(schedule)
+    except Exception as exc:
+        from loguru import logger
+        logger.warning("Failed to register report beat entries", error=str(exc))
+
+    return RedirectResponse("/ui/admin/report-schedule?success=1", status_code=303)
+
+
 @app.get("/")
 async def root():
     return RedirectResponse("/ui/dashboard")

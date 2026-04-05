@@ -19,6 +19,7 @@ celery_app = Celery(
         "app.tasks.analytics_tasks",
         "app.tasks.intent_tasks",
         "app.tasks.smoke_tasks",
+        "app.tasks.report_tasks",
     ],
 )
 
@@ -104,6 +105,8 @@ def restore_crawl_schedules(**kwargs):
         restore_position_schedules_from_db()
         from app.services.digest_service import restore_digest_schedules_from_db
         restore_digest_schedules_from_db()
+        from app.tasks.report_tasks import restore_report_schedules_from_db
+        restore_report_schedules_from_db()
     except Exception as exc:
         import logging
 

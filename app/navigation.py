@@ -84,6 +84,7 @@ NAV_SECTIONS = [
             {"id": "parameters", "label": "Параметры", "url": "/ui/admin/parameters", "admin_only": False},
             {"id": "issues", "label": "Задачи платформы", "url": "/ui/admin/issues", "admin_only": False},
             {"id": "audit-log", "label": "Журнал аудита", "url": "/ui/admin/audit", "admin_only": True},
+            {"id": "settings-report-schedule", "label": "Report Schedule", "url": "/ui/admin/report-schedule", "admin_only": True},
         ],
     },
 ]
