@@ -204,6 +204,17 @@ Plans:
 - [x] 09-02: Kanban board UI — To Do / In Progress / Done columns; HTMX drag-and-drop status updates; auto-task creation wiring for missing pages + cannibalization + no-schema triggers; manual task create/edit/assign/due-date
 - [x] 09-03: Content plan model (keyword → title → status → date → WP post link); content plan UI; one-click WP draft creation from content plan row; template-based page brief generator (H1–H3 + keywords + volume); WeasyPrint PDF export; brief linked to task or content plan row
 
+### Phase 09.1: Fix project UI bugs — task creation, breadcrumbs, comments, plan page, pipeline feedback (INSERTED)
+
+**Goal:** Fix 6 bugs across project management and pipeline pages: missing task creation UI, broken breadcrumbs, comment form 422 error, dead-end plan page, silent batch execution, and unhelpful empty states.
+**Requirements**: BUG-01, BUG-02, BUG-03, BUG-04, BUG-05, BUG-06
+**Depends on:** Phase 09
+**Plans:** 2 plans
+
+Plans:
+- [ ] 09.1-01-PLAN.md — Fix kanban (task creation form, breadcrumbs, comment 422) and plan page (breadcrumbs, add-item form, context, empty state)
+- [ ] 09.1-02-PLAN.md — Fix pipeline page (batch feedback with job count, helpful empty state with prerequisites)
+
 ### Phase 10: Reports & Ads
 **Goal**: User can view a live dashboard aggregating all projects, export project reports as PDF and Excel, schedule automatic delivery via Telegram or email, and upload/compare ad traffic data.
 **Depends on**: Phase 9
