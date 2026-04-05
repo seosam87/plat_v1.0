@@ -155,9 +155,9 @@
 
 ### Advertising Traffic
 
-- [ ] **ADS-01**: User can upload ad traffic data as CSV (source, date, sessions, conversions, cost)
-- [ ] **ADS-02**: User can compare two periods (before / after): table with % and absolute delta for sessions, conversions, CR%, cost-per-conversion
-- [ ] **ADS-03**: User can view a weekly/monthly traffic trend chart per source
+- [x] **ADS-01**: User can upload ad traffic data as CSV (source, date, sessions, conversions, cost)
+- [x] **ADS-02**: User can compare two periods (before / after): table with % and absolute delta for sessions, conversions, CR%, cost-per-conversion
+- [x] **ADS-03**: User can view a weekly/monthly traffic trend chart per source
 
 ### Infrastructure & Operations
 
@@ -324,9 +324,9 @@
 | DASH-02 | Phase 10: Reports & Ads | Pending |
 | DASH-03 | Phase 10: Reports & Ads | Pending |
 | DASH-04 | Phase 10: Reports & Ads | Pending |
-| ADS-01 | Phase 10: Reports & Ads | Pending |
-| ADS-02 | Phase 10: Reports & Ads | Pending |
-| ADS-03 | Phase 10: Reports & Ads | Pending |
+| ADS-01 | Phase 10: Reports & Ads | Complete |
+| ADS-02 | Phase 10: Reports & Ads | Complete |
+| ADS-03 | Phase 10: Reports & Ads | Complete |
 | INFRA-01 | Phase 1: Stack & Auth | Complete |
 | INFRA-02 | Phase 11: Hardening | Pending |
 | INFRA-03 | Phase 11: Hardening | Pending |
