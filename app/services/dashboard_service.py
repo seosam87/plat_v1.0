@@ -72,7 +72,7 @@ async def projects_table(db: AsyncSession) -> list[dict]:
             {
                 "id": row["id"],
                 "name": row["name"],
-                "status": row["status"],
+                "status": str(row["status"].value) if hasattr(row["status"], "value") else str(row["status"]),
                 "site_name": row["site_name"],
                 "site_id": row["site_id"],
                 "open_tasks": int(row["open_tasks"] or 0),
