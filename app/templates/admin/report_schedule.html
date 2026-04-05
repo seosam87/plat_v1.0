@@ -22,7 +22,7 @@
   <form method="post" action="/ui/admin/report-schedule">
 
     <!-- Morning Digest Section -->
-    <div class="border border-gray-200 rounded-lg p-5 mb-5">
+    <div class="bg-slate-50 border border-gray-200 rounded-lg shadow-sm p-5 mb-5">
       <div class="flex items-center justify-between mb-4">
         <div>
           <h3 class="text-base font-semibold text-gray-700">Morning Digest</h3>
@@ -43,7 +43,7 @@
       <div class="grid grid-cols-2 gap-4 max-w-xs">
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Hour</label>
-          <select name="morning_hour" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-indigo-500 focus:border-indigo-500">
+          <select name="morning_hour" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
             {% for h in range(24) %}
             <option value="{{ h }}" {% if schedule.morning_hour == h %}selected{% endif %}>{{ "%02d"|format(h) }}</option>
             {% endfor %}
@@ -51,7 +51,7 @@
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Minute</label>
-          <select name="morning_minute" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-indigo-500 focus:border-indigo-500">
+          <select name="morning_minute" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
             {% for m in [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55] %}
             <option value="{{ m }}" {% if schedule.morning_minute == m %}selected{% endif %}>{{ "%02d"|format(m) }}</option>
             {% endfor %}
@@ -61,7 +61,7 @@
     </div>
 
     <!-- Weekly Summary Report Section -->
-    <div class="border border-gray-200 rounded-lg p-5 mb-5">
+    <div class="bg-slate-50 border border-gray-200 rounded-lg shadow-sm p-5 mb-5">
       <div class="flex items-center justify-between mb-4">
         <div>
           <h3 class="text-base font-semibold text-gray-700">Weekly Summary Report</h3>
@@ -82,7 +82,7 @@
       <div class="grid grid-cols-3 gap-4 max-w-sm">
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Day</label>
-          <select name="weekly_day_of_week" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-indigo-500 focus:border-indigo-500">
+          <select name="weekly_day_of_week" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
             {% set days = [
               (1, "Mon"), (2, "Tue"), (3, "Wed"), (4, "Thu"),
               (5, "Fri"), (6, "Sat"), (7, "Sun")
@@ -94,7 +94,7 @@
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Hour</label>
-          <select name="weekly_hour" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-indigo-500 focus:border-indigo-500">
+          <select name="weekly_hour" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
             {% for h in range(24) %}
             <option value="{{ h }}" {% if schedule.weekly_hour == h %}selected{% endif %}>{{ "%02d"|format(h) }}</option>
             {% endfor %}
@@ -102,7 +102,7 @@
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Minute</label>
-          <select name="weekly_minute" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-indigo-500 focus:border-indigo-500">
+          <select name="weekly_minute" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
             {% for m in [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55] %}
             <option value="{{ m }}" {% if schedule.weekly_minute == m %}selected{% endif %}>{{ "%02d"|format(m) }}</option>
             {% endfor %}
@@ -112,7 +112,7 @@
     </div>
 
     <!-- Email Recipient Section -->
-    <div class="border border-gray-200 rounded-lg p-5 mb-6">
+    <div class="bg-slate-50 border border-gray-200 rounded-lg shadow-sm p-5 mb-6">
       <h3 class="text-base font-semibold text-gray-700 mb-1">Email Recipient</h3>
       <p class="text-xs text-gray-500 mb-3">Admin email address for weekly PDF report delivery (D-08). Leave blank to skip email.</p>
       <div class="max-w-sm">
@@ -122,7 +122,7 @@
           name="smtp_to"
           value="{{ schedule.smtp_to or '' }}"
           placeholder="admin@example.com"
-          class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-indigo-500 focus:border-indigo-500"
+          class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
         >
       </div>
     </div>
@@ -131,7 +131,7 @@
     <div class="flex items-center gap-3">
       <button
         type="submit"
-        class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
       >
         Save Schedule
       </button>
