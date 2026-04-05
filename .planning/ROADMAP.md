@@ -206,13 +206,13 @@ Plans:
 
 ### Phase 09.2: Fix position check silent failure — add diagnostic feedback (INSERTED)
 
-**Goal:** [Urgent work - to be planned]
-**Requirements**: TBD
+**Goal:** Position check returns structured diagnostics explaining why 0 results were written (no credentials, no balance, no keywords, API error), and frontend displays them with color-coded severity (green/amber/red) instead of misleading green "Done. 0 results".
+**Requirements**: POSDIAG-01, POSDIAG-02, POSDIAG-03
 **Depends on:** Phase 09
-**Plans:** 0 plans
+**Plans:** 1 plan
 
 Plans:
-- [ ] TBD (run /gsd:plan-phase 09.2 to break down)
+- [ ] 09.2-01-PLAN.md — Add diagnostics list to Celery task return value + color-coded diagnostic display in frontend polling JS
 
 ### Phase 09.1: Fix project UI bugs — task creation, breadcrumbs, comments, plan page, pipeline feedback (INSERTED)
 
