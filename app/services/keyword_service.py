@@ -59,7 +59,7 @@ async def add_keyword(
         phrase=phrase.strip().lower(),
         frequency=frequency,
         region=region,
-        engine=SearchEngine(engine) if engine else None,
+        engine=SearchEngine(engine) if engine else SearchEngine.yandex,
         target_url=target_url,
         group_id=group_id,
     )
@@ -125,7 +125,7 @@ async def bulk_add_keywords(
                     phrase=normalized,
                     frequency=row.get("frequency"),
                     region=row.get("region"),
-                    engine=SearchEngine(row["engine"]) if row.get("engine") else None,
+                    engine=SearchEngine(row["engine"]) if row.get("engine") else SearchEngine.yandex,
                     target_url=row.get("target_url"),
                     group_id=row.get("group_id"),
                 )
@@ -138,7 +138,7 @@ async def bulk_add_keywords(
                 phrase=normalized,
                 frequency=row.get("frequency"),
                 region=row.get("region"),
-                engine=SearchEngine(row["engine"]) if row.get("engine") else None,
+                engine=SearchEngine(row["engine"]) if row.get("engine") else SearchEngine.yandex,
                 target_url=row.get("target_url"),
                 group_id=row.get("group_id"),
             )

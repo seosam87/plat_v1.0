@@ -51,9 +51,9 @@ def check_positions(self, site_id: str) -> dict:
 
     logger.info("Position check started", site_id=site_id, keywords=len(keywords))
 
-    # Split keywords by engine (per D-17, D-18)
-    yandex_kws = [kw for kw in keywords if kw.engine and kw.engine.value == "yandex"]
-    google_kws = [kw for kw in keywords if not kw.engine or kw.engine.value == "google"]
+    # Split keywords by engine — default to yandex if engine is NULL
+    yandex_kws = [kw for kw in keywords if not kw.engine or kw.engine.value == "yandex"]
+    google_kws = [kw for kw in keywords if kw.engine and kw.engine.value == "google"]
 
     # Diagnostic info about keyword split
     if yandex_kws:
