@@ -10,7 +10,7 @@ import xml.etree.ElementTree as ET
 import httpx
 from loguru import logger
 
-XMLPROXY_SEARCH = "https://xmlproxy.ru/search.php"
+XMLPROXY_SEARCH = "https://xmlproxy.ru/search/xml"
 XMLPROXY_BALANCE = "https://xmlproxy.ru/balance.php"
 
 
