@@ -6,16 +6,27 @@
 {% block content %}
 
 {# ─── Page header ─── #}
-<div class="flex justify-between items-center mb-6">
+<div class="flex flex-wrap justify-between items-end gap-4 mb-6">
   <h2 class="m-0 text-xl font-semibold text-gray-800">Трафик: {{ site.name }}</h2>
-  <button class="btn btn-verify"
-    hx-post="/metrika/{{ site.id }}/fetch"
-    hx-vals='{"date1": null, "date2": null}'
-    hx-swap="none"
-    onclick="this.textContent='Загрузка...'; this.disabled=true; scheduleReload()">
-    Загрузить данные Метрики
-  </button>
+  <div class="flex items-end gap-2">
+    <div>
+      <label class="block text-xs text-gray-500 mb-1">С</label>
+      <input type="date" id="metrika-date1"
+             value="{{ (today - timedelta(days=90)).isoformat() if today else '' }}"
+             class="rounded border border-gray-300 px-2 py-1.5 text-sm">
+    </div>
+    <div>
+      <label class="block text-xs text-gray-500 mb-1">По</label>
+      <input type="date" id="metrika-date2"
+             value="{{ (today - timedelta(days=1)).isoformat() if today else '' }}"
+             class="rounded border border-gray-300 px-2 py-1.5 text-sm">
+    </div>
+    <button id="fetch-metrika-btn" class="btn btn-verify" onclick="fetchMetrika()">
+      Загрузить данные Метрики
+    </button>
+  </div>
 </div>
+<div id="metrika-fetch-status" class="mb-4" style="display:none"></div>
 
 {# ─── Empty state: no counter configured ─── #}
 {% if not site.metrika_counter_id %}
@@ -427,9 +438,69 @@ async function saveSettings() {
   }
 }
 
-// ── Auto-reload after fetch task ──────────────────────────────────────────
-function scheduleReload() {
-  setTimeout(() => location.reload(), 5000);
+// ── Metrika fetch with progress polling ──────────────────────────────────
+async function fetchMetrika() {
+  const btn = document.getElementById('fetch-metrika-btn');
+  const status = document.getElementById('metrika-fetch-status');
+  const date1 = document.getElementById('metrika-date1').value;
+  const date2 = document.getElementById('metrika-date2').value;
+
+  btn.disabled = true;
+  btn.textContent = 'Загрузка...';
+  status.style.display = 'block';
+  status.innerHTML = '<div class="bg-blue-50 border border-blue-200 rounded p-3 text-sm text-blue-700">⏳ Задача отправлена в очередь...</div>';
+
+  try {
+    const resp = await fetch('/metrika/{{ site.id }}/fetch', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({date1: date1 || null, date2: date2 || null}),
+    });
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      status.innerHTML = '<div class="bg-red-50 border border-red-200 rounded p-3 text-sm text-red-700">Ошибка: ' + (err.detail || resp.status) + '</div>';
+      btn.disabled = false;
+      btn.textContent = 'Загрузить данные Метрики';
+      return;
+    }
+    const data = await resp.json();
+    pollMetrikaTask(data.task_id);
+  } catch (e) {
+    status.innerHTML = '<div class="bg-red-50 border border-red-200 rounded p-3 text-sm text-red-700">Сетевая ошибка: ' + e.message + '</div>';
+    btn.disabled = false;
+    btn.textContent = 'Загрузить данные Метрики';
+  }
+}
+
+function pollMetrikaTask(taskId) {
+  const status = document.getElementById('metrika-fetch-status');
+  const btn = document.getElementById('fetch-metrika-btn');
+  let seconds = 0;
+
+  const interval = setInterval(async () => {
+    seconds += 2;
+    try {
+      const resp = await fetch('/metrika/tasks/' + taskId + '/status');
+      const data = await resp.json();
+
+      if (data.status === 'SUCCESS') {
+        clearInterval(interval);
+        const r = data.result || {};
+        status.innerHTML = '<div class="bg-emerald-50 border border-emerald-200 rounded p-3 text-sm text-emerald-700">✓ Загружено: ' +
+          (r.daily_rows || 0) + ' дней, ' + (r.page_rows || 0) + ' страниц. Обновляю...</div>';
+        setTimeout(() => location.reload(), 1500);
+      } else if (data.status === 'FAILURE') {
+        clearInterval(interval);
+        status.innerHTML = '<div class="bg-red-50 border border-red-200 rounded p-3 text-sm text-red-700">Ошибка: ' + (data.error || 'unknown') + '</div>';
+        btn.disabled = false;
+        btn.textContent = 'Загрузить данные Метрики';
+      } else {
+        status.innerHTML = '<div class="bg-blue-50 border border-blue-200 rounded p-3 text-sm text-blue-700">⏳ Загрузка данных... ' + seconds + 'с</div>';
+      }
+    } catch (e) {
+      // network hiccup — keep polling
+    }
+  }, 2000);
 }
 </script>
 

@@ -138,6 +138,8 @@ async def metrika_page(
             "daily_data": daily_data,
             "page_data": page_data,
             "events": events,
+            "today": date.today(),
+            "timedelta": timedelta,
         },
     )
 
@@ -165,6 +167,23 @@ async def trigger_fetch(
 
     task = fetch_metrika_data.delay(str(site_id), date1, date2)
     return {"status": "queued", "task_id": task.id}
+
+
+@router.get("/tasks/{task_id}/status")
+async def metrika_task_status(
+    task_id: str,
+    _: User = Depends(require_admin),
+) -> dict:
+    """Poll Celery task status for Metrika fetch progress."""
+    from app.celery_app import celery_app
+    result = celery_app.AsyncResult(task_id)
+    response: dict = {"task_id": task_id, "status": result.status}
+    if result.ready():
+        if result.successful():
+            response["result"] = result.result
+        else:
+            response["error"] = str(result.result)
+    return response
 
 
 @router.get("/{site_id}/daily")

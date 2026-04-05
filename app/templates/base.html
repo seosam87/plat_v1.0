@@ -5,6 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}SEO Platform{% endblock %}</title>
   <script src="https://unpkg.com/htmx.org@2.0.3/dist/htmx.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/themes/airbnb.css">
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/l10n/ru.js"></script>
   <style>
     /* --- Reset & Base --- */
     body { font-family: system-ui, sans-serif; margin: 0; padding: 0; background: #f5f5f5; }
@@ -157,5 +162,56 @@
   {% include "help/_modal.html" %}
   {% endwith %}
   {% endif %}
+
+  <script>
+  // ── Flatpickr: auto-init all date inputs ─────────────────────────────────
+  document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('input[type="date"]').forEach(function(el) {
+      flatpickr(el, {
+        locale: 'ru',
+        dateFormat: 'Y-m-d',
+        altInput: true,
+        altFormat: 'd.m.Y',
+        allowInput: true,
+      });
+    });
+
+    // ── Table filter: auto-add filters to tables with data-filterable ──────
+    document.querySelectorAll('table[data-filterable]').forEach(function(table) {
+      var thead = table.querySelector('thead');
+      var tbody = table.querySelector('tbody');
+      if (!thead || !tbody) return;
+      var headerCells = thead.querySelectorAll('tr:first-child th');
+      var filterRow = document.createElement('tr');
+      filterRow.className = 'bg-gray-50';
+      headerCells.forEach(function(th, colIdx) {
+        var td = document.createElement('th');
+        td.className = 'px-3 py-1';
+        var input = document.createElement('input');
+        input.type = 'text';
+        input.placeholder = 'Фильтр...';
+        input.className = 'w-full rounded border border-gray-300 px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400';
+        input.addEventListener('input', function() {
+          var filters = filterRow.querySelectorAll('input');
+          tbody.querySelectorAll('tr').forEach(function(row) {
+            var show = true;
+            filters.forEach(function(f, i) {
+              if (f.value) {
+                var cell = row.querySelectorAll('td')[i];
+                if (cell && cell.textContent.toLowerCase().indexOf(f.value.toLowerCase()) === -1) {
+                  show = false;
+                }
+              }
+            });
+            row.style.display = show ? '' : 'none';
+          });
+        });
+        td.appendChild(input);
+        filterRow.appendChild(td);
+      });
+      thead.appendChild(filterRow);
+    });
+  });
+  </script>
 </body>
 </html>
