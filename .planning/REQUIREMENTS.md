@@ -148,8 +148,8 @@
 
 ### Dashboard & Reporting
 
-- [ ] **DASH-01**: Dashboard shows across all projects: top positions, tasks in progress, recent site changes; loads in <3s with 50 active projects
-- [ ] **DASH-02**: Manager/admin can generate a project report (position trends + task progress + site changes) as PDF and Excel
+- [x] **DASH-01**: Dashboard shows across all projects: top positions, tasks in progress, recent site changes; loads in <3s with 50 active projects
+- [x] **DASH-02**: Manager/admin can generate a project report (position trends + task progress + site changes) as PDF and Excel
 - [ ] **DASH-03**: Reports can be scheduled for automatic delivery via Telegram and/or SMTP (Celery Beat)
 - [ ] **DASH-04**: Morning Telegram digest summarising project status is optionally configurable
 
@@ -320,8 +320,8 @@
 | PROJ-06 | Phase 9: Projects & Tasks | Pending |
 | PROJ-07 | Phase 9: Projects & Tasks | Pending |
 | PROJ-08 | Phase 9: Projects & Tasks | Pending |
-| DASH-01 | Phase 10: Reports & Ads | Pending |
-| DASH-02 | Phase 10: Reports & Ads | Pending |
+| DASH-01 | Phase 10: Reports & Ads | Complete |
+| DASH-02 | Phase 10: Reports & Ads | Complete |
 | DASH-03 | Phase 10: Reports & Ads | Pending |
 | DASH-04 | Phase 10: Reports & Ads | Pending |
 | ADS-01 | Phase 10: Reports & Ads | Complete |

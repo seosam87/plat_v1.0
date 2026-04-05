@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 10-reports-ads-01-PLAN.md
-last_updated: "2026-04-05T18:07:13.718Z"
+stopped_at: Completed 10-reports-ads-02-PLAN.md
+last_updated: "2026-04-05T18:13:52.297Z"
 last_activity: 2026-04-05
 progress:
   total_phases: 16
   completed_phases: 3
   total_plans: 21
-  completed_plans: 11
+  completed_plans: 12
   percent: 0
 ---
 
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-04-03)
 ## Current Position
 
 Phase: 10 (reports-ads) — EXECUTING
-Plan: 3 of 4
+Plan: 4 of 4
 Status: Ready to execute
 Last activity: 2026-04-05
 
@@ -87,6 +87,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 09.2-fix-position-check-silent-failure-add-diagnostic-feedback P01 | 293s | 3 tasks | 3 files |
 | Phase 10-reports-ads P04 | 199 | 2 tasks | 7 files |
 | Phase 10-reports-ads P01 | 203 | 2 tasks | 5 files |
+| Phase 10-reports-ads P02 | 8min | 2 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -152,6 +153,8 @@ Recent decisions affecting current work:
 - [Phase 10-reports-ads]: ad_traffic_trend uses date_trunc SQL; returns Chart.js labels+datasets; CR%=0.0 when sessions==0; CPC=None when conversions==0; Chart.js 4.4.0 via CDN with fetch() trend loader
 - [Phase 10-reports-ads]: projects_table() uses CACHE_TTL constant (300s) for Redis TTL — clear intent over literal ex=300
 - [Phase 10-reports-ads]: asyncio.gather() runs projects_table + aggregated_positions + todays_tasks in parallel on dashboard
+- [Phase 10-reports-ads]: WeasyPrint sync call wrapped in run_in_executor to avoid blocking async event loop
+- [Phase 10-reports-ads]: PDF templates are standalone HTML (not extending base.html) — WeasyPrint requires self-contained HTML with embedded CSS
 
 ### Pending Todos
 
@@ -178,6 +181,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-05T18:07:13.713Z
-Stopped at: Completed 10-reports-ads-01-PLAN.md
+Last session: 2026-04-05T18:13:52.292Z
+Stopped at: Completed 10-reports-ads-02-PLAN.md
 Resume file: None
