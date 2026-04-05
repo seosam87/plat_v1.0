@@ -77,8 +77,14 @@ async def fetch_daily_traffic(
     if not metric_data:
         return rows
 
-    # data[0].metrics is a list of per-day metric arrays
-    day_metrics = metric_data[0].get("metrics", [])
+    # data[0].metrics is a list of metric arrays: metrics[metric_idx][day_idx]
+    # metrics[0] = visits per day, metrics[1] = users per day, etc.
+    all_metrics = metric_data[0].get("metrics", [])
+    visits_arr = all_metrics[0] if len(all_metrics) > 0 else []
+    users_arr = all_metrics[1] if len(all_metrics) > 1 else []
+    bounce_arr = all_metrics[2] if len(all_metrics) > 2 else []
+    depth_arr = all_metrics[3] if len(all_metrics) > 3 else []
+    dur_arr = all_metrics[4] if len(all_metrics) > 4 else []
 
     for i, interval in enumerate(time_intervals):
         # interval is [start, end], date is the start date
@@ -87,15 +93,13 @@ async def fetch_daily_traffic(
         if len(day_date) > 10:
             day_date = day_date[:10]
 
-        values = day_metrics[i] if i < len(day_metrics) else []
-        # Metrics order: visits, users, bounceRate, pageDepth, avgVisitDurationSeconds
         rows.append({
             "date": day_date,
-            "visits": int(values[0]) if len(values) > 0 else 0,
-            "users": int(values[1]) if len(values) > 1 else 0,
-            "bounce_rate": round(float(values[2]), 2) if len(values) > 2 else None,
-            "page_depth": round(float(values[3]), 2) if len(values) > 3 else None,
-            "avg_duration_seconds": int(values[4]) if len(values) > 4 else None,
+            "visits": int(visits_arr[i]) if i < len(visits_arr) else 0,
+            "users": int(users_arr[i]) if i < len(users_arr) else 0,
+            "bounce_rate": round(float(bounce_arr[i]), 2) if i < len(bounce_arr) else None,
+            "page_depth": round(float(depth_arr[i]), 2) if i < len(depth_arr) else None,
+            "avg_duration_seconds": int(dur_arr[i]) if i < len(dur_arr) else None,
         })
 
     logger.info(
