@@ -118,9 +118,9 @@ async def metrika_page(
     events: list = []
 
     if site.metrika_counter_id:
-        # Default period: last 30 days
+        # Default period: last 90 days (matches fetch default)
         date_to = date.today() - timedelta(days=1)
-        date_from = date_to - timedelta(days=29)
+        date_from = date_to - timedelta(days=89)
 
         daily_data = await metrika_service.get_daily_traffic(
             db, site_id, date_from, date_to
