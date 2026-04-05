@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: verifying
-stopped_at: Completed 10-reports-ads-03-PLAN.md
-last_updated: "2026-04-05T18:27:13.902Z"
+stopped_at: Completed 10-reports-ads-05-PLAN.md
+last_updated: "2026-04-05T19:10:30.305Z"
 last_activity: 2026-04-05
 progress:
   total_phases: 16
   completed_phases: 4
-  total_plans: 21
-  completed_plans: 13
+  total_plans: 22
+  completed_plans: 14
   percent: 0
 ---
 
@@ -89,6 +89,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 10-reports-ads P01 | 203 | 2 tasks | 5 files |
 | Phase 10-reports-ads P02 | 8min | 2 tasks | 9 files |
 | Phase 10-reports-ads P03 | 15min | 2 tasks | 14 files |
+| Phase 10-reports-ads P05 | 162 | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -157,6 +158,7 @@ Recent decisions affecting current work:
 - [Phase 10-reports-ads]: WeasyPrint sync call wrapped in run_in_executor to avoid blocking async event loop
 - [Phase 10-reports-ads]: PDF templates are standalone HTML (not extending base.html) — WeasyPrint requires self-contained HTML with embedded CSS
 - [Phase 10-reports-ads]: ReportSchedule singleton row id=1 — upsert on every POST; morning digest Telegram text only per D-07; asyncio.run() wraps async PDF gen in Celery sync task; SMTP silently skips when unconfigured matching Telegram pattern
+- [Phase 10-reports-ads]: Ads 404 converted to redirect to /ui/sites with diagnostic logging rather than bare text 404
 
 ### Pending Todos
 
@@ -183,6 +185,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-05T18:22:38.743Z
-Stopped at: Completed 10-reports-ads-03-PLAN.md
+Last session: 2026-04-05T19:10:30.300Z
+Stopped at: Completed 10-reports-ads-05-PLAN.md
 Resume file: None

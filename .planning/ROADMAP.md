@@ -309,5 +309,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 6.1 → 7 �
 | 7. Semantics | 0/3 | Not started | - |
 | 8. WP Pipeline | 0/4 | Not started | - |
 | 9. Projects & Tasks | 0/3 | Not started | - |
-| 10. Reports & Ads | 4/4 | Complete    | 2026-04-05 |
+| 10. Reports & Ads | 5/5 | Complete   | 2026-04-05 |
 | 11. Hardening | 0/4 | Not started | - |
