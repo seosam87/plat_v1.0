@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>SEO Report — {{ project_name }}</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 2cm;
+    }
+
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 11pt;
+      color: #1f2937;
+      line-height: 1.5;
+    }
+
+    h1 {
+      font-size: 18pt;
+      color: #1e1b4b;
+      margin: 0 0 4px 0;
+    }
+
+    h2 {
+      font-size: 13pt;
+      color: #1e1b4b;
+      margin: 18px 0 8px 0;
+      border-bottom: 1px solid #e5e7eb;
+      padding-bottom: 4px;
+    }
+
+    .report-header {
+      margin-bottom: 24px;
+    }
+
+    .report-meta {
+      color: #6b7280;
+      font-size: 10pt;
+      margin: 0;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 12px;
+      font-size: 10pt;
+    }
+
+    th {
+      background: #f3f4f6;
+      text-align: left;
+      padding: 6px 8px;
+      font-weight: 600;
+      border-bottom: 2px solid #d1d5db;
+    }
+
+    td {
+      padding: 5px 8px;
+      border-bottom: 1px solid #f3f4f6;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    .bar-container {
+      background: #f3f4f6;
+      border-radius: 3px;
+      height: 10px;
+      width: 100%;
+      overflow: hidden;
+    }
+
+    .bar-fill-green {
+      background: #10b981;
+      height: 10px;
+      border-radius: 3px;
+    }
+
+    .bar-fill-blue {
+      background: #6366f1;
+      height: 10px;
+      border-radius: 3px;
+    }
+
+    .bar-fill-gray {
+      background: #9ca3af;
+      height: 10px;
+      border-radius: 3px;
+    }
+
+    .delta-positive {
+      color: #10b981;
+      font-weight: 600;
+    }
+
+    .delta-negative {
+      color: #ef4444;
+      font-weight: 600;
+    }
+
+    .footer {
+      margin-top: 24px;
+      font-size: 9pt;
+      color: #9ca3af;
+      text-align: center;
+      border-top: 1px solid #e5e7eb;
+      padding-top: 8px;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-size: 9pt;
+    }
+  </style>
+</head>
+<body>
+
+<div class="report-header">
+  <h1>SEO Report — {{ project_name }}</h1>
+  <p class="report-meta">Site: {{ site_name }} &nbsp;|&nbsp; Generated: {{ report_date }} &nbsp;|&nbsp; Report type: Brief</p>
+</div>
+
+<!-- Section 1: Position Distribution -->
+<h2>Position Distribution (TOP-3)</h2>
+{% set total = distribution.total | default(1) %}
+{% if total == 0 %}{% set total = 1 %}{% endif %}
+<table>
+  <thead>
+    <tr>
+      <th style="width: 100px">Range</th>
+      <th style="width: 60px">Count</th>
+      <th>Distribution</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>TOP-3</td>
+      <td>{{ distribution.top3 | default(0) }}</td>
+      <td>
+        <div class="bar-container">
+          <div class="bar-fill-green" style="width: {{ [(distribution.top3 | default(0)) / total * 100, 100] | min | round(1) }}%"></div>
+        </div>
+      </td>
+    </tr>
+    <tr>
+      <td>TOP-10</td>
+      <td>{{ distribution.top10 | default(0) }}</td>
+      <td>
+        <div class="bar-container">
+          <div class="bar-fill-blue" style="width: {{ [(distribution.top10 | default(0)) / total * 100, 100] | min | round(1) }}%"></div>
+        </div>
+      </td>
+    </tr>
+    <tr>
+      <td>TOP-30</td>
+      <td>{{ distribution.top30 | default(0) }}</td>
+      <td>
+        <div class="bar-container">
+          <div class="bar-fill-gray" style="width: {{ [(distribution.top30 | default(0)) / total * 100, 100] | min | round(1) }}%"></div>
+        </div>
+      </td>
+    </tr>
+    <tr>
+      <td>TOP-100</td>
+      <td>{{ distribution.top100 | default(0) }}</td>
+      <td>
+        <div class="bar-container">
+          <div class="bar-fill-gray" style="width: {{ [(distribution.top100 | default(0)) / total * 100, 100] | min | round(1) }}%"></div>
+        </div>
+      </td>
+    </tr>
+    <tr>
+      <td>Not ranked</td>
+      <td>{{ distribution.not_ranked | default(0) }}</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td><strong>Total</strong></td>
+      <td><strong>{{ distribution.total | default(0) }}</strong></td>
+      <td></td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- Section 2: Task Summary -->
+<h2>Task Summary</h2>
+<table>
+  <thead>
+    <tr>
+      <th>Status</th>
+      <th>Count</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td>Open</td><td>{{ task_counts.open | default(0) }}</td></tr>
+    <tr><td>In Progress</td><td>{{ task_counts.in_progress | default(0) }}</td></tr>
+    <tr><td>Review</td><td>{{ task_counts.review | default(0) }}</td></tr>
+    <tr><td>Resolved</td><td>{{ task_counts.resolved | default(0) }}</td></tr>
+  </tbody>
+</table>
+
+<!-- Section 3: Top Movers -->
+<h2>Top Movers (Last 7 Days)</h2>
+{% if top_gainers %}
+<p style="font-size: 10pt; font-weight: 600; margin-bottom: 4px;">Top Gainers</p>
+<table>
+  <thead>
+    <tr>
+      <th>Keyword</th>
+      <th>Position</th>
+      <th>Delta</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for g in top_gainers %}
+    <tr>
+      <td>{{ g.phrase }}</td>
+      <td>{{ g.position }}</td>
+      <td class="delta-positive">+{{ g.delta }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
+{% if top_losers %}
+<p style="font-size: 10pt; font-weight: 600; margin-bottom: 4px;">Top Losers</p>
+<table>
+  <thead>
+    <tr>
+      <th>Keyword</th>
+      <th>Position</th>
+      <th>Delta</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for l in top_losers %}
+    <tr>
+      <td>{{ l.phrase }}</td>
+      <td>{{ l.position }}</td>
+      <td class="delta-negative">{{ l.delta }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
+{% if not top_gainers and not top_losers %}
+<p style="color: #9ca3af; font-size: 10pt;">No position changes recorded in the last 7 days.</p>
+{% endif %}
+
+<div class="footer">Generated by SEO Platform</div>
+
+</body>
+</html>

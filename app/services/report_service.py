@@ -1,8 +1,9 @@
 """Report generation service: dashboard aggregation, PDF, Excel."""
 from __future__ import annotations
 
+import asyncio
 import io
-from datetime import date
+from datetime import date, datetime
 from typing import Optional
 from uuid import UUID
 
@@ -103,6 +104,102 @@ async def site_overview(db: AsyncSession, site_id) -> dict:
         "top_gainers": gainers,
         "top_losers": losers,
     }
+
+
+async def generate_pdf_report(
+    db: AsyncSession,
+    project_id: UUID,
+    report_type: str = "brief",
+) -> bytes:
+    """Generate a PDF report for a project using WeasyPrint.
+
+    Args:
+        db: Async database session.
+        project_id: UUID of the project.
+        report_type: 'brief' (1-2 pages) or 'detailed' (5-10 pages).
+
+    Returns:
+        PDF bytes.
+
+    Raises:
+        HTTPException 404 if project not found.
+    """
+    from fastapi import HTTPException
+    from jinja2 import Environment, FileSystemLoader
+    import os
+
+    # Fetch project
+    project = (await db.execute(select(Project).where(Project.id == project_id))).scalar_one_or_none()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    # Fetch site name
+    from app.models.site import Site
+    site = (await db.execute(select(Site).where(Site.id == project.site_id))).scalar_one_or_none()
+    site_name = site.domain if site else "Unknown"
+
+    # Fetch position overview
+    overview = await site_overview(db, project.site_id)
+
+    # Fetch tasks for the project
+    tasks_result = (await db.execute(
+        select(SeoTask).where(SeoTask.project_id == project_id)
+    )).scalars().all()
+    task_counts: dict[str, int] = {s.value: 0 for s in TaskStatus}
+    tasks_list = []
+    for t in tasks_result:
+        task_counts[t.status.value] = task_counts.get(t.status.value, 0) + 1
+        tasks_list.append({
+            "title": t.title,
+            "task_type": t.task_type.value if t.task_type else "",
+            "status": t.status.value,
+            "url": t.url or "",
+        })
+
+    # Fetch recent crawl changes (last 7 days)
+    recent_changes: list[dict] = []
+    try:
+        from app.models.crawl import CrawlPage
+        changes_result = await db.execute(text("""
+            SELECT url, change_type, details, crawled_at
+            FROM crawl_pages
+            WHERE site_id = :sid
+              AND crawled_at >= NOW() - INTERVAL '7 days'
+              AND change_type IS NOT NULL
+            ORDER BY crawled_at DESC
+            LIMIT 50
+        """), {"sid": str(project.site_id)})
+        recent_changes = [dict(r) for r in changes_result.mappings().all()]
+    except Exception as exc:
+        logger.debug(f"Could not fetch recent crawl changes: {exc}")
+
+    context = {
+        "project_name": project.name,
+        "site_name": site_name,
+        "report_date": datetime.utcnow().strftime("%Y-%m-%d"),
+        "distribution": overview.get("distribution", {}),
+        "task_counts": task_counts,
+        "top_gainers": overview.get("top_gainers", [])[:5],
+        "top_losers": overview.get("top_losers", [])[:5],
+        "tasks": tasks_list,
+        "recent_changes": recent_changes,
+    }
+
+    # Render Jinja2 template
+    templates_dir = os.path.join(os.path.dirname(__file__), "..", "templates")
+    env = Environment(loader=FileSystemLoader(templates_dir), autoescape=True)
+    template_name = "reports/brief.html" if report_type == "brief" else "reports/detailed.html"
+    template = env.get_template(template_name)
+    rendered_html = template.render(**context)
+
+    # Generate PDF via WeasyPrint (synchronous call wrapped in executor)
+    def _render_pdf(html_string: str) -> bytes:
+        import weasyprint
+        return weasyprint.HTML(string=html_string, base_url=templates_dir).write_pdf()
+
+    loop = asyncio.get_event_loop()
+    pdf_bytes: bytes = await loop.run_in_executor(None, _render_pdf, rendered_html)
+    return pdf_bytes
 
 
 def generate_excel_report(

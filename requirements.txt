@@ -44,6 +44,9 @@ lxml>=5.0,<6.0
 # Data import (xlsx/csv parsing)
 openpyxl>=3.1,<4.0
 
+# PDF generation
+weasyprint>=62,<63
+
 # DOCX to HTML conversion
 mammoth>=1.6,<2.0
 
