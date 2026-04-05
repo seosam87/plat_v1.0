@@ -63,6 +63,7 @@ class Settings(BaseSettings):
     # App
     DB_ECHO: bool = False
     LOG_LEVEL: str = "INFO"
+    APP_URL: str = "http://localhost:8000"
 
 
 settings = Settings()
