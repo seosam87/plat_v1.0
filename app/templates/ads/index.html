@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+{% block title %}Ad Traffic — {{ site.name }} — SEO Platform{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="/ui/dashboard">Dashboard</a><span>&rsaquo;</span>
+  <a href="/ui/sites">Sites</a><span>&rsaquo;</span>
+  <span>Ad Traffic</span><span>&rsaquo;</span>
+  {{ site.name }}
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="flex flex-col gap-6">
+
+  <!-- Page header -->
+  <div class="flex items-center justify-between">
+    <h1 class="text-xl font-bold text-gray-800">Ad Traffic — {{ site.name }}</h1>
+    <span class="text-sm text-gray-500">Source: Yandex Direct only (D-10)</span>
+  </div>
+
+  <!-- ------------------------------------------------------------------ -->
+  <!-- Section 1: CSV Upload (D-10, ADS-01)                                -->
+  <!-- ------------------------------------------------------------------ -->
+  <div class="card">
+    <h2 class="text-base font-semibold text-gray-700 mb-3">Upload CSV</h2>
+    <p class="text-sm text-gray-500 mb-3">
+      CSV format: <code class="bg-gray-100 px-1 rounded text-xs">source, date, sessions, conversions, cost</code>.
+      Date column must be ISO format (YYYY-MM-DD). Source: Yandex Direct only.
+    </p>
+    <form
+      hx-post="/reports/sites/{{ site.id }}/ad-traffic/upload"
+      hx-encoding="multipart/form-data"
+      hx-target="#upload-result"
+      hx-swap="innerHTML"
+      class="flex items-center gap-3 flex-wrap"
+    >
+      <input
+        type="file"
+        name="file"
+        accept=".csv"
+        required
+        class="text-sm text-gray-600 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-sm file:font-medium file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer"
+      >
+      <button
+        type="submit"
+        class="btn btn-primary text-sm px-4 py-1.5 rounded"
+      >Upload CSV</button>
+    </form>
+    <div id="upload-result" class="mt-3 text-sm text-gray-600"></div>
+  </div>
+
+  <!-- ------------------------------------------------------------------ -->
+  <!-- Section 2: Period Comparison (D-11, ADS-02)                         -->
+  <!-- ------------------------------------------------------------------ -->
+  <div class="card">
+    <h2 class="text-base font-semibold text-gray-700 mb-3">Period Comparison</h2>
+    <form
+      hx-post="/ui/ads/{{ site.id }}/compare"
+      hx-target="#comparison-results"
+      hx-swap="innerHTML"
+      class="flex flex-wrap gap-4 items-end"
+    >
+      <fieldset class="border border-gray-200 rounded p-3">
+        <legend class="text-xs font-semibold text-gray-500 px-1">Period A</legend>
+        <div class="flex gap-2 items-center">
+          <label class="text-xs text-gray-500">From</label>
+          <input
+            type="date"
+            name="period_a_start"
+            required
+            class="border border-gray-300 rounded px-2 py-1 text-sm focus:ring-indigo-500 focus:border-indigo-500"
+          >
+          <label class="text-xs text-gray-500">To</label>
+          <input
+            type="date"
+            name="period_a_end"
+            required
+            class="border border-gray-300 rounded px-2 py-1 text-sm focus:ring-indigo-500 focus:border-indigo-500"
+          >
+        </div>
+      </fieldset>
+
+      <fieldset class="border border-gray-200 rounded p-3">
+        <legend class="text-xs font-semibold text-gray-500 px-1">Period B</legend>
+        <div class="flex gap-2 items-center">
+          <label class="text-xs text-gray-500">From</label>
+          <input
+            type="date"
+            name="period_b_start"
+            required
+            class="border border-gray-300 rounded px-2 py-1 text-sm focus:ring-indigo-500 focus:border-indigo-500"
+          >
+          <label class="text-xs text-gray-500">To</label>
+          <input
+            type="date"
+            name="period_b_end"
+            required
+            class="border border-gray-300 rounded px-2 py-1 text-sm focus:ring-indigo-500 focus:border-indigo-500"
+          >
+        </div>
+      </fieldset>
+
+      <button
+        type="submit"
+        class="btn btn-primary text-sm px-5 py-2 rounded"
+      >Compare</button>
+    </form>
+
+    <div id="comparison-results" class="mt-4"></div>
+  </div>
+
+  <!-- ------------------------------------------------------------------ -->
+  <!-- Section 3: Trend Chart (D-12, ADS-03)                               -->
+  <!-- ------------------------------------------------------------------ -->
+  <div class="card">
+    <div class="flex items-center justify-between mb-3">
+      <h2 class="text-base font-semibold text-gray-700">Traffic Trend</h2>
+      <div class="flex gap-2">
+        <button
+          id="btn-weekly"
+          onclick="loadTrend('weekly')"
+          class="btn btn-sm btn-primary"
+        >Weekly</button>
+        <button
+          id="btn-monthly"
+          onclick="loadTrend('monthly')"
+          class="btn btn-sm"
+        >Monthly</button>
+      </div>
+    </div>
+    <canvas id="trend-chart" height="300"></canvas>
+  </div>
+
+</div>
+
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<script>
+  var trendChart = null;
+  var siteId = "{{ site.id }}";
+
+  function loadTrend(granularity) {
+    // Update active button state
+    var btnWeekly = document.getElementById('btn-weekly');
+    var btnMonthly = document.getElementById('btn-monthly');
+    if (granularity === 'weekly') {
+      btnWeekly.classList.add('btn-primary');
+      btnMonthly.classList.remove('btn-primary');
+    } else {
+      btnMonthly.classList.add('btn-primary');
+      btnWeekly.classList.remove('btn-primary');
+    }
+
+    fetch('/reports/sites/' + siteId + '/ad-traffic/trend?granularity=' + granularity, {
+      credentials: 'same-origin'
+    })
+    .then(function(resp) { return resp.json(); })
+    .then(function(data) {
+      var ctx = document.getElementById('trend-chart').getContext('2d');
+      if (trendChart) {
+        trendChart.data.labels = data.labels;
+        trendChart.data.datasets = data.datasets;
+        trendChart.update();
+      } else {
+        trendChart = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: data.labels,
+            datasets: data.datasets
+          },
+          options: {
+            responsive: true,
+            plugins: {
+              legend: { position: 'top' }
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                title: { display: true, text: 'Sessions' }
+              },
+              x: {
+                title: { display: true, text: granularity === 'weekly' ? 'Week' : 'Month' }
+              }
+            }
+          }
+        });
+      }
+    })
+    .catch(function(err) {
+      console.error('Failed to load trend data:', err);
+    });
+  }
+
+  // Load weekly trend on page load
+  document.addEventListener('DOMContentLoaded', function() {
+    loadTrend('weekly');
+  });
+</script>
+{% endblock %}

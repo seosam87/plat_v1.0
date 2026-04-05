@@ -52,6 +52,7 @@ NAV_SECTIONS = [
             {"id": "metrika", "label": "Трафик (Metrika)", "url": "/ui/metrika/{site_id}"},
             {"id": "traffic-analysis", "label": "Анализ трафика", "url": "/traffic-analysis/{site_id}"},
             {"id": "competitors", "label": "Конкуренты", "url": "/ui/competitors/{site_id}"},
+            {"id": "sites-ads", "label": "Рекламный трафик", "url": "/ui/ads/{site_id}", "admin_only": False},
         ],
     },
     {

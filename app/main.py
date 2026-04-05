@@ -833,53 +833,25 @@ async def ui_datasources(request: Request, db: AsyncSession = Depends(get_db)) -
 async def ui_dashboard(request: Request, db: AsyncSession = Depends(get_db)) -> HTMLResponse:
     import asyncio
     from app.services.report_service import dashboard_summary
-    from app.models.project import Project
-    from sqlalchemy import select as sa_select
-
-    from app.services.report_service import site_overview
+    from app.services.dashboard_service import projects_table
     from app.services.overview_service import aggregated_positions, todays_tasks
 
-    stats = await dashboard_summary(db)
-    projects = (await db.execute(
-        sa_select(Project).order_by(Project.created_at.desc()).limit(20)
-    )).scalars().all()
     sites = await get_sites(db)
-    site_map = {s.id: s.name for s in sites}
+    stats = await dashboard_summary(db)
     stats["sites"] = len(sites)
-    projects_data = [
-        {"id": str(p.id), "name": p.name, "status": p.status.value,
-         "site_id": str(p.site_id), "site_name": site_map.get(p.site_id, "—")}
-        for p in projects
-    ]
 
-    # Per-site overview for dashboard table
-    sites_overview = []
-    for s in sites[:20]:
-        try:
-            ov = await site_overview(db, s.id)
-            sites_overview.append({
-                "id": str(s.id), "name": s.name,
-                "keyword_count": ov["keyword_count"],
-                "top3": ov["distribution"].get("top3", 0),
-                "top10": ov["distribution"].get("top10", 0),
-                "top30": ov["distribution"].get("top30", 0),
-                "open_tasks": ov["open_tasks"],
-            })
-        except Exception:
-            sites_overview.append({"id": str(s.id), "name": s.name, "keyword_count": 0, "top3": 0, "top10": 0, "top30": 0, "open_tasks": 0})
-
-    # Aggregated cross-site position summary and today's tasks (parallel)
-    pos_summary, tasks_today = await asyncio.gather(
+    # Single cached aggregate query + parallel pos summary and tasks
+    projects_table_data, pos_summary, tasks_today = await asyncio.gather(
+        projects_table(db),
         aggregated_positions(db),
         todays_tasks(db),
     )
 
     return templates.TemplateResponse(request, "dashboard/index.html", {
         "stats": stats,
-        "projects": projects_data,
-        "sites_overview": sites_overview,
-        "pos_summary": pos_summary,      # dict: top3, top10, top100, trend_up, trend_down
-        "tasks_today": tasks_today,      # list of task dicts
+        "projects_table_data": projects_table_data,  # per-project table (D-01)
+        "pos_summary": pos_summary,                  # dict: top3, top10, top100, trend_up, trend_down
+        "tasks_today": tasks_today,                  # list of task dicts
     })
 
 
@@ -2548,6 +2520,66 @@ async def ui_server_logs(request: Request, lines: int = 30) -> HTMLResponse:
     else:
         entries.append('<div style="color:#6b7280">No log file found</div>')
     return HTMLResponse("\n".join(entries))
+
+
+@app.get("/ui/ads/{site_id}", response_class=HTMLResponse)
+async def ui_ads(site_id: str, request: Request, db: AsyncSession = Depends(get_db)) -> HTMLResponse:
+    """Ad traffic page: upload, period comparison, and trend chart."""
+    import uuid as _uuid
+    token = request.cookies.get("access_token", "")
+    try:
+        from app.auth.jwt import decode_access_token
+        decode_access_token(token)
+    except Exception:
+        return RedirectResponse(f"/ui/login?next=/ui/ads/{site_id}", status_code=302)
+
+    try:
+        sid = _uuid.UUID(site_id)
+    except ValueError:
+        return HTMLResponse("Invalid site ID", status_code=400)
+
+    site = await get_site(db, sid)
+    if not site:
+        return HTMLResponse("Site not found", status_code=404)
+
+    return templates.TemplateResponse(request, "ads/index.html", {"site": site})
+
+
+@app.post("/ui/ads/{site_id}/compare", response_class=HTMLResponse)
+async def ui_ads_compare(
+    site_id: str,
+    request: Request,
+    period_a_start: str = Form(...),
+    period_a_end: str = Form(...),
+    period_b_start: str = Form(...),
+    period_b_end: str = Form(...),
+    db: AsyncSession = Depends(get_db),
+) -> HTMLResponse:
+    """HTMX partial: return comparison table HTML."""
+    import uuid as _uuid
+    from datetime import date as _date
+    from app.services import report_service as _rs
+
+    token = request.cookies.get("access_token", "")
+    try:
+        from app.auth.jwt import decode_access_token
+        decode_access_token(token)
+    except Exception:
+        return HTMLResponse("Unauthorized", status_code=401)
+
+    try:
+        sid = _uuid.UUID(site_id)
+        pa_start = _date.fromisoformat(period_a_start)
+        pa_end = _date.fromisoformat(period_a_end)
+        pb_start = _date.fromisoformat(period_b_start)
+        pb_end = _date.fromisoformat(period_b_end)
+    except (ValueError, TypeError) as exc:
+        return HTMLResponse(f"Invalid parameters: {exc}", status_code=400)
+
+    comparison = await _rs.ad_traffic_comparison(db, sid, pa_start, pa_end, pb_start, pb_end)
+    return templates.TemplateResponse(
+        request, "ads/partials/comparison_table.html", {"comparison": comparison}
+    )
 
 
 @app.get("/")
