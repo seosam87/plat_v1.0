@@ -83,7 +83,7 @@
           <td class="px-3 py-2 font-medium">{{ p.phrase or p.keyword_id }}</td>
           <td class="px-3 py-2">
             {% if p.position %}
-              <span {% if p.position <= 3 %}class="font-bold text-emerald-600"{% elif p.position <= 10 %}class="font-bold text-blue-600"{% elif p.position <= 30 %}class="font-bold text-gray-500"{% else %}class="font-bold text-red-600"{% endif %}>
+              <span {% if p.position <= 3 %}class="font-bold text-emerald-600"{% elif p.position <= 10 %}class="font-bold text-blue-600"{% elif p.position <= 30 %}class="font-bold text-gray-500"{% elif p.position <= 100 %}class="font-bold text-amber-500"{% else %}class="font-bold text-red-600"{% endif %}>
                 {{ p.position }}
               </span>
             {% else %}—{% endif %}
