@@ -60,6 +60,13 @@ class Settings(BaseSettings):
     # XMLProxy
     XMLPROXY_LOW_BALANCE_THRESHOLD: int = 50  # Alert when balance drops below this (RUB)
 
+    # SMTP
+    SMTP_HOST: str = ""
+    SMTP_PORT: int = 587
+    SMTP_USER: str = ""
+    SMTP_PASSWORD: str = ""
+    SMTP_FROM: str = ""
+
     # App
     DB_ECHO: bool = False
     LOG_LEVEL: str = "INFO"
