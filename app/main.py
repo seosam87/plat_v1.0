@@ -352,9 +352,10 @@ async def ui_edit_site(
         if site.site_group_id != new_group_id:
             site.site_group_id = new_group_id
         # Update metrika fields
+        from app.services.crypto_service import encrypt as _encrypt
         site.metrika_counter_id = metrika_counter_id.strip() or None
         if metrika_token.strip():
-            site.metrika_token = metrika_token.strip()
+            site.metrika_token = _encrypt(metrika_token.strip())
         # Update yandex_region
         site.yandex_region = int(yandex_region) if yandex_region.strip() else None
         await db.commit()
