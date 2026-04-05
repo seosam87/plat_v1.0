@@ -311,6 +311,8 @@ async def ui_edit_site(
     wp_username: str = Form(""),
     app_password: str = Form(""),
     site_group_id: str = Form(""),
+    metrika_counter_id: str = Form(""),
+    metrika_token: str = Form(""),
     yandex_region: str = Form(""),
     db: AsyncSession = Depends(get_db),
 ) -> HTMLResponse:
@@ -349,6 +351,10 @@ async def ui_edit_site(
         new_group_id = _uuid.UUID(site_group_id) if site_group_id else None
         if site.site_group_id != new_group_id:
             site.site_group_id = new_group_id
+        # Update metrika fields
+        site.metrika_counter_id = metrika_counter_id.strip() or None
+        if metrika_token.strip():
+            site.metrika_token = metrika_token.strip()
         # Update yandex_region
         site.yandex_region = int(yandex_region) if yandex_region.strip() else None
         await db.commit()

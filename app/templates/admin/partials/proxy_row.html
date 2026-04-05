@@ -1,20 +1,20 @@
 <tr id="proxy-{{ p.id }}">
-  <td class="px-4 py-3 text-gray-700 text-sm">{{ p.url }}</td>
-  <td class="px-4 py-3">
-    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700">{{ p.proxy_type }}</span>
+  <td class="px-3 py-1.5 text-gray-700 text-xs">{{ p.url }}</td>
+  <td class="px-3 py-1.5">
+    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700">{{ p.proxy_type }}</span>
   </td>
-  <td class="px-4 py-3">
+  <td class="px-3 py-1.5">
     {% if p.status == 'active' %}
-    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">{{ p.status }}</span>
+    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">{{ p.status }}</span>
     {% elif p.status == 'dead' %}
-    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">{{ p.status }}</span>
+    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">{{ p.status }}</span>
     {% else %}
-    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">{{ p.status }}</span>
+    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">{{ p.status }}</span>
     {% endif %}
   </td>
-  <td class="px-4 py-3 text-gray-700 text-sm">{{ p.response_time_ms or '---' }} ms</td>
-  <td class="px-4 py-3 text-gray-500 text-sm">{{ p.last_checked_at.strftime('%d.%m %H:%M') if p.last_checked_at else '---' }}</td>
-  <td class="px-4 py-3">
+  <td class="px-3 py-1.5 text-gray-700 text-xs">{{ p.response_time_ms or '---' }} ms</td>
+  <td class="px-3 py-1.5 text-gray-500 text-xs">{{ p.last_checked_at.strftime('%d.%m %H:%M') if p.last_checked_at else '---' }}</td>
+  <td class="px-3 py-1.5">
     <form hx-put="/admin/proxies/{{ p.id }}" hx-target="#proxy-{{ p.id }}" hx-swap="outerHTML" class="inline">
       <input type="hidden" name="url" value="{{ p.url }}">
       <input type="hidden" name="proxy_type" value="{{ p.proxy_type }}">

@@ -39,6 +39,29 @@
       <label style="display:block;font-weight:600;margin-bottom:.3rem">Application Password <span style="color:#9ca3af;font-weight:400">(leave empty to keep current)</span></label>
       <input type="password" name="app_password" placeholder="xxxx xxxx xxxx xxxx"
              style="width:100%;padding:.5rem;border:1px solid #d1d5db;border-radius:4px">
+      {% if site.encrypted_app_password %}
+      <div style="font-size:.8rem;color:#059669;margin-top:.25rem">&#x2713; Пароль сохранён (зашифрован)</div>
+      {% else %}
+      <div style="font-size:.8rem;color:#dc2626;margin-top:.25rem">&#x2717; Пароль не задан</div>
+      {% endif %}
+    </div>
+    <div style="margin-bottom:1rem">
+      <label style="display:block;font-weight:600;margin-bottom:.3rem">Metrika Counter ID <span style="color:#9ca3af;font-weight:400">(optional)</span></label>
+      <input type="text" name="metrika_counter_id" value="{{ site.metrika_counter_id or '' }}" placeholder="12345678"
+             style="width:100%;padding:.5rem;border:1px solid #d1d5db;border-radius:4px">
+      <div style="font-size:.8rem;color:#9ca3af;margin-top:.25rem">
+        metrika.yandex.ru → счётчик → ID в URL
+      </div>
+    </div>
+    <div style="margin-bottom:1rem">
+      <label style="display:block;font-weight:600;margin-bottom:.3rem">Metrika Token <span style="color:#9ca3af;font-weight:400">(leave empty to keep current)</span></label>
+      <input type="password" name="metrika_token" placeholder="OAuth token"
+             style="width:100%;padding:.5rem;border:1px solid #d1d5db;border-radius:4px">
+      {% if site.metrika_token %}
+      <div style="font-size:.8rem;color:#059669;margin-top:.25rem">&#x2713; Токен сохранён</div>
+      {% else %}
+      <div style="font-size:.8rem;color:#dc2626;margin-top:.25rem">&#x2717; Токен не задан</div>
+      {% endif %}
     </div>
     <div style="margin-bottom:1rem">
       <label style="display:block;font-weight:600;margin-bottom:.3rem">
