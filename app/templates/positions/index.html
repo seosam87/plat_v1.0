@@ -355,6 +355,8 @@ function pollTaskStatus(taskId) {
         if (written > 0) {
             setTimeout(() => location.reload(), 3000);
         }
+      } else if (data.status === 'RETRY') {
+        status.innerHTML = '<span class="text-amber-600">⏳ XMLProxy async — retry in ~5 min (' + elapsed + 's)</span>';
       } else if (data.status === 'FAILURE') {
         clearInterval(interval);
         status.innerHTML = '<span class="text-red-600">✗ Failed: ' + (data.error || 'unknown error') + '</span>';
@@ -375,5 +377,21 @@ function pollTaskStatus(taskId) {
     }
   }, 3000);
 }
+
+// ── Check for active task on page load ──────────────────────────────────
+document.addEventListener('DOMContentLoaded', async function() {
+  try {
+    const resp = await fetch('/positions/sites/{{ site_id }}/active-task');
+    const data = await resp.json();
+    if (data.active && data.task_id) {
+      const btn = document.getElementById('check-btn');
+      const status = document.getElementById('check-status');
+      btn.disabled = true;
+      btn.textContent = 'Checking...';
+      status.innerHTML = '<span class="text-blue-600">⏳ Position check in progress...</span>';
+      pollTaskStatus(data.task_id);
+    }
+  } catch(e) {}
+});
 </script>
 {% endblock %}

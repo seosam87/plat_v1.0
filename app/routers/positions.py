@@ -116,7 +116,33 @@ async def trigger_position_check(
     if not site:
         raise HTTPException(status_code=404, detail="Site not found")
     task = _check_positions_task.delay(str(site_id))
+    # Store task_id in Redis so the UI can resume polling on page reload
+    import redis as _redis
+    from app.config import settings
+    r = _redis.from_url(settings.REDIS_URL)
+    r.setex(f"position_check:{site_id}", 600, task.id)  # TTL 10 min
     return {"task_id": task.id, "site_id": str(site_id)}
+
+
+@router.get("/sites/{site_id}/active-task")
+async def get_active_task(
+    site_id: uuid.UUID,
+    _: User = Depends(require_admin),
+) -> dict:
+    """Check if there's an active position check task for this site."""
+    import redis as _redis
+    from app.config import settings
+    from app.celery_app import celery_app
+    r = _redis.from_url(settings.REDIS_URL)
+    task_id = r.get(f"position_check:{site_id}")
+    if not task_id:
+        return {"active": False}
+    task_id = task_id.decode()
+    result = celery_app.AsyncResult(task_id)
+    if result.ready():
+        r.delete(f"position_check:{site_id}")
+        return {"active": False}
+    return {"active": True, "task_id": task_id, "status": result.status}
 
 
 @router.get("/tasks/{task_id}/status")
