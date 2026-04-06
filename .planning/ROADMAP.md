@@ -89,7 +89,7 @@ Plans:
 Plans:
 - [x] 14-01-PLAN.md — Backend: ClientReport model + migration + subprocess PDF renderer + service + template
 - [ ] 14-02-PLAN.md — Frontend: Celery task + router + UI templates + sidebar navigation
-- [ ] 14-03-PLAN.md — Tests: service-layer + subprocess PDF renderer tests
+- [x] 14-03-PLAN.md — Tests: service-layer + subprocess PDF renderer tests
 **UI hint**: yes
 
 ### Phase 15: Keyword Suggest
@@ -148,7 +148,7 @@ Plans:
 |-------|-----------|----------------|--------|-----------|
 | 12. Analytical Foundations | v2.0 | 3/3 | Complete    | 2026-04-06 |
 | 13. Impact Scoring & Growth Opportunities | v2.0 | 3/3 | Complete    | 2026-04-06 |
-| 14. Client Instructions PDF | v2.0 | 1/3 | In Progress|  |
+| 14. Client Instructions PDF | v2.0 | 2/3 | In Progress|  |
 | 15. Keyword Suggest | v2.0 | 0/TBD | Not started | - |
 | 16. AI/GEO Readiness & LLM Briefs | v2.0 | 0/TBD | Not started | - |
 | 17. In-app Notifications | v2.0 | 0/TBD | Not started | - |
