@@ -7,7 +7,18 @@
 <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
   <div class="flex justify-between items-center mb-6">
     <h2 class="text-lg font-semibold text-gray-800 m-0">{{ project_name }} — Tasks</h2>
-    <button class="px-3 py-1.5 text-sm font-medium rounded bg-indigo-600 text-white hover:bg-indigo-700" onclick="document.getElementById('new-task-form').classList.toggle('hidden')">+ Create Task</button>
+    <div class="flex items-center gap-2">
+      <select
+        hx-get="/ui/projects/{{ project_id }}/kanban"
+        hx-target="body"
+        hx-push-url="true"
+        name="sort"
+        class="px-2 py-1.5 text-sm border border-gray-300 rounded bg-white text-gray-700 focus:ring-indigo-500 focus:border-indigo-500">
+        <option value="created" {% if sort != 'impact' %}selected{% endif %}>По дате</option>
+        <option value="impact" {% if sort == 'impact' %}selected{% endif %}>По Impact Score</option>
+      </select>
+      <button class="px-3 py-1.5 text-sm font-medium rounded bg-indigo-600 text-white hover:bg-indigo-700" onclick="document.getElementById('new-task-form').classList.toggle('hidden')">+ Create Task</button>
+    </div>
   </div>
 
   <form id="new-task-form" class="hidden mb-4 p-4 bg-gray-50 rounded-lg"
@@ -45,7 +56,12 @@
       <h3 class="m-0 mb-3 text-gray-500 text-xs uppercase">{{ col_label }} ({{ tasks.get(col_status, [])|length }})</h3>
       {% for task in tasks.get(col_status, []) %}
       <div class="bg-white border border-gray-200 rounded-md p-2.5 mb-2">
-        <div class="font-medium text-sm mb-1">{{ task.title }}</div>
+        <div class="font-medium text-sm mb-1 flex items-center gap-1">
+          <span>{{ task.title }}</span>
+          {% if task.impact_score %}
+          <span class="inline-flex items-center text-[0.65rem] font-mono text-orange-600 bg-orange-50 px-1.5 py-0.5 rounded" title="Impact Score">{{ task.impact_score }}</span>
+          {% endif %}
+        </div>
         {% if task.task_type %}
         {% if task.task_type in ('page_404', 'lost_indexation') %}
         <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[0.65rem] font-medium bg-red-100 text-red-700">{{ task.task_type }}</span>

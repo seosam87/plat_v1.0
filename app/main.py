@@ -872,11 +872,13 @@ async def ui_dashboard(request: Request, db: AsyncSession = Depends(get_db)) -> 
 
 
 @app.get("/ui/projects/{project_id}/kanban", response_class=HTMLResponse)
-async def ui_kanban(project_id: str, request: Request, db: AsyncSession = Depends(get_db)) -> HTMLResponse:
+async def ui_kanban(project_id: str, request: Request, sort: str = "created", db: AsyncSession = Depends(get_db)) -> HTMLResponse:
     import uuid as _uuid
     from app.models.project import Project
     from app.models.task import SeoTask
     from sqlalchemy import select as sa_select
+    from app.services.impact_score_service import get_max_impact_score_by_url
+    from app.utils.url_normalize import normalize_url
 
     project = (await db.execute(sa_select(Project).where(Project.id == _uuid.UUID(project_id)))).scalar_one_or_none()
     if not project:
@@ -884,12 +886,26 @@ async def ui_kanban(project_id: str, request: Request, db: AsyncSession = Depend
     tasks = (await db.execute(
         sa_select(SeoTask).where(SeoTask.project_id == _uuid.UUID(project_id)).order_by(SeoTask.created_at)
     )).scalars().all()
+
+    # Load impact scores keyed by normalized URL
+    impact_map: dict[str, int] = {}
+    if project.site_id:
+        impact_map = await get_max_impact_score_by_url(db, project.site_id)
+
     grouped = {"open": [], "assigned": [], "in_progress": [], "review": [], "resolved": []}
     for t in tasks:
+        norm = normalize_url(t.url) if t.url else None
+        impact_score = impact_map.get(norm, 0) if norm else 0
         grouped.setdefault(t.status.value, []).append({
             "id": str(t.id), "title": t.title, "task_type": t.task_type.value,
             "due_date": t.due_date.isoformat() if t.due_date else None,
+            "impact_score": impact_score,
         })
+
+    # Sort each group by impact_score DESC when requested
+    if sort == "impact":
+        for group_list in grouped.values():
+            group_list.sort(key=lambda x: x.get("impact_score", 0), reverse=True)
 
     # Load comments
     from app.models.project_comment import ProjectComment
@@ -910,6 +926,7 @@ async def ui_kanban(project_id: str, request: Request, db: AsyncSession = Depend
 
     return templates.TemplateResponse(request, "projects/kanban.html", {
         "project_name": project.name, "project_id": project_id, "tasks": grouped, "comments": comments_data,
+        "sort": sort,
     })
 
 
