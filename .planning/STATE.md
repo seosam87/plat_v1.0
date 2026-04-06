@@ -1,17 +1,17 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: MVP
-status: complete
-stopped_at: v1.0 milestone completed
+milestone: v2.0
+milestone_name: SEO Insights & AI
+status: defining_requirements
+stopped_at: Milestone v2.0 started
 last_updated: "2026-04-06"
 last_activity: 2026-04-06
 progress:
-  total_phases: 16
-  completed_phases: 16
-  total_plans: 22
-  completed_plans: 22
-  percent: 100
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -21,12 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-06)
 
 **Core value:** A team member or client can open the platform and immediately see the SEO health of any site — positions, recent changes, pending tasks — without switching between GSC, spreadsheets, and WP admin.
-**Current focus:** Planning next milestone
+**Current focus:** v2.0 SEO Insights & AI — defining requirements
 
 ## Current Position
 
-Milestone: v1.0 MVP — SHIPPED 2026-04-06
-Status: Complete — ready for next milestone
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-04-06 — Milestone v2.0 started
 Last activity: 2026-04-06
 
 Progress: [██████████] 100%

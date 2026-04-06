@@ -102,9 +102,24 @@ A team member or client can open the platform and immediately see the SEO health
 | Ad traffic = CSV upload only | API integrations deferred; covers 90% of needs | Good |
 | Celery timezone Europe/Moscow | Server in Spain, team in Moscow | Good |
 
+## Current Milestone: v2.0 SEO Insights & AI
+
+**Goal:** Превратить собранные данные в actionable insights — Quick Wins, мёртвый контент, приоритизация ошибок, точки роста, AI-готовность, клиентские отчёты — плюс keyword suggest, LLM-briefs и 2FA.
+
+**Target features:**
+- Quick Wins — страницы без TOC/schema/ссылок + позиции 4–20, батч-фикс
+- Dead Content — страницы с 0 визитов + падающие позиции
+- Error Impact Scoring — приоритизация ошибок по трафику
+- Growth Opportunities — агрегация gap-ключей, потерянных позиций, каннибализации
+- AI/GEO Readiness — чеклист готовности к AI-поиску
+- Client Instructions PDF — отчёты для владельцев сайтов
+- Keyword Suggest — подсказки через Google/Yandex + Wordstat
+- LLM Briefs — AI-генерация брифов (opt-in)
+- 2FA (TOTP) + In-app notifications
+
 ## Evolution
 
 This document evolves at phase transitions and milestone boundaries.
 
 ---
-*Last updated: 2026-04-06 after v1.0 milestone*
+*Last updated: 2026-04-06 — milestone v2.0 started*
