@@ -1,0 +1,87 @@
+{% if pages %}
+<table class="w-full text-sm">
+  <thead>
+    <tr class="bg-gray-50 border-b border-gray-200">
+      <th class="px-3 py-2 text-left">
+        <input type="checkbox" id="select-all-dead" class="rounded border-gray-300" onchange="toggleAllDead(this)">
+      </th>
+      <th class="px-3 py-2 text-left text-xs font-normal text-gray-500 uppercase tracking-wider">URL</th>
+      <th class="px-3 py-2 text-right text-xs font-normal text-gray-500 uppercase tracking-wider">Трафик 30 дн.</th>
+      <th class="px-3 py-2 text-right text-xs font-normal text-gray-500 uppercase tracking-wider">Ключей привязано</th>
+      <th class="px-3 py-2 text-right text-xs font-normal text-gray-500 uppercase tracking-wider">Падение позиций</th>
+      <th class="px-3 py-2 text-left text-xs font-normal text-gray-500 uppercase tracking-wider">Рекомендация</th>
+    </tr>
+  </thead>
+  <tbody class="divide-y divide-gray-100">
+    {% for page in pages %}
+    <tr class="hover:bg-gray-50 dead-content-row" data-page-id="{{ page.page_id }}">
+      <td class="px-3 py-2">
+        <input type="checkbox" class="dead-page-checkbox rounded border-gray-300" value="{{ page.page_id }}" onchange="updateDeadSelection()">
+      </td>
+      <td class="px-3 py-2 max-w-[280px]">
+        <a href="{{ page.url }}" target="_blank" class="text-indigo-600 hover:underline truncate block text-sm" title="{{ page.url }}">
+          {{ page.url | truncate(70, True, '…') }}
+        </a>
+      </td>
+      <td class="px-3 py-2 text-right">
+        {% if page.traffic_30d == 0 %}
+        <span class="text-gray-400">—</span>
+        {% else %}
+        <span class="text-gray-700">{{ page.traffic_30d }}</span>
+        {% endif %}
+      </td>
+      <td class="px-3 py-2 text-right text-sm text-gray-700">
+        {{ page.keyword_count }}
+      </td>
+      <td class="px-3 py-2 text-right">
+        {% if page.avg_position_delta is none %}
+        <span class="text-gray-400">—</span>
+        {% elif page.avg_position_delta < 0 %}
+        <span class="text-red-600 font-medium">{{ "%.1f"|format(page.avg_position_delta) }}</span>
+        {% else %}
+        <span class="text-green-600">+{{ "%.1f"|format(page.avg_position_delta) }}</span>
+        {% endif %}
+      </td>
+      <td class="px-3 py-2">
+        <div class="flex items-center gap-2">
+          <!-- Recommendation badge -->
+          {% if page.recommendation == "merge" %}
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">merge</span>
+          {% elif page.recommendation == "redirect" %}
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">redirect</span>
+          {% elif page.recommendation == "rewrite" %}
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-800">rewrite</span>
+          {% elif page.recommendation == "delete" %}
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">delete</span>
+          {% endif %}
+          <!-- Inline override dropdown -->
+          <form hx-post="/analytics/{{ site.id }}/dead-content/{{ page.page_id }}/recommendation"
+                hx-swap="none"
+                hx-include="[name='page_url_{{ page.page_id }}']">
+            <input type="hidden" name="page_url_{{ page.page_id }}" value="{{ page.url }}">
+            <select name="recommendation"
+                    class="text-xs border border-gray-200 rounded px-1 py-0.5 text-gray-600 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                    hx-trigger="change"
+                    hx-post="/analytics/{{ site.id }}/dead-content/{{ page.page_id }}/recommendation"
+                    hx-swap="none"
+                    hx-include="[name='page_url_{{ page.page_id }}']"
+                    onchange="this.form.dispatchEvent(new Event('submit'))">
+              <option value="merge" {% if page.recommendation == "merge" %}selected{% endif %}>merge</option>
+              <option value="redirect" {% if page.recommendation == "redirect" %}selected{% endif %}>redirect</option>
+              <option value="rewrite" {% if page.recommendation == "rewrite" %}selected{% endif %}>rewrite</option>
+              <option value="delete" {% if page.recommendation == "delete" %}selected{% endif %}>delete</option>
+            </select>
+          </form>
+        </div>
+        <p class="text-xs text-gray-400 mt-0.5">{{ page.recommendation_reason }}</p>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<div class="text-center py-16">
+  <p class="text-gray-500 font-medium mb-2">Мёртвых страниц не найдено</p>
+  <p class="text-sm text-gray-400">Страниц с нулевым трафиком или падением позиций&nbsp;&gt;&nbsp;10 нет.<br>Данные Метрики и проверка позиций должны быть актуальны.</p>
+</div>
+{% endif %}

@@ -137,6 +137,12 @@ app.include_router(bulk_router)
 app.include_router(traffic_analysis_router)
 app.include_router(intent_router)
 
+from app.routers import dead_content as dead_content_module
+app.include_router(dead_content_module.router)
+
+from app.routers import quick_wins as quick_wins_module
+app.include_router(quick_wins_module.router)
+
 
 # ---- Site selector API endpoints for nav sidebar ----
 

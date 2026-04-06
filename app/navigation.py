@@ -46,6 +46,7 @@ NAV_SECTIONS = [
         "url": None,
         "admin_only": False,
         "children": [
+            {"id": "quick-wins", "label": "Quick Wins", "url": "/analytics/{site_id}/quick-wins"},
             {"id": "workspace", "label": "Воркспейс", "url": "/analytics/sites/{site_id}"},
             {"id": "gap", "label": "Gap-анализ", "url": "/gap/{site_id}"},
             {"id": "architecture", "label": "Архитектура", "url": "/architecture/{site_id}"},
@@ -53,6 +54,7 @@ NAV_SECTIONS = [
             {"id": "traffic-analysis", "label": "Анализ трафика", "url": "/traffic-analysis/{site_id}"},
             {"id": "competitors", "label": "Конкуренты", "url": "/ui/competitors/{site_id}"},
             {"id": "sites-ads", "label": "Рекламный трафик", "url": "/ui/ads/{site_id}", "admin_only": False},
+            {"id": "dead-content", "label": "Мёртвый контент", "url": "/analytics/{site_id}/dead-content"},
         ],
     },
     {

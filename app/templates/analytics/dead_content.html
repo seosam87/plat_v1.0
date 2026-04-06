@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+{% block title %}Мёртвый контент — {{ site.name }} — SEO Platform{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="/ui/dashboard">Dashboard</a>
+  <span>&rsaquo;</span>
+  <a href="/ui/sites">Sites</a>
+  <span>&rsaquo;</span>
+  <a href="/analytics/sites/{{ site.id }}">{{ site.name }}</a>
+  <span>&rsaquo;</span>
+  Мёртвый контент
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- Page header -->
+<div class="flex justify-between items-center mb-4">
+  <h2 class="m-0 text-lg font-semibold text-gray-800">Мёртвый контент: {{ site.name }}</h2>
+  <button id="create-tasks-btn"
+          class="px-4 py-2 rounded text-sm font-medium bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed transition"
+          disabled
+          onclick="showDeadTaskConfirm()">
+    Создать задачи (<span id="dead-selected-count">0</span>)
+  </button>
+</div>
+
+<!-- Summary stats strip -->
+<div class="grid grid-cols-3 gap-4 mb-4">
+  <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+    <p class="text-sm text-gray-500 mb-1">Нет трафика (30 дн.)</p>
+    <p class="text-3xl font-bold text-red-600">{{ stats.zero_traffic }}</p>
+  </div>
+  <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+    <p class="text-sm text-gray-500 mb-1">Падение позиций &gt; 10</p>
+    <p class="text-3xl font-bold text-amber-600">{{ stats.position_drop }}</p>
+  </div>
+  <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+    <p class="text-sm text-gray-500 mb-1">Всего кандидатов</p>
+    <p class="text-3xl font-bold text-gray-700">{{ stats.total }}</p>
+  </div>
+</div>
+
+<!-- Confirmation panel (hidden by default) -->
+<div id="dead-task-confirm" class="hidden mb-4 bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-center justify-between">
+  <p class="text-sm text-gray-700">
+    Создать SEO-задачи для <strong><span id="dead-confirm-count">0</span></strong> страниц?
+  </p>
+  <div class="flex gap-2">
+    <button class="px-3 py-1.5 rounded text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 transition"
+            onclick="hideDeadTaskConfirm()">
+      Не создавать
+    </button>
+    <button class="px-3 py-1.5 rounded text-sm font-medium bg-emerald-600 text-white hover:bg-emerald-700 transition"
+            onclick="submitDeadTasks()">
+      Создать задачи
+    </button>
+  </div>
+</div>
+
+<!-- Dead content table -->
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+  <div id="dead-content-table" class="overflow-x-auto">
+    {% include "analytics/partials/dead_content_table.html" %}
+  </div>
+</div>
+
+<!-- Toast notifications -->
+<div id="dead-toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2"></div>
+
+<script>
+// ---------------------------------------------------------------------------
+// Row selection
+// ---------------------------------------------------------------------------
+
+function updateDeadSelection() {
+  const checkboxes = document.querySelectorAll('.dead-page-checkbox:checked');
+  const count = checkboxes.length;
+  document.getElementById('dead-selected-count').textContent = count;
+  document.getElementById('dead-confirm-count').textContent = count;
+  const btn = document.getElementById('create-tasks-btn');
+  btn.disabled = count === 0;
+}
+
+function toggleAllDead(masterCheckbox) {
+  document.querySelectorAll('.dead-page-checkbox').forEach(cb => {
+    cb.checked = masterCheckbox.checked;
+  });
+  updateDeadSelection();
+}
+
+// ---------------------------------------------------------------------------
+// Confirmation panel
+// ---------------------------------------------------------------------------
+
+function showDeadTaskConfirm() {
+  const count = document.querySelectorAll('.dead-page-checkbox:checked').length;
+  if (count === 0) return;
+  document.getElementById('dead-confirm-count').textContent = count;
+  document.getElementById('dead-task-confirm').classList.remove('hidden');
+}
+
+function hideDeadTaskConfirm() {
+  document.getElementById('dead-task-confirm').classList.add('hidden');
+}
+
+// ---------------------------------------------------------------------------
+// Task creation submit
+// ---------------------------------------------------------------------------
+
+async function submitDeadTasks() {
+  const checkboxes = document.querySelectorAll('.dead-page-checkbox:checked');
+  const pageIds = Array.from(checkboxes).map(cb => cb.value);
+  if (pageIds.length === 0) return;
+
+  hideDeadTaskConfirm();
+
+  try {
+    const resp = await fetch('/analytics/{{ site.id }}/dead-content/create-tasks', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+      body: JSON.stringify({ page_ids: pageIds }),
+    });
+
+    if (!resp.ok) {
+      showDeadToast('Ошибка при создании задач', 'error');
+      return;
+    }
+
+    const trigger = resp.headers.get('HX-Trigger');
+    if (trigger) {
+      try {
+        const data = JSON.parse(trigger);
+        if (data.showToast) {
+          showDeadToast(data.showToast.message, data.showToast.type || 'success');
+        }
+      } catch (_) {}
+    }
+
+    // Uncheck all
+    document.querySelectorAll('.dead-page-checkbox').forEach(cb => { cb.checked = false; });
+    document.getElementById('select-all-dead') && (document.getElementById('select-all-dead').checked = false);
+    updateDeadSelection();
+  } catch (err) {
+    showDeadToast('Ошибка сети. Попробуйте ещё раз.', 'error');
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Toast helper
+// ---------------------------------------------------------------------------
+
+function showDeadToast(message, type) {
+  const container = document.getElementById('dead-toast-container');
+  const toast = document.createElement('div');
+
+  const bgColor = type === 'error' ? 'bg-red-600' : 'bg-emerald-600';
+  toast.className = `${bgColor} text-white text-sm px-4 py-2 rounded shadow-lg transition-opacity duration-300`;
+  toast.textContent = message;
+
+  container.appendChild(toast);
+
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    setTimeout(() => toast.remove(), 300);
+  }, 3500);
+}
+
+// ---------------------------------------------------------------------------
+// HTMX event: listen for HX-Trigger showToast from recommendation updates
+// ---------------------------------------------------------------------------
+document.body.addEventListener('showToast', function (evt) {
+  const detail = evt.detail;
+  if (detail && detail.message) {
+    showDeadToast(detail.message, detail.type || 'success');
+  }
+});
+</script>
+{% endblock %}
