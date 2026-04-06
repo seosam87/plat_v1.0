@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: SEO Insights & AI
 status: verifying
-stopped_at: Phase 13 complete, Phase 14 next
-last_updated: "2026-04-06T14:29:56.812Z"
+stopped_at: Phase 14 context gathered
+last_updated: "2026-04-06T19:42:54.746Z"
 last_activity: 2026-04-06
 progress:
   total_phases: 6
@@ -77,6 +77,6 @@ Progress: [__________] 0% (v2.0)
 
 ## Session Continuity
 
-Last session: 2026-04-06T14:29:56.808Z
-Stopped at: Phase 13 complete, Phase 14 next
-Resume file: .planning/ROADMAP.md
+Last session: 2026-04-06T19:42:54.742Z
+Stopped at: Phase 14 context gathered
+Resume file: .planning/phases/14-client-instructions-pdf/14-CONTEXT.md
