@@ -13,6 +13,7 @@ from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
 
+from app.models.keyword_latest_position import KeywordLatestPosition  # noqa: F401
 from app.models.position import KeywordPosition
 
 
@@ -117,6 +118,7 @@ async def write_positions_batch(
         await db.flush()
 
     logger.info("Positions written", site_id=str(site_id), count=count)
+    await refresh_latest_positions(db, site_id)
     return count
 
 
@@ -196,6 +198,56 @@ async def get_position_history(
         }
         for r in result
     ]
+
+
+async def refresh_latest_positions(db: AsyncSession, site_id: uuid.UUID) -> int:
+    """Refresh keyword_latest_positions for a site using INSERT ... ON CONFLICT DO UPDATE.
+
+    Selects the most recent position per (keyword_id, engine) for the given site
+    using DISTINCT ON, then upserts into keyword_latest_positions.
+
+    Returns the number of rows inserted or updated.
+    """
+    query = text("""
+        INSERT INTO keyword_latest_positions
+            (id, keyword_id, site_id, engine, region, position, previous_position,
+             delta, url, checked_at, updated_at)
+        SELECT
+            gen_random_uuid(),
+            kp.keyword_id,
+            kp.site_id,
+            kp.engine,
+            kp.region,
+            kp.position,
+            kp.previous_position,
+            kp.delta,
+            kp.url,
+            kp.checked_at,
+            NOW()
+        FROM (
+            SELECT DISTINCT ON (kp2.keyword_id, kp2.engine)
+                kp2.*
+            FROM keyword_positions kp2
+            WHERE kp2.site_id = :site_id
+            ORDER BY kp2.keyword_id, kp2.engine, kp2.checked_at DESC
+        ) kp
+        ON CONFLICT (keyword_id, engine) DO UPDATE SET
+            position         = EXCLUDED.position,
+            previous_position = EXCLUDED.previous_position,
+            delta            = EXCLUDED.delta,
+            url              = EXCLUDED.url,
+            region           = EXCLUDED.region,
+            checked_at       = EXCLUDED.checked_at,
+            updated_at       = NOW()
+    """)
+    result = await db.execute(query, {"site_id": site_id})
+    row_count = result.rowcount
+    logger.debug(
+        "Refreshed keyword_latest_positions",
+        site_id=str(site_id),
+        rows=row_count,
+    )
+    return row_count
 
 
 async def _get_previous_position(
