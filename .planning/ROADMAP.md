@@ -73,7 +73,7 @@ Plans:
 **Plans**: 3 plans
 Plans:
 - [x] 13-01-PLAN.md — Impact scoring backend: model + migration + service + Celery task + tests
-- [ ] 13-02-PLAN.md — Growth Opportunities dashboard: service + router + templates + tabs
+- [x] 13-02-PLAN.md — Growth Opportunities dashboard: service + router + templates + tabs
 - [ ] 13-03-PLAN.md — Kanban impact sort + slide-over drill-down panels
 
 ### Phase 14: Client Instructions PDF
@@ -87,7 +87,7 @@ Plans:
   4. PDF generation runs in a subprocess per report so a WeasyPrint memory leak cannot kill the shared Celery worker
 **Plans**: 3 plans
 Plans:
-- [ ] 13-01-PLAN.md — Impact scoring backend: model + migration + service + Celery task + tests
+- [x] 13-01-PLAN.md — Impact scoring backend: model + migration + service + Celery task + tests
 - [ ] 13-02-PLAN.md — Growth Opportunities dashboard: service + router + templates + tabs
 - [ ] 13-03-PLAN.md — Kanban impact sort + slide-over drill-down panels
 **UI hint**: yes
@@ -147,7 +147,7 @@ Plans:
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 12. Analytical Foundations | v2.0 | 3/3 | Complete    | 2026-04-06 |
-| 13. Impact Scoring & Growth Opportunities | v2.0 | 1/3 | In Progress|  |
+| 13. Impact Scoring & Growth Opportunities | v2.0 | 2/3 | In Progress|  |
 | 14. Client Instructions PDF | v2.0 | 0/TBD | Not started | - |
 | 15. Keyword Suggest | v2.0 | 0/TBD | Not started | - |
 | 16. AI/GEO Readiness & LLM Briefs | v2.0 | 0/TBD | Not started | - |
