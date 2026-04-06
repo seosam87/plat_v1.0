@@ -37,7 +37,7 @@ v3.x analytics phases (Metrika, Content Audit, Change Monitoring, Analytics Work
 
 - [x] **Phase 12: Analytical Foundations** - URL normalization + keyword_latest_positions table + Quick Wins + Dead Content surfaces (completed 2026-04-06)
 - [x] **Phase 13: Impact Scoring & Growth Opportunities** - Error prioritization by traffic + unified growth opportunity dashboard (completed 2026-04-06)
-- [ ] **Phase 14: Client Instructions PDF** - Non-technical PDF report for site owners built on subprocess-isolated WeasyPrint
+- [x] **Phase 14: Client Instructions PDF** - Non-technical PDF report for site owners built on subprocess-isolated WeasyPrint (completed 2026-04-06)
 - [ ] **Phase 15: Keyword Suggest** - Yandex/Google autocomplete with Redis caching and rate-limited Celery tasks
 - [ ] **Phase 16: AI/GEO Readiness & LLM Briefs** - GEO checklist + opt-in Anthropic-powered brief enhancement
 - [ ] **Phase 17: In-app Notifications** - Bell icon + notification feed for async task completions via HTMX polling
@@ -88,7 +88,7 @@ Plans:
 **Plans**: 3 plans
 Plans:
 - [x] 14-01-PLAN.md — Backend: ClientReport model + migration + subprocess PDF renderer + service + template
-- [ ] 14-02-PLAN.md — Frontend: Celery task + router + UI templates + sidebar navigation
+- [x] 14-02-PLAN.md — Frontend: Celery task + router + UI templates + sidebar navigation
 - [x] 14-03-PLAN.md — Tests: service-layer + subprocess PDF renderer tests
 **UI hint**: yes
 
@@ -148,7 +148,7 @@ Plans:
 |-------|-----------|----------------|--------|-----------|
 | 12. Analytical Foundations | v2.0 | 3/3 | Complete    | 2026-04-06 |
 | 13. Impact Scoring & Growth Opportunities | v2.0 | 3/3 | Complete    | 2026-04-06 |
-| 14. Client Instructions PDF | v2.0 | 2/3 | In Progress|  |
+| 14. Client Instructions PDF | v2.0 | 3/3 | Complete   | 2026-04-06 |
 | 15. Keyword Suggest | v2.0 | 0/TBD | Not started | - |
 | 16. AI/GEO Readiness & LLM Briefs | v2.0 | 0/TBD | Not started | - |
 | 17. In-app Notifications | v2.0 | 0/TBD | Not started | - |
