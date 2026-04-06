@@ -36,7 +36,7 @@ v3.x analytics phases (Metrika, Content Audit, Change Monitoring, Analytics Work
 **Milestone Goal:** Превратить собранные данные в actionable insights — Quick Wins, мёртвый контент, приоритизация ошибок, точки роста, AI-готовность, клиентские отчёты, keyword suggest и LLM-briefs.
 
 - [x] **Phase 12: Analytical Foundations** - URL normalization + keyword_latest_positions table + Quick Wins + Dead Content surfaces (completed 2026-04-06)
-- [ ] **Phase 13: Impact Scoring & Growth Opportunities** - Error prioritization by traffic + unified growth opportunity dashboard
+- [x] **Phase 13: Impact Scoring & Growth Opportunities** - Error prioritization by traffic + unified growth opportunity dashboard (completed 2026-04-06)
 - [ ] **Phase 14: Client Instructions PDF** - Non-technical PDF report for site owners built on subprocess-isolated WeasyPrint
 - [ ] **Phase 15: Keyword Suggest** - Yandex/Google autocomplete with Redis caching and rate-limited Celery tasks
 - [ ] **Phase 16: AI/GEO Readiness & LLM Briefs** - GEO checklist + opt-in Anthropic-powered brief enhancement
@@ -74,7 +74,7 @@ Plans:
 Plans:
 - [x] 13-01-PLAN.md — Impact scoring backend: model + migration + service + Celery task + tests
 - [x] 13-02-PLAN.md — Growth Opportunities dashboard: service + router + templates + tabs
-- [ ] 13-03-PLAN.md — Kanban impact sort + slide-over drill-down panels
+- [x] 13-03-PLAN.md — Kanban impact sort + slide-over drill-down panels
 
 ### Phase 14: Client Instructions PDF
 **Goal**: Users can generate a PDF report for site owners that explains each problem and its fix steps in plain Russian, using subprocess-isolated WeasyPrint to prevent OOM kills
@@ -88,7 +88,7 @@ Plans:
 **Plans**: 3 plans
 Plans:
 - [x] 13-01-PLAN.md — Impact scoring backend: model + migration + service + Celery task + tests
-- [ ] 13-02-PLAN.md — Growth Opportunities dashboard: service + router + templates + tabs
+- [x] 13-02-PLAN.md — Growth Opportunities dashboard: service + router + templates + tabs
 - [ ] 13-03-PLAN.md — Kanban impact sort + slide-over drill-down panels
 **UI hint**: yes
 
@@ -104,7 +104,7 @@ Plans:
   5. The suggest endpoint is rate-limited (10 requests/minute); all external API calls run inside Celery tasks with retry=3, not inline in the request handler
 **Plans**: 3 plans
 Plans:
-- [ ] 13-01-PLAN.md — Impact scoring backend: model + migration + service + Celery task + tests
+- [x] 13-01-PLAN.md — Impact scoring backend: model + migration + service + Celery task + tests
 - [ ] 13-02-PLAN.md — Growth Opportunities dashboard: service + router + templates + tabs
 - [ ] 13-03-PLAN.md — Kanban impact sort + slide-over drill-down panels
 
@@ -147,7 +147,7 @@ Plans:
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 12. Analytical Foundations | v2.0 | 3/3 | Complete    | 2026-04-06 |
-| 13. Impact Scoring & Growth Opportunities | v2.0 | 2/3 | In Progress|  |
+| 13. Impact Scoring & Growth Opportunities | v2.0 | 3/3 | Complete   | 2026-04-06 |
 | 14. Client Instructions PDF | v2.0 | 0/TBD | Not started | - |
 | 15. Keyword Suggest | v2.0 | 0/TBD | Not started | - |
 | 16. AI/GEO Readiness & LLM Briefs | v2.0 | 0/TBD | Not started | - |

@@ -14,9 +14,9 @@
 - [x] **DEAD-01**: Пользователь видит страницы с 0 визитов за 30 дней (из Метрики) и/или падением позиций > 10 за 30 дней
 - [x] **DEAD-02**: Каждая мёртвая страница имеет рекомендацию: merge, redirect, rewrite или delete — на основе наличия ключей и трафика
 - [x] **IMP-01**: Все ошибки (404, noindex, нет schema) имеют impact_score = severity_weight x месячный трафик страницы
-- [ ] **IMP-02**: Задачи в Kanban можно сортировать по impact_score; самые критичные ошибки видны первыми
+- [x] **IMP-02**: Задачи в Kanban можно сортировать по impact_score; самые критичные ошибки видны первыми
 - [x] **GRO-01**: Дашборд Growth Opportunities агрегирует: gap-ключи (кол-во + потенциальный трафик), потерянные позиции, каннибализации, visibility тренд
-- [ ] **GRO-02**: Пользователь может drill-down из карточки Opportunities в соответствующий раздел (gap analysis, positions, clusters)
+- [x] **GRO-02**: Пользователь может drill-down из карточки Opportunities в соответствующий раздел (gap analysis, positions, clusters)
 
 ### AI/GEO Readiness
 
@@ -85,9 +85,9 @@
 | DEAD-01 | Phase 12 | Complete |
 | DEAD-02 | Phase 12 | Complete |
 | IMP-01 | Phase 13 | Complete |
-| IMP-02 | Phase 13 | Pending |
+| IMP-02 | Phase 13 | Complete |
 | GRO-01 | Phase 13 | Complete |
-| GRO-02 | Phase 13 | Pending |
+| GRO-02 | Phase 13 | Complete |
 | CPDF-01 | Phase 14 | Pending |
 | CPDF-02 | Phase 14 | Pending |
 | CPDF-03 | Phase 14 | Pending |
