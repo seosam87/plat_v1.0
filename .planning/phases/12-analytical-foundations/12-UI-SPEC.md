@@ -45,7 +45,7 @@ Declared values (must be multiples of 4):
 Exceptions:
 - Table row cell padding: 12px vertical / 12px horizontal (0.75rem / 1rem) — matches existing `th, td` rule in base.html
 - Batch-fix modal inner padding: 24px all sides
-- Opportunity score badge: 2px vertical / 6px horizontal (matches `.badge` rule)
+- Opportunity score badge: 4px vertical / 8px horizontal (py-1 px-2)
 
 **Source:** base.html global CSS rules + existing analytics/audit template patterns.
 
@@ -58,12 +58,13 @@ Exceptions:
 | Body | 14px (0.875rem / text-sm) | 400 regular | 1.5 |
 | Label | 12px (0.75rem / text-xs) | 400 regular | 1.4 |
 | Heading (page/card) | 18px (1.125rem / text-lg) | 600 semibold | 1.2 |
-| Display (opportunity score) | 20px (1.25rem / text-xl) | 700 bold | 1.0 |
+| Display (opportunity score) | 20px (1.25rem / text-xl) | 600 semibold | 1.0 |
 
 Notes:
-- Table header row: 12px, weight 500, uppercase, color #6b7280 — matches existing `th` rule in base.html
+- Table header row: 12px, weight 400 regular, uppercase, letter-spacing wider (tracking-wider), color #6b7280 — matches existing `th` rule in base.html. No medium (500) exception.
 - All copy is Russian-language; no font substitution needed
 - Monospace not used in this phase (monospace reserved for brief export views)
+- Exactly 2 weights declared: 400 (body, label, table header) and 600 (heading, display)
 
 **Source:** Detected from base.html `.btn`, `th`, `.breadcrumbs`, `.toast` CSS rules and analytics template Tailwind classes.
 
@@ -125,7 +126,7 @@ Columns (in order):
 8. Ср. позиция — text-right, text-sm
 9. Трафик (нед.) — text-right, text-sm
 
-Table header: bg-gray-50, text-xs font-medium text-gray-500 uppercase tracking-wider, px-3 py-2
+Table header: bg-gray-50, text-xs font-normal text-gray-500 uppercase tracking-wider, px-3 py-2
 Table row: divide-y divide-gray-100, hover:bg-gray-50
 Selected row: bg-indigo-50
 
@@ -137,7 +138,7 @@ Selected row: bg-indigo-50
 - Title: "Запустить фикс"
 - Body: scrollable list of selected page URLs (max-h-48 overflow-y-auto, text-sm)
 - Checkboxes: "TOC", "Schema", "Ссылки" — each with a label, default all checked
-- Footer buttons: "Отмена" (gray) + "Запустить" (bg-indigo-600 text-white)
+- Footer buttons: "Не запускать" (gray) + "Запустить фикс" (bg-indigo-600 text-white)
 - Modal backdrop: rgba(0,0,0,.5) — matches existing memory pattern
 - Progress after dispatch: toast-info "Фикс запущен для {N} страниц" + HTMX polling on a status indicator div (hx-get, hx-trigger="every 5s", hx-swap="outerHTML") that shows spinner while tasks run, then toast-success on completion
 
@@ -164,7 +165,7 @@ Columns:
 Dropdown for recommendation override: `<select>` inline in the cell, same Tailwind select classes as filter bar. Changes POST to `/analytics/{site_id}/dead-content/{page_id}/recommendation` via HTMX hx-post, hx-swap="none", hx-trigger="change", shows toast-success on HX-Trigger response header.
 
 **"Создать задачи" flow**
-- Clicking button opens a small confirmation: "Создать SEO-задачи для {N} страниц?" with "Отмена" + "Создать" (bg-emerald-600)
+- Clicking button opens a small confirmation: "Создать SEO-задачи для {N} страниц?" with "Не создавать" + "Создать задачи" (bg-emerald-600)
 - On confirm: POST via fetch, toast-success "Задачи созданы"
 
 ### Navigation additions
@@ -181,9 +182,11 @@ Dropdown for recommendation override: `<select>` inline in the cell, same Tailwi
 | Element | Copy |
 |---------|------|
 | Quick Wins primary CTA | "Запустить фикс" |
-| Batch fix modal CTA | "Запустить" |
+| Batch fix modal dismiss | "Не запускать" |
+| Batch fix modal confirm CTA | "Запустить фикс" |
 | Dead Content primary CTA | "Создать задачи" |
-| Dead Content confirm CTA | "Создать" |
+| Dead Content confirm dismiss | "Не создавать" |
+| Dead Content confirm CTA | "Создать задачи" |
 | Quick Wins empty state heading | "Нет страниц для Quick Wins" |
 | Quick Wins empty state body | "Страницы с позициями 4–20 и нерешёнными проблемами не найдены. Запустите проверку позиций или аудит контента." |
 | Dead Content empty state heading | "Мёртвых страниц не найдено" |
