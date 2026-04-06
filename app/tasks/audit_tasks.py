@@ -126,6 +126,11 @@ async def _audit_site(site_id: str) -> dict:
             pages=min(len(pages), max_pages),
             issues=total_issues,
         )
+
+        # Trigger impact score pre-computation
+        from app.tasks.impact_tasks import compute_impact_scores
+        compute_impact_scores.delay(site_id)
+
         return {
             "status": "done",
             "pages_audited": min(len(pages), max_pages),
