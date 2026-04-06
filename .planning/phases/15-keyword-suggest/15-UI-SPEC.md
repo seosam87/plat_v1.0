@@ -58,10 +58,10 @@ Source: base.html defaults — identical to Phase 14 web UI typography contract.
 |------|------|--------|-------------|-------|
 | Body | 14px (text-sm) | 400 (normal) | 1.5 | Table cells, result keyword text, banner copy |
 | Label | 14px (text-sm) | 600 (font-semibold) | 1.4 | Column headers (th), card section headings, form labels |
-| Heading | 20px (text-xl) | 700 (font-bold) | 1.3 | Page h1 — "Keyword Suggest" |
+| Heading | 24px (text-2xl) | 700 (font-bold) | 1.3 | Page h1 — "Keyword Suggest" |
 | Sub-heading | 16px (text-base) | 600 (font-semibold) | 1.3 | Card h2 — "Поиск подсказок", "Результаты" |
 
-Two weights only: 400 (regular) and 600–700 (semibold/bold).
+Two weight tiers: 400 (regular) and 600/700 (semibold for labels/sub-headings, bold for h1 only).
 
 ---
 
@@ -97,6 +97,16 @@ Secondary semantic colors:
 | Gray neutral | #6b7280 | Meta text, secondary labels, source badge borders, disabled states |
 | Yandex source badge | #ef4444 / #fee2e2 | "Я" badge — red-toned, distinguishes Yandex source |
 | Google source badge | #2563eb / #dbeafe | "G" badge — blue-toned, distinguishes Google source |
+
+---
+
+## Visual Hierarchy
+
+**Primary focal point:** Seed keyword input field + "Найти подсказки" CTA button (accent-colored, top of page). User's eye lands here first.
+
+**Secondary focal point:** Results table (largest element, appears after generation). Sortable columns draw interaction.
+
+**Tertiary:** Wordstat banner / export actions — contextual, not primary.
 
 ---
 
