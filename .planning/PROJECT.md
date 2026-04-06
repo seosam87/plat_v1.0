@@ -8,11 +8,12 @@ An internal SEO management platform for a team managing 20–100 WordPress sites
 
 A team member or client can open the platform and immediately see the SEO health of any site — positions, recent changes, pending tasks — without switching between GSC, spreadsheets, and WP admin.
 
-## Current State (v2.0 Phase 13 complete 2026-04-06)
+## Current State (v2.0 Phase 14 complete 2026-04-06)
 
 **Codebase:** 35,402 LOC Python, 559 files, 427 commits
 **Phase 12 complete:** Analytical Foundations — normalize_url(), keyword_latest_positions, Quick Wins page, Dead Content page
 **Phase 13 complete:** Impact Scoring & Growth Opportunities — impact_score backend, Growth Opportunities dashboard (4 tabs), Kanban sort, slide-over drill-down
+**Phase 14 complete:** Client Instructions PDF — subprocess-isolated WeasyPrint renderer, 7 Russian instruction templates, Celery task + HTMX UI, email/Telegram delivery
 **Stack:** Python 3.12, FastAPI 0.115, SQLAlchemy 2.0 async, PostgreSQL 16, Redis 7, Celery 5.4, Playwright, Jinja2 + HTMX 2.0, Tailwind CSS
 
 **What's built:**
@@ -124,4 +125,4 @@ A team member or client can open the platform and immediately see the SEO health
 This document evolves at phase transitions and milestone boundaries.
 
 ---
-*Last updated: 2026-04-06 — Phase 13 (Impact Scoring & Growth Opportunities) complete*
+*Last updated: 2026-04-06 — Phase 14 (Client Instructions PDF) complete*
