@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>SEO-инструкции для специалиста — {{ site_name }}</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 2cm;
+    }
+
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 11pt;
+      color: #1f2937;
+      line-height: 1.5;
+    }
+
+    h1 {
+      font-size: 18pt;
+      color: #1e1b4b;
+      margin: 0 0 4px 0;
+    }
+
+    h2 {
+      font-size: 13pt;
+      color: #1e1b4b;
+      margin: 18px 0 8px 0;
+      border-bottom: 1px solid #e5e7eb;
+      padding-bottom: 4px;
+    }
+
+    .report-header {
+      margin-bottom: 24px;
+    }
+
+    .report-meta {
+      color: #6b7280;
+      font-size: 10pt;
+      margin: 0;
+    }
+
+    .summary-box {
+      background: #f3f4f6;
+      border-left: 3px solid #6366f1;
+      padding: 12px 16px;
+      margin: 16px 0 24px 0;
+      font-size: 10pt;
+    }
+
+    .summary-box p {
+      margin: 4px 0;
+    }
+
+    .summary-assessment {
+      font-style: italic;
+      color: #374151;
+      margin-top: 8px;
+    }
+
+    .instruction-block {
+      margin-bottom: 8px;
+      font-size: 11pt;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 12px;
+      font-size: 10pt;
+    }
+
+    th {
+      background: #f3f4f6;
+      text-align: left;
+      padding: 6px 8px;
+      font-weight: 600;
+      border-bottom: 2px solid #d1d5db;
+    }
+
+    td {
+      padding: 5px 8px;
+      border-bottom: 1px solid #f3f4f6;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    .more-note {
+      color: #6b7280;
+      font-size: 10pt;
+      font-style: italic;
+      margin: 4px 0 16px 0;
+    }
+
+    .bar-container {
+      background: #f3f4f6;
+      border-radius: 3px;
+      height: 10px;
+      width: 100%;
+      overflow: hidden;
+    }
+
+    .bar-fill-green {
+      background: #10b981;
+      height: 10px;
+      border-radius: 3px;
+    }
+
+    .bar-fill-blue {
+      background: #6366f1;
+      height: 10px;
+      border-radius: 3px;
+    }
+
+    .bar-fill-gray {
+      background: #9ca3af;
+      height: 10px;
+      border-radius: 3px;
+    }
+
+    .delta-positive {
+      color: #10b981;
+      font-weight: 600;
+    }
+
+    .delta-negative {
+      color: #ef4444;
+      font-weight: 600;
+    }
+
+    .footer {
+      margin-top: 24px;
+      font-size: 10pt;
+      color: #9ca3af;
+      text-align: center;
+      border-top: 1px solid #e5e7eb;
+      padding-top: 8px;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="report-header">
+  <h1>SEO-инструкции для специалиста — {{ site_name }}</h1>
+  <p class="report-meta">
+    Сайт: {{ site_url }} &nbsp;|&nbsp;
+    Дата: {{ report_date }} &nbsp;|&nbsp;
+    Блоки: {{ block_names }}
+  </p>
+</div>
+
+<!-- Summary Box (D-03) -->
+{% if summary %}
+<div class="summary-box">
+  <p>Проверено <strong>{{ summary.total_pages }}</strong> страниц.
+     Найдено <strong>{{ summary.total_problems }}</strong> проблем,
+     из которых <strong>{{ summary.critical_count }}</strong> критических.</p>
+  {% if summary.assessment %}
+  <p class="summary-assessment">{{ summary.assessment }}</p>
+  {% endif %}
+</div>
+{% endif %}
+
+<!-- Problem Groups (D-05: grouped by type) -->
+{% for group in problem_groups %}
+<h2>{{ group.label }}</h2>
+<p class="instruction-block">{{ group.instruction }}</p>
+
+{% if group.pages %}
+<table>
+  <thead>
+    <tr>
+      <th style="width: 55%">URL</th>
+      <th style="width: 30%">Примечание</th>
+      <th style="width: 15%">Метрика</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for page in group.pages %}
+    <tr>
+      <td style="word-break: break-all; font-size: 9pt;">{{ page.url }}</td>
+      <td style="font-size: 9pt;">{{ page.title }}</td>
+      <td style="font-size: 9pt; white-space: nowrap;">{{ page.metric }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
+{% if group.overflow > 0 %}
+<p class="more-note">И ещё {{ group.overflow }} страниц с аналогичной проблемой.</p>
+{% endif %}
+{% endfor %}
+
+{% if not problem_groups %}
+<p style="color: #6b7280; font-style: italic;">Проблем не обнаружено. Сайт в хорошем состоянии.</p>
+{% endif %}
+
+<!-- Position Distribution (if positions block requested) -->
+{% if positions and positions.distribution %}
+{% set dist = positions.distribution %}
+{% set total = dist.total | default(1) %}
+{% if total == 0 %}{% set total = 1 %}{% endif %}
+
+<h2>Распределение позиций</h2>
+<table>
+  <thead>
+    <tr>
+      <th style="width: 100px">Диапазон</th>
+      <th style="width: 60px">Кол-во</th>
+      <th>Распределение</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>ТОП-3</td>
+      <td>{{ dist.top3 | default(0) }}</td>
+      <td>
+        <div class="bar-container">
+          <div class="bar-fill-green" style="width: {{ [(dist.top3 | default(0)) / total * 100, 100] | min | round(1) }}%"></div>
+        </div>
+      </td>
+    </tr>
+    <tr>
+      <td>ТОП-10</td>
+      <td>{{ dist.top10 | default(0) }}</td>
+      <td>
+        <div class="bar-container">
+          <div class="bar-fill-blue" style="width: {{ [(dist.top10 | default(0)) / total * 100, 100] | min | round(1) }}%"></div>
+        </div>
+      </td>
+    </tr>
+    <tr>
+      <td>ТОП-30</td>
+      <td>{{ dist.top30 | default(0) }}</td>
+      <td>
+        <div class="bar-container">
+          <div class="bar-fill-blue" style="width: {{ [(dist.top30 | default(0)) / total * 100, 100] | min | round(1) }}%"></div>
+        </div>
+      </td>
+    </tr>
+    <tr>
+      <td>ТОП-100</td>
+      <td>{{ dist.top100 | default(0) }}</td>
+      <td>
+        <div class="bar-container">
+          <div class="bar-fill-gray" style="width: {{ [(dist.top100 | default(0)) / total * 100, 100] | min | round(1) }}%"></div>
+        </div>
+      </td>
+    </tr>
+    <tr>
+      <td>Не в топ</td>
+      <td>{{ dist.not_ranked | default(0) }}</td>
+      <td>
+        <div class="bar-container">
+          <div class="bar-fill-gray" style="width: {{ [(dist.not_ranked | default(0)) / total * 100, 100] | min | round(1) }}%"></div>
+        </div>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+{% if positions.top_gainers %}
+<h2>Растущие позиции (за 7 дней)</h2>
+<table>
+  <thead>
+    <tr>
+      <th>Фраза</th>
+      <th style="width: 80px">Позиция</th>
+      <th style="width: 80px">Изменение</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for m in positions.top_gainers %}
+    <tr>
+      <td>{{ m.phrase }}</td>
+      <td>{{ m.position }}</td>
+      <td class="delta-positive">+{{ m.delta }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
+{% if positions.top_losers %}
+<h2>Падающие позиции (за 7 дней)</h2>
+<table>
+  <thead>
+    <tr>
+      <th>Фраза</th>
+      <th style="width: 80px">Позиция</th>
+      <th style="width: 80px">Изменение</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for m in positions.top_losers %}
+    <tr>
+      <td>{{ m.phrase }}</td>
+      <td>{{ m.position }}</td>
+      <td class="delta-negative">{{ m.delta }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
+{% endif %}
+
+<!-- Footer -->
+<div class="footer">
+  Сформировано: {{ report_date }} — SEO Platform
+</div>
+
+</body>
+</html>
