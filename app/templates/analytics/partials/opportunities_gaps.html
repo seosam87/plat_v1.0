@@ -1,0 +1,65 @@
+<!-- Gaps tab partial — gap keywords from competitor analysis -->
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-4">
+  <!-- Stats strip -->
+  <div class="flex gap-6 items-center flex-wrap">
+    <div>
+      <span class="text-sm text-gray-500">Gap-ключи:</span>
+      <span class="ml-1 font-semibold text-gray-800">{{ data.count }}</span>
+    </div>
+    <div>
+      <span class="text-sm text-gray-500">Потенциальный трафик:</span>
+      {% if data.frequency_available %}
+        <span class="ml-1 font-semibold text-gray-800">{{ data.total_potential_traffic }}</span>
+      {% else %}
+        <span class="ml-1 font-semibold text-gray-400">н/д</span>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+{% if data.items %}
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+  <table class="min-w-full divide-y divide-gray-200 text-sm">
+    <thead class="bg-gray-50">
+      <tr>
+        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Фраза</th>
+        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Конкурент</th>
+        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Поз. конкурента</th>
+        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Наша поз.</th>
+        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Потенциал</th>
+      </tr>
+    </thead>
+    <tbody class="bg-white divide-y divide-gray-100">
+      {% for item in data.items %}
+      <tr
+        class="cursor-pointer hover:bg-gray-50 transition"
+        hx-get="/analytics/{{ site.id }}/opportunities/detail/gap/{{ item.id }}"
+        hx-target="#slide-over-content"
+      >
+        <td class="px-4 py-3 text-gray-800 max-w-xs truncate" title="{{ item.phrase }}">{{ item.phrase }}</td>
+        <td class="px-4 py-3 text-gray-600">{{ item.competitor_domain }}</td>
+        <td class="px-4 py-3 text-right text-gray-700">
+          {% if item.competitor_position %}{{ item.competitor_position }}{% else %}&mdash;{% endif %}
+        </td>
+        <td class="px-4 py-3 text-right text-gray-700">
+          {% if item.our_position %}{{ item.our_position }}{% else %}<span class="text-gray-400">нет</span>{% endif %}
+        </td>
+        <td class="px-4 py-3 text-right">
+          {% if item.potential_score %}
+            <span class="inline-block px-2 py-0.5 rounded text-xs font-medium bg-indigo-50 text-indigo-700">
+              {{ "%.2f"|format(item.potential_score) }}
+            </span>
+          {% else %}
+            <span class="text-gray-400">&mdash;</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center text-gray-500">
+  Нет данных по gap-ключам. Запустите gap-анализ.
+</div>
+{% endif %}

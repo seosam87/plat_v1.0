@@ -143,6 +143,9 @@ app.include_router(dead_content_module.router)
 from app.routers import quick_wins as quick_wins_module
 app.include_router(quick_wins_module.router)
 
+from app.routers.opportunities import router as opportunities_router
+app.include_router(opportunities_router)
+
 
 # ---- Site selector API endpoints for nav sidebar ----
 

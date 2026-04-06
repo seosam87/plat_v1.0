@@ -1,0 +1,46 @@
+<!-- Trend tab partial — visibility numbers (no charts per D-06) -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+  <!-- Weekly visits -->
+  <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
+    <div class="flex items-start justify-between mb-2">
+      <p class="text-sm text-gray-500">Визиты за неделю</p>
+      {% if trend.week_change_pct > 0 %}
+        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-emerald-50 text-emerald-700">
+          +{{ trend.week_change_pct }}%
+        </span>
+      {% elif trend.week_change_pct < 0 %}
+        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-red-50 text-red-600">
+          {{ trend.week_change_pct }}%
+        </span>
+      {% else %}
+        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-500">
+          0%
+        </span>
+      {% endif %}
+    </div>
+    <p class="text-3xl font-bold text-gray-800">{{ trend.current_week_visits }}</p>
+    <p class="text-xs text-gray-400 mt-2">Предыдущая неделя: {{ trend.prev_week_visits }}</p>
+  </div>
+
+  <!-- Monthly visits -->
+  <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
+    <div class="flex items-start justify-between mb-2">
+      <p class="text-sm text-gray-500">Визиты за месяц</p>
+      {% if trend.month_change_pct > 0 %}
+        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-emerald-50 text-emerald-700">
+          +{{ trend.month_change_pct }}%
+        </span>
+      {% elif trend.month_change_pct < 0 %}
+        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-red-50 text-red-600">
+          {{ trend.month_change_pct }}%
+        </span>
+      {% else %}
+        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-500">
+          0%
+        </span>
+      {% endif %}
+    </div>
+    <p class="text-3xl font-bold text-gray-800">{{ trend.current_month_visits }}</p>
+    <p class="text-xs text-gray-400 mt-2">Предыдущий месяц: {{ trend.prev_month_visits }}</p>
+  </div>
+</div>

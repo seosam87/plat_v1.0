@@ -1,0 +1,51 @@
+<!-- Cannibalization tab partial — keywords with 2+ pages in top-50 -->
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-4">
+  <!-- Stats strip -->
+  <div class="flex gap-6 items-center flex-wrap">
+    <div>
+      <span class="text-sm text-gray-500">Каннибализаций:</span>
+      <span class="ml-1 font-semibold text-gray-800">{{ data.count }}</span>
+    </div>
+  </div>
+</div>
+
+{% if data.items %}
+<div class="space-y-3">
+  {% for group in data.items %}
+  <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+    <!-- Keyword phrase header -->
+    <div class="px-4 py-3 bg-amber-50 border-b border-amber-100 flex items-center justify-between">
+      <span class="font-medium text-gray-800">{{ group.phrase }}</span>
+      <span class="text-xs text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">
+        {{ group.page_count }} страниц
+      </span>
+    </div>
+    <!-- Competing URLs sub-table -->
+    <table class="min-w-full divide-y divide-gray-100 text-sm">
+      <thead class="bg-gray-50">
+        <tr>
+          <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">URL</th>
+          <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Позиция</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-100">
+        {% for page in group.pages %}
+        <tr class="hover:bg-gray-50">
+          <td class="px-4 py-2 text-gray-600 max-w-lg truncate" title="{{ page.url }}">
+            <a href="{{ page.url }}" target="_blank" rel="noopener" class="hover:text-indigo-600 truncate block max-w-lg">
+              {{ page.url }}
+            </a>
+          </td>
+          <td class="px-4 py-2 text-right font-medium text-gray-700">{{ page.position }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center text-gray-500">
+  Каннибализация не обнаружена.
+</div>
+{% endif %}

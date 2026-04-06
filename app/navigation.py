@@ -55,6 +55,7 @@ NAV_SECTIONS = [
             {"id": "competitors", "label": "Конкуренты", "url": "/ui/competitors/{site_id}"},
             {"id": "sites-ads", "label": "Рекламный трафик", "url": "/ui/ads/{site_id}", "admin_only": False},
             {"id": "dead-content", "label": "Мёртвый контент", "url": "/analytics/{site_id}/dead-content"},
+            {"id": "opportunities", "label": "Growth Opportunities", "url": "/analytics/{site_id}/opportunities"},
         ],
     },
     {

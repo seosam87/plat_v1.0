@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block title %}Growth Opportunities — {{ site.name }} — SEO Platform{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="/ui/dashboard">Dashboard</a>
+  <span>&rsaquo;</span>
+  <a href="/ui/sites">Sites</a>
+  <span>&rsaquo;</span>
+  <a href="/analytics/sites/{{ site.id }}">{{ site.name }}</a>
+  <span>&rsaquo;</span>
+  Growth Opportunities
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="flex justify-between items-center mb-4">
+  <h2 class="m-0 text-lg font-semibold text-gray-800">Growth Opportunities: {{ site.name }}</h2>
+</div>
+
+<!-- Tab navigation -->
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-4">
+  <div class="flex border-b border-gray-200" id="tab-nav">
+    <button
+      id="tab-btn-gaps"
+      class="px-6 py-3 text-sm font-medium border-b-2 border-indigo-500 text-indigo-600 focus:outline-none"
+      onclick="switchTab('gaps')"
+      hx-get="/analytics/{{ site.id }}/opportunities/tabs/gaps"
+      hx-target="#tab-content"
+      hx-swap="innerHTML"
+    >
+      Gaps
+    </button>
+    <button
+      id="tab-btn-losses"
+      class="px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 focus:outline-none"
+      onclick="switchTab('losses')"
+      hx-get="/analytics/{{ site.id }}/opportunities/tabs/losses"
+      hx-target="#tab-content"
+      hx-swap="innerHTML"
+    >
+      Потери
+    </button>
+    <button
+      id="tab-btn-cannibal"
+      class="px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 focus:outline-none"
+      onclick="switchTab('cannibal')"
+      hx-get="/analytics/{{ site.id }}/opportunities/tabs/cannibal"
+      hx-target="#tab-content"
+      hx-swap="innerHTML"
+    >
+      Каннибализация
+    </button>
+    <button
+      id="tab-btn-trend"
+      class="px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 focus:outline-none"
+      onclick="switchTab('trend')"
+      hx-get="/analytics/{{ site.id }}/opportunities/tabs/trend"
+      hx-target="#tab-content"
+      hx-swap="innerHTML"
+    >
+      Тренд
+    </button>
+  </div>
+</div>
+
+<!-- Tab content area — initially populated server-side with gaps data -->
+<div id="tab-content">
+  {% include "analytics/partials/opportunities_gaps.html" %}
+</div>
+
+<!-- Slide-over panel placeholder (will be wired in Plan 03) -->
+<div id="slide-over-content"></div>
+
+<script>
+(function() {
+  const tabs = ['gaps', 'losses', 'cannibal', 'trend'];
+  const activeClasses = ['border-b-2', 'border-indigo-500', 'text-indigo-600'];
+  const inactiveClasses = ['border-b-2', 'border-transparent', 'text-gray-500', 'hover:text-gray-700'];
+
+  window.switchTab = function(activeTab) {
+    tabs.forEach(function(tab) {
+      const btn = document.getElementById('tab-btn-' + tab);
+      if (!btn) return;
+      if (tab === activeTab) {
+        // Remove inactive classes
+        inactiveClasses.forEach(function(cls) { btn.classList.remove(cls); });
+        // Add active classes
+        activeClasses.forEach(function(cls) { btn.classList.add(cls); });
+      } else {
+        // Remove active classes
+        activeClasses.forEach(function(cls) { btn.classList.remove(cls); });
+        // Add inactive classes
+        inactiveClasses.forEach(function(cls) { btn.classList.add(cls); });
+      }
+    });
+  };
+})();
+</script>
+
+{% endblock %}
