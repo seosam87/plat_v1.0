@@ -1,0 +1,260 @@
+{% extends "base.html" %}
+{% block title %}Quick Wins — {{ site.name }} — SEO Platform{% endblock %}
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="/ui/dashboard">Dashboard</a><span>&rsaquo;</span>
+  <a href="/ui/sites">Sites</a><span>&rsaquo;</span>
+  <span>{{ site.name }}</span><span>&rsaquo;</span>
+  Quick Wins
+</div>
+{% endblock %}
+{% block content %}
+
+<div class="flex justify-between items-center mb-4">
+  <h2 class="m-0 text-lg font-semibold text-gray-800">Quick Wins: {{ site.name }}</h2>
+  <div class="flex gap-2 items-center">
+    <button
+      id="batch-fix-btn"
+      onclick="openBatchFixModal()"
+      disabled
+      class="px-3 py-1.5 text-sm font-medium rounded bg-indigo-600 text-white opacity-50 cursor-not-allowed"
+    >
+      Запустить фикс (<span id="selected-count">0</span> стр.)
+    </button>
+  </div>
+</div>
+
+<!-- Filter bar -->
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-4">
+  <div class="flex gap-4 items-center flex-wrap">
+    <div>
+      <label class="text-xs text-gray-500 block mb-1">Тип проблемы</label>
+      <select
+        name="issue_type"
+        class="px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-indigo-500 focus:border-indigo-500"
+        hx-get="/analytics/{{ site.id }}/quick-wins/table"
+        hx-target="#quick-wins-table"
+        hx-trigger="change"
+        hx-include="[name='issue_type'],[name='content_type']"
+      >
+        <option value="" {% if not issue_type %}selected{% endif %}>Все</option>
+        <option value="missing_toc" {% if issue_type == "missing_toc" %}selected{% endif %}>Без TOC</option>
+        <option value="missing_schema" {% if issue_type == "missing_schema" %}selected{% endif %}>Без Schema</option>
+        <option value="low_links" {% if issue_type == "low_links" %}selected{% endif %}>Мало ссылок</option>
+        <option value="thin_content" {% if issue_type == "thin_content" %}selected{% endif %}>Тонкий контент</option>
+      </select>
+    </div>
+    <div>
+      <label class="text-xs text-gray-500 block mb-1">Тип страницы</label>
+      <select
+        name="content_type"
+        class="px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-indigo-500 focus:border-indigo-500"
+        hx-get="/analytics/{{ site.id }}/quick-wins/table"
+        hx-target="#quick-wins-table"
+        hx-trigger="change"
+        hx-include="[name='issue_type'],[name='content_type']"
+      >
+        <option value="" {% if not content_type %}selected{% endif %}>Все</option>
+        <option value="informational" {% if content_type == "informational" %}selected{% endif %}>Информационные</option>
+        <option value="commercial" {% if content_type == "commercial" %}selected{% endif %}>Коммерческие</option>
+        <option value="unknown" {% if content_type == "unknown" %}selected{% endif %}>Не определён</option>
+      </select>
+    </div>
+  </div>
+</div>
+
+<!-- Results table container -->
+<div id="quick-wins-table">
+  {% include "analytics/partials/quick_wins_table.html" %}
+</div>
+
+<!-- Batch fix confirmation modal -->
+<div id="batch-fix-modal" class="fixed inset-0 z-50 hidden">
+  <div class="absolute inset-0 bg-black bg-opacity-50" onclick="closeBatchFixModal()"></div>
+  <div class="absolute inset-0 flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6 relative z-10">
+      <h3 class="text-lg font-semibold text-gray-800 mb-4">Запустить фикс</h3>
+
+      <!-- Selected URLs list -->
+      <div class="mb-4">
+        <p class="text-xs text-gray-500 mb-2">Выбранные страницы (<span id="modal-count">0</span> шт.):</p>
+        <div id="modal-urls" class="max-h-48 overflow-y-auto border border-gray-200 rounded p-2 text-sm text-gray-700 space-y-1">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+
+      <!-- Fix type checkboxes -->
+      <div class="mb-6">
+        <p class="text-xs text-gray-500 mb-2">Типы фиксов:</p>
+        <div class="flex gap-4">
+          <label class="flex items-center gap-2 text-sm cursor-pointer">
+            <input type="checkbox" name="fix_toc" value="toc" checked class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+            TOC
+          </label>
+          <label class="flex items-center gap-2 text-sm cursor-pointer">
+            <input type="checkbox" name="fix_schema" value="schema" checked class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+            Schema
+          </label>
+          <label class="flex items-center gap-2 text-sm cursor-pointer">
+            <input type="checkbox" name="fix_links" value="links" checked class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+            Ссылки
+          </label>
+        </div>
+      </div>
+
+      <!-- Footer buttons -->
+      <div class="flex justify-end gap-3">
+        <button
+          onclick="closeBatchFixModal()"
+          class="px-4 py-2 text-sm font-medium rounded border border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+        >
+          Не запускать
+        </button>
+        <button
+          onclick="submitBatchFix()"
+          class="px-4 py-2 text-sm font-medium rounded bg-indigo-600 text-white hover:bg-indigo-700"
+        >
+          Запустить фикс
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast container (already in base.html via CSS, but we trigger it here) -->
+
+<script>
+(function() {
+  const SITE_ID = "{{ site.id }}";
+
+  // Track selected pages: Map<page_id, url>
+  const selectedPages = new Map();
+
+  function updateBatchFixButton() {
+    const count = selectedPages.size;
+    const btn = document.getElementById('batch-fix-btn');
+    const countEl = document.getElementById('selected-count');
+    countEl.textContent = count;
+    if (count > 0) {
+      btn.disabled = false;
+      btn.classList.remove('opacity-50', 'cursor-not-allowed');
+    } else {
+      btn.disabled = true;
+      btn.classList.add('opacity-50', 'cursor-not-allowed');
+    }
+  }
+
+  // Row checkbox toggle
+  window.toggleRow = function(checkbox, pageId, pageUrl) {
+    if (checkbox.checked) {
+      selectedPages.set(pageId, pageUrl);
+      checkbox.closest('tr').classList.add('bg-indigo-50');
+    } else {
+      selectedPages.delete(pageId);
+      checkbox.closest('tr').classList.remove('bg-indigo-50');
+    }
+    updateBatchFixButton();
+    // Sync select-all checkbox
+    const allCheckboxes = document.querySelectorAll('.row-check');
+    const selectAll = document.getElementById('select-all');
+    if (selectAll) {
+      selectAll.checked = allCheckboxes.length > 0 && [...allCheckboxes].every(cb => cb.checked);
+      selectAll.indeterminate = selectedPages.size > 0 && selectedPages.size < allCheckboxes.length;
+    }
+  };
+
+  // Select all toggle
+  window.toggleSelectAll = function(checkbox) {
+    const allCheckboxes = document.querySelectorAll('.row-check');
+    allCheckboxes.forEach(cb => {
+      cb.checked = checkbox.checked;
+      const pageId = cb.dataset.pageId;
+      const pageUrl = cb.dataset.pageUrl;
+      if (checkbox.checked) {
+        selectedPages.set(pageId, pageUrl);
+        cb.closest('tr').classList.add('bg-indigo-50');
+      } else {
+        selectedPages.delete(pageId);
+        cb.closest('tr').classList.remove('bg-indigo-50');
+      }
+    });
+    updateBatchFixButton();
+  };
+
+  window.openBatchFixModal = function() {
+    if (selectedPages.size === 0) return;
+    const modal = document.getElementById('batch-fix-modal');
+    const modalUrls = document.getElementById('modal-urls');
+    const modalCount = document.getElementById('modal-count');
+    modalCount.textContent = selectedPages.size;
+    modalUrls.innerHTML = '';
+    selectedPages.forEach((url, pageId) => {
+      const div = document.createElement('div');
+      div.className = 'truncate py-0.5';
+      div.title = url;
+      div.textContent = url;
+      modalUrls.appendChild(div);
+    });
+    modal.classList.remove('hidden');
+  };
+
+  window.closeBatchFixModal = function() {
+    document.getElementById('batch-fix-modal').classList.add('hidden');
+  };
+
+  window.submitBatchFix = function() {
+    const fixTypes = [];
+    if (document.querySelector('[name="fix_toc"]').checked) fixTypes.push('toc');
+    if (document.querySelector('[name="fix_schema"]').checked) fixTypes.push('schema');
+    if (document.querySelector('[name="fix_links"]').checked) fixTypes.push('links');
+
+    if (fixTypes.length === 0) {
+      showToast('Выберите хотя бы один тип фикса', 'error');
+      return;
+    }
+
+    const pageIds = [...selectedPages.keys()];
+    const payload = { page_ids: pageIds, fix_types: fixTypes };
+
+    fetch(`/analytics/${SITE_ID}/quick-wins/batch-fix`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+      .then(res => {
+        if (!res.ok) throw new Error('Ошибка сервера');
+        return res.json();
+      })
+      .then(data => {
+        closeBatchFixModal();
+        const n = data.dispatched || 0;
+        showToast(`Фикс запущен для ${n} страниц`, 'info');
+        // Clear selection
+        selectedPages.clear();
+        document.querySelectorAll('.row-check').forEach(cb => {
+          cb.checked = false;
+          cb.closest('tr').classList.remove('bg-indigo-50');
+        });
+        updateBatchFixButton();
+      })
+      .catch(err => {
+        showToast('Ошибка запуска фикса. Попробуйте ещё раз.', 'error');
+      });
+  };
+
+  function showToast(message, type) {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.textContent = message;
+    container.appendChild(toast);
+    setTimeout(() => toast.remove(), 5000);
+  }
+
+  // Expose for base.html toast system
+  window.showToast = showToast;
+})();
+</script>
+
+{% endblock %}

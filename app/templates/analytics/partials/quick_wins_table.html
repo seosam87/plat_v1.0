@@ -1,0 +1,102 @@
+{% if pages %}
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-x-auto">
+  <table class="w-full">
+    <thead>
+      <tr class="bg-gray-50">
+        <th class="px-3 py-2 text-xs font-normal text-gray-500 uppercase tracking-wider w-8">
+          <input
+            type="checkbox"
+            id="select-all"
+            class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+            onclick="toggleSelectAll(this)"
+          >
+        </th>
+        <th class="px-3 py-2 text-xs font-normal text-gray-500 uppercase tracking-wider text-left">URL</th>
+        <th class="px-3 py-2 text-xs font-normal text-gray-500 uppercase tracking-wider text-right">Балл</th>
+        <th class="px-3 py-2 text-xs font-normal text-gray-500 uppercase tracking-wider text-center">TOC</th>
+        <th class="px-3 py-2 text-xs font-normal text-gray-500 uppercase tracking-wider text-center">Schema</th>
+        <th class="px-3 py-2 text-xs font-normal text-gray-500 uppercase tracking-wider text-center">Ссылки</th>
+        <th class="px-3 py-2 text-xs font-normal text-gray-500 uppercase tracking-wider text-center">Контент</th>
+        <th class="px-3 py-2 text-xs font-normal text-gray-500 uppercase tracking-wider text-right">Ср. поз.</th>
+        <th class="px-3 py-2 text-xs font-normal text-gray-500 uppercase tracking-wider text-right">Трафик (нед.)</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-100">
+      {% for page in pages %}
+      <tr class="hover:bg-gray-50">
+        <td class="px-3 py-3 text-center">
+          <input
+            type="checkbox"
+            class="row-check rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+            data-page-id="{{ page.page_id }}"
+            data-page-url="{{ page.url }}"
+            onclick="toggleRow(this, '{{ page.page_id }}', '{{ page.url }}')"
+          >
+        </td>
+        <td class="px-3 py-3 text-sm text-gray-900">
+          <span class="block max-w-[280px] truncate" title="{{ page.url }}">
+            {{ page.url }}
+          </span>
+        </td>
+        <td class="px-3 py-3 text-right">
+          {% set score = page.opportunity_score | int %}
+          {% if score > 100 %}
+          <span class="inline-block py-1 px-2 rounded text-xs font-semibold bg-amber-400 text-amber-900">
+            {{ score }}
+          </span>
+          {% elif score >= 40 %}
+          <span class="inline-block py-1 px-2 rounded text-xs font-semibold bg-yellow-100 text-yellow-800">
+            {{ score }}
+          </span>
+          {% else %}
+          <span class="inline-block py-1 px-2 rounded text-xs font-semibold bg-gray-100 text-gray-500">
+            {{ score }}
+          </span>
+          {% endif %}
+        </td>
+        <td class="px-3 py-3 text-center">
+          {% if page.has_toc %}
+          <svg class="w-4 h-4 text-green-500 inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+          {% else %}
+          <svg class="w-4 h-4 text-red-500 inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+          {% endif %}
+        </td>
+        <td class="px-3 py-3 text-center">
+          {% if page.has_schema %}
+          <svg class="w-4 h-4 text-green-500 inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+          {% else %}
+          <svg class="w-4 h-4 text-red-500 inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+          {% endif %}
+        </td>
+        <td class="px-3 py-3 text-center">
+          {% if not page.has_low_links %}
+          <svg class="w-4 h-4 text-green-500 inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+          {% else %}
+          <svg class="w-4 h-4 text-red-500 inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+          {% endif %}
+        </td>
+        <td class="px-3 py-3 text-center">
+          {% if not page.has_thin_content %}
+          <svg class="w-4 h-4 text-green-500 inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+          {% else %}
+          <svg class="w-4 h-4 text-red-500 inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+          {% endif %}
+        </td>
+        <td class="px-3 py-3 text-right text-sm text-gray-700">{{ page.avg_position }}</td>
+        <td class="px-3 py-3 text-right text-sm text-gray-700">{{ page.weekly_traffic }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
+  <svg class="w-12 h-12 text-gray-300 mx-auto mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+  </svg>
+  <h3 class="text-base font-semibold text-gray-700 mb-2">Нет страниц для Quick Wins</h3>
+  <p class="text-sm text-gray-500 max-w-md mx-auto">
+    Страницы с позициями 4–20 и нерешёнными проблемами не найдены. Запустите проверку позиций или аудит контента.
+  </p>
+</div>
+{% endif %}
