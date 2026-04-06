@@ -86,15 +86,16 @@ Two weights only: 400 (regular) and 600–700 (semibold/bold).
 
 ### PDF Typography
 
-Source: brief.html inline CSS — carry forward unchanged for visual consistency.
+Source: brief.html inline CSS — adapted for 4-size constraint.
 
 | Role | Size | Weight | Usage |
 |------|------|--------|-------|
 | Report title (h1) | 18pt | 700 | Report cover title |
 | Section heading (h2) | 13pt | 600 | Problem-type group headers |
 | Body text | 11pt | 400 | Instructions, page lists |
-| Meta / caption | 10pt | 400 | Table cells, dates, URLs |
-| Footer | 9pt | 400 | Page footer, secondary badges |
+| Small — meta, caption, footer | 10pt | 400 | Table cells, dates, URLs, page footer, secondary badges |
+
+Four sizes only: 18pt / 13pt / 11pt / 10pt. The former 9pt footer tier is merged into the 10pt small tier; footer CSS uses `font-size: 10pt`.
 
 Font: Arial, Helvetica, sans-serif — matches brief.html. No web fonts; WeasyPrint resolves system fonts only.
 
@@ -212,7 +213,9 @@ Default checked: all four blocks.
 - Card heading (h2): "История отчётов"
 - Table columns: Дата | Сайт | Блоки | Действия
 - "Блоки" column: comma-separated Russian short-form labels (QW, Ошибки, Мёртвый, Позиции)
-- "Действия" column: "Скачать" link (accent text, no button border) + "Email" + "Telegram" icon buttons
+- "Действия" column: "Скачать" link (accent text, no button border) + "Email" icon button + "Telegram" icon button
+- Email icon button: icon-only; MUST include `aria-label="Отправить на email"` — no visible text
+- Telegram icon button: icon-only; MUST include `aria-label="Отправить в Telegram"` — no visible text
 - Empty state: see Copywriting Contract below
 - Table uses existing `th, td` base.html rules
 
@@ -284,7 +287,7 @@ Russian-language instruction text per problem type (D-07):
 #### PDF Footer
 
 ```css
-.footer { margin-top: 24px; font-size: 9pt; color: #9ca3af;
+.footer { margin-top: 24px; font-size: 10pt; color: #9ca3af;
           text-align: center; border-top: 1px solid #e5e7eb; padding-top: 8px; }
 ```
 
@@ -299,8 +302,8 @@ Content: "Сформировано: {report_date} — SEO Platform"
 | "Сгенерировать" button click | `hx-post="/ui/client-reports/generate"` | `#generation-status` div | `innerHTML` |
 | Generation completes (polling) | `hx-get="/ui/client-reports/status/{task_id}"` every 3s | `#generation-status` | `outerHTML` |
 | "Скачать PDF" in history | Direct `<a href>` download — no HTMX | — | — |
-| "Email" delivery button | `hx-post="/ui/client-reports/{id}/send-email"` | `#toast-container` | `beforeend` |
-| "Telegram" delivery button | `hx-post="/ui/client-reports/{id}/send-telegram"` | `#toast-container` | `beforeend` |
+| "Email" delivery button (`aria-label="Отправить на email"`) | `hx-post="/ui/client-reports/{id}/send-email"` | `#toast-container` | `beforeend` |
+| "Telegram" delivery button (`aria-label="Отправить в Telegram"`) | `hx-post="/ui/client-reports/{id}/send-telegram"` | `#toast-container` | `beforeend` |
 | History table load | `hx-get="/ui/client-reports/history"` on page load or after generation | `#history-section` | `innerHTML` |
 
 HTMX 2.0.x — no `hx-ws` or `hx-sse` attributes (moved to extensions in 2.0; not needed here).
@@ -353,8 +356,8 @@ Destructive actions: none in this phase. No delete on report history — history
 | State | Visual |
 |-------|--------|
 | PDF ready | "Скачать PDF" link visible (accent color) |
-| Email sending | "Отправить на email" button shows spinner inline |
-| Telegram sending | "Отправить в Telegram" button shows spinner inline |
+| Email sending | "Отправить на email" button (`aria-label="Отправить на email"`) shows spinner inline |
+| Telegram sending | "Отправить в Telegram" button (`aria-label="Отправить в Telegram"`) shows spinner inline |
 
 ---
 
@@ -392,4 +395,5 @@ No third-party component registries. All components are hand-authored Jinja2 + T
 | app/templates/reports/brief.html | All PDF colors, PDF typography (pt sizes), table CSS, page margins, bar colors |
 | app/templates/reports/generate.html | Page h1 pattern, card h2 pattern, button classes, indigo accent color confirmed |
 | app/templates/components/sidebar.html | Sidebar color (#1e1b4b), icon pattern (Heroicons inline SVG 1.25rem), child link colors |
+| UI checker revision (2026-04-06) | PDF typography merged from 5 to 4 sizes (10pt/9pt → 10pt small tier); aria-label added to Email and Telegram icon buttons |
 | User input | None required — all design decisions derived from upstream artifacts and codebase scan |
