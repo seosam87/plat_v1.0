@@ -1,544 +1,364 @@
 # Pitfalls Research
 
-**Domain:** SEO Management Platform — FastAPI + Celery + Playwright + PostgreSQL + WordPress REST API
-**Researched:** 2026-03-31
+**Domain:** SEO Management Platform v2.0 — Adding 9 features to 35K LOC FastAPI + Celery + PostgreSQL system
+**Researched:** 2026-04-06
 **Confidence:** HIGH
+
+This document focuses exclusively on pitfalls that arise from *adding* these features to the *existing* system — not generic web development mistakes. Each pitfall is grounded in what the codebase already does and where the integration seams create risk.
+
+---
 
 ## Critical Pitfalls
 
-### Pitfall 1: Playwright Browser Leaks in Long-Running Celery Workers
+### Pitfall 1: URL Mismatch Between Pages, Metrika, and Positions Ruins Quick Wins / Dead Content Joins
 
 **What goes wrong:**
-Each Celery task that uses Playwright launches a browser context. When tasks crash mid-execution, or when the worker process is recycled by Celery's `--max-tasks-per-child`, browser processes (Chromium) are left orphaned. Over hours, a VPS accumulates dozens of zombie Chromium processes consuming RAM. The worker appears alive but the VPS runs out of memory, killing other containers.
+Quick Wins and Dead Content both require JOINing `pages` (crawl URLs) with `metrika_traffic_pages` (Metrika URL) and `keyword_positions` (ranking URL). All three tables store `page_url` / `url` as raw strings. In production, the same page appears as `https://example.com/blog/` in one table and `https://example.com/blog` (no trailing slash) in another, or `http://` vs `https://`, or with UTM parameters in Metrika. JOINs return zero rows. Developer sees "no Quick Wins found" and assumes the data isn't there — it is, but joins fail silently.
 
 **Why it happens:**
-Developers write `async with async_playwright() as p` inside the task but don't account for task hard-kills (SIGKILL from Celery time limits). When Celery hard-kills a task thread, the context manager's `__aexit__` never runs. Playwright's subprocess management is OS-level — Python garbage collection cannot clean up child processes.
+Metrika returns the URL exactly as the user visited it. The crawler stores the canonical URL from the `<link rel="canonical">`. `keyword_positions` stores the ranking URL from XMLProxy or DataForSEO. All three sources use different normalization. The existing code at `audit.py`, `metrika.py`, `change_monitoring.py` all store `page_url` as a raw string with no normalization step — this is fine for those features because they query by `site_id` and filter independently, never JOINing across tables.
 
 **How to avoid:**
-- Use a single `BrowserContext` pool per worker process, not per task. Initialize one browser in Celery worker `init` signal, share it across tasks via a module-level variable.
-- Set `--max-tasks-per-child=50` on crawl workers so the worker process recycles, killing all child browser processes cleanly.
-- Wrap every Playwright task in a `try/finally` that explicitly calls `context.close()` and `browser.close()`.
-- Add a watchdog: a periodic Celery Beat task that counts `pgrep chromium` and alerts if it exceeds threshold.
-- Set `soft_time_limit` (which raises `SoftTimeLimitExceeded`) in addition to `time_limit` — gives the task a chance to close the browser before hard kill.
+- Create a `normalize_url(url: str) -> str` utility function: lowercase scheme and host, strip trailing slash, strip `?utm_*` and `#` fragments, decode percent-encoding.
+- Apply normalization on *write* in every service that stores a URL. Add it to `metrika_service.upsert_page_traffic()` immediately — that's the highest-risk callsite.
+- For Quick Wins / Dead Content queries, do the join on `normalize_url(p.url) = normalize_url(m.page_url)` or better: store a `normalized_url` computed column in each table and index it.
+- Write a test with 5 URL variants of the same page and assert all 5 join correctly.
 
 **Warning signs:**
-- `ps aux | grep chromium` shows 10+ processes on idle system
-- VPS RAM climbing continuously without dropping
-- Celery worker logs show tasks completing but memory never freed
-- `docker stats` shows the celery-worker container's MEM constantly increasing
+- Quick Wins returns 0 results for a site with 50+ keywords in positions 4–20.
+- Dead Content returns 0 results for a site with Metrika data older than 30 days.
+- Manual `SELECT` comparing `pages.url` and `metrika_traffic_pages.page_url` shows format differences for the same logical page.
 
 **Phase to address:**
-Iteration 2 (Crawler implementation — first time Playwright runs in Celery)
+Phase 1 (Quick Wins / Dead Content) — the normalization utility must be built first, before any JOIN queries are written.
 
 ---
 
-### Pitfall 2: Running Multiple Playwright Instances Concurrently Without Limits
+### Pitfall 2: DISTINCT ON on Partitioned `keyword_positions` Is Slow Without Partition Pruning
 
 **What goes wrong:**
-Celery workers default to `concurrency=number_of_CPUs`. On a 4-core VPS, 4 Playwright tasks run simultaneously, each spawning a Chromium instance. Chromium is RAM-heavy (~200MB each). 4 concurrent instances = ~800MB just for browsers, plus the crawled pages, plus everything else. The VPS OOM-killer fires and takes down the whole Docker stack. This happens silently — no Python exception, just a dead container.
+Quick Wins requires "latest position per keyword". The existing pattern `SELECT DISTINCT ON (kp.keyword_id, kp.engine) ... ORDER BY kp.keyword_id, kp.engine, kp.checked_at DESC` works correctly but scans all monthly partitions to find the latest row. With 100K keywords × 12 months of data, this is a full scan of millions of rows. The query goes from 200ms with 2 months of data to 8+ seconds with 12 months. The page times out.
 
 **Why it happens:**
-Celery concurrency is set globally. Developers don't separate compute-bound tasks from browser-bound tasks into different worker pools with different concurrency limits.
+`DISTINCT ON` requires a sort, and PostgreSQL cannot prune partitions when the `WHERE` clause does not filter on `checked_at` (the partition key). The planner must scan all partitions and merge-sort them. The existing code in `report_service.py` and `overview_service.py` uses the same pattern and works because those queries are already filtered by `site_id` and are called once per site, not across all sites simultaneously.
 
 **How to avoid:**
-- Dedicate a separate Celery worker for Playwright tasks with `concurrency=2` (or 1 on small VPS) using a dedicated queue (`crawler`, `serp`).
-- Use `CELERYD_PREFETCH_MULTIPLIER=1` on Playwright workers to prevent a single worker from claiming more tasks than it can run.
-- Set `worker_max_memory_per_child=512000` (512MB) to recycle workers that bloat.
-- For a 2GB VPS: `concurrency=1` for Playwright workers; for 4GB: `concurrency=2`.
+- Add a `WHERE checked_at >= now() - interval '90 days'` filter to all "latest position" queries. This prunes to at most 3 partitions. For Quick Wins, 90 days is appropriate — positions older than that are stale anyway.
+- Use a materialized "latest positions" view maintained by the existing position check task: after each position check run, upsert into a `keyword_latest_positions` table (one row per keyword+engine). Quick Wins reads from this flat table, not from the partitioned one. This is the most sustainable approach given the scale.
+- Index `keyword_latest_positions` on `(site_id, position, engine)` so the "positions 4–20" filter is instant.
 
 **Warning signs:**
-- Container restart loops visible in `docker-compose logs`
-- `dmesg | grep oom` shows OOM kill events
-- Tasks disappear from queue without completing and without error logs
+- `EXPLAIN ANALYZE` on Quick Wins query shows "Append" node with 12+ "Seq Scan on keyword_positions_YYYYMM" children.
+- Quick Wins endpoint exceeds 3s for a site with 1000+ keywords.
+- `pg_stat_statements` shows the DISTINCT ON query consuming >50% of total query time.
 
 **Phase to address:**
-Iteration 2 (first Playwright-in-Celery code) — set worker topology immediately
+Phase 1 (Quick Wins) — design the `keyword_latest_positions` materialized table before writing the first query. Retrofit it in position_tasks.py during the same phase.
 
 ---
 
-### Pitfall 3: Celery Task Granularity — Entire Site as One Task
+### Pitfall 3: Impact Scoring Computed on Every Request Becomes Expensive at Scale
 
 **What goes wrong:**
-Developer creates one Celery task `crawl_site(site_id)` that opens a browser, crawls all URLs, processes everything, writes to DB, and closes. If a site has 500 pages and the task fails at page 400, the entire crawl is lost. The task holds a browser open for 20+ minutes, hitting time limits. Progress is invisible until completion. One slow site blocks other crawl tasks from starting.
+Error Impact Scoring requires aggregating errors (from audit results) weighted by traffic (from Metrika). If this is computed live on each page load, it involves: JOIN `audit_results` × `metrika_traffic_pages` × `pages`, group by error type, order by weighted score. On a site with 500 pages × 20 audit checks = 10K audit rows, joined with Metrika page data, this query takes 1–3 seconds. With 50 sites, the dashboard aggregation becomes unusable.
 
 **Why it happens:**
-It mirrors how you'd write a script. The leap to "each URL is a task" feels over-engineered until the first production failure.
+Scoring feels like a "simple query" during development with 5 test sites. The JOIN fan-out is not visible until real data exists.
 
 **How to avoid:**
-- Use a three-level task hierarchy:
-  1. `schedule_site_crawl(site_id)` — discovers URLs, enqueues individual page tasks
-  2. `crawl_page(url, crawl_run_id)` — crawls one URL, writes result immediately
-  3. `finalize_crawl_run(crawl_run_id)` — aggregates results, triggers diff computation (use Celery `chord` or `group`)
-- Each `crawl_page` task is idempotent: if it already ran for this `crawl_run_id`, skip it.
-- Store `crawl_run_id` in DB on creation so progress is visible before completion.
-- Set per-task time limits: `crawl_page` max 60s, `schedule_site_crawl` max 30s.
+- Compute and store scores as a Celery task, not inline in the request. Create an `error_impact_scores` table: `(site_id, check_code, score, computed_at)`. The task runs after each crawl completion and after each Metrika sync.
+- Invalidate scores by writing a `score_valid_until` timestamp. The API reads the cached score if `computed_at > (now() - interval '24 hours')`. If stale, it serves the old score and enqueues a background recomputation — never blocks the request.
+- The Celery trigger points: hook into the existing `crawl_tasks.py` finalization step and `metrika_tasks.py` sync completion. Both already exist and just need an `enqueue_impact_score_recompute(site_id)` call appended.
 
 **Warning signs:**
-- Tasks that run for >5 minutes
-- "One site is slow, all others wait"
-- Restarts lose all in-progress crawl data
-- No ability to show "crawling: 45/200 pages"
+- Dashboard endpoint exceeds 3s for any site.
+- Database CPU spikes every time the Insights page loads.
+- Adding a 6th site causes a 50% response time increase (linear scale = live computation).
 
 **Phase to address:**
-Iteration 2 (design the crawl task hierarchy before writing first task)
+Phase 2 (Impact Scoring) — scores must be pre-computed from the start. No live aggregation path should exist in production.
 
 ---
 
-### Pitfall 4: Result Backend Bloat with CELERY_RESULT_BACKEND = Redis
+### Pitfall 4: WeasyPrint Memory Does Not Release Between Client PDF Calls
 
 **What goes wrong:**
-Celery stores task results in Redis by default without expiration, or with a very long TTL. An SEO platform running daily crawls on 50 sites generates thousands of task results per day. After a month, Redis holds gigabytes of serialized task results that are never read by any application code (the real data is already in PostgreSQL). Redis fills up, which blocks new task submission, which silently drops tasks.
+WeasyPrint is confirmed to have a memory leak when called in a loop inside a long-running process (GitHub issue #2130, #1977). Each `HTML(string=html_str).write_pdf()` call in a Celery worker increases RSS by 20–40 MB and this memory is not released until the worker process dies. The existing `report_service.py` already calls WeasyPrint for weekly summary PDFs. Client Instruction PDFs add more calls — potentially 20–100 PDFs per report run. On a 2 GB VPS, the Celery worker hits the OOM killer after 30–50 PDFs.
 
 **Why it happens:**
-`result_expires` is not set by default in many tutorials. Developers assume Redis handles its own memory management, but Redis with `maxmemory-policy noeviction` (common default) just errors instead of evicting.
+WeasyPrint uses Pango/Cairo C libraries. Python's garbage collector cannot reclaim memory held by native C extensions. The `write_pdf()` function allocates layout structures in C heap that are not freed until the process exits.
 
 **How to avoid:**
-- Set `result_expires=3600` (1 hour) — crawl results are either read immediately or never.
-- For fire-and-forget tasks (background jobs that write to DB), disable result storage: `@app.task(ignore_result=True)`.
-- Use `ignore_result=True` on all Playwright and crawl tasks — the result lives in PostgreSQL, not Redis.
-- Only store results for tasks where the API endpoint polls for completion (e.g., on-demand position check).
-- Configure Redis `maxmemory 512mb` and `maxmemory-policy allkeys-lru` in Docker Compose.
-- Monitor Redis memory: add `GET /health` check that reports Redis `used_memory_human`.
+- Run PDF generation in a subprocess per report: `subprocess.run(["python", "-m", "app.pdf_worker", report_id])`. The subprocess exits after the PDF is written, releasing all C memory. Use `asyncio.to_thread()` to call this without blocking the Celery event loop.
+- Alternative: use `--max-tasks-per-child=10` on the PDF worker process specifically. After 10 PDFs, the worker process recycles, cleaning all memory. This is already the right pattern for Playwright — apply the same reasoning here.
+- Do not generate all 20–100 client PDFs in one task. Use a Celery `group` where each task generates one PDF, so each task in the group benefits from the recycling policy.
+- Set `soft_time_limit=120, time_limit=150` per PDF task. A stuck WeasyPrint call (e.g., infinite table pagination) should be killed rather than filling RAM.
 
 **Warning signs:**
-- `redis-cli info memory` shows `used_memory` growing daily
-- Task submission suddenly starts failing with Redis connection errors
-- `CELERY_RESULT_BACKEND` tasks never expire in `flower`
+- `docker stats` shows the celery-default container's MEM growing during report runs and not recovering.
+- Report tasks succeed but subsequent tasks are slower (memory pressure causing swap).
+- OOM kill in `dmesg` correlated with a report task completion.
 
 **Phase to address:**
-Iteration 1 (Celery configuration baseline — set this from day one)
+Phase 3 (Client PDF) — subprocess isolation must be the first design decision before any WeasyPrint code is written.
 
 ---
 
-### Pitfall 5: keyword_positions Schema Without Partitioning
+### Pitfall 5: Keyword Suggest Triggers IP Bans from Google/Yandex Within Hours
 
 **What goes wrong:**
-`keyword_positions` accumulates one row per (keyword, date, engine, geo, device). At 500 keywords × 2 engines × 365 days = 365,000 rows per year per site. At 50 sites = 18M rows in 2 years. Queries like "get 90-day history for keyword 1234" do a full table scan unless properly indexed. `GROUP BY keyword_id ORDER BY checked_at DESC` on 18M rows takes 10+ seconds. The positions chart in the UI times out.
+Google Autocomplete and Yandex Suggest APIs are undocumented and rate-limited aggressively. Direct HTTP calls to `https://suggestqueries.google.com/complete/search` or `https://wordstat.yandex.ru` from a single VPS IP will result in CAPTCHA challenges within minutes of usage and IP bans within hours. The XMLProxy integration (already in the codebase) works because it uses proxy rotation — the same caution applies here.
 
 **Why it happens:**
-The schema works fine in development with 1,000 rows. The developer doesn't think about query patterns at schema design time. Indexes are added later as an afterthought, but `(keyword_id, checked_at)` composite indexes alone don't help if the query planner still scans old partitions.
+Developers treat Google Autocomplete as a "free API" because there is no API key required. This is a misread — Google serves it for browser consumption and treats server-to-server calls as scraping.
 
 **How to avoid:**
-- Partition `keyword_positions` by range on `checked_at` from the start: monthly partitions in PostgreSQL 16 via declarative partitioning.
-- Primary query pattern first: the most common query is `WHERE keyword_id = X AND checked_at >= NOW() - INTERVAL '90 days'` — create index on `(keyword_id, checked_at DESC)` within each partition.
-- Add `(site_id, checked_at)` index for dashboard queries across all keywords for a site.
-- Never query `keyword_positions` without a `WHERE checked_at >= ...` bound.
-- Create partitions for the next 12 months in the initial migration; add a Celery Beat task to create new partitions monthly.
-- Keep only 2 years of data; archive or drop older partitions via a maintenance task.
+- Use the XMLProxy API for Yandex Wordstat suggestions if XMLProxy supports it (check their endpoint list). XMLProxy already handles proxy rotation for Yandex — this is the path of least resistance.
+- For Google Suggest, use DataForSEO's keyword suggestions API (already integrated in `dataforseo_service.py`) which handles Google's restrictions.
+- Cache all suggestions aggressively: Redis with TTL of 7 days minimum. Keyword suggest data does not change meaningfully within a week. Key: `suggest:{engine}:{phrase_hash}`.
+- Rate limit the user-facing endpoint in the UI: `slowapi` is already installed. Add a `@limiter.limit("10/minute")` decorator to the suggest endpoint.
+- Log every outbound request to Google/Yandex in the audit log with the source IP visible — makes it easy to detect if the VPS IP gets blocked.
 
 **Warning signs:**
-- `EXPLAIN ANALYZE` shows `Seq Scan` on `keyword_positions`
-- Position history chart takes >2s to load
-- `pg_relation_size('keyword_positions')` exceeds 1GB
+- HTTP 429 or CAPTCHA HTML returned from suggest endpoint.
+- Suggest results stop updating despite new queries.
+- XMLProxy logs show unusually high failure rates for a new endpoint.
 
 **Phase to address:**
-Iteration 3 (before first position data is written — migration design is the prevention)
+Phase 4 (Keyword Suggest) — cache-first design and proxy routing must be decided before any external call is written.
 
 ---
 
-### Pitfall 6: Async SQLAlchemy Session Leaks in FastAPI
+### Pitfall 6: LLM API Failures Block Brief Generation with No Fallback
 
 **What goes wrong:**
-Developer creates an `AsyncSession` in a FastAPI dependency, but exception paths or background tasks hold references that prevent the session from closing. Over time, the PostgreSQL connection pool exhausts. New requests fail with `asyncpg.TooManyConnectionsError`. The error appears to be random because it depends on how many connections are currently leaked.
+If the LLM API (OpenAI or Anthropic) is down or returns a 429, the brief generation Celery task fails with an unhandled exception. The user sees a spinner that never resolves, or an opaque "Task failed" error. Since LLM APIs are external dependencies, they can be unavailable at arbitrary times. The existing `retry=3` policy on Celery tasks delays failure by minutes but does not degrade gracefully.
 
 **Why it happens:**
-`AsyncSession` with `async with` works, but FastAPI's dependency injection can be subtle. If a dependency yields a session and the endpoint raises before consuming the generator, SQLAlchemy's connection may not be returned to the pool. Background tasks started inside request scope that capture the session outlive the request lifecycle.
+LLM integration feels like a service call but has unique failure modes: rate limits, token limits, content policy blocks, and network timeouts that are more frequent than typical REST APIs. Developers port the existing "retry 3 times" pattern from DataForSEO/GSC calls without accounting for the specific failure scenarios.
 
 **How to avoid:**
-- Always use `yield` in the session dependency combined with `try/finally`:
-  ```python
-  async def get_db():
-      async with AsyncSessionLocal() as session:
-          try:
-              yield session
-          finally:
-              await session.close()
-  ```
-- Never pass a FastAPI-scoped `AsyncSession` to a `BackgroundTask` or Celery task. Background operations get their own session.
-- Set `pool_size=10, max_overflow=5` and `pool_timeout=30` explicitly — don't rely on defaults.
-- Set `pool_pre_ping=True` to detect dead connections before using them.
-- Monitor `SELECT count(*) FROM pg_stat_activity WHERE state = 'idle'` — idle connections that never release are the tell.
+- Always return a partial result rather than failing. If the LLM API is unavailable, return the template-based brief (which `brief_service.py` already generates) with a flag `"ai_enhanced": false`. Never block the user's workflow.
+- Set `httpx.AsyncClient(timeout=30.0)` for LLM calls — not the default (no timeout). A hung LLM call with no timeout blocks the Celery worker thread indefinitely.
+- Implement a circuit breaker: after 3 consecutive LLM failures for a site, set a `redis.setex("llm_circuit_open", 3600, "1")` flag. All subsequent requests return the template brief immediately for 1 hour without attempting the API call.
+- Store the raw LLM prompt and response in the DB (`llm_brief_log` table). This enables: debugging hallucinations, cost auditing, and replay without re-billing.
+- Cap token usage per brief: max 2000 input tokens (keyword list + page context), max 800 output tokens. Enforce with `max_tokens=800` in the API call. Prevents runaway cost from accidentally sending the full crawl HTML.
 
 **Warning signs:**
-- `pg_stat_activity` shows many connections in `idle in transaction` state
-- `asyncpg: connection pool exhausted` errors in logs
-- Error rate increases linearly with uptime and resets after worker restart
+- Brief generation tasks in Celery Flower show "RETRY" status for > 5 minutes.
+- Monthly LLM API bill increases suddenly (usually means unbounded token usage).
+- Users report briefs "hanging" on specific pages — often because those pages have large content being passed to the LLM.
 
 **Phase to address:**
-Iteration 1 (establish the DB session pattern before any endpoints are built)
+Phase 5 (LLM Briefs) — graceful degradation to template brief must be the default path, with LLM enhancement as opt-in overlay.
 
 ---
 
-### Pitfall 7: N+1 Queries in FastAPI Endpoints via SQLAlchemy
+### Pitfall 7: 2FA Migration Locks Out Existing Users and Has No Recovery Path
 
 **What goes wrong:**
-Dashboard endpoint loads 50 sites, then for each site makes a separate query to get latest crawl status, another for position count, another for open tasks. What looks like one request is actually 150+ queries. The dashboard takes 8 seconds. Adding `selectinload` as an afterthought is painful because the models weren't designed with relationship loading strategy in mind.
+Adding TOTP to the `users` table requires: a new `totp_secret` column (nullable), new `totp_recovery_codes` table, and a modified login flow. If 2FA is made mandatory without a user communication plan, existing users hit the 2FA prompt on their next login and have no way to enroll their authenticator app (they were never shown a QR code). If `totp_secret IS NULL` is not handled as "2FA not yet configured" (instead of "2FA failed"), users are permanently locked out.
 
 **Why it happens:**
-SQLAlchemy ORM lazy loading is disabled in async mode (raises `MissingGreenlet`), so developers replace it with explicit loops with individual queries — which is just manual N+1.
+The login route is the most-visited endpoint in the app. Any conditional logic change in `auth.py` has a high surface area for regression. Adding `totp_secret` nullable with `if totp_secret IS NOT NULL: verify_totp()` seems correct but the enrollment flow is often not built in the same phase as the verification flow, leaving a gap.
 
 **How to avoid:**
-- Design the data access layer (DAL) with query patterns in mind before writing models. Ask: "what are the top 5 most common read operations?"
-- For the dashboard (N sites), use a single aggregation query with window functions or CTEs — never iterate over sites in Python.
-- Use `selectinload` or `joinedload` in SQLAlchemy where relationships are always needed together.
-- Write a `repositories/` layer with explicit query methods (no ad-hoc queries in route handlers).
-- Add query logging in development: `echo=True` on the engine shows every SQL statement.
-- The rule: if a route loops over a list and queries the DB inside the loop, it's broken.
+- Add `totp_secret` as `nullable=True` to the `users` table with default NULL. Never make 2FA mandatory in the same migration that adds the column.
+- Two-phase rollout: Phase A = users can opt-in (enroll via settings page, generates QR, saves secret); Phase B = (optional, later) admin can force 2FA for specific roles.
+- Generate recovery codes during enrollment (8 codes, bcrypt-hashed, stored in `user_recovery_codes` table). Show codes once, immediately after QR scan confirmation. Test the recovery flow in isolation before deploying.
+- Test matrix: user with `totp_secret=NULL` + 2FA optional → login works unchanged. User with `totp_secret` set + correct TOTP → login works. User with `totp_secret` set + wrong TOTP → 401. User with `totp_secret` set + recovery code → login works + code invalidated.
+- Add `/auth/2fa/disable` endpoint (admin-only) so that if a user loses their device, an admin can set `totp_secret=NULL` and regenerate recovery codes.
 
 **Warning signs:**
-- `echo=True` shows 50+ queries for a single dashboard page load
-- Dashboard page consistently >2s even with empty data
-- SQLAlchemy `asyncio` deprecation warnings about lazy loading
+- Existing users report "stuck on 2FA screen" after a deploy.
+- Test coverage for `auth.py` drops below 70% after adding 2FA conditionals.
+- No test exists for the `totp_secret=NULL` path in the login flow.
 
 **Phase to address:**
-Iteration 1 (repository pattern), Iteration 6 (dashboard aggregation queries)
+Phase 6 (2FA) — write the test matrix before writing any auth code changes. The migration must be reviewed by running `alembic upgrade --sql` and inspecting the output before applying to production.
 
 ---
 
-### Pitfall 8: SERP Parsing — Getting Banned by Google
+### Pitfall 8: Notifications Table Bloat Without Deletion Strategy
 
 **What goes wrong:**
-Playwright opens a Chromium instance in headless mode, navigates to `google.com/search?q=keyword`, and scrapes results. Google detects headless Chrome within 5–10 requests via browser fingerprinting (navigator.webdriver, Chrome DevTools Protocol artifacts, missing browser plugins, predictable timing). IP gets a CAPTCHA after ~10 searches. After repeated violations, the VPS IP is soft-banned and receives empty SERPs or redirect loops.
+In-app notifications generate 1 row per event per user. With 5 active users × 50 position check completions/week × 20 sites = 5,000 rows/week. After 6 months: ~130,000 rows. PostgreSQL `autovacuum` handles this poorly for high-churn tables because frequent INSERT + soft-deletes (marking `read=True`) generate dead tuple bloat faster than vacuum can clean. The table grows to hundreds of MB, the index bloats, and `SELECT unread notifications WHERE user_id = ?` degrades from microseconds to milliseconds — visible as a slow first-page-load issue.
 
 **Why it happens:**
-Developer tests with 2–3 keywords manually and it works. Production has 500+ keywords per site. Google's bot detection is statistical — it's fine at low volume, catastrophic at scale.
+Notification tables feel like simple tables during development. The churn rate (many inserts, many "soft read" updates) is the worst pattern for PostgreSQL MVCC — every UPDATE writes a new tuple version, leaving the old one as a dead tuple until vacuum runs.
 
 **How to avoid:**
-- Use `playwright-stealth` or manual stealth patches: set `navigator.webdriver = undefined`, spoof plugins, canvas fingerprint, WebGL renderer.
-- Use `--disable-blink-features=AutomationControlled` launch argument.
-- Rotate User-Agent strings from a realistic pool (real Chrome versions, matching OS).
-- Randomize delays: 3–8 seconds between requests, not fixed intervals.
-- Use residential proxy rotation for SERP requests (not datacenter IPs — Google recognizes VPS subnets).
-- **Primary strategy**: Use DataForSEO API as the default position-checking method. Playwright SERP parsing is the fallback for small volumes only.
-- Keep Playwright SERP to <50 queries/day from any single IP without proxies.
-- Never run Playwright SERP requests from the same IP that serves the web application.
+- Implement hard deletion on read: when a user opens notifications, DELETE the displayed rows (or DELETE WHERE created_at < now() - interval '30 days'). Do not use soft delete (`is_read=TRUE`) for notifications — it maximizes bloat.
+- Add a Celery Beat task `cleanup_old_notifications` that runs nightly: `DELETE FROM notifications WHERE created_at < now() - interval '30 days'`. This one task prevents bloat indefinitely.
+- Set `autovacuum_vacuum_scale_factor = 0.01` on the notifications table specifically (via `ALTER TABLE notifications SET (autovacuum_vacuum_scale_factor = 0.01)`) — this triggers vacuum at 1% dead tuples instead of the default 20%, keeping the table clean on high-churn tables.
+- Index only `(user_id, created_at DESC)` — not `(user_id, is_read, created_at)`. Adding `is_read` to the index means every read-mark update invalidates the index entry, doubling write amplification.
+- Cap at 100 unread notifications per user in the application layer. Beyond 100 unread, new ones replace the oldest unread. Users with 1000 unread notifications are not reading them — drop them.
 
 **Warning signs:**
-- Google returns CAPTCHA HTML instead of search results
-- Results HTML has zero `.g` elements (classic CAPTCHA redirect)
-- All keyword positions suddenly show as "not found"
-- Playwright screenshot of SERP shows "unusual traffic" page
+- `SELECT pg_size_pretty(pg_total_relation_size('notifications'))` shows >50 MB after a few weeks.
+- `pg_stat_user_tables` shows `n_dead_tup` > 10% of `n_live_tup` for the notifications table.
+- First-page-load time increases by 50–100ms week over week.
 
 **Phase to address:**
-Iteration 3 (SERP parser design — build stealth and DataForSEO fallback from the start)
-
----
-
-### Pitfall 9: SERP Parsing — Yandex is More Aggressive Than Google
-
-**What goes wrong:**
-Yandex's SmartCaptcha fires earlier than Google's. A VPS IP from a non-Russian datacenter is flagged immediately because Yandex expects Russian users from Russian IPs. Yandex also has stricter rate limits per IP (sometimes blocks after 3–5 requests). Unlike Google, Yandex has no equivalent to DataForSEO as an easy fallback — Yandex.Webmaster API provides clicks/impressions data but not raw SERP positions.
-
-**Why it happens:**
-Developers test Yandex parsing locally (from a residential IP) where it works fine, then deploy to a VPS (datacenter IP) where it fails immediately.
-
-**How to avoid:**
-- Prioritize Yandex Webmaster API for position data: it's official, rate-limit-friendly, and provides historical data.
-- For cases requiring SERP parsing, use Russian residential proxies specifically.
-- Yandex XML API (`xmlsearch.yandex.ru`) is the official programmatic search API — has a free tier with 1,000 requests/day. Use this instead of scraping.
-- Treat Yandex SERP scraping as last resort, not primary method.
-- In `docker-compose.yml`, separate Yandex requests to a worker that routes traffic through a proxy.
-
-**Warning signs:**
-- All Yandex SERP tasks returning empty or CAPTCHA from day one of VPS deployment
-- `SmartCaptcha` in Playwright page HTML
-- Yandex position checks fail consistently while Google works
-
-**Phase to address:**
-Iteration 3 (design Yandex integration — choose API-first before implementing any scraping)
-
----
-
-### Pitfall 10: WordPress REST API — Application Password Stored in Plaintext
-
-**What goes wrong:**
-WP Application Passwords are stored in the database as plaintext strings or base64-encoded (which is not encryption). If the database is compromised (SQL injection, backup leak, misconfigured pgAdmin), all managed WP sites are immediately compromised. With Application Passwords, an attacker has full WP REST API access — can delete all posts, create admin users, deface sites.
-
-**Why it happens:**
-Developers treat credentials as configuration, store them like other config values, and don't apply encryption because "it's internal."
-
-**How to avoid:**
-- Fernet-encrypt all Application Passwords before storing in DB (the PROJECT.md already mandates this — enforce it from the first WP model migration).
-- The Fernet key lives in `.env` / Docker secret, never in source code or DB.
-- Use a separate `credentials` table with `encrypted_value` column — never a plaintext `password` column.
-- Rotate Fernet key procedure: decrypt all, re-encrypt with new key, update key. Document this procedure.
-- Audit log every use of a WP credential: `used_for`, `task_id`, `timestamp`.
-- Verify WP connection only stores the credential after successful test — never store unverified credentials.
-
-**Warning signs:**
-- `wpsites` table has a `password` or `app_password` column of type `text` without `_encrypted` suffix
-- Fernet key is committed to git (check `.env.example` for accidentally real values)
-- No audit log on credential access
-
-**Phase to address:**
-Iteration 1 (WP site model is created here — encrypt from the first migration)
-
----
-
-### Pitfall 11: WordPress REST API — Rate Limiting and Large Sites
-
-**What goes wrong:**
-WP REST API has no built-in rate limiting but the hosting provider often does (shared hosting, Cloudflare, WP-specific security plugins like Wordfence). Fetching all posts for a 2,000-post site with `GET /wp-json/wp/v2/posts?per_page=100` in a loop makes 20 requests in rapid succession. Wordfence (common on client sites) flags this as a brute-force attack and blocks the platform's IP. The client's site becomes inaccessible from the platform permanently until manually whitelisted.
-
-**Why it happens:**
-Development tests on a clean WP install. Production client sites have security plugins the developer didn't account for.
-
-**How to avoid:**
-- Add mandatory delay between WP API pagination requests: minimum 0.5s, configurable per site.
-- Implement exponential backoff on 429 and 403 responses from WP API.
-- Detect Wordfence block responses (they return specific HTML, not JSON) and surface an alert in the UI: "Site X: IP blocked by security plugin — whitelist required."
-- Cache the full post list in the platform DB; refresh only on explicit request or scheduled (not every crawl).
-- For sites with 1,000+ posts, use incremental sync: fetch only `modified_after=last_sync_timestamp`.
-
-**Warning signs:**
-- WP API returns HTML instead of JSON (security plugin redirect)
-- HTTP 403 or 429 from WP API
-- `requests.exceptions.JSONDecodeError` when parsing WP API response
-- WP API calls succeed in dev but fail immediately in production on client sites
-
-**Phase to address:**
-Iteration 1 (WP API client implementation — build throttling and error handling before any other WP feature)
-
----
-
-### Pitfall 12: JWT Role Enforcement — Missing Authorization at Service Layer
-
-**What goes wrong:**
-Developer adds role checks in route decorators (`Depends(require_role("manager"))`), but the service layer functions are called directly in tests or by Celery tasks without going through the FastAPI route. A Celery task that runs with admin context can call `service.get_project(project_id)` for any project, bypassing the manager's "own projects only" restriction. The route-level check gives false confidence that data is isolated.
-
-**Why it happens:**
-FastAPI's dependency injection is route-level. Service functions don't know about the caller's role. This works until someone calls the service from a non-route context.
-
-**How to avoid:**
-- Pass `current_user: User` as an explicit parameter to all service functions that return user-scoped data.
-- Service functions enforce scoping: `if current_user.role == "manager" and project.owner_id != current_user.id: raise 403`.
-- Never use a "super user" context in Celery tasks that touches user-owned data — pass the originating user's ID and scope accordingly.
-- Write tests that call service functions directly with different user roles, not just through the HTTP API.
-- In Iteration 7 hardening: add integration tests that verify a manager cannot access another manager's project at both HTTP and service layer.
-
-**Warning signs:**
-- Authorization tests only use `httpx` / HTTP client — no direct service layer tests
-- Service functions take `site_id` but not `current_user_id`
-- Celery tasks call service functions without user context
-
-**Phase to address:**
-Iteration 1 (auth design) and Iteration 7 (enforcement audit — test every service function)
-
----
-
-### Pitfall 13: Celery Beat Schedule Stored in Redis Gets Wiped
-
-**What goes wrong:**
-Celery Beat with `redbeat` scheduler (or even default file-based scheduler) stores its schedule state. When Redis is flushed (for any reason: debug session, `FLUSHALL`, data migration, Redis restart with `--save ""`) all scheduled tasks disappear. The system silently stops crawling and checking positions. The team notices weeks later when clients ask why position charts stopped updating.
-
-**Why it happens:**
-Developers `FLUSHALL` Redis in development to clear test data, not realizing it also wipes the Beat schedule. In production, Redis restarts without persistence configured, losing state.
-
-**How to avoid:**
-- Use `redbeat` with Redis persistence: configure Redis with `appendonly yes` in `docker-compose.yml` for the Redis service.
-- Store the crawl schedule definition in PostgreSQL (the PROJECT.md requires "configurable from UI with no restart"). Redis is cache, Postgres is source of truth. On Beat startup, reload schedules from Postgres.
-- Add to `GET /health`: check that at least N active Beat schedules exist in Redis; alert if zero.
-- In development, never use `FLUSHALL` — use `FLUSHDB` on a test-only Redis DB (use DB 1 for tests, DB 0 for app).
-
-**Warning signs:**
-- No crawl tasks in Celery queues for >24 hours without explanation
-- `redbeat` or `celery inspect scheduled` returns empty
-- Position last_checked timestamps stop advancing
-
-**Phase to address:**
-Iteration 2 (first crawl schedule) — design schedule persistence before implementing
-
----
-
-### Pitfall 14: Docker Compose Volume Management — Data Loss on Rebuild
-
-**What goes wrong:**
-Developer runs `docker-compose down -v` to reset the environment (common during development). `-v` removes named volumes, destroying all PostgreSQL data. In a production scenario where the developer runs this to "fix" a stuck service, all production data is gone with no backup.
-
-**Why it happens:**
-`-v` flag is in muscle memory from development. The difference between `docker-compose down` and `docker-compose down -v` is a single character.
-
-**How to avoid:**
-- Use named volumes with explicit external declarations for production data:
-  ```yaml
-  volumes:
-    postgres_data:
-      external: true
-  ```
-  Marking a volume as `external: true` requires it to be created manually (`docker volume create`) and prevents `docker-compose down -v` from deleting it.
-- Document this in README and deployment runbook.
-- Automated daily backup: `pg_dump` piped to a timestamped file outside the container, retained for 7 days.
-- Add a pre-commit hook or Makefile target that warns before running `down -v`.
-
-**Warning signs:**
-- Production `docker-compose.yml` uses anonymous volumes or inline volume definitions
-- No `pg_dump` cron job exists
-- Developers have direct access to run `docker-compose down -v` in production
-
-**Phase to address:**
-Iteration 1 (infrastructure setup — volume strategy before any data is stored)
-
----
-
-### Pitfall 15: Async SQLAlchemy + Celery — "Detached Instance" Errors
-
-**What goes wrong:**
-A FastAPI route loads an ORM object, passes its `id` to a Celery task. Inside the Celery task (sync context), the developer tries to use an `AsyncSession` from the FastAPI session factory — which doesn't work because Celery runs in a different event loop (or no event loop). Alternatively: an ORM object created in one `AsyncSession` is accessed after the session closes, raising `DetachedInstanceError` when accessing a lazy relationship.
-
-**Why it happens:**
-SQLAlchemy 2.0 async is subtly different from sync. Celery workers run in threads or processes with their own event loops. Sharing sessions or ORM objects across async/sync boundaries is a common mistake.
-
-**How to avoid:**
-- Celery tasks always create their own `AsyncSession` using `asyncio.run()` or a dedicated sync session factory:
-  ```python
-  def my_celery_task(site_id: int):
-      with SyncSessionLocal() as session:  # sync session for Celery
-          site = session.get(Site, site_id)
-  ```
-- Never pass ORM objects between FastAPI and Celery — pass IDs only.
-- For Celery tasks that need async (Playwright), use `asyncio.run()` as the task's entry point.
-- Disable lazy loading entirely (`lazy="raise"`) on all relationships to catch accidental lazy loads at development time.
-
-**Warning signs:**
-- `DetachedInstanceError` in Celery task logs
-- `MissingGreenlet: greenlet_spawn has not been called` errors
-- Tasks that work in pytest but fail in Celery worker
-
-**Phase to address:**
-Iteration 2 (first Celery task that touches the DB)
+Phase 6 (In-app Notifications) — cleanup strategy must be implemented in the same migration that creates the table.
 
 ---
 
 ## Technical Debt Patterns
 
+Shortcuts that seem reasonable but create long-term problems specific to this v2.0 milestone.
+
 | Shortcut | Immediate Benefit | Long-term Cost | When Acceptable |
 |----------|-------------------|----------------|-----------------|
-| Single Celery queue for all task types | Simpler config, works immediately | Playwright crawls block quick position checks; priority inversion; impossible to scale workers independently | Never — set up queues in Iteration 1 |
-| `ignore_result=False` on all tasks | Can inspect any task result | Redis fills with gigabytes of stale serialized data; Redis OOM blocks new submissions | Only for tasks where the API polls for result; use `ignore_result=True` as default |
-| One `concurrency=8` Celery worker for everything | Simple deployment | OOM kill from 8 concurrent Chromium instances; no isolation between fast API tasks and slow crawls | Never — always separate Playwright workers |
-| Skip `keyword_positions` partitioning until "later" | Faster initial implementation | Schema migration on a 10M+ row table requires extended downtime; cannot add partitions to existing table (must recreate) | Never — partition before first write |
-| Storing Fernet key in `docker-compose.yml` `environment:` | Easy to configure | Key visible in `docker inspect`, process list, and Docker logs | Never — use Docker secrets or `.env` file excluded from git |
-| Application Password in plaintext for "internal tool" | No encryption setup needed | Full WP admin access for all clients if DB is leaked | Never — PROJECT.md mandates Fernet from Iteration 1 |
-| Synchronous `requests` in Celery tasks instead of `httpx` async | Simpler code | Blocks Celery thread; reduces effective concurrency; no async support for WP API | Only in truly sync task code where async adds no benefit; use `httpx` consistently |
-| Single `AsyncSession` shared across request handlers | Avoids dependency boilerplate | Session state corruption; connection leaks; impossible to debug | Never — one session per request via dependency injection |
-| Daily position checks for all 500 keywords at 09:00 | Simple schedule | Thundering herd: 500 SERP requests simultaneously, instant IP ban | Never — stagger with random offset per keyword or batch with delays |
+| Live JOIN for Quick Wins instead of `keyword_latest_positions` table | No extra table/migration needed | Degrades to 10s+ queries at 100K keywords; requires rewrite | Never — 100K keywords is known scale from day 1 |
+| Computing Impact Scores inline per request | No Celery task needed | Linear slowdown with sites × errors × metrika rows | Never for production use |
+| Single WeasyPrint call generating all client PDFs | Simpler task code | OOM kill on report runs for 20+ sites | Never — subprocess per PDF from the start |
+| Making 2FA mandatory in the same deploy that adds the feature | Clean code, no "nullable" logic | Locks out all existing users | Never — always two-phase |
+| Passing full page HTML to LLM for brief generation | More context = better output | 50–100K token bills; context window errors | Never — always truncate to title + H2s + meta |
+| Caching LLM responses with no TTL | Avoids repeated billing | Stale briefs served months later; confused users | Only for briefs explicitly marked "frozen" by user |
+| Storing notification `is_read` flag and using soft-delete | Preserves history | Table bloat, index thrash | Never — hard delete on dismiss + nightly cleanup |
+| Using the same Celery `default` queue for LLM tasks | No new queue configuration | LLM tasks (slow, expensive) block position checks (fast, time-sensitive) | Never — LLM tasks need their own queue |
+| Skipping URL normalization on Metrika join | Faster initial query | Silent zero-result JOIN failures; no error, no warning | Never — normalization must be on write |
+
+---
 
 ## Integration Gotchas
 
+Common mistakes when connecting the new v2.0 features to the existing system.
+
 | Integration | Common Mistake | Correct Approach |
 |-------------|----------------|------------------|
-| WordPress REST API | Assume `/wp-json/wp/v2/` is always enabled and accessible | Verify WP REST API, Application Passwords, and permalink structure during site connection; store `connection_verified_at` |
-| WordPress REST API | Fetch all posts with `per_page=100` in tight loop | Paginate with 0.5s delay; use `modified_after` for incremental sync; detect and handle security plugin blocks |
-| WordPress REST API | Use Basic Auth with admin password | Use Application Passwords only — they are revocable, scoped, and don't require the main admin password |
-| Yoast/RankMath meta | Assume both plugins are always present | Detect which SEO plugin is active per site via `GET /wp-json/yoast/v1/` or `GET /wp-json/rank-math/v1/` probe; store `seo_plugin` per site |
-| Google Search Console | Store OAuth refresh token in code/config | Store refresh token encrypted in DB; handle token expiry with automatic refresh; handle revocation gracefully |
-| Google Search Console | Query full date range without pagination | GSC API returns max 1,000 rows per request; use `startRow` pagination for sites with many queries |
-| DataForSEO | Send all keywords in one API call | DataForSEO has per-call limits; batch keywords in groups of 100; handle partial failures per keyword |
-| Celery + Redis | Use Redis as both broker and result backend on same DB | Separate Redis DBs (DB 0 broker, DB 1 results) or use different Redis instances to prevent key collisions |
-| Telegram Bot API | Send alert for every position change | Will spam on large crawls; implement threshold (drop > N positions), deduplication (one alert per keyword per day), and quiet hours |
-| GSC OAuth | Redirect URI hardcoded to localhost | Parameterize redirect URI via env var; ensure it matches what's registered in Google Cloud Console |
+| Quick Wins + `keyword_positions` (partitioned) | `DISTINCT ON` without partition key filter scans all 12+ partitions | Add `checked_at >= now() - interval '90 days'` to prune; prefer `keyword_latest_positions` flat table |
+| Quick Wins + `metrika_traffic_pages` | JOIN on raw `page_url` strings (trailing slash mismatch, http vs https) | Normalize URLs on write; add `normalized_url` computed column and join on that |
+| Impact Scoring + Celery triggers | Computing scores in no trigger — stale forever | Hook score recomputation into crawl finalize task and Metrika sync task |
+| Impact Scoring + existing `audit_results` | `audit_results` has no `traffic_weight` — JOIN to Metrika requires intermediate aggregation | Aggregate Metrika visits per URL first, then join with audit results as a CTE |
+| LLM Briefs + existing `brief_service.py` | Building LLM briefs as a separate service that duplicates template logic | Extend `brief_service.py` with an optional `ai_enhance(brief_dict)` step — template brief is always the base |
+| LLM Briefs + Celery queue | Using `default` queue for LLM tasks | Create `llm` queue with `concurrency=2`; LLM calls are I/O-bound but slow (5–30s each) |
+| Keyword Suggest + XMLProxy | Creating a new HTTP client for suggest when XMLProxy already handles Yandex proxying | Check XMLProxy suggest endpoint support first; if available, reuse `xmlproxy_service.py` |
+| 2FA + existing JWT tokens | Adding 2FA check after JWT issuance means tokens issued before 2FA is enabled are valid without 2FA | Store `totp_verified: bool` in the JWT payload; any token issued without totp_verified=True is rejected if the user has TOTP enabled |
+| In-app Notifications + Celery task results | Generating a notification inside every Celery task callback | Create a `notification_service.emit(event_type, site_id, payload)` function; all tasks call this single function — prevents scattered notification logic across 14 task files |
+| AI/GEO Readiness + content audit | Building a separate content analysis pipeline when `content_audit_service.py` already parses HTML | Re-use existing `detect_author_block()`, `detect_cta_block()` etc.; add GEO-specific checks to the same detection layer |
+
+---
 
 ## Performance Traps
 
+Patterns that work at small scale but fail at real data volumes.
+
 | Trap | Symptoms | Prevention | When It Breaks |
 |------|----------|------------|----------------|
-| `keyword_positions` full table scan | Position history chart >5s; dashboard timeout | Partition by month + index `(keyword_id, checked_at DESC)` | ~500K rows (~6 months at 50 sites, 500 keywords) |
-| No DB connection pooling tuning | "Too many connections" errors; random 500s under load | Set `pool_size`, `max_overflow`, `pool_timeout` explicitly; set `pool_pre_ping=True` | When total connections across workers exceeds PostgreSQL `max_connections` (default 100) |
-| Loading all crawl snapshots for diff comparison | Memory spike during diff computation; worker OOM | Stream snapshot JSON; compute diff server-side in chunks; never load all snapshots of a site in memory | Sites with >200 pages, snapshots >1MB each |
-| Uncached dashboard aggregation queries | Dashboard >3s at 20 sites | Use materialized views or Redis cache (5-minute TTL) for dashboard aggregates | ~20 sites with 500+ keywords each |
-| Playwright page.goto() without timeout | Task hangs forever on unresponsive sites | Always set `timeout=30000` on `goto()`, `wait_for_selector()`, `wait_for_load_state()` | Any site that times out (CDN issues, slow servers) |
-| Celery `chord` for large groups | `chord` result tracking floods Redis | For groups >100 tasks, use DB-based tracking instead of Celery chord | `chord` with >100 tasks causes Redis memory spike |
-| Synchronous `pg_dump` backup during peak hours | DB locks; slow queries during backup window | Schedule `pg_dump` at off-peak hours; use `--no-lock-wait` and replication for zero-lock backup | Sites being crawled while backup runs |
-| Storing page HTML in PostgreSQL JSONB snapshots | DB size grows unbounded; slow JSON queries | Store only structured diff data (changed fields + old/new values), not full HTML; HTML goes to filesystem or object storage | After ~6 months of daily crawls on 50 sites (hundreds of GB) |
+| `DISTINCT ON keyword_positions` without time window | 8–15s query for latest position per keyword | Filter on `checked_at >= now() - interval '90 days'`; use `keyword_latest_positions` table | At ~3 months of data for 100K keywords (i.e., now) |
+| Live Impact Score aggregation per request | Dashboard exceeds 3s for any site | Pre-compute in Celery, store in `error_impact_scores` table | At 50+ audit checks × 200+ pages per site |
+| WeasyPrint in long-running Celery worker without subprocess isolation | Worker OOM after 30–50 PDFs | Subprocess-per-PDF or `--max-tasks-per-child=10` for PDF worker | After ~20 PDFs in one worker process lifetime |
+| In-app notification soft-delete (mark read, keep row) | Page load slows 10ms/week as table bloats | Hard delete on dismiss + nightly cleanup | After ~3 months of active use with 5+ users |
+| LLM API call without token cap | Runaway cost; context window errors | `max_tokens=800` output; truncate input to 2000 tokens | When any page's content is >8K tokens (common for content-heavy pages) |
+| Suggesting keywords by calling Google/Yandex directly from VPS | IP banned within hours | Cache 7 days in Redis; route via DataForSEO or XMLProxy | First day of production use |
+| Passing `site_id` as string vs UUID in new JOIN queries | `TypeError: invalid input for query argument $1` at runtime | Use `uuid.UUID(str(site_id))` cast at service boundary; add UUID type test | Immediately in dev if not caught by type checker |
+
+---
 
 ## Security Mistakes
 
+Domain-specific security issues beyond general web security.
+
 | Mistake | Risk | Prevention |
 |---------|------|------------|
-| WP Application Passwords in plaintext DB column | Full WP admin access to all client sites if DB leaked | Fernet encryption from first migration; key in Docker secret / `.env` |
-| JWT `exp` too long (7 days+) | Compromised token cannot be revoked; admin access persists after team member leaves | `exp=24h` as per PROJECT.md; implement token blacklist in Redis for immediate revocation on role change or user deletion |
-| Fernet key committed to git | All historical DB backups decryptable forever | `.env` in `.gitignore`; `pre-commit` hook that rejects commits containing `FERNET_KEY=` |
-| Client users can guess other project IDs | Data leakage between clients | Never expose sequential integer IDs to clients; use UUIDs for `project_id`, `site_id` in URLs; enforce ownership at service layer |
-| SERP parsing credentials (proxy, DataForSEO) in logs | Credential exposure in log aggregators | Sanitize headers and auth in loguru; use structured logging with explicit field exclusion |
-| Missing rate limiting on auth endpoints | Brute-force password attacks | `slowapi` rate limit on `/auth/login`: 5 requests/minute per IP; lock account after 10 failures |
-| Application Password used for read + write operations | Leaked credential allows content modification | Create separate WP Application Passwords per platform feature if WP supports it; use minimal scope |
-| Telegram bot token in Docker Compose `environment:` | Token visible in container inspection | Store in `.env` file; use Docker secrets in production |
+| Storing raw TOTP secret unencrypted in `users.totp_secret` | DB dump exposes all TOTP secrets; attacker can generate valid codes | Encrypt with Fernet (already used for WP credentials in `crypto_service.py`) before storing |
+| Recovery codes stored as plaintext | Same as above — one DB read = full account takeover | bcrypt-hash recovery codes before storage; verify with `bcrypt.verify()` at login |
+| LLM prompt includes full WP page HTML with client data | Client PII (names, emails from contact forms) sent to third-party LLM API | Strip all user-submitted content from pages before building prompts; send only SEO metadata (title, H1–H3, meta description) |
+| Keyword Suggest endpoint without rate limiting | A single user can exhaust the daily XMLProxy/DataForSEO API quota in minutes | `@limiter.limit("10/minute")` on the suggest endpoint (slowapi already installed) |
+| Client PDF accessible via predictable URL | Client A can access Client B's PDF by guessing the filename | Store PDFs in a path with UUID filename; check `site_id` ownership on every PDF download request |
+| 2FA bypass via password reset flow | If password reset does not require 2FA, it becomes a bypass vector | After password reset, invalidate `totp_secret` and require re-enrollment; or require current TOTP code to initiate password reset |
+| LLM API key in environment variable without rotation strategy | Leaked key = unlimited billing | Store in `service_credential` table (already Fernet-encrypted); rotate monthly; set billing limits in OpenAI/Anthropic dashboard |
+
+---
 
 ## UX Pitfalls
 
+Common user experience mistakes for these specific features.
+
 | Pitfall | User Impact | Better Approach |
 |---------|-------------|-----------------|
-| Long-running operations block UI (position check, crawl) | User clicks button, page spins, gives up | All operations >2s go through Celery; UI shows "job queued" immediately with a task ID; HTMX polls `/tasks/{id}/status` |
-| Position changes shown as raw numbers without delta indicators | Manager cannot tell if position improved or dropped without mental math | Always show delta vs previous check with color (green up, red down) and arrow icons; this is table-stakes for an SEO tool |
-| Crawl errors shown only in logs | Team doesn't know a site is broken for days | Surface crawl errors in UI dashboard; auto-create a task on consecutive crawl failures; Telegram alert on site-level failure |
-| All 500 keywords in one flat table | Manager cannot find relevant keywords; table lags | Paginate server-side (50 per page); filter by cluster/page/status; search by keyword text; lazy-load history charts |
-| Position history chart loads for every keyword row | Dashboard freeze with 500 keywords | Load charts on-demand (click to expand); or only for keywords in current viewport (intersection observer) |
-| No confirmation before pushing WP content changes | Accidental mass content modification on production sites | Mandatory diff preview with explicit "Confirm and Push" button; batch operations require re-authentication (password prompt) |
-| Scheduled tasks with no visible last-run/next-run info | Team cannot tell if automation is working | Show `last_run_at`, `next_run_at`, `last_status` for every scheduled task in the UI settings page |
+| Quick Wins shows pages in positions 4–20 without filtering out pages already in the WP pipeline | Users see pages already being optimized as "Quick Wins" — redundant work | Cross-reference with active `wp_content_job` records; exclude pages with pending pipeline jobs |
+| Dead Content shows pages with 0 visits but only because Metrika isn't connected for that site | "Dead content" alert for a site with no Metrika — confusing | Show "Metrika not connected" banner instead of Dead Content tab when `metrika_traffic_pages` is empty for the site |
+| Impact Score shown without "last computed" timestamp | User doesn't know if score reflects today's crawl or last week's | Always show `score_computed_at` next to every score |
+| 2FA QR code shown but no "test code before saving" step | User scans QR, saves secret to DB, but their phone's clock is wrong — they can never log in | Require user to enter a valid TOTP code before the secret is saved; only then mark 2FA as enabled |
+| LLM Brief button active for pages that haven't been crawled | LLM has no content to work with; returns generic brief | Disable LLM Brief button if `pages.last_crawled_at IS NULL` for the target page |
+| Notification bell shows total count including notifications from 30+ days ago | "47 notifications" looks alarming; user dismisses all without reading | Show unread count capped at last 7 days; "and X older" link for the rest |
+
+---
 
 ## "Looks Done But Isn't" Checklist
 
-- [ ] **Playwright Crawler:** Shows "crawl complete" in UI — verify Chromium processes are actually terminated (`pgrep chromium` should return empty after task finishes)
-- [ ] **Position Tracking:** Positions populate in DB — verify partition is created for the current month before writing, or INSERTs silently fail in partitioned tables
-- [ ] **WP Credentials:** Site connection test passes — verify the Application Password is stored Fernet-encrypted, not plaintext (check column value directly in DB)
-- [ ] **Celery Beat Schedules:** Schedule visible in UI — verify schedule survives a Redis restart (Redis persistence must be enabled, or schedules reload from Postgres on startup)
-- [ ] **JWT Auth:** Login endpoint returns a token — verify role enforcement at service layer, not just route decorator (test manager accessing another manager's project ID directly)
-- [ ] **SERP Parser:** Returns positions for 10 test keywords — verify behavior at 100+ keywords (rate limiting, delays, IP ban detection)
-- [ ] **Diff Preview:** Before/after diff renders in UI — verify rollback actually reverts WP content via API, not just marks the job as rolled back in DB
-- [ ] **Celery Task Retry:** Retry logic present in code — verify one failing site's tasks do NOT block processing of other sites (use separate task IDs, not shared state)
-- [ ] **Docker Compose Stack:** Starts with `docker-compose up --build` — verify it starts from zero on a clean system with no cached volumes or images
-- [ ] **Audit Log:** Actions appear in `audit_log` table — verify WP credential access, role changes, and bulk operations are all logged (not just auth events)
-- [ ] **Telegram Alerts:** Alert fires for test drop — verify duplicate suppression (same keyword doesn't alert twice in 24h even with multiple checks)
-- [ ] **Report Generation:** PDF report generates — verify it works at scale (50 sites, 500 keywords — memory usage, not just correctness)
+Things that appear complete but are missing critical pieces.
+
+- [ ] **Quick Wins:** URL normalization applied — verify by comparing `pages.url` with `metrika_traffic_pages.page_url` for a site with known data. Missing normalization = silent zero results.
+- [ ] **Quick Wins:** Excludes pages already in active WP pipeline (`wp_content_job.status IN ('pending', 'in_progress')`) — verify with test that has an active job.
+- [ ] **Impact Scoring:** Score is pre-computed (check `error_impact_scores` table exists and has rows after crawl finalization) — not live-computed per request.
+- [ ] **Impact Scoring:** Recomputation is triggered by *both* crawl finalize AND Metrika sync — verify by running each independently and checking `score_computed_at` updates.
+- [ ] **Client PDF:** Generated in subprocess or isolated worker — verify with `docker stats` that the PDF worker container memory returns to baseline after a 10-site report run.
+- [ ] **Keyword Suggest:** Results are cached in Redis — verify by calling the endpoint twice for the same keyword and checking Redis key exists with TTL > 0.
+- [ ] **Keyword Suggest:** Rate limit header returned in response — verify with `curl -I` that `X-RateLimit-*` headers appear.
+- [ ] **LLM Briefs:** Graceful fallback to template brief on API failure — verify by temporarily setting an invalid API key and checking the brief endpoint still returns a result.
+- [ ] **LLM Briefs:** Token cap enforced — verify by passing a 20K-character page and checking that the API call uses < 2500 total tokens.
+- [ ] **2FA:** `totp_secret=NULL` path (not enrolled) still lets user log in — verify with a test user that has no 2FA set up.
+- [ ] **2FA:** Recovery code is invalidated after single use — verify by using a recovery code twice; second use should return 401.
+- [ ] **2FA:** Admin can reset 2FA for a user — verify via admin UI or admin API endpoint.
+- [ ] **Notifications:** Nightly cleanup task is registered in Celery Beat — verify in Flower that the task appears in the schedule.
+- [ ] **Notifications:** Table size does not grow unboundedly — verify after 1 week that row count stays below 10K.
+- [ ] **AI/GEO Readiness:** Reuses existing `content_audit_service.py` detection functions — no duplicate regex patterns for the same checks.
+
+---
 
 ## Recovery Strategies
 
+When pitfalls occur despite prevention, how to recover.
+
 | Pitfall | Recovery Cost | Recovery Steps |
 |---------|---------------|----------------|
-| Playwright browser leak filling VPS RAM | MEDIUM | Restart celery-worker container; add `--max-tasks-per-child=50` to worker command; add `try/finally` browser cleanup in all tasks |
-| Redis flushed, Beat schedule lost | LOW (if schedules in Postgres) / HIGH (if only in Redis) | If Postgres-backed: restart Beat, schedules reload automatically. If Redis-only: manually re-enter all schedules via UI; add Postgres persistence going forward |
-| `keyword_positions` too slow, needs partitioning | HIGH | Create new partitioned table; migrate data in batches with zero-downtime migration (write to both, backfill, swap); requires maintenance window at 10M+ rows |
-| Docker volume deleted with `-v` | HIGH (data loss) | Restore from last `pg_dump` backup; re-import keyword CSV files; re-add WP credentials; accept data loss for period since last backup |
-| VPS IP banned by Google for SERP parsing | LOW-MEDIUM | Switch to DataForSEO API immediately; wait 48–72h before retrying direct scraping; add proxy rotation before resuming |
-| WP credentials leaked (DB compromised) | HIGH | Immediately revoke all Application Passwords from WP admin on each site; generate new credentials; rotate Fernet key; notify clients |
-| N+1 queries causing dashboard timeout | MEDIUM | Add caching layer (Redis, 5-min TTL) as immediate fix; then fix queries with proper joins/CTEs in next sprint |
-| `keyword_positions` INSERT failures (missing partition) | LOW | Create missing partition manually (`CREATE TABLE keyword_positions_2026_04 PARTITION OF keyword_positions FOR VALUES FROM ('2026-04-01') TO ('2026-05-01')`); add Beat task to pre-create partitions |
-| Session pool exhaustion | LOW-MEDIUM | Restart FastAPI workers to clear leaked sessions; identify leaking endpoint via `pg_stat_activity`; fix session lifecycle in code |
+| URL mismatch causing zero JOIN results | MEDIUM | Run one-time normalization UPDATE across `pages`, `metrika_traffic_pages`, `audit_results`; add normalized_url column; rebuild indexes |
+| DISTINCT ON query causing timeouts | LOW | Add `checked_at` filter immediately; schedule backfill of `keyword_latest_positions` table as Celery task |
+| WeasyPrint OOM killing Celery worker | LOW | Restart the celery-default container; add `--max-tasks-per-child=10` to the worker command in `docker-compose.yml` |
+| IP ban from Google/Yandex suggest | LOW-MEDIUM | Switch to DataForSEO/XMLProxy routing; wait 24–48h for IP ban to lift; add Redis cache immediately |
+| LLM API cost spike | LOW | Set billing alert in provider dashboard; cap `max_tokens` in code; enable circuit breaker |
+| 2FA lockout of users | HIGH | Admin runs `UPDATE users SET totp_secret = NULL WHERE id = ?`; user re-enrolls on next login; add admin recovery endpoint proactively |
+| Notifications table bloat | MEDIUM | Run `DELETE FROM notifications WHERE created_at < now() - interval '30 days'`; expect VACUUM to run after; set autovacuum tuning |
+| Alembic multiple heads from adding 9 migrations | LOW | `alembic merge heads -m "merge_v2_heads"`; review generated migration; apply |
+
+---
 
 ## Pitfall-to-Phase Mapping
 
+How roadmap phases should address these pitfalls.
+
 | Pitfall | Prevention Phase | Verification |
 |---------|------------------|--------------|
-| Playwright browser leaks | Iteration 2 | `pgrep chromium` returns 0 after crawl task completes; worker RAM stable over 24h |
-| Concurrent Playwright OOM | Iteration 2 | Worker topology configured: dedicated queue, `concurrency=2`, `max_memory_per_child` set |
-| Task granularity (whole site as one task) | Iteration 2 | `crawl_page` is a separate task; `crawl_run` table tracks per-page progress |
-| Result backend Redis bloat | Iteration 1 | All crawl/SERP tasks have `ignore_result=True`; `result_expires=3600` set in Celery config |
-| `keyword_positions` schema without partitioning | Iteration 3 | Alembic migration creates partitioned table; `EXPLAIN ANALYZE` on 90-day query shows index scan |
-| SQLAlchemy session leaks | Iteration 1 | `pg_stat_activity` idle connections stay flat over 100 requests; `pool_pre_ping=True` configured |
-| N+1 query patterns | Iteration 1 (pattern), Iteration 6 (dashboard) | `echo=True` shows ≤5 queries for dashboard load; response <3s at 50 sites |
-| Google SERP bot detection | Iteration 3 | Stealth patches applied; DataForSEO as primary; Playwright SERP limited to <50/day without proxy |
-| Yandex SERP detection | Iteration 3 | Yandex Webmaster API used as primary; XML API as secondary; scraping only with proxy |
-| WP credentials plaintext | Iteration 1 | DB column contains `gAAA...` Fernet ciphertext, not readable password |
-| WP REST API rate limiting | Iteration 1 | `WPClient` has configurable delay and 429 backoff; test against Wordfence-protected site |
-| JWT role enforcement gaps | Iteration 1 (design), Iteration 7 (audit) | Service layer tests verify manager cannot access other manager's data without HTTP layer |
-| Celery Beat schedule wiped | Iteration 2 | Schedules stored in Postgres; Beat survives `docker-compose restart redis` |
-| Docker volume data loss | Iteration 1 | `postgres_data` volume marked `external: true`; `pg_dump` cron job configured |
-| Async/sync session boundary errors | Iteration 2 | Celery tasks use sync session factory; no ORM objects passed across task boundaries |
+| URL mismatch on JOIN | Phase 1 (Quick Wins) — build `normalize_url()` first | Test: 5 URL variants of same page all JOIN correctly |
+| DISTINCT ON partition scan | Phase 1 (Quick Wins) — create `keyword_latest_positions` table | EXPLAIN ANALYZE shows max 3 partition scans |
+| Impact Score staleness | Phase 2 (Impact Scoring) — pre-compute in Celery from day 1 | `error_impact_scores` has rows; `score_computed_at` updates on crawl finalize |
+| WeasyPrint OOM | Phase 3 (Client PDF) — subprocess isolation before first PDF call | docker stats stable after 20-site report run |
+| Keyword Suggest IP ban | Phase 4 (Keyword Suggest) — cache + proxy routing from first call | Redis key present after first suggest call |
+| LLM fallback missing | Phase 5 (LLM Briefs) — template fallback is the default path | Invalid API key → template brief returned, no 500 error |
+| 2FA lockout | Phase 6 (2FA) — migration adds nullable column; 2FA optional by default | Existing user with NULL totp_secret can still login |
+| Notification bloat | Phase 6 (Notifications) — cleanup task in same PR as table creation | Nightly cleanup appears in Flower schedule |
+| Alembic multiple heads | Every phase — single head verified in CI | `alembic heads` returns exactly 1 head in CI |
+| Test coverage regression | Every phase — new service code requires tests before merge | `pytest --cov-fail-under=60` passes in CI |
+
+---
 
 ## Sources
 
-- Playwright official docs: "Browser and context lifecycle" — context-per-task is explicitly discouraged for high-frequency use
-- Celery docs: `worker_max_tasks_per_child`, `worker_max_memory_per_child`, `CELERYD_PREFETCH_MULTIPLIER` — all relevant to Playwright worker management
-- SQLAlchemy 2.0 async docs: "Session Lifecycle Patterns" — explicit guidance on FastAPI dependency injection pattern
-- PostgreSQL docs: Declarative Table Partitioning — `keyword_positions` partitioning strategy
-- `playwright-stealth` project (GitHub: `playwright-stealth`) — stealth patches for headless Chrome detection
-- Yandex XML API docs (`xmlsearch.yandex.ru`) — official programmatic search, avoids scraping
-- DataForSEO API docs — position tracking API, rate limits, batch sizes
-- WordPress REST API handbook: "Authentication" — Application Passwords scope and security model
-- FastAPI docs: "SQL (Relational) Databases" with async — session dependency pattern
-- Known production issues with `redbeat`: schedule loss on Redis flush (GitHub issues #89, #134)
-- Docker docs: "Use volumes" — `external: true` volumes and `docker-compose down -v` behavior
+- WeasyPrint memory leak issues: [GitHub #2130](https://github.com/Kozea/WeasyPrint/issues/2130), [GitHub #1977](https://github.com/Kozea/WeasyPrint/issues/1977), [GitHub #1104](https://github.com/Kozea/WeasyPrint/issues/1104)
+- PostgreSQL DISTINCT ON performance: [CYBERTEC: Killing performance with partitioning](https://www.cybertec-postgresql.com/en/killing-performance-with-postgresql-partitioning/), [Tiger Data: DISTINCT 8000x faster](https://www.tigerdata.com/blog/how-we-made-distinct-queries-up-to-8000x-faster-on-postgresql)
+- PostgreSQL table bloat and partitioning as TTL: [Simple Thread: Drop Partitions Not Performance](https://www.simplethread.com/beyond-delete/), [Medium: Partitioning to avoid bloat](https://medium.com/@achakrab01/using-partitioning-in-postgresql-to-avoid-table-bloat-and-implement-ttl-like-feature-b217572e9f0a)
+- OpenAI rate limiting and cost control: [OpenAI Cookbook: Handle rate limits](https://cookbook.openai.com/examples/how_to_handle_rate_limits), [Skywork: AI API cost management 2025](https://skywork.ai/blog/ai-api-cost-throughput-pricing-token-math-budgets-2025/)
+- Alembic multiple heads: [GitHub Discussion #1543](https://github.com/sqlalchemy/alembic/discussions/1543), [Jerry Codes: Multiple heads in Alembic](https://blog.jerrycodes.com/multiple-heads-in-alembic-migrations/)
+- TOTP/2FA implementation: [PyOTP docs](https://pyauth.github.io/pyotp/), [FastAPI 2FA guide](https://codevoweb.com/two-factor-authentication-2fa-in-fastapi-and-python/)
+- Prompt injection risks in LLM tools: [OWASP LLM01:2025](https://genai.owasp.org/llmrisk/llm01-prompt-injection/), [LLM Safety for SEOs](https://t-ranks.com/aeo/llm-safety-prompt-injection-seo/)
+- Yandex Wordstat API and IP protection: [Yandex Wordstat API docs](https://yandex.com/support2/wordstat/en/content/api-structure), [Yandex Autocomplete scraping](https://brightdata.com/products/serp-api/yandex-search/autocomplete)
+- Redis materialized view tradeoffs: [Leapcell: Postgres Materialized Views vs Redis](https://leapcell.io/blog/choosing-between-postgres-materialized-views-and-redis-application-caching)
+- Codebase: existing `content_audit_service.py` regex patterns, `position.py` partition model, `metrika.py` page_url storage, `report_service.py` WeasyPrint usage, `user.py` auth model, `xmlproxy_service.py` proxy patterns
 
 ---
-*Pitfalls research for: SEO Management Platform — FastAPI + Celery + Playwright + PostgreSQL + WordPress REST API*
-*Researched: 2026-03-31*
+*Pitfalls research for: SEO Management Platform v2.0 (adding to 35K LOC existing system)*
+*Researched: 2026-04-06*

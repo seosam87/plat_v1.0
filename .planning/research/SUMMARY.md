@@ -1,233 +1,230 @@
 # Project Research Summary
 
-**Project:** SEO Management Platform
-**Domain:** Self-hosted WordPress SEO agency tool (20–100 sites, Playwright + FastAPI + Celery)
-**Researched:** 2026-03-31
+**Project:** SEO Management Platform v2.0 — SEO Insights & AI
+**Domain:** Self-hosted SEO management for WordPress agencies (20–100 sites)
+**Researched:** 2026-04-06
 **Confidence:** HIGH
 
 ## Executive Summary
 
-This is a self-hosted, internal SEO management platform for an agency managing 20–100 WordPress sites. The closest analogues are SE Ranking and Screaming Frog combined with a WP-native content pipeline — but no SaaS competitor offers direct WP write-back (TOC injection, schema.org, internal linking) with diff preview and rollback. That WP content pipeline is the structural differentiator and should be treated as the primary value proposition driving adoption.
+v2.0 is a data-activation milestone, not a data-collection one. The platform already holds positions, crawl snapshots, Metrika traffic, content audit results, gap analysis, and cannibalization data from v1.0. The entire v2.0 feature set converts that existing data into actionable surfaces: Quick Wins, Dead Content, Error Impact Scoring, Growth Opportunities, AI/GEO Readiness, Client PDFs, Keyword Suggest, LLM Briefs, 2FA, and In-App Notifications. Seven of nine feature groups require no new data sources — only new queries and new presentation layers over existing tables.
 
-The recommended architecture is a FastAPI (HTMX + Jinja2) web layer backed by Celery workers for all long-running work (crawling, SERP parsing, WP pipeline), PostgreSQL as the primary store, and Redis as the broker and cache. The stack is well-understood, all version decisions are locked, and the main risks are operational — Playwright memory management, SERP ban avoidance, and `keyword_positions` table growth — all of which must be addressed at specific iterations, not deferred.
+The recommended approach is additive extension of the existing 35K LOC FastAPI + Celery + PostgreSQL codebase. Four stack additions are needed (anthropic SDK, pyotp, qrcode, sse-starlette); the remaining capabilities are covered by the existing stack. Architecture changes are low-risk: mostly new service files and new router files, with a handful of nullable column additions to existing models. The three highest-risk changes are the `keyword_positions` DISTINCT ON query pattern (requires a `keyword_latest_positions` materialized table from day one), WeasyPrint memory management for PDF generation (requires subprocess-per-PDF isolation), and 2FA login flow changes (must be opt-in with nullable columns, never mandatory in the rollout migration).
 
-Three findings from research differ materially from PROJECT.md's current framing and must be acted on during roadmap planning: `redbeat` is required for UI-driven crawl scheduling (not mentioned in PROJECT.md), DataForSEO should be the primary SERP source (Playwright is the supplement, not vice versa), and `keyword_positions` partitioning must be created in iteration 3's first migration — it cannot be added retroactively to a populated table.
-
----
+The core risk in this milestone is performance, not correctness. All five analytical features (Quick Wins, Dead Content, Impact Scoring, Growth Opportunities, GEO Readiness) query across large, partitioned, or multi-joined tables. Each must be designed with caching or pre-computation from the start — retrofitting later at 100K keywords and 50 sites is a rewrite, not an optimization. If these patterns are established correctly in Phases 1 and 2, the remaining phases are straightforward extensions.
 
 ## Key Findings
 
 ### Recommended Stack
 
-The stack is fully validated with no substitutions needed. Python 3.12 + FastAPI 0.115 + Pydantic v2 + SQLAlchemy 2.0 async is a coherent, compatible unit. Celery 5.4 (not 5.3) is required for Python 3.12 compatibility. HTMX 2.0 (not 1.x) must be used from the start — 2.0 has breaking changes that make a later migration painful.
+The v1.0 stack (Python 3.12, FastAPI 0.115, SQLAlchemy 2.0 async, PostgreSQL 16, Redis 7, Celery 5.4, Playwright 1.47, HTMX 2.0, WeasyPrint 62) is fully validated and unchanged. v2.0 requires four additions:
 
-**Core technologies:**
-- Python 3.12 / FastAPI 0.115 / Pydantic 2.7+ — async-first web layer; Pydantic v2 is 3–5x faster; FastAPI 0.115 requires it
-- PostgreSQL 16 / SQLAlchemy 2.0 / asyncpg 0.29 / Alembic 1.13 — primary persistent store; async engine for FastAPI, sync engine for Celery workers
-- Celery 5.4 / Redis 7.2 / redbeat 2.2 — task queue, scheduling, broker; `redbeat` required for UI-driven schedule changes without worker restart
-- Playwright 1.47+ — browser automation for crawling and SERP; one `Browser` per worker process, one `BrowserContext` per task
-- Jinja2 3.1 + HTMX 2.0 — server-side rendering; eliminates SPA build toolchain entirely
-- httpx 0.27 / authlib 1.3 — async HTTP client for all external APIs; authlib handles GSC OAuth 2.0
-- WeasyPrint 62 — HTML-to-PDF for reports; renders existing Jinja2 templates, no extra tooling
-- cryptography 42 (Fernet) — WP Application Password encryption at rest
+**New libraries (v2.0 only):**
+- `anthropic >= 0.89.0`: Official Anthropic SDK — use sync `Anthropic` client in Celery tasks, `AsyncAnthropic` + `EventSourceResponse` for streaming in FastAPI endpoints; never use `AsyncAnthropic` inside a standard Celery task without `asyncio.run()`
+- `pyotp >= 2.9.0`: RFC 6238 TOTP for 2FA — de-facto Python standard, pure Python, no system deps
+- `qrcode[pil] >= 8.2`: QR code generation for 2FA setup — `[pil]` extra required for PNG output; Pillow is already a transitive WeasyPrint dep
+- `sse-starlette >= 3.3.3`: Production SSE for FastAPI — required only if real-time notification push is chosen over HTMX polling (architecture decision deferred to Phase 6)
 
-**Key version constraints to enforce:**
-- Celery must be 5.4.x — 5.3 has import errors on Python 3.12
-- HTMX must be 2.0.x from day one — 1.x to 2.0 has breaking attribute changes
-- Do not use psycopg2 — use asyncpg for FastAPI, psycopg3 sync for Celery
-- Do not use FastAPI `on_event()` — deprecated; use `lifespan=` with `asynccontextmanager`
+**Not needed:** spaCy/NLP (GEO readiness is rule-based DOM inspection), openai SDK (Anthropic covers LLM), WebSockets (SSE or polling is sufficient), serpapi (free autocomplete endpoints work for internal tooling at this scale).
 
 ### Expected Features
 
-The feature landscape is well-understood from competitor analysis (Semrush, Ahrefs, SE Ranking, Screaming Frog, Topvisor). PROJECT.md covers all table-stakes features. The WP content pipeline is the differentiator.
+**Must have (table stakes for v2.0):**
+- Quick Wins page — positions 4–20 + missing optimizations, ranked by traffic impact
+- Dead Content detection — zero traffic + no ranking for 90+ days + published 180+ days ago
+- Error Impact Scoring — audit errors weighted by Metrika traffic percentile of affected pages
+- Growth Opportunities — unified aggregation of gap keywords, lost positions, cannibalization
+- AI/GEO Readiness checklist — schema, structure, E-E-A-T checks against existing crawl data
+- Client Instructions PDF — non-technical, plain-language report for site owners
+- Keyword Suggest — Google/Yandex autocomplete with Redis caching and rate limiting
+- LLM Briefs (opt-in) — Anthropic-generated content briefs extending existing `ContentBrief` model
+- 2FA (TOTP) — opt-in per user; no mandatory rollout
+- In-App Notifications — bell icon with per-event notifications from Celery tasks
 
-**Must have (table stakes — missing any of these makes the tool feel broken):**
-- Keyword rank tracking with position history (geo + device dimensions)
-- Google Search Console integration via OAuth 2.0
-- Playwright-based site crawler (title, H1, meta, status, depth, schema detection)
-- Page snapshot diffs with change feed UI
-- Keyword → page mapping + cannibalization detection
-- Dashboard aggregating positions, tasks, and crawl changes across all sites (<3s load)
-- Report export (PDF + Excel) — client deliverable; without it, the tool has no external output
-- Role-based access (admin / manager / client) — client data isolation is non-negotiable
+**Differentiators over competitors:**
+- Traffic-weighted opportunity scoring (no competitor natively combines position + Metrika + audit data)
+- Inline batch-fix actions that dispatch directly to existing WP content pipeline
+- LLM brief generation from structured brief data (not raw HTML) — controlled cost, auditable prompts
 
-**Should have (competitive differentiators — WP pipeline is the standout):**
-- WP content pipeline: TOC injection, JSON-LD schema.org, internal linking — with mandatory diff preview + rollback (the safety layer is what converts sceptics)
-- Yandex Webmaster integration — genuine niche advantage for RU-market agencies; no Western SaaS does this well
-- Auto-task creation from crawl findings (404 → task, cannibalization → task, missing schema → task)
-- SERP-intersection keyword clustering
-- Content plan + one-click WP draft creation
-- Template-based page brief generation (no LLM — deterministic output matters for client deliverables)
-- Kanban task board tied to SEO findings
-
-**Defer (v2+):**
-- LLM-generated content enrichment — add as opt-in after template briefs are validated
-- Competitor keyword gap analysis — requires third-party data index; scope tightly via DataForSEO on-demand
-- Ad traffic API integrations — CSV upload covers 90% of use cases with zero maintenance burden
-- SERP-intersection automated clustering — defer until keyword volumes exceed 500+ per site
+**Defer to v3+:**
+- White-label theming beyond logo field
+- Real-time SERP feature detection (Perplexity/ChatGPT citation monitoring)
+- Yandex Wordstat per-user OAuth setup (medium complexity, low priority)
+- Backlink opportunity analysis (no backlink data in current stack)
+- Auto-send reports without manager review (too risky)
 
 ### Architecture Approach
 
-The system is a three-layer architecture: FastAPI handles all HTTP routing with Jinja2 + HTMX for server-side rendering; Celery workers handle all long-running operations (crawling, SERP parsing, WP pipeline, report delivery); PostgreSQL is the persistent store and Redis is the broker + cache. The critical boundary is the service layer — services are importable by both FastAPI routes (async) and Celery tasks (sync), with session lifecycle owned by the caller.
+All nine features integrate as additive extensions to the existing architecture. No existing services are refactored; no existing models have destructive changes. The pattern is: new `routers/`, new `services/`, new `tasks/`, and nullable column additions via Alembic migrations. The most architecturally significant decision is whether in-app notifications use HTMX polling (30s interval, simpler) or SSE push via Redis pub/sub (real-time, requires `sse-starlette`). Architecture research recommends polling for this user scale (< 20 users), deferring SSE unless real-time delivery is explicitly required.
 
-**Major components:**
-1. FastAPI app — thin routers → service layer → async SQLAlchemy; never puts business logic in route handlers
-2. Service layer (`app/services/`) — all business logic; accepts `db` session as parameter; shared between routes and tasks
-3. Celery worker pool — three dedicated queues: `crawl` (Playwright-heavy, concurrency=2), `wp` (WP REST calls, concurrency=4), `default` (fast tasks, concurrency=8)
-4. Celery Beat + redbeat — cron-style scheduling stored in Redis; UI-configurable without worker restart
-5. Integration clients (`app/integrations/`) — thin wrappers for WP REST, GSC, DataForSEO, Telegram; isolated third-party breakage
-6. PostgreSQL — `keyword_positions` partitioned by month from iteration 3 first write; async engine (FastAPI) + sync engine (Celery)
+**Major components and responsibilities:**
+1. `app/services/insights_service.py` (new) — cross-cutting Quick Wins / Dead Content / Opportunities queries joining positions + audit + Metrika
+2. `app/services/impact_scoring_service.py` (new) — audit error prioritization; pre-computes to `error_impact_scores` table via Celery, never live per request
+3. `app/services/suggest_service.py` (new) — keyword autocomplete fetching + Redis caching; external calls isolated in Celery tasks
+4. `app/services/notification_service.py` (new) — single `emit()` entrypoint called from all Celery tasks; prevents scattered notification logic across 14 task files
+5. `app/models/notification.py` (new) — notification storage with 30-day cleanup via Celery Beat
+6. `app/routers/insights.py` (new) — `/insights/{site_id}/quick-wins`, `/dead-content`, `/impact-scores`, `/opportunities`
+7. `AuditCheckDefinition` extension — `geo_*` check codes seeded via Alembic data migration; no schema change
+8. `ContentBrief` model extension — nullable `llm_brief_text`, `llm_generated_at`, `llm_*_tokens` columns
+9. `User` model extension — nullable `totp_secret` (Fernet-encrypted), `totp_enabled`, `totp_backup_codes`
 
-**Critical boundary rules:**
-- Routes never import ORM models directly — only schemas and services
-- Celery tasks use sync SQLAlchemy (psycopg3); no `asyncio.run()` inside tasks except for Playwright
-- Pass IDs between FastAPI and Celery — never ORM objects
-- Task results for background jobs go to PostgreSQL; only poll-able task results go to Redis result backend
+**Critical architectural invariant:** `keyword_latest_positions` materialized table must be built in Phase 1. The existing `DISTINCT ON (keyword_id, engine) ORDER BY checked_at DESC` pattern degrades to 8–15 second full partition scans at 100K keywords x 12 months. This table is the foundation for Quick Wins, Dead Content, and Growth Opportunities.
 
 ### Critical Pitfalls
 
-The top pitfalls are ranked by blast radius and phase criticality:
+1. **URL mismatch ruins JOIN queries (Phase 1)** — `pages.url`, `metrika_traffic_pages.page_url`, and `keyword_positions.url` use different normalization (trailing slashes, http vs https, UTM params). JOINs silently return zero rows. Build `normalize_url()` utility and apply on write before any JOIN query is written. Test with 5 URL variants of the same page.
 
-1. **`keyword_positions` table without partitioning** — at 50 sites × 500 keywords × 2 engines × 365 days = 18M rows/year; `EXPLAIN ANALYZE` will show full table scans; position charts will time out. Cannot add partitioning to an existing non-partitioned table without a full rebuild. Must be created in iteration 3's first Alembic migration before any position data is written. See PITFALLS.md §Pitfall 5.
+2. **DISTINCT ON on partitioned `keyword_positions` causes timeout at scale (Phase 1)** — Full partition scans at 100K keywords take 8–15 seconds. Create `keyword_latest_positions` flat table (one row per keyword+engine, updated after each position check) and query that instead. Add `WHERE checked_at >= now() - interval '90 days'` as minimum mitigation.
 
-2. **Playwright browser leaks in long-running Celery workers** — crashed tasks leave orphaned Chromium processes; VPS RAM climbs until OOM kills Docker stack. Use module-level `Browser` per worker (initialized via `worker_process_init` signal), one `BrowserContext` per task closed in `finally`, `--max-tasks-per-child=50`, and `soft_time_limit` to allow graceful cleanup. Address in iteration 2. See PITFALLS.md §Pitfall 1.
+3. **WeasyPrint memory leak kills Celery workers (Phase 3)** — Each `write_pdf()` call adds 20–40 MB RSS that is never released (GitHub issues #2130, #1977). Run PDF generation in a subprocess per report, or set `--max-tasks-per-child=10` on the PDF worker. Never generate all client PDFs in a single long-running task.
 
-3. **Google SERP ban via Playwright** — headless Chrome is fingerprinted within 5–10 requests at scale; VPS IPs are recognized; production with 500+ keywords triggers CAPTCHAs. DataForSEO must be the primary position-checking method; Playwright SERP parsing is the low-volume supplement only (< 50 queries/day without proxy rotation). Design this correctly in iteration 3. See PITFALLS.md §Pitfall 8.
+4. **Keyword Suggest triggers IP ban within hours (Phase 4)** — Google and Yandex treat server-to-server autocomplete calls as scraping. Route through DataForSEO or XMLProxy (already in stack); cache all suggest results in Redis with 7-day TTL; apply `@limiter.limit("10/minute")` on the endpoint.
 
-4. **Celery Beat schedule wiped on Redis flush** — `FLUSHALL` in dev or Redis restart without persistence silently stops all crawling and position checks; team notices weeks later. Configure Redis with `appendonly yes`; store schedule source-of-truth in PostgreSQL; reload from DB on Beat startup; add health check that asserts N active schedules exist. Address in iteration 2. See PITFALLS.md §Pitfall 13.
+5. **LLM API failures must degrade gracefully (Phase 5)** — The template-based brief (already generated by `brief_service.py`) must always be returned, with LLM enhancement as an optional overlay. Implement a circuit breaker after 3 consecutive failures. Cap input at 2000 tokens and output at 800 tokens to prevent runaway cost.
 
-5. **Single Celery queue for all task types** — a 20-minute Playwright crawl blocks Telegram alerts and quick DB updates; one stuck browser starves all other work. Three queues must be configured in iteration 1 even before Playwright is used: `crawl`, `wp`, `default`. See PITFALLS.md §Pitfall 3 and §Anti-Pattern 3.
+6. **2FA migration locks out existing users (Phase 6)** — Add `totp_secret` as nullable with default NULL. Never make 2FA mandatory in the same migration that adds the column. Two-phase rollout: opt-in first, then optional forced enforcement later.
 
-6. **Redis result backend bloat** — Celery stores task results indefinitely by default; 50 sites × daily crawls accumulates gigabytes in Redis; Redis OOM blocks new task submission. Set `result_expires=3600` and `ignore_result=True` on all background jobs in iteration 1 Celery config. See PITFALLS.md §Pitfall 4.
-
-7. **Async session leaks in FastAPI** — exception paths can prevent `AsyncSession` from returning to the pool; connection pool exhausts under load; error rate increases with uptime. Always use `yield` with `try/finally` in the session dependency; never share a FastAPI session with a Celery task; set `pool_pre_ping=True`. Address in iteration 1. See PITFALLS.md §Pitfall 6.
-
----
-
-## Gaps Found During Research (Differ from PROJECT.md)
-
-These items are absent from or inconsistent with the current PROJECT.md framing. The roadmap agent must account for all of them:
-
-| Gap | Severity | Action Required |
-|-----|----------|-----------------|
-| `redbeat` not mentioned in PROJECT.md | HIGH | Iteration 2 requirement: crawl schedule must be UI-configurable without worker restart. `redbeat` (Redis-backed Beat scheduler) is the only solution that works across multiple containers. The built-in file-based scheduler breaks in Docker. Add `redbeat` to iteration 1 stack setup. |
-| DataForSEO is the fallback in PROJECT.md; research reverses this | HIGH | DataForSEO should be the primary SERP source. Playwright SERP parsing is too fragile at scale (ban risk, IP rotation cost). Architect iteration 3 with DataForSEO as primary; Playwright as supplement for low-volume or on-demand checks. |
-| No keyword volume / difficulty data source specified | MEDIUM | PROJECT.md mentions "volume estimate" in brief generation but names no source. DataForSEO Keywords Data endpoint is the practical answer — cheap, on-demand, no separate crawled index needed. Add to iteration 3 scope. |
-| GSC URL Inspection API not mentioned | MEDIUM | A page can be excluded from Google's index despite having no `noindex` tag (GSC coverage exclusions). The GSC URL Inspection API verifies actual indexation status. Worth adding as enrichment in iteration 3's GSC integration work. |
-| No sitemap.xml parsing in crawler | LOW | Sitemaps give the crawler a faster, more complete URL seed list — especially for large sites with deep navigation where link-following alone misses pages. Add as a crawler enhancement in iteration 2. |
-| `keyword_positions` partitioning must be iteration 3, migration 1 | CRITICAL | PROJECT.md doesn't specify when partitioning is created. Research is explicit: it must be in the first Alembic migration for this table. Retro-partitioning a populated 10M+ row table requires full table recreation and extended downtime. The roadmap must enforce this as a hard constraint, not an optional enhancement. |
-| Yandex SERP scraping is harder than PROJECT.md implies | MEDIUM | Yandex SmartCaptcha fires on VPS datacenter IPs immediately. Priority order for Yandex positions: (1) Yandex Webmaster API (official, rate-limit-friendly), (2) Yandex XML API (1,000 req/day free tier), (3) Playwright with Russian residential proxy as last resort. Design iteration 3's Yandex integration around the API, not scraping. |
-| Celery result backend + Redis broker should use separate DBs | LOW | Using the same Redis DB for both broker and result backend can cause key collisions. Use DB 0 for broker, DB 1 for results — configurable via `CELERY_BROKER_URL` and `CELERY_RESULT_BACKEND` env vars. Wire up in iteration 1. |
-
----
+7. **Notifications table bloat (Phase 6)** — Soft-delete (mark-as-read) generates dead tuple churn that defeats PostgreSQL autovacuum. Use hard DELETE on dismiss, nightly cleanup task, and set `autovacuum_vacuum_scale_factor = 0.01` on the notifications table in the same migration that creates it.
 
 ## Implications for Roadmap
 
-The dependency graph from FEATURES.md and build order from ARCHITECTURE.md align with PROJECT.md's iteration structure. The main adjustments are ensuring the pitfall-prevention steps land in the right iterations and the gap items are explicitly scheduled.
+Based on research, features split into dependency tiers that suggest a natural phase order.
 
-### Phase 1: Infrastructure & Auth Foundation
-**Rationale:** Everything depends on auth, the DB session pattern, Celery queue topology, and encrypted WP credentials. Getting these wrong means rework across all subsequent iterations.
-**Delivers:** Working Docker Compose stack; JWT auth with 3 roles; WP site CRUD with Fernet-encrypted credentials; 3-queue Celery topology (`crawl`, `wp`, `default`); Redis with `appendonly yes` + `maxmemory-policy allkeys-lru`; `result_expires=3600`; audit log; async session dependency with `try/finally`; `GET /health`.
-**Addresses:** Table-stakes site management, auth/RBAC foundation.
-**Avoids:** Session leaks (Pitfall 6), Redis bloat (Pitfall 4), plaintext credentials (Pitfall 10), single-queue anti-pattern (Anti-Pattern 3).
-**Research flags:** Standard patterns — no additional research needed.
+### Phase 1: Analytical Foundations (Quick Wins + Dead Content)
 
-### Phase 2: Crawler & Change History
-**Rationale:** The crawler is the highest-leverage early investment — it unblocks TOC/schema detection, change feed, content pipeline triggers, and auto-task creation. Must establish Playwright worker pattern before any task complexity is added.
-**Delivers:** Playwright crawler with 3-level task hierarchy (schedule → per-page → finalize); page snapshots with JSON diffs; change feed UI; Celery Beat schedule configurable from UI (requires `redbeat`); sitemap.xml parsing as seed URL source; 404 → auto-task.
-**Addresses:** Technical audit table stakes; change feed differentiator.
-**Avoids:** Browser leaks (Pitfall 1), OOM from concurrent Playwright (Pitfall 2), Beat schedule wipe (Pitfall 13), monolithic task anti-pattern (Pitfall 3).
-**Research flags:** Playwright worker lifecycle (Pattern 4 in ARCHITECTURE.md) is non-obvious — follow the `worker_process_init` signal pattern exactly.
+**Rationale:** Both features depend on the same infrastructure prerequisite — URL normalization and `keyword_latest_positions` materialized table. Building both together amortizes the setup cost. These are the highest-value, lowest-complexity features (pure SQL over existing data). They demonstrate v2.0 value immediately.
 
-### Phase 3: Semantics & Positions
-**Rationale:** Keyword tracking is the primary reason users open the tool daily. The `keyword_positions` schema partitioning must be in this iteration's first migration — it cannot be deferred.
-**Delivers:** Keyword import (CSV/XLSX/manual); `keyword_positions` table with monthly range partitioning (created before first write); DataForSEO as primary SERP source; Playwright SERP as low-volume supplement; GSC OAuth 2.0 integration + URL Inspection API; Yandex Webmaster API (not scraping); keyword volume data via DataForSEO Keywords Data endpoint; position history UI; SERP-intersection clustering; cannibalization detection; Telegram alerts.
-**Addresses:** Position tracking (core table stakes); GSC integration; Yandex advantage.
-**Avoids:** `keyword_positions` partitioning debt (Pitfall 5), Google SERP ban (Pitfall 8), Yandex ban (Pitfall 9).
-**Research flags:** DataForSEO API batching and rate limits need validation; GSC pagination (`startRow`) for high-traffic sites.
+**Delivers:** Quick Wins page, Dead Content page, `normalize_url()` utility, `keyword_latest_positions` table, `insights_service.py` foundation, `routers/insights.py`
 
-### Phase 4: WP Content Pipeline
-**Rationale:** The differentiator. Requires crawl data (page list, detected missing TOC/schema) and keyword DB (for internal linking relevance). Must not be built before those foundations exist.
-**Delivers:** Celery pipeline per page (download → parse → generate TOC/schema/links → diff preview); mandatory diff preview UI before push; rollback history; Yoast/RankMath meta write-back; batch processing by category.
-**Addresses:** WP content pipeline differentiator (TOC injection, schema.org, internal linking).
-**Avoids:** WP rate-limiting (Pitfall 11); per-site semaphore with Redis token bucket; exponential backoff on 429/403.
-**Research flags:** Yoast vs RankMath field name differences need per-site detection (`seo_plugin` stored on site model).
+**Addresses:** Feature Groups 1 and 2 from FEATURES.md
 
-### Phase 5: Projects, Tasks & Content Plan
-**Rationale:** Aggregates data from all prior subsystems. Can only be built once crawl, positions, and WP pipeline exist. Kanban + auto-task creation closes the loop from data → action.
-**Delivers:** Kanban board with drag-and-drop; auto-task creation from crawl findings; content plan with keyword → title → status → WP post link; one-click WP draft creation; template-based page brief (PDF/HTML download).
-**Addresses:** Task board differentiator; content plan workflow.
-**Research flags:** Standard patterns; brief template design is a product decision, not a technical research question.
+**Avoids:** URL mismatch pitfall and DISTINCT ON partition scan pitfall — both must be addressed before any JOIN query is written
 
-### Phase 6: Reports & Ad Traffic
-**Rationale:** Terminal consumer — reads from all prior subsystems but writes to none. Dashboard aggregation queries must be designed carefully to hit the < 3s target at 50 sites.
-**Delivers:** Dashboard with Redis-cached aggregates (5-min TTL); project reports (PDF + Excel); scheduled delivery via Celery Beat (Telegram + SMTP); ad traffic CSV upload + period comparison.
-**Addresses:** Report export (table stakes); ad traffic module.
-**Avoids:** N+1 dashboard queries (Pitfall 7); use CTEs/window functions for aggregation, not Python loops over sites.
-**Research flags:** Dashboard query design for 50 sites × 500 keywords — run `EXPLAIN ANALYZE` during development.
+**Research flag:** Standard patterns — skip phase research. Pure SQL analytics, well-understood PostgreSQL optimization.
 
-### Phase 7: Client Access & Hardening
-**Rationale:** Role enforcement audit, rate limiting, and observability. Adding this last ensures the full feature surface is known before hardening.
-**Delivers:** Full RBAC enforcement at service layer (not just route decorators); client invite links; `slowapi` rate limiting; Celery Flower or custom task status UI; structured JSON logging (loguru); OpenAPI docs; `GET /health` with DB + Redis + Celery + Beat schedule checks; deploy README.
-**Addresses:** Client access; production hardening.
-**Avoids:** Role bypass at service layer (Pitfall 12); Flower exposed without auth.
-**Research flags:** Standard patterns.
+### Phase 2: Impact Scoring + Growth Opportunities
+
+**Rationale:** Depends on Phase 1 infrastructure (`normalize_url`, `keyword_latest_positions`, `insights_service.py`). Both features add aggregation layers over existing data. Impact Scoring requires the `error_impact_scores` pre-computation table and Celery trigger hooks. Growth Opportunities reuses Phase 1's `insights_service.py`.
+
+**Delivers:** Error Impact Scoring (pre-computed, Celery-triggered), Growth Opportunities page, `impact_scoring_service.py`, `opportunities_service.py`
+
+**Addresses:** Feature Groups 3 and 4 from FEATURES.md
+
+**Avoids:** Live aggregation performance trap — `error_impact_scores` must be pre-computed from day one
+
+**Research flag:** Standard patterns — skip phase research.
+
+### Phase 3: Client PDF Reports
+
+**Rationale:** Depends on existing `report_service.py` and WeasyPrint (already working for internal reports). Largely self-contained — new Jinja2 template + one new aggregation function. Isolated early because it has its own critical pitfall (WeasyPrint OOM) that must be solved in isolation before it contaminates the PDF worker shared with existing reports.
+
+**Delivers:** Client Instructions PDF template, `client_report_data()` aggregator, `GET /reports/{site_id}/client-instructions/pdf`, subprocess-isolated PDF generation
+
+**Addresses:** Feature Group 6 from FEATURES.md
+
+**Avoids:** WeasyPrint OOM by establishing subprocess-per-PDF pattern before any PDF code is written
+
+**Research flag:** Standard patterns — skip phase research.
+
+### Phase 4: Keyword Suggest
+
+**Rationale:** Externally-dependent feature with its own risk profile (IP bans, rate limits). Isolated in its own phase so its failure modes do not block other work. Requires new `suggest_service.py` and `suggest_tasks.py` but no changes to existing services.
+
+**Delivers:** Keyword suggest UI (inline in keyword add flow), `suggest_service.py`, `suggest_tasks.py`, Redis suggest cache, rate limiting on suggest endpoint
+
+**Addresses:** Feature Group 7 from FEATURES.md
+
+**Avoids:** IP ban pitfall — cache-first + proxy routing must be the first design decision
+
+**Research flag:** May benefit from research into XMLProxy suggest endpoint availability before implementation begins.
+
+### Phase 5: LLM Briefs + AI/GEO Readiness
+
+**Rationale:** These two features share the same dependency (existing crawl + content audit data) and the same architectural pattern (extend existing services, add new detection functions). LLM Briefs extend `ContentBrief` + `brief_service.py`. GEO Readiness extends `AuditCheckDefinition` + `content_audit_service.py`. Grouped together as the "AI features" phase with `anthropic` SDK introduction.
+
+**Delivers:** LLM-generated brief enhancement (opt-in), `generate_llm_brief` Celery task, GEO Readiness checklist (6 new `geo_*` audit check codes), `anthropic` SDK integration, graceful fallback to template brief
+
+**Addresses:** Feature Groups 5 and 8 from FEATURES.md
+
+**Avoids:** LLM failure blocking brief delivery — template brief is always the base; LLM is enhancement only. Token cap enforced at 2000 input / 800 output.
+
+**Research flag:** Standard patterns for GEO checks. LLM integration patterns documented in STACK.md. No additional research needed.
+
+### Phase 6: Security Hardening (2FA + Notifications)
+
+**Rationale:** Both features touch the auth layer and global UI chrome (header). Grouped together as they share Alembic migrations on the `users` table and require careful regression testing of the login flow. Notifications are prerequisite for 2FA (users need a channel to confirm setup completion).
+
+**Delivers:** TOTP 2FA (opt-in enrollment, backup codes, admin reset endpoint), In-App Notification bell (HTMX polling, 30s interval), nightly notification cleanup task, `notification_service.py`, `routers/security.py`, user model columns for TOTP
+
+**Addresses:** Feature Groups 9 and 10 from FEATURES.md
+
+**Avoids:** 2FA lockout (nullable columns, opt-in only); notification table bloat (hard delete + nightly cleanup + autovacuum tuning in same migration)
+
+**Research flag:** 2FA auth flow changes are the highest-risk code changes in this milestone. Write the 4-path test matrix (no 2FA / 2FA correct / 2FA wrong / recovery code) before any auth code changes. Run `alembic upgrade --sql` and review output before applying migration.
 
 ### Phase Ordering Rationale
 
-- Auth and DB session patterns must be iteration 1 — every subsequent phase depends on them, and retrofitting correct session management is painful.
-- Crawler before positions — positions require keywords and crawl infrastructure; the Playwright worker pattern established in iteration 2 is reused by SERP parsing in iteration 3.
-- WP pipeline after crawl + keywords — the pipeline needs to know which pages exist (crawl) and which keywords are relevant (keyword DB) to generate meaningful internal links.
-- Reporting last — reads from everything; premature reporting wastes effort if upstream schemas change.
-- `keyword_positions` partitioning is a hard constraint, not an ordering preference — it must be iteration 3's first migration.
+- Phases 1–2 establish the URL normalization and `keyword_latest_positions` infrastructure that all other analytical queries depend on
+- Phase 3 (PDF) isolated early because its OOM pitfall is self-contained and the subprocess pattern established here protects all future PDF work
+- Phase 4 (Suggest) isolated because IP ban risk is entirely separate from other work and should not block analytical features
+- Phase 5 (AI) after core analytics because LLM briefs extend `ContentBrief` (existing) and GEO checks extend `AuditCheckDefinition` (existing) — these integrations are cleaner after the analytical layer is stable
+- Phase 6 (Security) last because it touches the most sensitive existing code (auth) and benefits from having all feature surfaces finalized before adding security controls to them
 
 ### Research Flags
 
-Phases needing additional research during planning:
-- **Phase 3 (Positions):** DataForSEO API rate limits and batch sizes; GSC `startRow` pagination behaviour at scale — validate against API docs before writing integration code.
-- **Phase 4 (WP Pipeline):** Yoast vs RankMath detection and field name mapping — test against real sites with both plugins before finalising the `wp_service` interface.
+**Needs `/gsd:research-phase` before planning:**
+- Phase 4: XMLProxy suggest endpoint availability — determine before designing the routing strategy
+- Phase 6: Write test matrix for 2FA auth flow changes before any implementation
 
-Phases with standard patterns (skip research-phase):
-- **Phase 1 (Infrastructure):** All patterns are well-documented in ARCHITECTURE.md and STACK.md.
-- **Phase 5 (Projects/Tasks):** Standard CRUD + Kanban; no novel integration challenges.
-- **Phase 7 (Hardening):** Standard middleware and logging patterns.
-
----
+**Standard patterns (skip research-phase):**
+- Phase 1: PostgreSQL window functions, HTMX partial tables — well-documented
+- Phase 2: Celery task triggers and Redis caching — established project patterns
+- Phase 3: WeasyPrint subprocess isolation — solution documented in PITFALLS.md
+- Phase 5: Anthropic SDK sync/async patterns — fully documented in STACK.md
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | All versions verified for Python 3.12 compatibility; version compatibility matrix in STACK.md |
-| Features | HIGH | Based on direct knowledge of 6+ competing tools; competitor feature analysis in FEATURES.md |
-| Architecture | HIGH | Patterns are standard FastAPI + Celery; code examples in ARCHITECTURE.md are production-tested patterns |
-| Pitfalls | HIGH | All 15 pitfalls are grounded in specific failure modes with observable warning signs |
+| Stack | HIGH | Existing stack is production-validated; 4 new additions confirmed with version compatibility matrix |
+| Features | HIGH | Based on competitor analysis of Sitebulb, Ahrefs, SE Ranking, SEMrush + direct knowledge of v1.0 feature set |
+| Architecture | HIGH | Based on direct codebase inspection (35,402 LOC); all integration points identified with specific file paths and model field names |
+| Pitfalls | HIGH | All critical pitfalls grounded in specific existing codebase patterns; WeasyPrint pitfall backed by confirmed GitHub issue numbers |
 
 **Overall confidence:** HIGH
 
-### Gaps to Address During Implementation
+### Gaps to Address
 
-- **DataForSEO Keywords Data endpoint pricing/limits:** Validate credits consumption per keyword before wiring up volume lookups in iteration 3.
-- **GSC URL Inspection API quotas:** 2,000 queries/day per project; plan batch scheduling strategy for sites with 2,000+ pages.
-- **Yandex XML API availability:** Confirm the free tier (1,000 req/day) is accessible from a non-RU VPS; may require account-level configuration.
-- **WeasyPrint Docker image size:** If image size is a concern, the `apt-get install -y libpango-1.0-0 libcairo2` pattern in STACK.md handles it; decide at iteration 6 when PDF is implemented.
+- **XMLProxy suggest endpoint:** PITFALLS.md flags that XMLProxy may support Yandex suggest (reducing IP ban risk) but this is unconfirmed. Verify `xmlproxy_service.py` endpoint list before finalizing Phase 4 design. If unavailable, fallback is DataForSEO keyword suggestions (already integrated).
 
----
+- **Notifications polling vs SSE decision:** Architecture research recommends HTMX polling (30s) over Redis pub/sub SSE for this user scale. Validate with user before Phase 6 planning — if real-time delivery is required, `sse-starlette` is already in the stack additions and the SSE pattern is documented in STACK.md.
+
+- **LLM model selection:** STACK.md uses `claude-3-5-haiku-20241022` as the default brief model; ARCHITECTURE.md references `claude-opus-4-6`. Confirm before Phase 5 — Haiku is 10-20x cheaper and appropriate for structured brief generation; Opus is higher quality but cost-prohibitive for batch runs across 50 sites.
+
+- **Alembic head management:** With 9 features across 6 phases, each adding at least one migration, there is risk of multiple heads if phases are executed with parallel tasks. Enforce single-head constraint in CI (`alembic heads` must return exactly 1) from Phase 1 onwards.
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- STACK.md — full version compatibility matrix, installation commands, alternatives considered
-- FEATURES.md — competitor feature analysis (Semrush, Ahrefs, SE Ranking, Serpstat, Screaming Frog, Topvisor); gap analysis vs PROJECT.md
-- ARCHITECTURE.md — 6 implementation patterns with code examples; anti-patterns; data flow diagrams; build order implications
-- PITFALLS.md — 15 pitfalls with root cause analysis, prevention steps, warning signs, and phase assignments
-- PROJECT.md — authoritative requirements, constraints, and iteration structure
+
+- Existing codebase direct inspection — `app/models/`, `app/services/`, `app/tasks/`, `app/routers/` (35,402 LOC)
+- Anthropic Python SDK GitHub (anthropics/anthropic-sdk-python) v0.89.0, April 3, 2026
+- pyotp PyPI v2.9.0 documentation
+- sse-starlette v3.3.3 (March 2026)
+- WeasyPrint GitHub issues #2130, #1977 (confirmed memory leak, native C heap not freed)
+- PostgreSQL DISTINCT ON partition performance: CYBERTEC blog, TigerData blog
 
 ### Secondary (MEDIUM confidence)
-- DataForSEO API documentation — SERP, Keywords Data, Backlinks endpoints
-- Google Search Console API — Search Analytics, URL Inspection quotas
-- Yandex Webmaster API + Yandex XML API — position data and programmatic search
+
+- Competitor analysis: Sitebulb, Screaming Frog, SE Ranking, Ahrefs, SEMrush feature sets (knowledge base through Aug 2025)
+- GEO/AI readiness signals: Onely, Frase, SearchEngineLand 2025–2026 (FAQPage 3.2x citation lift is industry data, not Google-confirmed)
+- Google Autocomplete undocumented endpoint stability — confirmed stable for internal tooling at low volume; IP ban threshold undefined
+
+### Tertiary (LOW confidence)
+
+- Yandex Wordstat OAuth token setup complexity — described as MEDIUM but not directly tested in this codebase
+- Chart rendering strategy for WeasyPrint client PDFs — SVG vs Chart.js server-side both viable; final approach depends on implementation testing
 
 ---
-*Research completed: 2026-03-31*
+*Research completed: 2026-04-06*
 *Ready for roadmap: yes*
