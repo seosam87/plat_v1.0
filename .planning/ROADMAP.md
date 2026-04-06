@@ -147,7 +147,7 @@ Plans:
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 12. Analytical Foundations | v2.0 | 3/3 | Complete    | 2026-04-06 |
-| 13. Impact Scoring & Growth Opportunities | v2.0 | 3/3 | Complete   | 2026-04-06 |
+| 13. Impact Scoring & Growth Opportunities | v2.0 | 3/3 | Complete    | 2026-04-06 |
 | 14. Client Instructions PDF | v2.0 | 0/TBD | Not started | - |
 | 15. Keyword Suggest | v2.0 | 0/TBD | Not started | - |
 | 16. AI/GEO Readiness & LLM Briefs | v2.0 | 0/TBD | Not started | - |
