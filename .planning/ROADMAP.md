@@ -104,7 +104,7 @@ Plans:
   5. The suggest endpoint is rate-limited (10 requests/minute); all external API calls run inside Celery tasks with retry=3, not inline in the request handler
 **Plans**: 3 plans
 Plans:
-- [ ] 15-01-PLAN.md — Backend: SuggestJob model + migration + suggest service + Celery task + Redis cache + tests
+- [x] 15-01-PLAN.md — Backend: SuggestJob model + migration + suggest service + Celery task + Redis cache + tests
 - [ ] 15-02-PLAN.md — UI: router + templates + HTMX polling + CSV export + sidebar navigation + router tests
 - [ ] 15-03-PLAN.md — Wordstat integration + position engine fix + tests
 **UI hint**: yes
@@ -142,6 +142,6 @@ Plans:
 | 12. Analytical Foundations | v2.0 | 3/3 | Complete    | 2026-04-06 |
 | 13. Impact Scoring & Growth Opportunities | v2.0 | 3/3 | Complete    | 2026-04-06 |
 | 14. Client Instructions PDF | v2.0 | 3/3 | Complete    | 2026-04-06 |
-| 15. Keyword Suggest | v2.0 | 0/3 | Planning complete | - |
+| 15. Keyword Suggest | v2.0 | 1/3 | In Progress|  |
 | 16. AI/GEO Readiness & LLM Briefs | v2.0 | 0/TBD | Not started | - |
 | 17. In-app Notifications | v2.0 | 0/TBD | Not started | - |
