@@ -35,7 +35,7 @@ v3.x analytics phases (Metrika, Content Audit, Change Monitoring, Analytics Work
 
 **Milestone Goal:** Превратить собранные данные в actionable insights — Quick Wins, мёртвый контент, приоритизация ошибок, точки роста, AI-готовность, клиентские отчёты, keyword suggest и LLM-briefs.
 
-- [ ] **Phase 12: Analytical Foundations** - URL normalization + keyword_latest_positions table + Quick Wins + Dead Content surfaces
+- [x] **Phase 12: Analytical Foundations** - URL normalization + keyword_latest_positions table + Quick Wins + Dead Content surfaces (completed 2026-04-06)
 - [ ] **Phase 13: Impact Scoring & Growth Opportunities** - Error prioritization by traffic + unified growth opportunity dashboard
 - [ ] **Phase 14: Client Instructions PDF** - Non-technical PDF report for site owners built on subprocess-isolated WeasyPrint
 - [ ] **Phase 15: Keyword Suggest** - Yandex/Google autocomplete with Redis caching and rate-limited Celery tasks
@@ -54,11 +54,11 @@ v3.x analytics phases (Metrika, Content Audit, Change Monitoring, Analytics Work
   3. User can open the Dead Content page and see pages with zero Metrika visits in 30 days or position drop > 10, each with a merge/redirect/rewrite/delete recommendation
   4. `normalize_url()` utility exists and is applied at write time so JOINs between pages, metrika, and positions return correct results for all URL variants (trailing slash, http/https, UTM)
   5. `keyword_latest_positions` flat table exists and is updated after each position check run, replacing DISTINCT ON partition scans in all analytical queries
-**Plans:** 1/3 plans executed
+**Plans:** 3/3 plans complete
 Plans:
 - [x] 12-01-PLAN.md — Infrastructure: normalize_url() + keyword_latest_positions table + migration + tests
-- [ ] 12-02-PLAN.md — Quick Wins page: service + router + template + batch fix + navigation
-- [ ] 12-03-PLAN.md — Dead Content page: service + router + template + task creation + navigation
+- [x] 12-02-PLAN.md — Quick Wins page: service + router + template + batch fix + navigation
+- [x] 12-03-PLAN.md — Dead Content page: service + router + template + task creation + navigation
 
 ### Phase 13: Impact Scoring & Growth Opportunities
 **Goal**: Users can see all audit errors ranked by traffic impact and drill into a unified Growth Opportunities dashboard aggregating gap keywords, lost positions, and cannibalization
@@ -126,7 +126,7 @@ Plans:
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 12. Analytical Foundations | v2.0 | 1/3 | In Progress|  |
+| 12. Analytical Foundations | v2.0 | 3/3 | Complete   | 2026-04-06 |
 | 13. Impact Scoring & Growth Opportunities | v2.0 | 0/TBD | Not started | - |
 | 14. Client Instructions PDF | v2.0 | 0/TBD | Not started | - |
 | 15. Keyword Suggest | v2.0 | 0/TBD | Not started | - |
