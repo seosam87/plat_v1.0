@@ -52,8 +52,8 @@
 
 ### Infrastructure
 
-- [ ] **INFRA-V2-01**: `normalize_url()` унифицирует URL при JOIN между pages, metrika, positions (trailing slash, http/https, UTM)
-- [ ] **INFRA-V2-02**: `keyword_latest_positions` flat-таблица для быстрых запросов без сканирования всех партиций
+- [x] **INFRA-V2-01**: `normalize_url()` унифицирует URL при JOIN между pages, metrika, positions (trailing slash, http/https, UTM)
+- [x] **INFRA-V2-02**: `keyword_latest_positions` flat-таблица для быстрых запросов без сканирования всех партиций
 
 ## Future Requirements (deferred)
 
@@ -77,8 +77,8 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| INFRA-V2-01 | Phase 12 | Pending |
-| INFRA-V2-02 | Phase 12 | Pending |
+| INFRA-V2-01 | Phase 12 | Complete |
+| INFRA-V2-02 | Phase 12 | Complete |
 | QW-01 | Phase 12 | Pending |
 | QW-02 | Phase 12 | Pending |
 | QW-03 | Phase 12 | Pending |

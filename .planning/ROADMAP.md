@@ -54,9 +54,9 @@ v3.x analytics phases (Metrika, Content Audit, Change Monitoring, Analytics Work
   3. User can open the Dead Content page and see pages with zero Metrika visits in 30 days or position drop > 10, each with a merge/redirect/rewrite/delete recommendation
   4. `normalize_url()` utility exists and is applied at write time so JOINs between pages, metrika, and positions return correct results for all URL variants (trailing slash, http/https, UTM)
   5. `keyword_latest_positions` flat table exists and is updated after each position check run, replacing DISTINCT ON partition scans in all analytical queries
-**Plans:** 3 plans
+**Plans:** 1/3 plans executed
 Plans:
-- [ ] 12-01-PLAN.md — Infrastructure: normalize_url() + keyword_latest_positions table + migration + tests
+- [x] 12-01-PLAN.md — Infrastructure: normalize_url() + keyword_latest_positions table + migration + tests
 - [ ] 12-02-PLAN.md — Quick Wins page: service + router + template + batch fix + navigation
 - [ ] 12-03-PLAN.md — Dead Content page: service + router + template + task creation + navigation
 
@@ -126,7 +126,7 @@ Plans:
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 12. Analytical Foundations | v2.0 | 0/3 | Not started | - |
+| 12. Analytical Foundations | v2.0 | 1/3 | In Progress|  |
 | 13. Impact Scoring & Growth Opportunities | v2.0 | 0/TBD | Not started | - |
 | 14. Client Instructions PDF | v2.0 | 0/TBD | Not started | - |
 | 15. Keyword Suggest | v2.0 | 0/TBD | Not started | - |
