@@ -146,6 +146,9 @@ app.include_router(quick_wins_module.router)
 from app.routers.opportunities import router as opportunities_router
 app.include_router(opportunities_router)
 
+from app.routers.client_reports import router as client_reports_router
+app.include_router(client_reports_router)
+
 
 # ---- Site selector API endpoints for nav sidebar ----
 
