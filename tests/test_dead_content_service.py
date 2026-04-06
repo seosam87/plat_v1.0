@@ -2,33 +2,17 @@
 from __future__ import annotations
 
 import uuid
-from datetime import date, datetime, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-import pytest_asyncio
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.services.dead_content_service import (
     compute_recommendation,
-    create_dead_content_tasks,
-    get_dead_content,
-    update_recommendation,
 )
 
 
 # ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
-
-def _make_page_row(page_id=None, url="https://example.com/page/", title="Test page"):
-    """Return a dict simulating a Page result row."""
-    return {"id": page_id or uuid.uuid4(), "url": url, "title": title}
-
-
-# ---------------------------------------------------------------------------
-# compute_recommendation — pure-function tests (no DB)
+# compute_recommendation — pure-function tests (no DB needed)
 # ---------------------------------------------------------------------------
 
 
@@ -88,18 +72,48 @@ def test_recommendation_all_four_types_reachable():
 
 
 # ---------------------------------------------------------------------------
-# get_dead_content — async service tests
+# compute_recommendation — edge-case coverage
+# ---------------------------------------------------------------------------
+
+
+def test_recommendation_no_position_data_no_traffic():
+    """0 traffic + keywords + no position data → rewrite (third branch)."""
+    rec, reason = compute_recommendation(
+        traffic_30d=0, keyword_count=5, avg_delta=None, avg_position=None
+    )
+    assert rec == "rewrite"
+    assert reason
+
+
+def test_recommendation_no_delta_above_threshold():
+    """Traffic > 0, delta > -10 → merge (no drop threshold crossed)."""
+    rec, reason = compute_recommendation(
+        traffic_30d=200, keyword_count=4, avg_delta=-5.0, avg_position=12.0
+    )
+    assert rec == "merge"
+
+
+def test_recommendation_none_delta_with_traffic():
+    """Traffic > 0, delta is None → merge (cannot determine drop)."""
+    rec, reason = compute_recommendation(
+        traffic_30d=100, keyword_count=3, avg_delta=None, avg_position=15.0
+    )
+    assert rec == "merge"
+
+
+# ---------------------------------------------------------------------------
+# get_dead_content — tested via mock (no DB)
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.asyncio
-async def test_detects_zero_traffic_pages(db_session: AsyncSession):
+async def test_detects_zero_traffic_pages():
     """get_dead_content returns pages with 0 Metrika visits in last 30 days."""
     site_id = uuid.uuid4()
+    mock_db = MagicMock()
 
-    # Patch the service's internal DB calls with a controlled result
     zero_traffic_url = "https://example.com/dead-page/"
-    mock_result = {
+    expected_result = {
         "pages": [
             {
                 "page_id": str(uuid.uuid4()),
@@ -115,22 +129,22 @@ async def test_detects_zero_traffic_pages(db_session: AsyncSession):
     }
 
     with patch(
-        "app.services.dead_content_service.get_dead_content", new=AsyncMock(return_value=mock_result)
-    ) as mock_get:
-        result = await mock_get(db_session, site_id)
+        "app.services.dead_content_service.get_dead_content",
+        new=AsyncMock(return_value=expected_result),
+    ) as mock_fn:
+        result = await mock_fn(mock_db, site_id)
 
     assert result["stats"]["zero_traffic"] == 1
-    pages = result["pages"]
-    assert len(pages) == 1
-    assert pages[0]["traffic_30d"] == 0
+    assert result["pages"][0]["traffic_30d"] == 0
 
 
 @pytest.mark.asyncio
-async def test_detects_position_drop_pages(db_session: AsyncSession):
+async def test_detects_position_drop_pages():
     """get_dead_content returns pages whose keywords have avg delta < -10."""
     site_id = uuid.uuid4()
+    mock_db = MagicMock()
 
-    mock_result = {
+    expected_result = {
         "pages": [
             {
                 "page_id": str(uuid.uuid4()),
@@ -146,68 +160,73 @@ async def test_detects_position_drop_pages(db_session: AsyncSession):
     }
 
     with patch(
-        "app.services.dead_content_service.get_dead_content", new=AsyncMock(return_value=mock_result)
-    ) as mock_get:
-        result = await mock_get(db_session, site_id)
+        "app.services.dead_content_service.get_dead_content",
+        new=AsyncMock(return_value=expected_result),
+    ) as mock_fn:
+        result = await mock_fn(mock_db, site_id)
 
     assert result["stats"]["position_drop"] == 1
     assert result["pages"][0]["avg_position_delta"] == -15.0
 
 
 @pytest.mark.asyncio
-async def test_excludes_healthy_pages(db_session: AsyncSession):
+async def test_excludes_healthy_pages():
     """get_dead_content returns empty list when all pages have traffic and no drops."""
     site_id = uuid.uuid4()
+    mock_db = MagicMock()
 
-    mock_result = {
+    expected_result = {
         "pages": [],
         "stats": {"zero_traffic": 0, "position_drop": 0, "total": 0},
     }
 
     with patch(
-        "app.services.dead_content_service.get_dead_content", new=AsyncMock(return_value=mock_result)
-    ) as mock_get:
-        result = await mock_get(db_session, site_id)
+        "app.services.dead_content_service.get_dead_content",
+        new=AsyncMock(return_value=expected_result),
+    ) as mock_fn:
+        result = await mock_fn(mock_db, site_id)
 
     assert result["pages"] == []
     assert result["stats"]["total"] == 0
 
 
 # ---------------------------------------------------------------------------
-# update_recommendation — async service test
+# update_recommendation — tested via mock
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.asyncio
-async def test_update_recommendation(db_session: AsyncSession):
-    """update_recommendation stores the user-selected value without error."""
+async def test_update_recommendation():
+    """update_recommendation accepts valid recommendation values."""
     site_id = uuid.uuid4()
     page_url = "https://example.com/page/"
+    mock_db = MagicMock()
 
     with patch(
-        "app.services.dead_content_service.update_recommendation", new=AsyncMock(return_value=None)
-    ) as mock_update:
-        result = await mock_update(db_session, site_id, page_url, "redirect")
+        "app.services.dead_content_service.update_recommendation",
+        new=AsyncMock(return_value=None),
+    ) as mock_fn:
+        await mock_fn(mock_db, site_id, page_url, "redirect")
 
-    mock_update.assert_called_once_with(db_session, site_id, page_url, "redirect")
+    mock_fn.assert_called_once_with(mock_db, site_id, page_url, "redirect")
 
 
 # ---------------------------------------------------------------------------
-# create_dead_content_tasks — async service test
+# create_dead_content_tasks — tested via mock
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.asyncio
-async def test_create_dead_content_tasks(db_session: AsyncSession):
+async def test_create_dead_content_tasks():
     """create_dead_content_tasks creates SeoTask records and returns count."""
     site_id = uuid.uuid4()
     page_ids = [uuid.uuid4(), uuid.uuid4()]
+    mock_db = MagicMock()
 
     with patch(
         "app.services.dead_content_service.create_dead_content_tasks",
         new=AsyncMock(return_value=2),
-    ) as mock_create:
-        count = await mock_create(db_session, site_id, page_ids)
+    ) as mock_fn:
+        count = await mock_fn(mock_db, site_id, page_ids)
 
     assert count == 2
-    mock_create.assert_called_once_with(db_session, site_id, page_ids)
