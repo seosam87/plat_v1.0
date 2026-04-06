@@ -74,6 +74,16 @@ NAV_SECTIONS = [
         ],
     },
     {
+        "id": "client-reports",
+        "label": "Клиентские отчёты",
+        "icon": "document-check",
+        "url": None,
+        "admin_only": False,
+        "children": [
+            {"id": "client-reports-gen", "label": "Генерация", "url": "/ui/client-reports/"},
+        ],
+    },
+    {
         "id": "settings",
         "label": "Настройки",
         "icon": "cog-6-tooth",

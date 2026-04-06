@@ -1,0 +1,85 @@
+{% if status == 'generating' or status == 'pending' %}
+<div
+  class="flex items-center gap-3 p-4 bg-blue-50 rounded-lg border border-blue-100"
+  hx-get="/ui/client-reports/status/{{ report_id }}"
+  hx-trigger="load delay:3s"
+  hx-swap="outerHTML"
+>
+  <svg class="animate-spin text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+       style="width:1.25rem;height:1.25rem;flex-shrink:0;">
+    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+  </svg>
+  <span class="text-sm font-medium text-blue-700">Генерируется...</span>
+  <span class="text-xs text-blue-500">Обычно занимает менее минуты</span>
+</div>
+
+{% elif status == 'ready' %}
+<div class="p-4 bg-green-50 rounded-lg border border-green-200">
+  <div class="flex items-center gap-2 mb-3">
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"
+         style="width:1.25rem;height:1.25rem;color:#10b981;flex-shrink:0;">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+    </svg>
+    <span class="text-sm font-semibold text-green-800">PDF готов</span>
+  </div>
+  <div class="flex items-center gap-3 flex-wrap">
+    <a
+      href="/ui/client-reports/{{ report_id }}/download"
+      class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg"
+      style="background-color: #4f46e5; color: white; text-decoration: none;"
+      onmouseover="this.style.backgroundColor='#4338ca'"
+      onmouseout="this.style.backgroundColor='#4f46e5'"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"
+           style="width:1rem;height:1rem;">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+      </svg>
+      Скачать PDF
+    </a>
+
+    <button
+      hx-post="/ui/client-reports/{{ report_id }}/send-email"
+      hx-target="#toast-container"
+      hx-swap="beforeend"
+      aria-label="Отправить на email"
+      class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"
+           style="width:1rem;height:1rem;">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
+      </svg>
+      Отправить на email
+    </button>
+
+    <button
+      hx-post="/ui/client-reports/{{ report_id }}/send-telegram"
+      hx-target="#toast-container"
+      hx-swap="beforeend"
+      aria-label="Отправить в Telegram"
+      class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"
+           style="width:1rem;height:1rem;">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5" />
+      </svg>
+      Отправить в Telegram
+    </button>
+  </div>
+</div>
+
+{% elif status == 'failed' %}
+<div class="p-4 bg-red-50 rounded-lg border border-red-200">
+  <div class="flex items-center gap-2 mb-1">
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"
+         style="width:1.25rem;height:1.25rem;color:#991b1b;flex-shrink:0;">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
+    </svg>
+    <span class="text-sm font-semibold text-red-800">Не удалось сформировать PDF</span>
+  </div>
+  <p class="text-sm text-red-700">Проверьте подключение к данным или повторите через минуту.</p>
+  {% if error %}
+  <p class="text-xs text-red-500 mt-1">{{ error }}</p>
+  {% endif %}
+</div>
+{% endif %}

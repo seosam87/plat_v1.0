@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block title %}Клиентские отчёты{% if site %} — {{ site.name }}{% endif %} — SEO Platform{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="/ui/dashboard">Dashboard</a><span>&rsaquo;</span>
+  <span>Клиентские отчёты</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl">
+
+  <h1 class="text-2xl font-bold text-gray-900 mb-6">
+    Клиентские отчёты{% if site %} — {{ site.name }}{% endif %}
+  </h1>
+
+  {# Generation Form Card #}
+  <div class="card mb-8">
+    <h2 class="text-lg font-semibold text-gray-800 mb-4">Настройка отчёта</h2>
+
+    <form
+      hx-post="/ui/client-reports/generate"
+      hx-target="#generation-status"
+      hx-swap="innerHTML"
+      hx-indicator="#form-indicator"
+    >
+      {# Site selector #}
+      <div class="site-selector mb-4">
+        <label class="block text-sm font-semibold text-gray-700 mb-1">Сайт</label>
+        <select name="site_id" required class="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:ring-indigo-500 focus:border-indigo-500">
+          {% for s in sites %}
+          <option value="{{ s.id }}" {% if site and s.id == site.id %}selected{% endif %}>{{ s.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      {# Block checkboxes — 2 column grid #}
+      <div class="mb-4">
+        <label class="block text-sm font-semibold text-gray-700 mb-2">Блоки отчёта</label>
+        <div class="grid grid-cols-2 gap-3">
+
+          <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+            <input type="checkbox" name="quick_wins" value="true" checked
+                   style="accent-color: #4f46e5; width: 1rem; height: 1rem;">
+            Quick Wins (позиции 4–20)
+          </label>
+
+          <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+            <input type="checkbox" name="audit_errors" value="true" checked
+                   style="accent-color: #4f46e5; width: 1rem; height: 1rem;">
+            Ошибки аудита (по impact_score)
+          </label>
+
+          <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+            <input type="checkbox" name="dead_content" value="true" checked
+                   style="accent-color: #4f46e5; width: 1rem; height: 1rem;">
+            Мёртвый контент
+          </label>
+
+          <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+            <input type="checkbox" name="positions" value="true" checked
+                   style="accent-color: #4f46e5; width: 1rem; height: 1rem;">
+            Статистика позиций
+          </label>
+
+        </div>
+      </div>
+
+      {# CTA button + indicator #}
+      <div class="flex items-center gap-3">
+        <button
+          type="submit"
+          class="btn btn-primary"
+          style="background-color: #4f46e5; color: white; padding: 0.5rem 1.5rem; border-radius: 0.5rem; font-weight: 600; border: none; cursor: pointer;"
+          onmouseover="this.style.backgroundColor='#4338ca'"
+          onmouseout="this.style.backgroundColor='#4f46e5'"
+        >
+          Сгенерировать PDF
+        </button>
+
+        <span id="form-indicator" class="htmx-indicator flex items-center gap-2 text-sm text-gray-500">
+          <svg class="animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+               style="width:1.25rem;height:1.25rem;border-color:#4f46e5;">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          Запускаем...
+        </span>
+      </div>
+    </form>
+
+    {# Status output area #}
+    <div id="generation-status" class="mt-4"></div>
+  </div>
+
+  {# History Table Card #}
+  <div class="card">
+    <h2 class="text-lg font-semibold text-gray-800 mb-4">История отчётов</h2>
+    <div
+      id="history-section"
+      hx-get="/ui/client-reports/history{% if site %}?site_id={{ site.id }}{% endif %}"
+      hx-trigger="load, refreshHistory from:body"
+      hx-swap="innerHTML"
+    >
+      {# Initial content loaded via HTMX #}
+    </div>
+  </div>
+
+</div>
+{% endblock %}
