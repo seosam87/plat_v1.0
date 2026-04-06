@@ -2,12 +2,12 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: SEO Insights & AI
-status: defining_requirements
-stopped_at: Milestone v2.0 started
+status: roadmap_ready
+stopped_at: Roadmap created — Phase 12 ready for planning
 last_updated: "2026-04-06"
 last_activity: 2026-04-06
 progress:
-  total_phases: 0
+  total_phases: 6
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -21,25 +21,47 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-06)
 
 **Core value:** A team member or client can open the platform and immediately see the SEO health of any site — positions, recent changes, pending tasks — without switching between GSC, spreadsheets, and WP admin.
-**Current focus:** v2.0 SEO Insights & AI — defining requirements
+**Current focus:** v2.0 SEO Insights & AI — Phase 12 (Analytical Foundations) ready for planning
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: 12 — Analytical Foundations
 Plan: —
-Status: Defining requirements
-Last activity: 2026-04-06 — Milestone v2.0 started
-Last activity: 2026-04-06
+Status: Not started
+Last activity: 2026-04-06 — Roadmap created
 
-Progress: [██████████] 100%
+Progress: [__________] 0% (v2.0)
+
+## Performance Metrics
+
+### v2.0 Velocity
+
+| Metric | Value |
+|--------|-------|
+| Phases total | 6 |
+| Phases complete | 0 |
+| Plans complete | 0 |
+| Milestone start | 2026-04-06 |
 
 ## Accumulated Context
 
-Decisions archived in PROJECT.md Key Decisions table and milestones/v1.0-ROADMAP.md.
+### Key Decisions (v2.0)
+
+| Decision | Rationale |
+|----------|-----------|
+| `normalize_url()` + `keyword_latest_positions` in Phase 12 | All analytical JOINs fail silently without URL normalization; DISTINCT ON on partitioned table causes 8–15s scans at 100K keywords |
+| WeasyPrint subprocess isolation in Phase 14 | WeasyPrint memory leak (GitHub #2130, #1977) cannot be deferred — established before any new PDF code is written |
+| Keyword Suggest in isolated Phase 15 | IP ban risk from autocomplete scraping is entirely separate from analytical features and must not block Phase 13 work |
+| LLM Briefs + GEO Readiness co-located in Phase 16 | Both depend on existing crawl + content audit data; both are additive extensions to existing services; anthropic SDK introduced once |
+| In-app Notifications last (Phase 17) | Touches global sidebar chrome; cleanest to add after all feature surfaces are finalized |
+| HTMX polling (30s) over SSE for notifications | Under 20 users; polling is simpler and sufficient; SSE deferred unless real-time delivery required |
+| Template brief always generated first; LLM is enhancement only | Prevents LLM API failures from blocking brief delivery |
+| Yandex Suggest primary, Google secondary (opt-in), Wordstat opt-in | User note: focus on Yandex, no complex Google services |
 
 ### Pending Todos
 
-None.
+- Phase 15: Verify XMLProxy suggest endpoint availability before designing routing strategy
+- Phase 16: Confirm LLM model — claude-3-5-haiku-20241022 (10–20x cheaper, appropriate for batch) vs claude-opus-4-6
 
 ### Quick Tasks Completed
 
@@ -50,5 +72,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-04-06
-Stopped at: v1.0 milestone completed
+Stopped at: Roadmap created — ready for `/gsd:plan-phase 12`
 Resume file: None

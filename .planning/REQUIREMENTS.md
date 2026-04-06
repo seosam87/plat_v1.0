@@ -77,39 +77,40 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| QW-01 | TBD | Pending |
-| QW-02 | TBD | Pending |
-| QW-03 | TBD | Pending |
-| DEAD-01 | TBD | Pending |
-| DEAD-02 | TBD | Pending |
-| IMP-01 | TBD | Pending |
-| IMP-02 | TBD | Pending |
-| GRO-01 | TBD | Pending |
-| GRO-02 | TBD | Pending |
-| GEO-01 | TBD | Pending |
-| GEO-02 | TBD | Pending |
-| GEO-03 | TBD | Pending |
-| CPDF-01 | TBD | Pending |
-| CPDF-02 | TBD | Pending |
-| CPDF-03 | TBD | Pending |
-| SUG-01 | TBD | Pending |
-| SUG-02 | TBD | Pending |
-| SUG-03 | TBD | Pending |
-| SUG-04 | TBD | Pending |
-| LLM-01 | TBD | Pending |
-| LLM-02 | TBD | Pending |
-| LLM-03 | TBD | Pending |
-| LLM-04 | TBD | Pending |
-| NOTIF-01 | TBD | Pending |
-| NOTIF-02 | TBD | Pending |
-| NOTIF-03 | TBD | Pending |
-| INFRA-V2-01 | TBD | Pending |
-| INFRA-V2-02 | TBD | Pending |
+| INFRA-V2-01 | Phase 12 | Pending |
+| INFRA-V2-02 | Phase 12 | Pending |
+| QW-01 | Phase 12 | Pending |
+| QW-02 | Phase 12 | Pending |
+| QW-03 | Phase 12 | Pending |
+| DEAD-01 | Phase 12 | Pending |
+| DEAD-02 | Phase 12 | Pending |
+| IMP-01 | Phase 13 | Pending |
+| IMP-02 | Phase 13 | Pending |
+| GRO-01 | Phase 13 | Pending |
+| GRO-02 | Phase 13 | Pending |
+| CPDF-01 | Phase 14 | Pending |
+| CPDF-02 | Phase 14 | Pending |
+| CPDF-03 | Phase 14 | Pending |
+| SUG-01 | Phase 15 | Pending |
+| SUG-02 | Phase 15 | Pending |
+| SUG-03 | Phase 15 | Pending |
+| SUG-04 | Phase 15 | Pending |
+| GEO-01 | Phase 16 | Pending |
+| GEO-02 | Phase 16 | Pending |
+| GEO-03 | Phase 16 | Pending |
+| LLM-01 | Phase 16 | Pending |
+| LLM-02 | Phase 16 | Pending |
+| LLM-03 | Phase 16 | Pending |
+| LLM-04 | Phase 16 | Pending |
+| NOTIF-01 | Phase 17 | Pending |
+| NOTIF-02 | Phase 17 | Pending |
+| NOTIF-03 | Phase 17 | Pending |
 
 **Coverage:**
 - v2.0 requirements: 28 total
-- Mapped to phases: 0 (awaiting roadmap)
-- Unmapped: 28
+- Mapped to phases: 28
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-04-06*
+*Traceability updated: 2026-04-06 — roadmap created*
