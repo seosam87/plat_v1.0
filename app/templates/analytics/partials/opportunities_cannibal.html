@@ -14,7 +14,12 @@
   {% for group in data.items %}
   <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
     <!-- Keyword phrase header -->
-    <div class="px-4 py-3 bg-amber-50 border-b border-amber-100 flex items-center justify-between">
+    <div
+      class="px-4 py-3 bg-amber-50 border-b border-amber-100 flex items-center justify-between cursor-pointer hover:bg-amber-100 transition"
+      hx-get="/analytics/{{ site.id }}/opportunities/detail/cannibal/{{ group.keyword_id }}"
+      hx-target="#slide-over-content"
+      hx-on::after-request="openSlideOver()"
+    >
       <span class="font-medium text-gray-800">{{ group.phrase }}</span>
       <span class="text-xs text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">
         {{ group.page_count }} страниц

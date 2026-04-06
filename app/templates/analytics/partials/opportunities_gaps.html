@@ -35,6 +35,7 @@
         class="cursor-pointer hover:bg-gray-50 transition"
         hx-get="/analytics/{{ site.id }}/opportunities/detail/gap/{{ item.id }}"
         hx-target="#slide-over-content"
+        hx-on::after-request="openSlideOver()"
       >
         <td class="px-4 py-3 text-gray-800 max-w-xs truncate" title="{{ item.phrase }}">{{ item.phrase }}</td>
         <td class="px-4 py-3 text-gray-600">{{ item.competitor_domain }}</td>

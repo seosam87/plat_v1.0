@@ -1,0 +1,52 @@
+<!-- Cannibalization detail slide-over panel -->
+<div class="p-4">
+  <div class="flex items-center justify-between mb-4">
+    <h3 class="text-base font-semibold text-gray-800 m-0">Каннибализация</h3>
+    <button onclick="closeSlideOver()" class="text-gray-400 hover:text-gray-600 transition" title="Закрыть">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+      </svg>
+    </button>
+  </div>
+
+  <div class="mb-3 p-3 bg-amber-50 rounded-lg">
+    <span class="text-sm font-medium text-amber-800">{{ item.phrase }}</span>
+  </div>
+
+  {% if item.pages %}
+  <div class="mb-4">
+    <h4 class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Конкурирующие страницы</h4>
+    <div class="rounded-lg border border-gray-200 overflow-hidden">
+      <table class="min-w-full divide-y divide-gray-100 text-sm">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">URL</th>
+            <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">Позиция</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100">
+          {% for page in item.pages %}
+          <tr class="hover:bg-gray-50">
+            <td class="px-3 py-2 text-gray-600 max-w-[200px]">
+              <a href="{{ page.url }}" target="_blank" rel="noopener" class="hover:text-indigo-600 truncate block max-w-[200px]" title="{{ page.url }}">
+                {{ page.url }}
+              </a>
+            </td>
+            <td class="px-3 py-2 text-right font-medium text-gray-700">{{ page.position }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="mt-4">
+    <a href="/ui/cannibalization/{{ site.id }}" class="inline-flex items-center gap-1 text-sm text-indigo-600 hover:text-indigo-800 font-medium">
+      Подробнее: перейти к каннибализации
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+      </svg>
+    </a>
+  </div>
+</div>

@@ -1,0 +1,17 @@
+<!-- Slide-over overlay + drawer — reusable panel for drill-down details -->
+<div id="slide-over" class="hidden fixed inset-0 z-50">
+  <div class="absolute inset-0 bg-black bg-opacity-30" onclick="closeSlideOver()"></div>
+  <div class="absolute right-0 top-0 h-full w-96 bg-white shadow-xl overflow-y-auto transition-transform duration-200"
+       id="slide-over-content">
+    <!-- Filled by HTMX -->
+  </div>
+</div>
+<script>
+function closeSlideOver() {
+  document.getElementById('slide-over').classList.add('hidden');
+  document.getElementById('slide-over-content').innerHTML = '';
+}
+function openSlideOver() {
+  document.getElementById('slide-over').classList.remove('hidden');
+}
+</script>

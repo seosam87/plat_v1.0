@@ -23,7 +23,12 @@
     </thead>
     <tbody class="bg-white divide-y divide-gray-100">
       {% for item in data.items %}
-      <tr class="hover:bg-gray-50 transition">
+      <tr
+        class="cursor-pointer hover:bg-gray-50 transition"
+        hx-get="/analytics/{{ site.id }}/opportunities/detail/loss/{{ item.keyword_id }}"
+        hx-target="#slide-over-content"
+        hx-on::after-request="openSlideOver()"
+      >
         <td class="px-4 py-3 text-gray-800 max-w-xs truncate" title="{{ item.phrase }}">{{ item.phrase }}</td>
         <td class="px-4 py-3 text-gray-500 max-w-xs truncate" title="{{ item.url }}">
           {% if item.url %}

@@ -1,0 +1,55 @@
+<!-- Gap keyword detail slide-over panel -->
+<div class="p-4">
+  <div class="flex items-center justify-between mb-4">
+    <h3 class="text-base font-semibold text-gray-800 m-0">Gap-ключ</h3>
+    <button onclick="closeSlideOver()" class="text-gray-400 hover:text-gray-600 transition" title="Закрыть">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+      </svg>
+    </button>
+  </div>
+
+  <div class="mb-3 p-3 bg-indigo-50 rounded-lg">
+    <span class="text-sm font-medium text-indigo-800">{{ item.phrase }}</span>
+  </div>
+
+  <dl class="space-y-2 text-sm">
+    <div class="flex justify-between py-1.5 border-b border-gray-100">
+      <dt class="text-gray-500">Конкурент</dt>
+      <dd class="font-medium text-gray-800">{{ item.competitor_domain }}</dd>
+    </div>
+    <div class="flex justify-between py-1.5 border-b border-gray-100">
+      <dt class="text-gray-500">Позиция конкурента</dt>
+      <dd class="font-medium text-gray-800">
+        {% if item.competitor_position %}{{ item.competitor_position }}{% else %}&mdash;{% endif %}
+      </dd>
+    </div>
+    <div class="flex justify-between py-1.5 border-b border-gray-100">
+      <dt class="text-gray-500">Наша позиция</dt>
+      <dd class="font-medium text-gray-800">
+        {% if item.our_position %}{{ item.our_position }}{% else %}<span class="text-gray-400">нет</span>{% endif %}
+      </dd>
+    </div>
+    <div class="flex justify-between py-1.5 border-b border-gray-100">
+      <dt class="text-gray-500">Потенциал</dt>
+      <dd class="font-medium text-gray-800">
+        {% if item.potential_score %}<span class="text-indigo-700">{{ "%.2f"|format(item.potential_score) }}</span>{% else %}&mdash;{% endif %}
+      </dd>
+    </div>
+    {% if item.frequency %}
+    <div class="flex justify-between py-1.5 border-b border-gray-100">
+      <dt class="text-gray-500">Частотность</dt>
+      <dd class="font-medium text-gray-800">{{ item.frequency }}</dd>
+    </div>
+    {% endif %}
+  </dl>
+
+  <div class="mt-6">
+    <a href="/gap/{{ site.id }}" class="inline-flex items-center gap-1 text-sm text-indigo-600 hover:text-indigo-800 font-medium">
+      Подробнее: перейти к Gap-анализу
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+      </svg>
+    </a>
+  </div>
+</div>
