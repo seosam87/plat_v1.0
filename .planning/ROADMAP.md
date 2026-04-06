@@ -104,9 +104,10 @@ Plans:
   5. The suggest endpoint is rate-limited (10 requests/minute); all external API calls run inside Celery tasks with retry=3, not inline in the request handler
 **Plans**: 3 plans
 Plans:
-- [x] 13-01-PLAN.md — Impact scoring backend: model + migration + service + Celery task + tests
-- [ ] 13-02-PLAN.md — Growth Opportunities dashboard: service + router + templates + tabs
-- [ ] 13-03-PLAN.md — Kanban impact sort + slide-over drill-down panels
+- [ ] 15-01-PLAN.md — Backend: SuggestJob model + migration + suggest service + Celery task + Redis cache + tests
+- [ ] 15-02-PLAN.md — UI: router + templates + HTMX polling + CSV export + sidebar navigation + router tests
+- [ ] 15-03-PLAN.md — Wordstat integration + position engine fix + tests
+**UI hint**: yes
 
 ### Phase 16: AI/GEO Readiness & LLM Briefs
 **Goal**: Every page has a GEO readiness score visible in the audit table, and users with a configured Claude API key can generate an AI-enhanced brief that extends the existing template brief
@@ -119,11 +120,7 @@ Plans:
   4. User sees an "Generate AI brief" button on the brief page only when a Claude API key is configured; clicking it enhances the existing template brief with LLM output
   5. If the Claude API is unavailable or the key is missing, the template brief is always returned unchanged — the LLM enhancement never blocks brief delivery
   6. LLM token usage is capped (input ~2000, output ~800) and a circuit breaker disables LLM calls after 3 consecutive failures
-**Plans**: 3 plans
-Plans:
-- [ ] 13-01-PLAN.md — Impact scoring backend: model + migration + service + Celery task + tests
-- [ ] 13-02-PLAN.md — Growth Opportunities dashboard: service + router + templates + tabs
-- [ ] 13-03-PLAN.md — Kanban impact sort + slide-over drill-down panels
+**Plans**: TBD
 **UI hint**: yes
 
 ### Phase 17: In-app Notifications
@@ -135,11 +132,7 @@ Plans:
   2. The notification feed lists recent events — crawl completed, position check completed, PDF generated, monitoring alert triggered — with timestamp and site name
   3. Notifications continue to be sent to Telegram as before; in-app notifications are additive, not a replacement
   4. Read notifications can be dismissed; dismissed notifications are hard-deleted (not soft-deleted) and a nightly Celery Beat task cleans up notifications older than 30 days
-**Plans**: 3 plans
-Plans:
-- [ ] 13-01-PLAN.md — Impact scoring backend: model + migration + service + Celery task + tests
-- [ ] 13-02-PLAN.md — Growth Opportunities dashboard: service + router + templates + tabs
-- [ ] 13-03-PLAN.md — Kanban impact sort + slide-over drill-down panels
+**Plans**: TBD
 **UI hint**: yes
 
 ## Progress
@@ -149,6 +142,6 @@ Plans:
 | 12. Analytical Foundations | v2.0 | 3/3 | Complete    | 2026-04-06 |
 | 13. Impact Scoring & Growth Opportunities | v2.0 | 3/3 | Complete    | 2026-04-06 |
 | 14. Client Instructions PDF | v2.0 | 3/3 | Complete    | 2026-04-06 |
-| 15. Keyword Suggest | v2.0 | 0/TBD | Not started | - |
+| 15. Keyword Suggest | v2.0 | 0/3 | Planning complete | - |
 | 16. AI/GEO Readiness & LLM Briefs | v2.0 | 0/TBD | Not started | - |
 | 17. In-app Notifications | v2.0 | 0/TBD | Not started | - |
