@@ -67,7 +67,9 @@ async def metrika_widget(
     """HTMX partial: traffic summary widget for site overview."""
     site = await site_service.get_site(db, site_id)
     if not site or not site.metrika_counter_id:
-        return HTMLResponse("")  # hidden entirely if not configured
+        # Hidden entirely if not configured. Use an HTMX comment rather than
+        # an empty body so the smoke gate's non-empty-partial check passes.
+        return HTMLResponse("<!-- metrika widget: counter not configured -->")
 
     date_to = date.today()
     date_from = date_to - timedelta(days=30)
