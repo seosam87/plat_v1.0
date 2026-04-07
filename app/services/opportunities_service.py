@@ -41,7 +41,7 @@ async def get_gap_summary(
             count: total gap keyword count for site
             total_potential_traffic: SUM of frequency for rows where frequency is not null
             frequency_available: False if >50% of rows have null frequency
-            items: list of dicts with id, phrase, competitor_domain, competitor_position,
+            rows: list of dicts with id, phrase, competitor_domain, competitor_position,
                    our_position, potential_score
     """
     # Get total count
@@ -72,7 +72,7 @@ async def get_gap_summary(
         "count": total_count,
         "total_potential_traffic": total_potential_traffic,
         "frequency_available": frequency_available,
-        "items": [
+        "rows": [
             {
                 "id": str(item.id),
                 "phrase": item.phrase,
@@ -104,7 +104,7 @@ async def get_lost_positions(
     Returns:
         dict with:
             count: number of items returned
-            items: list of dicts with keyword_id, phrase, url, position, previous_position, delta
+            rows: list of dicts with keyword_id, phrase, url, position, previous_position, delta
     """
     result = await db.execute(
         text(
@@ -132,7 +132,7 @@ async def get_lost_positions(
         for row in rows
     ]
 
-    return {"count": len(items), "items": items}
+    return {"count": len(items), "rows": items}
 
 
 async def get_cannibalization(
@@ -151,7 +151,7 @@ async def get_cannibalization(
     Returns:
         dict with:
             count: number of keyword groups with cannibalization
-            items: list of dicts with keyword_id, phrase, pages (list of url/position), page_count
+            rows: list of dicts with keyword_id, phrase, pages (list of url/position), page_count
     """
     result = await db.execute(
         text(
@@ -197,7 +197,7 @@ async def get_cannibalization(
     # Sort by page_count DESC
     items = sorted(groups.values(), key=lambda g: g["page_count"], reverse=True)
 
-    return {"count": len(items), "items": items}
+    return {"count": len(items), "rows": items}
 
 
 def compute_visibility_trend(daily_rows: list[dict]) -> dict:

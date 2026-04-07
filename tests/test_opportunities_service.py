@@ -160,11 +160,11 @@ async def test_get_gap_summary_returns_count_and_items():
 
     assert result["count"] == 2
     assert result["total_potential_traffic"] == 800
-    assert len(result["items"]) == 2
-    assert result["items"][0]["phrase"] == "keyword one"
-    assert result["items"][1]["phrase"] == "keyword two"
-    assert "competitor_domain" in result["items"][0]
-    assert "potential_score" in result["items"][0]
+    assert len(result["rows"]) == 2
+    assert result["rows"][0]["phrase"] == "keyword one"
+    assert result["rows"][1]["phrase"] == "keyword two"
+    assert "competitor_domain" in result["rows"][0]
+    assert "potential_score" in result["rows"][0]
 
 
 @pytest.mark.asyncio
@@ -183,7 +183,7 @@ async def test_get_gap_summary_empty_site():
     result = await get_gap_summary(db, site_id)
 
     assert result["count"] == 0
-    assert result["items"] == []
+    assert result["rows"] == []
 
 
 # ---------------------------------------------------------------------------
@@ -212,13 +212,13 @@ async def test_get_lost_positions_returns_delta_lte_minus5():
 
     result = await get_lost_positions(db, site_id)
 
-    phrases = [item["phrase"] for item in result["items"]]
+    phrases = [item["phrase"] for item in result["rows"]]
     assert "big loss" in phrases
     assert "small loss" in phrases
     assert result["count"] == 2
 
     # Check sorted by delta ASC (worst first: -10 before -5)
-    deltas = [item["delta"] for item in result["items"]]
+    deltas = [item["delta"] for item in result["rows"]]
     assert deltas == sorted(deltas)
 
 
@@ -236,7 +236,7 @@ async def test_get_lost_positions_excludes_delta_over_minus5():
     result = await get_lost_positions(db, site_id)
 
     assert result["count"] == 0
-    assert result["items"] == []
+    assert result["rows"] == []
 
 
 # ---------------------------------------------------------------------------
@@ -264,9 +264,9 @@ async def test_get_cannibalization_groups_two_plus_urls():
     result = await get_cannibalization(db, site_id)
 
     assert result["count"] == 1
-    assert result["items"][0]["phrase"] == "cannibal phrase"
-    assert result["items"][0]["page_count"] == 2
-    pages_urls = {p["url"] for p in result["items"][0]["pages"]}
+    assert result["rows"][0]["phrase"] == "cannibal phrase"
+    assert result["rows"][0]["page_count"] == 2
+    pages_urls = {p["url"] for p in result["rows"][0]["pages"]}
     assert "https://ex.com/page-a" in pages_urls
     assert "https://ex.com/page-b" in pages_urls
 
@@ -285,7 +285,7 @@ async def test_get_cannibalization_excludes_single_url_keywords():
     result = await get_cannibalization(db, site_id)
 
     assert result["count"] == 0
-    assert result["items"] == []
+    assert result["rows"] == []
 
 
 # ---------------------------------------------------------------------------
