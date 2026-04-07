@@ -21,6 +21,23 @@ A new UI GET route is automatically picked up — no test code changes needed �
 4. **Route is a partial** (path contains `/tabs/`, `/partials/`, `/detail/`):
    - Picked up automatically; structural HTML check is relaxed (no `<title>` requirement)
 
+### Non-HTML endpoints under UI prefixes
+
+The smoke gate auto-skips JSON / CSV / file endpoints discovered under
+UI prefixes. `discover_routes` classifies routes via three tiers:
+
+1. Explicit `response_class=HTMLResponse` → tested.
+   Explicit `response_class=JSONResponse / FileResponse / StreamingResponse / PlainTextResponse` → skipped.
+2. Return annotation `-> HTMLResponse` → tested.
+   Return annotation `-> list[dict]`, `-> dict`, `-> SomeBaseModel` → skipped.
+3. No signal → tested (conservative fallback).
+
+**If your endpoint returns JSON / CSV / binary**: declare `response_class=`
+on the route OR add a return-type annotation. You should NEVER need to
+add an entry to `SMOKE_SKIP` for non-HTML endpoints — that list is
+reserved for HTML endpoints that are deliberately untestable (auth
+redirects, ambiguous path-param collisions, etc.).
+
 ### Common failures and fixes
 
 | Failure | Cause | Fix |
