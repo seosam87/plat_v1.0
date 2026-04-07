@@ -62,6 +62,23 @@ SMOKE_SKIP: dict[str, str] = {
     # PARAM_MAP entry. Defer to scenario runner (backlog 999.1).
     "/ui/content-publish/{site_id}/preview/{job_id}":
         "job_id collision (SuggestJob vs WpContentJob) — covered by backlog 999.1",
+    # Group C — Metrika chart-data JSON endpoints under the /metrika/ UI
+    # prefix. They require date-range query params and return JSON, not
+    # rendered HTML. Future: filter discover_routes by response_class to
+    # auto-skip (Phase 15.2 candidate).
+    "/metrika/{site_id}/compare":
+        "JSON chart-data endpoint — requires a_start/a_end/b_start/b_end query params",
+    "/metrika/{site_id}/pages":
+        "JSON chart-data endpoint — requires period_start/period_end query params",
+    # Group D — traffic-analysis sessions endpoints. JSON / CSV exports
+    # under UI prefix; not Jinja pages. Also depend on TrafficAnalysisSession
+    # rows which the smoke seed does not provide (see deferred-items.md).
+    "/analytics/sessions/{session_id}/export":
+        "CSV export endpoint — not a Jinja page; no smoke seed for session_id",
+    "/traffic-analysis/sessions/{session_id}":
+        "JSON session-detail endpoint — no smoke seed for TrafficAnalysisSession",
+    "/traffic-analysis/sessions/{session_id}/anomalies":
+        "JSON anomalies endpoint — no smoke seed for TrafficAnalysisSession",
 }
 
 
