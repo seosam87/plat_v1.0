@@ -1,0 +1,39 @@
+name: tests
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: seo_user
+          POSTGRES_PASSWORD: changeme
+          POSTGRES_DB: seo_platform_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql+asyncpg://seo_user:changeme@localhost:5432/seo_platform_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install uv
+        run: pip install uv
+      - name: Install deps from requirements.txt
+        run: uv pip install --system -r requirements.txt
+      # NOTE: playwright browser install intentionally omitted — smoke tests
+      # use httpx ASGITransport in-process and do not launch a browser.
+      - name: Run pytest (includes UI smoke crawler)
+        run: pytest -x --tb=short
