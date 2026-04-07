@@ -265,7 +265,7 @@ def _check_via_dataforseo(site_id: str, keywords, diagnostics: list | None = Non
                     url = item.get("url")
                     break
 
-            engine_str = kw.engine.value if kw.engine else "google"
+            engine_str = kw.engine.value if kw.engine else "yandex"
             write_position_sync(
                 db, kw.id, uuid.UUID(site_id), engine_str, position, url=url
             )
@@ -295,7 +295,7 @@ def _check_via_serp_parser(site_id: str, keywords) -> int:
             logger.info("SERP daily limit reached, stopping", written=written)
             break
 
-        engine_str = kw.engine.value if kw.engine else "google"
+        engine_str = kw.engine.value if kw.engine else "yandex"
         serp_data = parse_serp_sync(kw.phrase, engine=engine_str)
         results = serp_data.get("results", []) if isinstance(serp_data, dict) else serp_data
         position = None
