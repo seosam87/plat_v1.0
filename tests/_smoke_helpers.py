@@ -8,6 +8,7 @@ No DB / network side effects at import time.
 from __future__ import annotations
 
 import re
+import typing
 from dataclasses import dataclass
 from typing import get_origin
 
@@ -105,8 +106,16 @@ def _is_html_route(route: APIRoute) -> bool:
             pass
 
     # Tier 2: return-type annotation.
+    # Resolve via typing.get_type_hints so PEP 563 string annotations
+    # (`from __future__ import annotations`) become live objects. If
+    # resolution fails (forward refs, missing names), fall through to tier 3.
     endpoint = getattr(route, "endpoint", None)
-    ann = getattr(endpoint, "__annotations__", {}).get("return") if endpoint else None
+    ann = None
+    if endpoint is not None:
+        try:
+            ann = typing.get_type_hints(endpoint).get("return")
+        except (NameError, AttributeError, TypeError):
+            ann = None
     if ann is not None:
         # Parametrized generics: list[dict], dict[str, Any], etc.
         origin = get_origin(ann)

@@ -454,7 +454,7 @@ async def delete_brief(
 # ---- Session export ----
 
 
-@router.get("/sessions/{session_id}/export")
+@router.get("/sessions/{session_id}/export", response_class=PlainTextResponse)
 async def export_session(
     session_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
