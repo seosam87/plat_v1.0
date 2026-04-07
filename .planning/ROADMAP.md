@@ -114,11 +114,11 @@ Plans:
 **Goal:** Any new UI page or HTMX partial gets automatic render verification before merge — eliminate Jinja key/attr collisions, undefined variables, missing context, and broken includes via a deterministic seed-driven pytest smoke crawler that auto-discovers GET routes from `app.routes` and asserts status + body markers + structural HTML, gated in CI.
 **Requirements**: TBD (no roadmap requirement IDs — must_haves derived from CONTEXT success criteria)
 **Depends on:** Phase 15
-**Plans:** 5 plans
+**Plans:** 1/5 plans executed
 
 Plans:
 - [ ] 15.1-01-PLAN.md — Smoke seed fixture: deterministic ORM-based session-scoped seed (Site, User, Keywords, Positions, GapKeywords, SuggestJob, CrawlJob, AuditCheckDefinition, AuditResult, ClientReport, ServiceCredential)
-- [ ] 15.1-02-PLAN.md — Helper module: route discovery from app.routes, PARAM_MAP / SMOKE_SKIP, body marker scan, structural HTML check (with full unit tests)
+- [x] 15.1-02-PLAN.md — Helper module: route discovery from app.routes, PARAM_MAP / SMOKE_SKIP, body marker scan, structural HTML check (with full unit tests)
 - [ ] 15.1-03-PLAN.md — Pytest smoke module: parametrized over discovered routes + smoke_client fixture overriding get_current_user/require_admin + data.items regression test
 - [ ] 15.1-04-PLAN.md — Evolve standalone tests/smoke_test.py into thin CLI wrapper reusing helpers (D-08)
 - [ ] 15.1-05-PLAN.md — CI gate: GitHub Actions workflow with Postgres service + tests/README.md "Adding a new route" docs
@@ -157,7 +157,7 @@ Plans:
 | 13. Impact Scoring & Growth Opportunities | v2.0 | 3/3 | Complete    | 2026-04-06 |
 | 14. Client Instructions PDF | v2.0 | 3/3 | Complete    | 2026-04-06 |
 | 15. Keyword Suggest | v2.0 | 3/3 | Complete   | 2026-04-07 |
-| 15.1. UI Smoke Crawler | v2.0 | 0/5 | Planned     | - |
+| 15.1. UI Smoke Crawler | v2.0 | 1/5 | In Progress|  |
 | 16. AI/GEO Readiness & LLM Briefs | v2.0 | 0/TBD | Not started | - |
 | 17. In-app Notifications | v2.0 | 0/TBD | Not started | - |
 
