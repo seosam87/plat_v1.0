@@ -170,3 +170,59 @@ def fetch_suggest_keywords(self, job_id: str) -> dict:
             db.commit()
 
     return {"status": status, "count": len(combined), "was_banned": was_banned}
+
+
+@celery_app.task(
+    name="app.tasks.suggest_tasks.fetch_wordstat_frequency",
+    bind=True,
+    max_retries=3,  # D-03: retry=3 for all external API calls
+    queue="default",
+    soft_time_limit=120,
+    time_limit=150,
+)
+def fetch_wordstat_frequency(self, job_id: str) -> dict:
+    """Fetch Wordstat frequency data for an existing suggest job's results.
+
+    Reads cached suggestions from Redis, fetches frequency via Wordstat API,
+    updates the cached data with frequency values.
+    """
+    from app.services.service_credential_service import get_credential_sync
+    from app.services.wordstat_service import fetch_wordstat_frequency_sync
+
+    r = sync_redis.from_url(settings.REDIS_URL, decode_responses=True)
+
+    with get_sync_db() as db:
+        job = db.get(SuggestJob, uuid.UUID(job_id))
+        if not job or not job.cache_key:
+            return {"status": "failed", "error": "Job not found or no cache key"}
+        cache_key_val = job.cache_key
+        creds = get_credential_sync(db, "yandex_direct")
+
+    if not creds or not creds.get("token"):
+        return {"status": "failed", "error": "Yandex Direct token not configured"}
+
+    token = creds["token"]
+
+    raw = r.get(cache_key_val)
+    if not raw:
+        return {"status": "failed", "error": "No cached suggestions found"}
+
+    suggestions = json.loads(raw)
+    phrases = [s["keyword"] for s in suggestions]
+
+    freq_map = fetch_wordstat_frequency_sync(phrases, oauth_token=token)
+
+    updated_count = 0
+    for s in suggestions:
+        freq = freq_map.get(s["keyword"])
+        if freq is not None:
+            s["frequency"] = freq
+            updated_count += 1
+
+    r.set(
+        cache_key_val,
+        json.dumps(suggestions, ensure_ascii=False),
+        ex=SUGGEST_CACHE_TTL,
+    )
+
+    return {"status": "complete", "updated": updated_count, "total": len(phrases)}

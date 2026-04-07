@@ -19,6 +19,7 @@ from app.services import crypto_service
 ENCRYPTED_FIELDS: dict[str, list[str]] = {
     "xmlproxy": ["key"],
     "rucaptcha": ["key"],
+    "yandex_direct": ["token"],  # Yandex Direct OAuth token for Wordstat API (D-12)
 }
 
 
