@@ -34,7 +34,7 @@
 
 - [x] **SUG-01**: Пользователь может получить подсказки ключей через Яндекс Suggest по seed-ключу с алфавитным перебором (200+ результатов)
 - [x] **SUG-02**: Google Suggest работает как дополнительный источник (простой endpoint, без авторизации)
-- [ ] **SUG-03**: Wordstat API интеграция (opt-in, требует OAuth токен Яндекс Директ) для частотности
+- [x] **SUG-03**: Wordstat API интеграция (opt-in, требует OAuth токен Яндекс Директ) для частотности
 - [x] **SUG-04**: Результаты suggest кэшируются в Redis (TTL 24h); повторный запрос не делает внешних вызовов
 
 ### LLM Briefs
@@ -93,7 +93,7 @@
 | CPDF-03 | Phase 14 | Complete |
 | SUG-01 | Phase 15 | Complete |
 | SUG-02 | Phase 15 | Complete |
-| SUG-03 | Phase 15 | Pending |
+| SUG-03 | Phase 15 | Complete |
 | SUG-04 | Phase 15 | Complete |
 | GEO-01 | Phase 16 | Pending |
 | GEO-02 | Phase 16 | Pending |
