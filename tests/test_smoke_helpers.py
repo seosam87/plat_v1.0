@@ -244,8 +244,12 @@ def test_assert_structural_html_main_tag_counts_as_body() -> None:
         ("/ui/sites/{id}/tabs/keywords", True),
         ("/ui/sites/{id}/partials/header", True),
         ("/ui/keyword-suggest/detail/123", True),
+        ("/metrika/abc/widget", True),
+        ("/analytics/abc/fix-status/xyz", True),
+        ("/analytics/abc/quick-wins/table", True),
         ("/ui/sites/{id}", False),
         ("/ui/dashboard", False),
+        ("/analytics/abc/quick-wins", False),
     ],
 )
 def test_is_partial(path: str, expected: bool) -> None:

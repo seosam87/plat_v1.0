@@ -165,5 +165,24 @@ def assert_structural_html(body: str, path: str, *, is_partial: bool) -> None:
 
 
 def is_partial(path: str) -> bool:
-    """Heuristic: does this path render an HTMX partial rather than a page?"""
-    return "/tabs/" in path or "/partials/" in path or "/detail/" in path
+    """Heuristic: does this path render an HTMX partial rather than a page?
+
+    Recognised partial markers:
+      - "/tabs/"        — tabbed-panel partial
+      - "/partials/"    — explicit partial directory
+      - "/detail/"      — inline detail panel
+      - "/widget"       — dashboard widget partial (e.g. /metrika/{id}/widget)
+      - "/fix-status/"  — fix-status row swap
+      - "/quick-wins/table" — table-only swap inside quick-wins page
+
+    Only relaxes the structural HTML check for these paths. The body
+    error-marker scan and the non-empty body check still apply.
+    """
+    return (
+        "/tabs/" in path
+        or "/partials/" in path
+        or "/detail/" in path
+        or "/widget" in path
+        or "/fix-status/" in path
+        or "/quick-wins/table" in path
+    )
