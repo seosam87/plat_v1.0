@@ -172,6 +172,33 @@ Plans:
 Plans:
 - [ ] TBD (promote with /gsd:review-backlog when ready)
 
+### Phase 999.3: Smart Route Discovery (response_class filter) (BACKLOG)
+
+**Goal:** Extend `tests/_smoke_helpers.py::discover_routes` to auto-filter routes by `response_class=HTMLResponse` (or return-type annotation), skipping JSON/CSV endpoints automatically instead of requiring explicit `SMOKE_SKIP` entries. Eliminates the need for the 5 manual skips added during phase-15.1-deferred-routes debug session (`/metrika/{id}/pages`, `/metrika/{id}/compare`, `/analytics/sessions/{id}/export`, `/traffic-analysis/sessions/{id}`, `/traffic-analysis/sessions/{id}/anomalies`). Rationale: surfaced as tech debt in `.planning/phases/15.1-ui-smoke-crawler/deferred-items.md`.
+**Requirements:** TBD
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (promote with /gsd:review-backlog when ready)
+
+### Phase 999.4: Tests Bind-Mount Fix (BACKLOG)
+
+**Goal:** `/app/tests/` is not bind-mounted in `docker-compose.yml` (only `/app/app/` is), so edits to test files require `docker cp` or image rebuild before taking effect — confirmed during phase-15.1-deferred-routes debug session where the debugger had to `docker cp` updated `_smoke_helpers.py` into `seo-platform-api-1` for the final run. Fix: add `./tests:/app/tests` bind mount to the api service in docker-compose. One-line change, one-line verify.
+**Requirements:** TBD
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (promote with /gsd:review-backlog when ready)
+
+### Phase 999.5: Repo ↔ Deployment Sync Strategy (BACKLOG)
+
+**Goal:** Two independent deployment-drift incidents were caught in a single work session between `/projects/test/app/` (git repo) and `/opt/seo-platform/app/` (running deployment tree): (1) `opportunities_gaps.html` stale in `/opt/...` (Plan 15.1-03), (2) `opportunities_{cannibal,losses}.html` stale in `/opt/...` (debug phase-15.1-deferred-routes Group A). Root cause: no automated sync. Options to evaluate: rsync post-commit hook, symlink `/opt/seo-platform/app → /projects/test/app`, docker bind-mount restructure, or CI-driven rsync on merge to master. Decision deferred — needs discuss-phase to weigh against deployment model. Until fixed, the smoke gate running against `/opt/...` will keep catching drift as it happens, which is the safety net for this debt.
+**Requirements:** TBD
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (promote with /gsd:review-backlog when ready)
+
 ### Phase 999.2: Interactive Tour Player (BACKLOG)
 
 **Goal:** Frontend overlay (`app/static/js/tour.js` — lightweight custom or Shepherd.js via CDN) that highlights elements with tooltip/next/prev controls. Consumes the same `scenarios/*.yaml` files from Phase 999.1 to auto-generate user onboarding tours for new interfaces. Admin-only "Show tour" button on each page. Step types: highlight + say + wait_for_click. One source of truth: CI tests and user tours share scenario files.
