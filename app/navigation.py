@@ -84,6 +84,16 @@ NAV_SECTIONS = [
         ],
     },
     {
+        "id": "keyword-suggest",
+        "label": "Keyword Suggest",
+        "icon": "light-bulb",
+        "url": None,
+        "admin_only": False,
+        "children": [
+            {"id": "keyword-suggest-search", "label": "Поиск подсказок", "url": "/ui/keyword-suggest/"},
+        ],
+    },
+    {
         "id": "settings",
         "label": "Настройки",
         "icon": "cog-6-tooth",

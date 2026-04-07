@@ -64,11 +64,11 @@ app = FastAPI(
 )
 
 # Rate limiting
-from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.util import get_remote_address
+from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
-limiter = Limiter(key_func=get_remote_address, default_limits=["60/minute"])
+from app.rate_limit import limiter
+
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
@@ -148,6 +148,9 @@ app.include_router(opportunities_router)
 
 from app.routers.client_reports import router as client_reports_router
 app.include_router(client_reports_router)
+
+from app.routers.keyword_suggest import router as keyword_suggest_router
+app.include_router(keyword_suggest_router)
 
 
 # ---- Site selector API endpoints for nav sidebar ----
