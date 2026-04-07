@@ -181,14 +181,10 @@ Plans:
 Plans:
 - [ ] TBD (promote with /gsd:review-backlog when ready)
 
-### Phase 999.4: Tests Bind-Mount Fix (BACKLOG)
+### Phase 999.4: Tests Bind-Mount Fix (RESOLVED via quick fix 035793f)
 
-**Goal:** `/app/tests/` is not bind-mounted in `docker-compose.yml` (only `/app/app/` is), so edits to test files require `docker cp` or image rebuild before taking effect — confirmed during phase-15.1-deferred-routes debug session where the debugger had to `docker cp` updated `_smoke_helpers.py` into `seo-platform-api-1` for the final run. Fix: add `./tests:/app/tests` bind mount to the api service in docker-compose. One-line change, one-line verify.
-**Requirements:** TBD
-**Plans:** 0 plans
-
-Plans:
-- [ ] TBD (promote with /gsd:review-backlog when ready)
+**Goal:** Add `./tests:/app/tests` bind mount to api service so test edits don't require `docker cp`.
+**Resolution:** Fixed inline via /gsd:quick on 2026-04-07 (commit 035793f). No phase needed.
 
 ### Phase 999.5: Repo ↔ Deployment Sync Strategy (BACKLOG)
 
