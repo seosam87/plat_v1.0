@@ -109,6 +109,16 @@ Plans:
 - [x] 15-03-PLAN.md — Wordstat integration + position engine fix + tests
 **UI hint**: yes
 
+### Phase 15.1: UI Smoke Crawler (INSERTED)
+
+**Goal:** [Urgent work - to be planned]
+**Requirements**: TBD
+**Depends on:** Phase 15
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd:plan-phase 15.1 to break down)
+
 ### Phase 16: AI/GEO Readiness & LLM Briefs
 **Goal**: Every page has a GEO readiness score visible in the audit table, and users with a configured Claude API key can generate an AI-enhanced brief that extends the existing template brief
 **Depends on**: Phase 12, Phase 13
@@ -145,3 +155,23 @@ Plans:
 | 15. Keyword Suggest | v2.0 | 3/3 | Complete   | 2026-04-07 |
 | 16. AI/GEO Readiness & LLM Briefs | v2.0 | 0/TBD | Not started | - |
 | 17. In-app Notifications | v2.0 | 0/TBD | Not started | - |
+
+## Backlog
+
+### Phase 999.1: UI Scenario Runner (Playwright) (BACKLOG)
+
+**Goal:** YAML-based scenario runner using Playwright async. Format: steps with open/click/fill/wait_for/expect_text/expect_status. Runs in CI against full docker-compose stack. Reuses seed fixtures from Phase 15.1. Covers interactive flows: form submit, HTMX polling, slide-over detail panels, suggest→results flow, gap analysis, position checks. Scenarios stored in `scenarios/*.yaml` — same files later consumed by 999.2 tour player (one source of truth for tests and tours).
+**Requirements:** TBD
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (promote with /gsd:review-backlog when ready)
+
+### Phase 999.2: Interactive Tour Player (BACKLOG)
+
+**Goal:** Frontend overlay (`app/static/js/tour.js` — lightweight custom or Shepherd.js via CDN) that highlights elements with tooltip/next/prev controls. Consumes the same `scenarios/*.yaml` files from Phase 999.1 to auto-generate user onboarding tours for new interfaces. Admin-only "Show tour" button on each page. Step types: highlight + say + wait_for_click. One source of truth: CI tests and user tours share scenario files.
+**Requirements:** TBD
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (promote with /gsd:review-backlog when ready)

@@ -57,6 +57,10 @@ Progress: [__________] 0% (v2.0)
 
 ## Accumulated Context
 
+### Roadmap Evolution
+
+- Phase 15.1 inserted after Phase 15: UI Smoke Crawler — pytest+httpx runner hitting every GET route with seeds, asserts 200 + no Jinja errors. Motivated by repeated 500s on new UI (today: `data.items` dict collision on opportunities page). (URGENT / INSERTED)
+
 ### Key Decisions (v2.0)
 
 | Decision | Rationale |
