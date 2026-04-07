@@ -264,3 +264,57 @@ def test_smoke_skip_contains_content_publish_preview() -> None:
     assert "job_id collision" in SMOKE_SKIP[
         "/ui/content-publish/{site_id}/preview/{job_id}"
     ]
+
+
+# ---------------------------------------------------------------------------
+# Phase 999.3 — three-tier HTML classification filter (D-04)
+# ---------------------------------------------------------------------------
+def _make_app_with(route_setup) -> FastAPI:
+    app = FastAPI()
+    route_setup(app)
+    return app
+
+
+def test_filter_includes_explicit_html_response_class() -> None:
+    def setup(app: FastAPI) -> None:
+        @app.get("/ui/page", response_class=HTMLResponse)
+        async def page():  # pragma: no cover
+            return "<html></html>"
+    paths = {r.path for r in discover_routes(_make_app_with(setup))}
+    assert "/ui/page" in paths
+
+
+def test_filter_excludes_explicit_json_response_class() -> None:
+    def setup(app: FastAPI) -> None:
+        @app.get("/metrika/{site_id}/data", response_class=JSONResponse)
+        async def data(site_id: str):  # pragma: no cover
+            return {}
+    paths = {r.path for r in discover_routes(_make_app_with(setup))}
+    assert "/metrika/{site_id}/data" not in paths
+
+
+def test_filter_excludes_list_dict_return_annotation() -> None:
+    def setup(app: FastAPI) -> None:
+        @app.get("/traffic-analysis/sessions/{session_id}/anomalies")
+        async def anomalies(session_id: str) -> list[dict]:  # pragma: no cover
+            return []
+    paths = {r.path for r in discover_routes(_make_app_with(setup))}
+    assert "/traffic-analysis/sessions/{session_id}/anomalies" not in paths
+
+
+def test_filter_includes_unannotated_route_fallback() -> None:
+    def setup(app: FastAPI) -> None:
+        @app.get("/ui/legacy")
+        async def legacy():  # pragma: no cover
+            return "ok"
+    paths = {r.path for r in discover_routes(_make_app_with(setup))}
+    assert "/ui/legacy" in paths
+
+
+def test_filter_includes_html_response_return_annotation() -> None:
+    def setup(app: FastAPI) -> None:
+        @app.get("/analytics/page")
+        async def page() -> HTMLResponse:  # pragma: no cover
+            return HTMLResponse("<html></html>")
+    paths = {r.path for r in discover_routes(_make_app_with(setup))}
+    assert "/analytics/page" in paths

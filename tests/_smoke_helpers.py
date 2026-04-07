@@ -9,9 +9,26 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from typing import get_origin
 
 from fastapi import FastAPI
+from fastapi.responses import HTMLResponse
 from fastapi.routing import APIRoute
+from pydantic import BaseModel
+
+try:
+    from fastapi.datastructures import DefaultPlaceholder
+except ImportError:  # pragma: no cover - defensive fallback for FastAPI variants
+    class DefaultPlaceholder:  # type: ignore[no-redef]
+        """Sentinel fallback when fastapi.datastructures.DefaultPlaceholder is unavailable."""
+
+# Response classes that are NEVER HTML (tier-1 explicit negatives, for reference).
+_NON_HTML_RESPONSE_HINTS = (
+    "JSONResponse",
+    "PlainTextResponse",
+    "FileResponse",
+    "StreamingResponse",
+)
 
 # ---------------------------------------------------------------------------
 # Error markers — scanned inside response body to catch Jinja / 500s that
@@ -93,12 +110,54 @@ class RouteSpec:
     methods: frozenset[str]
 
 
-def discover_routes(app: FastAPI) -> list[RouteSpec]:
-    """Enumerate smoke-testable GET routes from ``app.routes``.
+def _is_html_route(route: APIRoute) -> bool:
+    """Three-tier HTML classification — see discover_routes docstring."""
+    # Tier 1: explicit response_class (skip FastAPI's DefaultPlaceholder).
+    rc = getattr(route, "response_class", None)
+    if rc is not None and not isinstance(rc, DefaultPlaceholder):
+        try:
+            return issubclass(rc, HTMLResponse)
+        except TypeError:
+            # rc is an instance, not a class — treat as ambiguous, fall through.
+            pass
 
-    Filters to fastapi ``APIRoute`` instances with GET method whose path
-    starts with one of ``UI_PREFIXES`` and is not in ``SMOKE_SKIP``.
-    ``/api/`` paths are excluded explicitly (they are JSON endpoints).
+    # Tier 2: return-type annotation.
+    endpoint = getattr(route, "endpoint", None)
+    ann = getattr(endpoint, "__annotations__", {}).get("return") if endpoint else None
+    if ann is not None:
+        # Parametrized generics: list[dict], dict[str, Any], etc.
+        origin = get_origin(ann)
+        if origin in (list, dict, tuple, set):
+            return False
+        if isinstance(ann, type):
+            if issubclass(ann, HTMLResponse):
+                return True
+            if issubclass(ann, (list, dict, BaseModel)):
+                return False
+            # Generic Response / unknown class — fall through to tier 3.
+
+    # Tier 3: conservative include.
+    return True
+
+
+def discover_routes(app: FastAPI) -> list[RouteSpec]:
+    """Enumerate smoke-testable HTML GET routes from app.routes.
+
+    A route is included iff ALL of:
+      - it's a fastapi APIRoute
+      - GET is among its methods
+      - path does not start with /api/
+      - path starts with one of UI_PREFIXES
+      - it passes the HTML classification filter (_is_html_route):
+          1. response_class explicitly set and is HTMLResponse subclass -> include
+             (DefaultPlaceholder sentinel is treated as "not declared")
+          2. return annotation is HTMLResponse subclass -> include
+             return annotation is list/dict/BaseModel/parametrized list[..] -> exclude
+          3. neither signal present -> include (conservative fallback)
+      - path is not in SMOKE_SKIP
+
+      Edge case: if a route declares response_class=HTMLResponse AND has a
+      -> list[dict] annotation, tier 1 wins and the route is included.
     """
     out: list[RouteSpec] = []
     for r in app.routes:
@@ -109,6 +168,8 @@ def discover_routes(app: FastAPI) -> list[RouteSpec]:
         if r.path.startswith("/api/"):
             continue
         if not any(r.path.startswith(p) for p in UI_PREFIXES):
+            continue
+        if not _is_html_route(r):
             continue
         if r.path in SMOKE_SKIP:
             continue
