@@ -402,7 +402,7 @@ async def get_brief(
     }
 
 
-@router.get("/briefs/{brief_id}/export")
+@router.get("/briefs/{brief_id}/export", response_class=PlainTextResponse)
 async def export_brief(
     brief_id: uuid.UUID,
     format: str = "text",
