@@ -23,7 +23,27 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 
+from datetime import datetime, timezone
+
 from app.database import Base
+from app.auth.password import hash_password
+from app.models.site import Site, ConnectionStatus
+from app.models.site_group import SiteGroup
+from app.models.user import User, UserRole
+from app.models.keyword import Keyword, KeywordGroup, SearchEngine
+from app.models.keyword_latest_position import KeywordLatestPosition
+from app.models.gap import GapKeyword
+from app.models.suggest_job import SuggestJob
+from app.models.crawl import CrawlJob, CrawlJobStatus
+from app.models.client_report import ClientReport
+from app.models.service_credential import ServiceCredential
+from app.models.audit import AuditCheckDefinition, AuditResult
+from app.models.crawl import ContentType
+from app.models.project import Project, ProjectStatus
+from app.models.task import SeoTask, TaskType, TaskStatus, TaskPriority
+from app.models.analytics import AnalysisSession, SessionStatus, ContentBrief
+from app.models.cluster import KeywordCluster, ClusterIntent
+from app.models.competitor import Competitor
 
 # Deterministic UUID strings for URL parameter substitution.
 # NOTE: "job_id" is a generic alias for suggest_job_id so routes using the
@@ -62,6 +82,265 @@ class SeedHandle:
     connection: AsyncConnection
 
 
+def _u(key: str) -> UUID:
+    return UUID(SMOKE_IDS[key])
+
+
+_NOW = datetime.now(timezone.utc)
+
+
+async def _seed_core(session: AsyncSession) -> None:
+    """Insert CORE entities — Wave A (Task 2)."""
+    # SiteGroup first (Site FKs SET NULL to site_groups)
+    session.add(
+        SiteGroup(id=_u("group_id"), name="smoke-group", description="smoke test group")
+    )
+    await session.flush()
+
+    # Site
+    session.add(
+        Site(
+            id=_u("site_id"),
+            name="Smoke Site",
+            url="https://smoke.example.com",
+            connection_status=ConnectionStatus.unknown,
+            site_group_id=_u("group_id"),
+            is_active=True,
+        )
+    )
+    # Admin User
+    session.add(
+        User(
+            id=_u("user_id"),
+            username="smoke_admin",
+            email="smoke@example.com",
+            password_hash=hash_password("smoke-password"),
+            role=UserRole.admin,
+            is_active=True,
+        )
+    )
+    await session.flush()
+
+    # KeywordGroup
+    kgroup_id = UUID("10101010-1010-1010-1010-101010101010")
+    session.add(
+        KeywordGroup(id=kgroup_id, site_id=_u("site_id"), name="smoke-kgroup")
+    )
+    await session.flush()
+
+    # 10 Keywords: first is deterministic; mix engine yandex/google/NULL
+    engines = [
+        SearchEngine.yandex,
+        SearchEngine.google,
+        None,
+        SearchEngine.yandex,
+        SearchEngine.google,
+        None,
+        SearchEngine.yandex,
+        SearchEngine.google,
+        SearchEngine.yandex,
+        None,
+    ]
+    keyword_ids: list[UUID] = []
+    for i, engine in enumerate(engines):
+        kid = _u("keyword_id") if i == 0 else UUID(f"3333{i:04d}-3333-3333-3333-333333333333")
+        keyword_ids.append(kid)
+        session.add(
+            Keyword(
+                id=kid,
+                site_id=_u("site_id"),
+                group_id=kgroup_id,
+                phrase=f"smoke keyword {i}",
+                frequency=100 + i,
+                region="Moscow",
+                engine=engine,
+                target_url="https://smoke.example.com/page",
+            )
+        )
+
+    # 5 KeywordLatestPosition rows
+    for i in range(5):
+        session.add(
+            KeywordLatestPosition(
+                keyword_id=keyword_ids[i],
+                site_id=_u("site_id"),
+                engine="yandex",
+                region="Moscow",
+                position=5 + i,
+                previous_position=10 + i,
+                delta=-5,
+                url="https://smoke.example.com/page",
+                checked_at=_NOW,
+            )
+        )
+
+    # 2 GapKeyword
+    session.add(
+        GapKeyword(
+            id=_u("gap_keyword_id"),
+            site_id=_u("site_id"),
+            competitor_domain="competitor.example",
+            phrase="gap phrase 1",
+            frequency=500,
+            competitor_position=3,
+            our_position=None,
+            potential_score=87.5,
+        )
+    )
+    session.add(
+        GapKeyword(
+            site_id=_u("site_id"),
+            competitor_domain="competitor.example",
+            phrase="gap phrase 2",
+            frequency=200,
+            potential_score=42.0,
+        )
+    )
+
+    # SuggestJob (complete, cache_hit False)
+    session.add(
+        SuggestJob(
+            id=_u("suggest_job_id"),
+            seed="smoke seed",
+            include_google=False,
+            site_id=_u("site_id"),
+            status="complete",
+            result_count=42,
+            expected_count=42,
+            user_id=_u("user_id"),
+        )
+    )
+
+    # CrawlJob (done)
+    session.add(
+        CrawlJob(
+            id=_u("crawl_job_id"),
+            site_id=_u("site_id"),
+            status=CrawlJobStatus.done,
+            pages_crawled=10,
+        )
+    )
+
+    # ClientReport (ready) — blocks_config required
+    session.add(
+        ClientReport(
+            id=_u("report_id"),
+            site_id=_u("site_id"),
+            blocks_config={
+                "quick_wins": True,
+                "audit_errors": True,
+                "dead_content": True,
+                "positions": True,
+            },
+            status="ready",
+        )
+    )
+
+    # ServiceCredential rows
+    for svc in ("wordstat", "gsc", "xmlproxy", "rucaptcha"):
+        session.add(
+            ServiceCredential(service_name=svc, credential_data="{}")
+        )
+
+    # AuditCheckDefinition
+    session.add(
+        AuditCheckDefinition(
+            id=_u("audit_check_id"),
+            code="smoke_check",
+            name="Smoke Check",
+            description="Smoke audit check definition",
+            applies_to=ContentType.unknown,
+            severity="warning",
+        )
+    )
+    # AuditResult with explicit audit_id
+    session.add(
+        AuditResult(
+            id=_u("audit_id"),
+            site_id=_u("site_id"),
+            page_url="https://smoke.example.com/page",
+            check_code="smoke_check",
+            status="warning",
+            details="smoke audit result",
+        )
+    )
+    await session.flush()
+
+
+async def _seed_extended(session: AsyncSession) -> None:
+    """Insert EXTENDED entities — Wave B (Task 3).
+
+    Substitutions from plan (documented for Plan 02 SMOKE_SKIP awareness):
+    - `Task` model is `SeoTask` (app/models/task.py); seeded as SeoTask row
+    - `AnalyticsSession` model is `AnalysisSession` (app/models/analytics.py)
+    - `Brief` model is `ContentBrief` (app/models/analytics.py)
+    - `KeywordCluster` FK is `site_id` (not project_id per plan)
+    """
+    # Project
+    session.add(
+        Project(
+            id=_u("project_id"),
+            site_id=_u("site_id"),
+            name="smoke-project",
+            status=ProjectStatus.active,
+        )
+    )
+    # SeoTask (ORM Task row)
+    session.add(
+        SeoTask(
+            id=_u("task_id"),
+            site_id=_u("site_id"),
+            task_type=TaskType.manual,
+            status=TaskStatus.open,
+            url="https://smoke.example.com/page",
+            title="smoke task",
+            priority=TaskPriority.p3,
+        )
+    )
+    # AnalysisSession (session_id)
+    session.add(
+        AnalysisSession(
+            id=_u("session_id"),
+            site_id=_u("site_id"),
+            name="smoke-session",
+            status=SessionStatus.draft,
+            keyword_ids=[],
+            keyword_count=0,
+        )
+    )
+    # KeywordCluster
+    session.add(
+        KeywordCluster(
+            id=_u("cluster_id"),
+            site_id=_u("site_id"),
+            name="smoke-cluster",
+            intent=ClusterIntent.unknown,
+        )
+    )
+    await session.flush()
+
+    # ContentBrief — requires session_id (just created)
+    session.add(
+        ContentBrief(
+            id=_u("brief_id"),
+            session_id=_u("session_id"),
+            site_id=_u("site_id"),
+            title="smoke brief",
+            keywords_json=[],
+        )
+    )
+    # Competitor
+    session.add(
+        Competitor(
+            id=_u("competitor_id"),
+            site_id=_u("site_id"),
+            domain="competitor.example",
+            name="Smoke Competitor",
+        )
+    )
+    await session.flush()
+
+
 try:
     from app.config import settings
     TEST_DATABASE_URL = settings.DATABASE_URL.replace(
@@ -91,6 +370,9 @@ async def smoke_seed() -> Any:
     )
     session = Session()
     try:
+        await _seed_core(session)
+        await _seed_extended(session)
+        await session.flush()
         yield SeedHandle(ids=SMOKE_IDS, session=session, connection=conn)
     finally:
         await session.close()
