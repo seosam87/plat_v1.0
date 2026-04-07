@@ -61,6 +61,18 @@ async def _get_site_or_404(
     return site
 
 
+# ---- Check definition list (must be declared before /{site_id} to avoid
+# being captured as a UUID path param) ----
+
+
+@router.get("/checks", response_model=None)
+async def list_checks(
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_admin),
+) -> list[dict]:
+    return await cas.get_check_definitions(db)
+
+
 # ---- Page endpoints ----
 
 
@@ -233,14 +245,6 @@ async def set_content_type(
 
 
 # ---- Check definition endpoints ----
-
-
-@router.get("/checks", response_model=None)
-async def list_checks(
-    db: AsyncSession = Depends(get_db),
-    _: User = Depends(require_admin),
-) -> list[dict]:
-    return await cas.get_check_definitions(db)
 
 
 @router.post("/checks")

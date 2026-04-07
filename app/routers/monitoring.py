@@ -33,6 +33,28 @@ async def _get_site_or_404(db: AsyncSession, site_id: uuid.UUID) -> Site:
     return site
 
 
+# ---- Alert rules list (must be declared before /{site_id} to avoid
+# being captured as a UUID path param) ----
+
+
+@router.get("/rules", response_model=None)
+async def list_rules(
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_admin),
+) -> list[dict]:
+    result = await db.execute(select(ChangeAlertRule).order_by(ChangeAlertRule.change_type))
+    return [
+        {
+            "id": str(r.id),
+            "change_type": r.change_type.value,
+            "severity": r.severity.value,
+            "is_active": r.is_active,
+            "description": r.description,
+        }
+        for r in result.scalars().all()
+    ]
+
+
 @router.get("/{site_id}", response_class=HTMLResponse)
 async def monitoring_page(
     request: Request,
@@ -87,24 +109,6 @@ async def monitoring_page(
 
 
 # ---- Alert rules (global) ----
-
-
-@router.get("/rules", response_model=None)
-async def list_rules(
-    db: AsyncSession = Depends(get_db),
-    _: User = Depends(require_admin),
-) -> list[dict]:
-    result = await db.execute(select(ChangeAlertRule).order_by(ChangeAlertRule.change_type))
-    return [
-        {
-            "id": str(r.id),
-            "change_type": r.change_type.value,
-            "severity": r.severity.value,
-            "is_active": r.is_active,
-            "description": r.description,
-        }
-        for r in result.scalars().all()
-    ]
 
 
 @router.put("/rules/{rule_id}")
