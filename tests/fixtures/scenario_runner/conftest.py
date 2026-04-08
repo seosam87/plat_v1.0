@@ -1,22 +1,30 @@
-"""Session-scoped Playwright fixtures for scenario_runner.
+"""Playwright fixtures for scenario_runner.
 
 Raw ``playwright.async_api`` usage — NOT pytest-playwright (which conflicts
 with custom pytest collectors; see RESEARCH.md Pitfall 1).
 
-Pattern 2 from 19.1-RESEARCH.md:
-- One Chromium per pytest session (amortize launch cost)
-- Per-scenario ``BrowserContext`` constructed from cached ``storage_state.json``
-- Programmatic login once against the seeded ``smoke_admin`` user
-- Tracing started per-scenario (snapshots + screenshots + sources) so failures
-  capture a full replayable trace.zip
+Event-loop discipline
+---------------------
+pytest-asyncio creates a fresh event loop per fixture scope and the
+scenario_runner's custom ``ScenarioItem.runtest`` runs its own
+``asyncio.run`` — those two loops do NOT match and every Playwright
+object bound to one loop explodes when touched from the other (``The
+future belongs to a different loop``).
+
+To avoid that, we manage ONE dedicated event loop ourselves inside the
+``scenario_page`` fixture and stash it on the ``page`` object as
+``page._scenario_loop``. The collector reuses that same loop when
+running scenario steps and failure-artifact capture — guaranteeing
+everything runs on a single loop.
 """
 from __future__ import annotations
 
+import asyncio
 import os
 from pathlib import Path
+from typing import Any
 
 import pytest
-import pytest_asyncio
 
 try:
     from playwright.async_api import async_playwright
@@ -36,63 +44,74 @@ def _require_playwright() -> None:
         )
 
 
-@pytest_asyncio.fixture(scope="session")
+@pytest.fixture
 def base_url() -> str:
     return os.environ.get("BASE_URL", "http://localhost:8000")
 
 
-@pytest_asyncio.fixture(scope="session")
-async def scenario_playwright():
+@pytest.fixture
+def scenario_page(base_url: str):
+    """Per-scenario BrowserContext with auth + tracing armed.
+
+    Sync fixture that owns its event loop. Yields a Playwright ``page``
+    with:
+      - ``page._scenario_loop``: the dedicated asyncio loop
+      - ``page._scenario_base_url``: base URL for relative navigation
+    """
     _require_playwright()
-    async with async_playwright() as pw:
-        yield pw
 
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
 
-@pytest_asyncio.fixture(scope="session")
-async def scenario_browser(scenario_playwright):
-    browser = await scenario_playwright.chromium.launch(headless=True)
-    try:
-        yield browser
-    finally:
-        await browser.close()
+    pw_cm: Any = None
+    pw_obj: Any = None
+    browser: Any = None
+    ctx: Any = None
 
+    async def _setup():
+        nonlocal pw_cm, pw_obj, browser, ctx
+        pw_cm = async_playwright()
+        pw_obj = await pw_cm.__aenter__()
+        browser = await pw_obj.chromium.launch(headless=True)
 
-@pytest_asyncio.fixture(scope="session")
-async def storage_state(scenario_browser, base_url) -> str:
-    """Programmatic login → cached storage_state.json.
+        # Login once per scenario (scenarios are few; the login overhead is
+        # acceptable and avoids cross-loop storage_state caching headaches).
+        login_ctx = await browser.new_context()
+        login_page = await login_ctx.new_page()
+        await login_page.goto(f"{base_url}/ui/login")
+        await login_page.get_by_label("Email").fill("smoke@example.com")
+        await login_page.get_by_label("Password").fill("smoke-password")
+        await login_page.get_by_role("button", name="Sign In").click()
+        await login_page.wait_for_url(f"{base_url}/ui/dashboard")
+        STORAGE_STATE.parent.mkdir(parents=True, exist_ok=True)
+        state_path = str(STORAGE_STATE)
+        await login_ctx.storage_state(path=state_path)
+        await login_ctx.close()
 
-    The file is written under ``artifacts/.auth/`` (gitignored). If it already
-    exists from a previous run in the same workspace, it is reused; CI wipes
-    ``artifacts/`` between runs so staleness is not an issue.
-    """
-    if STORAGE_STATE.exists():
-        return str(STORAGE_STATE)
+        ctx = await browser.new_context(storage_state=state_path)
+        await ctx.tracing.start(snapshots=True, screenshots=True, sources=True)
+        page = await ctx.new_page()
+        page._scenario_loop = loop  # type: ignore[attr-defined]
+        page._scenario_base_url = base_url  # type: ignore[attr-defined]
+        return page
 
-    ctx = await scenario_browser.new_context()
-    page = await ctx.new_page()
-    await page.goto(f"{base_url}/ui/login")
-    await page.get_by_label("Username").fill("smoke_admin")
-    await page.get_by_label("Password").fill("smoke-password")
-    await page.get_by_role("button", name="Log in").click()
-    await page.wait_for_url(f"{base_url}/ui/dashboard")
-    STORAGE_STATE.parent.mkdir(parents=True, exist_ok=True)
-    await ctx.storage_state(path=str(STORAGE_STATE))
-    await ctx.close()
-    return str(STORAGE_STATE)
+    page = loop.run_until_complete(_setup())
 
-
-@pytest_asyncio.fixture
-async def scenario_page(scenario_browser, storage_state):
-    """Per-scenario fresh BrowserContext with auth + tracing armed.
-
-    Tracing is STARTED here but STOPPED by the caller (see collector.py) so
-    the failure hook can write trace.zip on the same page/context/loop that
-    ran the scenario.
-    """
-    ctx = await scenario_browser.new_context(storage_state=storage_state)
-    await ctx.tracing.start(snapshots=True, screenshots=True, sources=True)
-    page = await ctx.new_page()
     try:
         yield page
     finally:
-        await ctx.close()
+        async def _teardown():
+            try:
+                if ctx is not None:
+                    await ctx.close()
+            finally:
+                if browser is not None:
+                    await browser.close()
+                if pw_cm is not None:
+                    await pw_cm.__aexit__(None, None, None)
+
+        try:
+            loop.run_until_complete(_teardown())
+        finally:
+            loop.close()
+            asyncio.set_event_loop(None)

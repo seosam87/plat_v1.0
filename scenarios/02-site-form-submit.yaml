@@ -1,0 +1,34 @@
+# P0 scenario 2 — synchronous form submit (Phase 19.1 phase-gate).
+#
+# Exercises: GET /ui/sites/new -> fill create-site form -> submit ->
+# redirect to /ui/sites listing -> assert the new row is visible.
+#
+# Side effect: inserts a Site row into the live dev/CI DB. Acceptable —
+# the CI DB is disposable and the scenario uses a stable name that can
+# be re-inserted (the sites table has no unique constraint on name).
+#
+# Selectors discovered from app/templates/sites/create.html and
+# sites/index.html (do NOT change without re-checking those templates).
+name: site-form-submit
+description: Create a site via the create-site form and assert it renders in the list
+steps:
+  - op: open
+    url: "/ui/sites/new"
+  - op: fill
+    target: 'input[name="name"]'
+    value: "Scenario Smoke Site"
+  - op: fill
+    target: 'input[name="url"]'
+    value: "https://scenario-smoke.example.com"
+  - op: click
+    target: 'role=button[name="Add Site"]'
+  # After submit the handler either redirects to /ui/sites (success) or
+  # re-renders /ui/sites/new with an error banner. Navigate explicitly to
+  # the list and assert the row appears there — robust against both
+  # redirect timing and re-runs with pre-existing rows.
+  - op: open
+    url: "/ui/sites"
+  - op: wait_for
+    target: 'table >> text=Scenario Smoke Site >> nth=0'
+    state: visible
+    timeout: 10000

@@ -18,11 +18,13 @@ Differences from ``smoke_seed.py``:
 from __future__ import annotations
 
 import asyncio
+import json
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from app.config import settings
+from app.services.suggest_service import SUGGEST_CACHE_TTL, suggest_cache_key
 
 # Import the full models package so every mapper is registered before
 # SQLAlchemy resolves FK relationships during flush. Without this the ORM
@@ -43,7 +45,11 @@ async def main() -> None:
         async with Session() as s:
             existing = await s.get(User, UUID(SMOKE_IDS["user_id"]))
             if existing is not None:
-                print("Already seeded, skipping")
+                print("Already seeded, skipping DB seed")
+                # Still reseed Redis cache — Redis may have been flushed
+                # between runs while the DB persists; the P0 suggest
+                # scenario depends on the cache being present.
+                await _seed_suggest_cache()
                 return
 
             # Pre-clean any rows in tables with unique constraints that
@@ -66,8 +72,32 @@ async def main() -> None:
             await seed_extended(s)
             await s.commit()
             print(f"Seeded {len(SMOKE_IDS)} entities")
+
+        # Seed Redis cache for the smoke SuggestJob so the P0 scenario
+        # `01-suggest-to-results.yaml` deterministically hits the cache
+        # (status=complete immediately, results rendered) without needing
+        # the Celery worker to reach live proxies.
+        await _seed_suggest_cache()
     finally:
         await engine.dispose()
+
+
+async def _seed_suggest_cache() -> None:
+    """Pre-populate Redis suggest cache for seed='smoke seed', yandex-only."""
+    from redis import asyncio as aioredis
+
+    key = suggest_cache_key("smoke seed", include_google=False)
+    payload = [
+        {"keyword": "smoke seed alpha", "source": "yandex", "frequency": None},
+        {"keyword": "smoke seed beta", "source": "yandex", "frequency": None},
+        {"keyword": "smoke seed gamma", "source": "yandex", "frequency": None},
+    ]
+    client = aioredis.from_url(settings.REDIS_URL, decode_responses=True)
+    try:
+        await client.set(key, json.dumps(payload), ex=SUGGEST_CACHE_TTL)
+        print(f"Seeded Redis suggest cache: {key} ({len(payload)} rows)")
+    finally:
+        await client.aclose()
 
 
 if __name__ == "__main__":

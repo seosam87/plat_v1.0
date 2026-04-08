@@ -37,9 +37,42 @@ class ScenarioFile(pytest.File):
 
 
 class ScenarioItem(pytest.Item):
+    # Fixture integration: ScenarioItem is a custom pytest.Item (not a
+    # pytest.Function), so pytest does not wire _fixtureinfo/_request for
+    # us. We build a minimal FuncFixtureInfo that requests ``scenario_page``
+    # (function-scoped), and use the private TopRequest to actually resolve
+    # the closure in setup(). This matches how pytest.Function does it.
     def __init__(self, *, scenario: Scenario, **kw):
         super().__init__(**kw)
         self.scenario = scenario
+        self.funcargs: dict = {}
+        from _pytest.fixtures import FuncFixtureInfo, TopRequest
+
+        fm = self.session._fixturemanager
+        try:
+            closure, arg2fixturedefs = fm.getfixtureclosure(
+                parentnode=self,
+                initialnames=("scenario_page",),
+                ignore_args=(),
+            )
+        except TypeError:
+            closure, arg2fixturedefs = fm.getfixtureclosure(
+                ("scenario_page",), self, ignore_args=set()
+            )
+        self._fixtureinfo = FuncFixtureInfo(
+            argnames=("scenario_page",),
+            initialnames=("scenario_page",),
+            names_closure=list(closure),
+            name2fixturedefs=arg2fixturedefs,
+        )
+        # pytest looks up item.fixturenames when filling fixtures; the
+        # fixture error formatter also pokes at item.obj.
+        self.fixturenames = self._fixtureinfo.names_closure
+        self.obj = lambda scenario_page=None: None
+        self._request = TopRequest(self, _ispytest=True)
+
+    def setup(self) -> None:
+        self._request._fillfixtures()
 
     def runtest(self) -> None:
         # Reserved-only scenarios can run without a browser — fall back to
@@ -55,22 +88,23 @@ class ScenarioItem(pytest.Item):
 
         async def _run_with_artifacts() -> None:
             # SINGLE event loop wrapping scenario run + failure artifact
-            # capture. The Page is bound to the loop/context created by the
-            # scenario_page fixture; a second asyncio.run would operate on a
-            # closed loop / closed Page and raise "Event loop is closed" or
-            # "Page is already closed". By awaiting both run_scenario and
-            # save_failure_artifacts inside ONE helper we guarantee they
-            # share the same loop and the same Page/Context instance.
+            # capture. The Page is bound to the loop owned by the
+            # scenario_page fixture (stashed on ``page._scenario_loop``);
+            # we reuse that loop so run_scenario + save_failure_artifacts
+            # + tracing.stop all operate on the same Playwright objects.
             try:
                 await run_scenario(page, scenario)
             except Exception:
                 await save_failure_artifacts(page, scenario.name)
                 raise
             else:
-                # Success path: stop tracing without writing trace.zip.
                 await page.context.tracing.stop()
 
-        asyncio.run(_run_with_artifacts())
+        loop = getattr(page, "_scenario_loop", None)
+        if loop is None:
+            asyncio.run(_run_with_artifacts())
+        else:
+            loop.run_until_complete(_run_with_artifacts())
 
     def repr_failure(self, excinfo):  # pragma: no cover - surface cleanup
         return f"Scenario {self.name} failed:\n{excinfo.getrepr()}"

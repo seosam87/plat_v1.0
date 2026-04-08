@@ -68,7 +68,14 @@ async def run_scenario(page: Any, scenario: "Scenario") -> None:
             )
 
         if op == "open":
-            await page.goto(step.url)
+            # Prepend base_url for relative paths so scenarios can use
+            # "/ui/..." without hard-coding the host (base_url stashed on
+            # page by the scenario_page fixture).
+            url = step.url
+            if url.startswith("/"):
+                base = getattr(page, "_scenario_base_url", "")
+                url = f"{base}{url}"
+            await page.goto(url)
         elif op == "click":
             await resolve_locator(page, step.target).click()
         elif op == "fill":

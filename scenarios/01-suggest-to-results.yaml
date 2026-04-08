@@ -1,0 +1,31 @@
+# P0 scenario 1 — HTMX polling pattern (Phase 19.1 phase-gate).
+#
+# Exercises: GET /ui/keyword-suggest/ -> fill seed -> hx-post /search ->
+# response swaps #suggest-status partial which includes suggest_results.html
+# containing #suggest-table tbody tr.suggest-row.
+#
+# Determinism: tests/fixtures/scenario_runner/seed.py pre-populates the
+# Redis suggest cache for seed="smoke seed" (yandex-only), so the POST
+# handler hits the cache and returns status=complete immediately without
+# requiring the Celery worker or live proxy pool.
+#
+# Selectors discovered from app/templates/keyword_suggest/index.html and
+# partials/suggest_results.html (do NOT change without re-checking those
+# templates).
+name: suggest-to-results
+description: Submit a cached seed and assert suggest result rows render
+steps:
+  - op: open
+    url: "/ui/keyword-suggest/"
+  - op: fill
+    target: "#seed-input"
+    value: "smoke seed"
+  - op: click
+    target: 'role=button[name="Найти подсказки"]'
+  - op: wait_for
+    target: "#suggest-table tbody tr.suggest-row >> nth=0"
+    state: visible
+    timeout: 30000
+  - op: expect_text
+    target: "#suggest-results-card"
+    contains: "smoke seed alpha"

@@ -7,3 +7,14 @@ loads the custom YAML collector. The same plugin is also registered in
 """
 
 pytest_plugins = ["tests.fixtures.scenario_runner.collector"]
+
+# Re-export ``scenario_runner`` fixtures at the repo root so items collected
+# from ``scenarios/*.yaml`` (which live outside the ``tests/`` tree and do
+# NOT auto-load ``tests/fixtures/scenario_runner/conftest.py``) can still
+# resolve ``scenario_page`` / ``scenario_browser`` / ``storage_state``.
+# pytest discovers fixtures by scanning conftest module globals, so a plain
+# ``from ... import *`` is sufficient.
+from tests.fixtures.scenario_runner.conftest import (  # noqa: E402,F401
+    base_url,
+    scenario_page,
+)
