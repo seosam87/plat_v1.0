@@ -43,7 +43,7 @@ v3.x analytics phases (Metrika, Content Audit, Change Monitoring, Analytics Work
 - [x] **Phase 14: Client Instructions PDF** - Non-technical PDF report for site owners built on subprocess-isolated WeasyPrint (completed 2026-04-06)
 - [x] **Phase 15: Keyword Suggest** - Yandex/Google autocomplete with Redis caching and rate-limited Celery tasks (completed 2026-04-07)
 - [ ] **Phase 16: AI/GEO Readiness & LLM Briefs** - GEO checklist + opt-in Anthropic-powered brief enhancement
-- [ ] **Phase 17: In-app Notifications** - Bell icon + notification feed for async task completions via HTMX polling
+- [x] **Phase 17: In-app Notifications** - Bell icon + notification feed for async task completions via HTMX polling (completed 2026-04-08)
 
 ### v2.1 Onboarding & Project Health
 
@@ -164,7 +164,7 @@ Plans:
 **Plans**: 3 plans
 - [x] 17-01-PLAN.md — Notification model, migration, notify() helper, nightly cleanup task
 - [x] 17-02-PLAN.md — Router + bell/dropdown/full-page templates + sidebar wiring + smoke routes
-- [ ] 17-03-PLAN.md — Wire notify() into 7 Celery tasks + monitoring alert dispatcher
+- [x] 17-03-PLAN.md — Wire notify() into 7 Celery tasks + monitoring alert dispatcher
 **UI hint**: yes
 
 ### v3.0 Client & Proposal
@@ -393,7 +393,7 @@ Phase 20 (Client CRM)
 | 15. Keyword Suggest | v2.0 | 3/3 | Complete   | 2026-04-07 |
 | 15.1. UI Smoke Crawler | v2.0 | 5/5 | Complete   | 2026-04-07 |
 | 16. AI/GEO Readiness & LLM Briefs | v2.0 | 4/4 | Complete (LLM e2e deferred) | 2026-04-08 |
-| 17. In-app Notifications | v2.0 | 2/3 | In Progress|  |
+| 17. In-app Notifications | v2.0 | 3/3 | Complete   | 2026-04-08 |
 | 18. Project Health Widget | v2.1 | 0/1 | Not started | - |
 | 19. Empty States Everywhere | v2.1 | 0/3 | Not started | - |
 | 20. Client CRM | v3.0 | 0/3 | Not started | - |
@@ -409,7 +409,7 @@ Phase 20 (Client CRM)
 
 **Goal:** YAML-based scenario runner using Playwright async. Format: steps with open/click/fill/wait_for/expect_text/expect_status. Runs in CI against full docker-compose stack. Reuses seed fixtures from Phase 15.1. Covers interactive flows: form submit, HTMX polling, slide-over detail panels, suggest→results flow, gap analysis, position checks. Scenarios stored in `scenarios/*.yaml` — same files later consumed by 999.2 tour player (one source of truth for tests and tours).
 **Requirements:** TBD
-**Plans:** 2/3 plans executed
+**Plans:** 3/3 plans complete
 
 Plans:
 - [ ] TBD (promote with /gsd:review-backlog when ready)
