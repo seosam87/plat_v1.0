@@ -153,7 +153,10 @@ Plans:
   2. The notification feed lists recent events — crawl completed, position check completed, PDF generated, monitoring alert triggered — with timestamp and site name
   3. Notifications continue to be sent to Telegram as before; in-app notifications are additive, not a replacement
   4. Read notifications can be dismissed; dismissed notifications are hard-deleted (not soft-deleted) and a nightly Celery Beat task cleans up notifications older than 30 days
-**Plans**: TBD
+**Plans**: 3 plans
+- [ ] 17-01-PLAN.md — Notification model, migration, notify() helper, nightly cleanup task
+- [ ] 17-02-PLAN.md — Router + bell/dropdown/full-page templates + sidebar wiring + smoke routes
+- [ ] 17-03-PLAN.md — Wire notify() into 7 Celery tasks + monitoring alert dispatcher
 **UI hint**: yes
 
 ### v3.0 Client & Proposal
