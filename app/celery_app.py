@@ -1,4 +1,5 @@
 from celery import Celery
+from celery.schedules import crontab
 from celery.signals import beat_init, worker_process_init, worker_process_shutdown
 
 from app.config import settings
@@ -23,6 +24,7 @@ celery_app = Celery(
         "app.tasks.impact_tasks",
         "app.tasks.suggest_tasks",
         "app.tasks.llm_tasks",
+        "app.tasks.notification_tasks",
     ],
 )
 
@@ -44,6 +46,12 @@ celery_app.conf.update(
     },
     task_default_queue="default",
     redbeat_redis_url=settings.REDIS_URL,
+    beat_schedule={
+        "notifications-cleanup-nightly": {
+            "task": "app.tasks.notification_tasks.cleanup_old_notifications",
+            "schedule": crontab(hour=3, minute=0),
+        },
+    },
 )
 
 # Module-level Playwright browser instance (one per worker process)
