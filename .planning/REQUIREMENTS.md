@@ -20,8 +20,8 @@
 
 ### AI/GEO Readiness
 
-- [ ] **GEO-01**: Каждая страница получает GEO-score 0–100 на основе проверок: FAQPage schema, Article/Author schema, BreadcrumbList, answer-first структура, дата обновления
-- [ ] **GEO-02**: Новые проверки добавляются в существующую систему audit_check_definitions как `geo_*` коды
+- [x] **GEO-01**: Каждая страница получает GEO-score 0–100 на основе проверок: FAQPage schema, Article/Author schema, BreadcrumbList, answer-first структура, дата обновления
+- [x] **GEO-02**: Новые проверки добавляются в существующую систему audit_check_definitions как `geo_*` коды
 - [ ] **GEO-03**: Пользователь видит GEO readiness в таблице аудита с фильтром по score и типу проверки
 
 ### Client Instructions PDF
@@ -95,8 +95,8 @@
 | SUG-02 | Phase 15 | Complete |
 | SUG-03 | Phase 15 | Complete |
 | SUG-04 | Phase 15 | Complete |
-| GEO-01 | Phase 16 | Pending |
-| GEO-02 | Phase 16 | Pending |
+| GEO-01 | Phase 16 | Complete |
+| GEO-02 | Phase 16 | Complete |
 | GEO-03 | Phase 16 | Pending |
 | LLM-01 | Phase 16 | Pending |
 | LLM-02 | Phase 16 | Pending |

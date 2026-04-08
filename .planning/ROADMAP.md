@@ -134,7 +134,12 @@ Plans:
   4. User sees an "Generate AI brief" button on the brief page only when a Claude API key is configured; clicking it enhances the existing template brief with LLM output
   5. If the Claude API is unavailable or the key is missing, the template brief is always returned unchanged — the LLM enhancement never blocks brief delivery
   6. LLM token usage is capped (input ~2000, output ~800) and a circuit breaker disables LLM calls after 3 consecutive failures
-**Plans**: TBD
+**Plans**: 4 plans
+Plans:
+- [x] 16-01-PLAN.md — GEO check runners + migration (geo_score, llm tables, anthropic_api_key column) + tests
+- [ ] 16-02-PLAN.md — Audit table UI: geo_score column + score-range and check-code filters
+- [ ] 16-03-PLAN.md — LLM backend: SDK install, per-user encrypted key, circuit breaker, prompt builder, Celery task
+- [ ] 16-04-PLAN.md — LLM UI: profile key management + Usage tab, brief detail Generate AI brief button, HTMX polling, Accept/Regenerate
 **UI hint**: yes
 
 ### Phase 17: In-app Notifications
@@ -158,7 +163,7 @@ Plans:
 | 14. Client Instructions PDF | v2.0 | 3/3 | Complete    | 2026-04-06 |
 | 15. Keyword Suggest | v2.0 | 3/3 | Complete   | 2026-04-07 |
 | 15.1. UI Smoke Crawler | v2.0 | 5/5 | Complete   | 2026-04-07 |
-| 16. AI/GEO Readiness & LLM Briefs | v2.0 | 0/TBD | Not started | - |
+| 16. AI/GEO Readiness & LLM Briefs | v2.0 | 1/4 | In Progress|  |
 | 17. In-app Notifications | v2.0 | 0/TBD | Not started | - |
 
 ## Backlog
@@ -167,7 +172,7 @@ Plans:
 
 **Goal:** YAML-based scenario runner using Playwright async. Format: steps with open/click/fill/wait_for/expect_text/expect_status. Runs in CI against full docker-compose stack. Reuses seed fixtures from Phase 15.1. Covers interactive flows: form submit, HTMX polling, slide-over detail panels, suggest→results flow, gap analysis, position checks. Scenarios stored in `scenarios/*.yaml` — same files later consumed by 999.2 tour player (one source of truth for tests and tours).
 **Requirements:** TBD
-**Plans:** 0 plans
+**Plans:** 1/4 plans executed
 
 Plans:
 - [ ] TBD (promote with /gsd:review-backlog when ready)
