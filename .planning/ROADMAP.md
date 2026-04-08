@@ -4,7 +4,7 @@
 
 - **v1.0 MVP** — 16 phases (shipped 2026-04-06) — [details](milestones/v1.0-ROADMAP.md)
 - **v2.0 SEO Insights & AI** — 7 phases (shipped 2026-04-08) — [details](milestones/v2.0-ROADMAP.md)
-- **v2.1 Onboarding & Project Health** — Phases 18–19 (planned)
+- **v2.1 Onboarding & Project Health** — Phases 18–19 + 19.1–19.2 (planned)
 - **v3.0 Client & Proposal** — Phases 20–23 (planned)
 - **v3.1 SEO Tools** — Phases 24–25 (planned)
 
@@ -55,6 +55,8 @@ Full details: [milestones/v2.0-ROADMAP.md](milestones/v2.0-ROADMAP.md)
 
 - [x] **Phase 18: Project Health Widget** — 7-шаговый setup чек-лист на Overview, status signals в site_service, ссылки на следующий шаг (completed 2026-04-08)
 - [ ] **Phase 19: Empty States Everywhere** — reusable Jinja2-макрос + contextual empty states на всех основных страницах (core workflow, analytics, content, tools)
+- [ ] **Phase 19.1: UI Scenario Runner (Playwright)** — YAML-based scenario runner (pytest plugin), full docker-compose stack in CI, reuses Phase 15.1 seed fixtures, P0 covers suggest→results + form submit; YAML schema reserves 999.2 tour step types (promoted from backlog 2026-04-08)
+- [ ] **Phase 19.2: Interactive Tour Player** — frontend overlay (`app/static/js/tour.js`) consuming the same `scenarios/*.yaml` files from Phase 19.1 to auto-generate user onboarding tours; admin-only "Show tour" button per page (promoted from backlog 2026-04-08)
 
 ## Phase Details
 
@@ -112,10 +114,25 @@ Plans:
 - [ ] 19-03-PLAN.md — Empty state Tools section (Phase 24–25 tool pages) + smoke crawler registration for all new empty state routes + router tests
 **UI hint**: yes
 
+### Phase 19.1: UI Scenario Runner (Playwright)
+**Goal**: YAML-based scenario runner using Playwright async, hosted as a pytest plugin. P0 ships 2 scenarios (suggest→results HTMX polling + site form submit) running against the full docker-compose stack in CI. YAML schema reserves 19.2 tour step types (`say`, `highlight`, `wait_for_click`) so the same files become tour sources later.
+**Depends on**: Phase 15.1 (smoke seed fixture)
+**Requirements**: TBD (define before /gsd:plan-phase)
+**Context**: `19.1-CONTEXT.md` (8 decisions D-01..D-08 captured 2026-04-08)
+**Plans**: TBD
+
+### Phase 19.2: Interactive Tour Player
+**Goal**: Frontend overlay (`app/static/js/tour.js` — lightweight custom or Shepherd.js via CDN) that highlights elements with tooltip/next/prev controls. Consumes the same `scenarios/*.yaml` files from Phase 19.1 to auto-generate user onboarding tours. Admin-only "Show tour" button on each page. Step types: `highlight` + `say` + `wait_for_click`. One source of truth for tests and tours.
+**Depends on**: Phase 19.1
+**Requirements**: TBD (define before /gsd:plan-phase)
+**Plans**: TBD
+
 **Dependency Graph (v2.1):**
 ```
 Phase 18 (Project Health Widget)
     └── Phase 19 (Empty States Everywhere)
+            └── Phase 19.1 (UI Scenario Runner)
+                    └── Phase 19.2 (Interactive Tour Player)
 ```
 
 **Notes:**
@@ -296,15 +313,6 @@ Phase 20 (Client CRM)
 
 ## Backlog
 
-### Phase 999.1: UI Scenario Runner (Playwright) (BACKLOG)
-
-**Goal:** YAML-based scenario runner using Playwright async. Format: steps with open/click/fill/wait_for/expect_text/expect_status. Runs in CI against full docker-compose stack. Reuses seed fixtures from Phase 15.1. Covers interactive flows: form submit, HTMX polling, slide-over detail panels, suggest→results flow, gap analysis, position checks. Scenarios stored in `scenarios/*.yaml` — same files later consumed by 999.2 tour player (one source of truth for tests and tours).
-**Requirements:** TBD
-**Plans:** 1/1 plans complete
-
-Plans:
-- [ ] TBD (promote with /gsd:review-backlog when ready)
-
 ### Phase 999.3: Smart Route Discovery (response_class filter) (BACKLOG)
 
 **Goal:** Extend `tests/_smoke_helpers.py::discover_routes` to auto-filter routes by `response_class=HTMLResponse` (or return-type annotation), skipping JSON/CSV endpoints automatically instead of requiring explicit `SMOKE_SKIP` entries. Eliminates the need for the 5 manual skips added during phase-15.1-deferred-routes debug session (`/metrika/{id}/pages`, `/metrika/{id}/compare`, `/analytics/sessions/{id}/export`, `/traffic-analysis/sessions/{id}`, `/traffic-analysis/sessions/{id}/anomalies`). Rationale: surfaced as tech debt in `.planning/phases/15.1-ui-smoke-crawler/deferred-items.md`.
@@ -313,11 +321,6 @@ Plans:
 
 Plans:
 - [ ] TBD (promote with /gsd:review-backlog when ready)
-
-### Phase 999.4: Tests Bind-Mount Fix (RESOLVED via quick fix 035793f)
-
-**Goal:** Add `./tests:/app/tests` bind mount to api service so test edits don't require `docker cp`.
-**Resolution:** Fixed inline via /gsd:quick on 2026-04-07 (commit 035793f). No phase needed.
 
 ### Phase 999.5: Repo ↔ Deployment Sync Strategy (BACKLOG)
 
@@ -338,11 +341,3 @@ Plans:
 Plans:
 - [ ] TBD (promote with /gsd:review-backlog when ready)
 
-### Phase 999.2: Interactive Tour Player (BACKLOG)
-
-**Goal:** Frontend overlay (`app/static/js/tour.js` — lightweight custom or Shepherd.js via CDN) that highlights elements with tooltip/next/prev controls. Consumes the same `scenarios/*.yaml` files from Phase 999.1 to auto-generate user onboarding tours for new interfaces. Admin-only "Show tour" button on each page. Step types: highlight + say + wait_for_click. One source of truth: CI tests and user tours share scenario files.
-**Requirements:** TBD
-**Plans:** 0 plans
-
-Plans:
-- [ ] TBD (promote with /gsd:review-backlog when ready)
