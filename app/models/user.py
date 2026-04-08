@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from enum import Enum as PyEnum
 
-from sqlalchemy import Boolean, DateTime, Enum as SAEnum, String
+from sqlalchemy import Boolean, DateTime, Enum as SAEnum, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -39,3 +39,12 @@ class User(Base):
         onupdate=datetime.utcnow,
         nullable=False,
     )
+    # Per-user Anthropic API key stored Fernet-encrypted (migration 0041, D-02)
+    anthropic_api_key_encrypted: Mapped[str | None] = mapped_column(
+        Text, nullable=True, default=None
+    )
+
+    @property
+    def has_anthropic_key(self) -> bool:
+        """Returns True if the user has a configured Anthropic API key."""
+        return bool(self.anthropic_api_key_encrypted)

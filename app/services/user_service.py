@@ -5,6 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.user import User, UserRole
+from app.services import crypto_service
 
 
 async def get_user_by_id(db: AsyncSession, user_id: str) -> User | None:
@@ -132,3 +133,46 @@ async def activate_user(
         entity_id=str(user.id),
     )
     return user
+
+
+# ---------------------------------------------------------------------------
+# Per-user Anthropic API key management (Phase 16 LLM-01)
+# ---------------------------------------------------------------------------
+
+
+async def set_anthropic_api_key(db: AsyncSession, user: User, raw_key: str) -> None:
+    """Encrypt and store the user's Anthropic API key.
+
+    Args:
+        db: Async database session.
+        user: The User ORM object to update.
+        raw_key: The plaintext Anthropic API key (e.g. "sk-ant-...").
+    """
+    user.anthropic_api_key_encrypted = crypto_service.encrypt(raw_key)
+    await db.flush()
+
+
+async def get_anthropic_api_key(db: AsyncSession, user: User) -> str | None:
+    """Decrypt and return the user's Anthropic API key, or None if not set.
+
+    Args:
+        db: Async database session (unused but kept for consistent interface).
+        user: The User ORM object.
+
+    Returns:
+        Plaintext API key string, or None if no key is stored.
+    """
+    if not user.anthropic_api_key_encrypted:
+        return None
+    return crypto_service.decrypt(user.anthropic_api_key_encrypted)
+
+
+async def clear_anthropic_api_key(db: AsyncSession, user: User) -> None:
+    """Remove the user's stored Anthropic API key.
+
+    Args:
+        db: Async database session.
+        user: The User ORM object to update.
+    """
+    user.anthropic_api_key_encrypted = None
+    await db.flush()
