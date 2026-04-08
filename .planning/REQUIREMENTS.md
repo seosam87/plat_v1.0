@@ -73,8 +73,8 @@
 | EMP-05 | Phase 19-01, 19-02 | Pending |
 | EMP-06 | Phase 19-03 (deferred after Phase 25 if tools not ready) | Pending |
 | EMP-07 | Phase 19-03 | Pending |
-| SCN-01 | Phase 19.1-02 | Pending |
-| SCN-02 | Phase 19.1-02 | Pending |
+| SCN-01 | Phase 19.1-02 | Complete |
+| SCN-02 | Phase 19.1-02 | Complete |
 | SCN-03 | Phase 19.1-03 | Pending |
 | SCN-04 | Phase 19.1-03 | Pending |
 | SCN-05 | Phase 19.1-03 | Pending |
