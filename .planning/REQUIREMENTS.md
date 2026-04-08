@@ -78,11 +78,11 @@
 | SCN-03 | Phase 19.1-03 | Complete |
 | SCN-04 | Phase 19.1-03 | Complete |
 | SCN-05 | Phase 19.1-03 | Complete |
-| SCN-06 | Phase 19.1-04 | Pending |
+| SCN-06 | Phase 19.1-04 | Complete |
 | SCN-07 | Phase 19.1-03 | Complete |
-| SCN-08 | Phase 19.1-05 | Pending |
-| SCN-09 | Phase 19.1-05 | Pending |
-| SCN-10 | Phase 19.1-05 | Pending |
+| SCN-08 | Phase 19.1-05 | Complete |
+| SCN-09 | Phase 19.1-05 | Complete |
+| SCN-10 | Phase 19.1-05 | Complete |
 
 **Coverage:**
 - v2.1 requirements: 13 total
