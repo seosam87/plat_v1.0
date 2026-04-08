@@ -285,7 +285,7 @@ Phase 20 (Client CRM)
 | 15.1. UI Smoke Crawler | v2.0 | 5/5 | Complete   | 2026-04-07 |
 | 16. AI/GEO Readiness & LLM Briefs | v2.0 | 4/4 | Complete (LLM e2e deferred) | 2026-04-08 |
 | 17. In-app Notifications | v2.0 | 3/3 | Complete   | 2026-04-08 |
-| 18. Project Health Widget | v2.1 | 1/1 | Complete   | 2026-04-08 |
+| 18. Project Health Widget | v2.1 | 1/1 | Complete    | 2026-04-08 |
 | 19. Empty States Everywhere | v2.1 | 0/3 | Not started | - |
 | 20. Client CRM | v3.0 | 0/3 | Not started | - |
 | 21. Site Audit Intake | v3.0 | 0/4 | Not started | - |
