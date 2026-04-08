@@ -1,0 +1,47 @@
+# CI overlay for UI scenario runner (Phase 19.1).
+#
+# Adds:
+#   - api healthcheck (base docker-compose.yml has none)
+#   - worker healthcheck using `celery inspect ping` so `docker compose up --wait`
+#     blocks until the Celery worker is actually reachable (RESEARCH.md Pitfall 5)
+#   - tester service using the official Microsoft Playwright Python image
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.ci.yml up --wait
+#
+# NOTE: the doubled `$$HOSTNAME` is intentional — compose interpolates single `$`.
+
+services:
+  api:
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8000/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  worker:
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A app.celery_app inspect ping -d celery@$$HOSTNAME || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+
+  tester:
+    image: mcr.microsoft.com/playwright/python:v1.47.0-jammy
+    working_dir: /app
+    volumes:
+      - .:/app
+    environment:
+      BASE_URL: http://api:8000
+      DATABASE_URL: ${DATABASE_URL}
+      PYTHONPATH: /app
+    depends_on:
+      api:
+        condition: service_healthy
+      worker:
+        condition: service_healthy
+    command: >
+      sh -c "pip install --no-cache-dir -e . &&
+             pytest scenarios/ tests/fixtures/scenario_runner/ -v --tb=short"
