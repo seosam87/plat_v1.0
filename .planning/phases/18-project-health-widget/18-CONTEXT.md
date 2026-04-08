@@ -18,18 +18,23 @@ A user returning to any site after weeks of inactivity immediately sees a 7-step
 
 ## The 7 Steps (fixed ordering, sequential)
 
+**Codebase facts (verified by planner):**
+- WP creds column is `site.encrypted_app_password` (not `wp_password`)
+- No `position_check_runs` table — signal derived from `KeywordPosition` (column `site_id`)
+- No `scheduled_tasks` table — signal derived from `CrawlSchedule` AND/OR `PositionSchedule` with `is_active=True AND schedule_type != ScheduleType.manual`
+
 | # | Step | Signal (existing DB) | Next URL |
 |---|------|----------------------|----------|
 | 1 | Site created | always ✓ (site row exists) | — |
-| 2 | WordPress access | `site.wp_password IS NOT NULL AND site.wp_url != ''` | `/sites/{id}/edit` |
-| 3 | Keywords added | `SELECT count(*) FROM keywords WHERE site_id = ? > 0` | `/sites/{id}/keywords/import` |
-| 4 | Competitors added | `SELECT count(*) FROM competitors WHERE site_id = ? > 0` | `/sites/{id}/competitors` |
-| 5 | First crawl run | `SELECT count(*) FROM crawl_jobs WHERE site_id = ? > 0` | `/sites/{id}/crawls/` |
-| 6 | First position check | `SELECT count(*) FROM position_check_runs WHERE site_id = ? > 0` | `/sites/{id}/positions/` |
-| 7 | Schedule configured | `SELECT count(*) FROM scheduled_tasks WHERE site_id = ? AND active = true > 0` | `/sites/{id}/crawls/schedule/` |
+| 2 | WordPress access | `site.encrypted_app_password IS NOT NULL AND site.wp_url != ''` | `/ui/sites/{id}/edit` |
+| 3 | Keywords added | `SELECT count(*) FROM keywords WHERE site_id = ? > 0` | `/ui/sites/{id}/keywords` |
+| 4 | Competitors added | `SELECT count(*) FROM competitors WHERE site_id = ? > 0` | `/ui/competitors/{id}` |
+| 5 | First crawl run | `SELECT count(*) FROM crawl_jobs WHERE site_id = ? > 0` | `/ui/sites/{id}/crawls` |
+| 6 | First position check | `SELECT count(*) FROM keyword_positions WHERE site_id = ? > 0` | `/ui/sites/{id}/positions` |
+| 7 | Schedule configured | `(count(*) FROM crawl_schedules WHERE site_id=? AND is_active AND schedule_type != 'manual') + (count(*) FROM position_schedules WHERE site_id=? AND is_active AND schedule_type != 'manual') > 0` | `/ui/sites/{id}/crawls/schedule` |
 
 **Optional secondary** (does NOT block "fully set up"):
-- Analytics connected — Metrika token OR GSC token configured on site
+- Analytics connected — Metrika token OR GSC token configured on site (check `OAuthToken.site_id`)
 
 ## Constraints
 

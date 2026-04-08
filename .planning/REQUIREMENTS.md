@@ -8,7 +8,7 @@
 
 ### Project Health Widget (PHW) — Phase 18
 
-- [ ] **PHW-01**: На Site Overview отображается widget с 7-шаговым чек-листом настройки сайта: (1) WP creds, (2) первый краул, (3) ключи импортированы, (4) позиции проверены, (5) Яндекс Метрика подключена, (6) аудит запущен, (7) контент-pipeline использован хотя бы раз
+- [ ] **PHW-01**: На Site Overview отображается widget с 7-шаговым чек-листом настройки сайта: (1) Site created, (2) WordPress access (`encrypted_app_password` + `wp_url`), (3) Keywords added, (4) Competitors added, (5) First crawl run, (6) First position check run, (7) Schedule configured (active `CrawlSchedule`/`PositionSchedule` not manual). Metrika/GSC — secondary optional индикатор, не блокирует "fully set up"
 - [ ] **PHW-02**: Каждый шаг показывает статус ✅/⏳/⚠️ с цветной индикацией (green/gray/amber), вычисляется из существующих моделей (без новой БД)
 - [ ] **PHW-03**: Для каждого невыполненного шага виден короткий пояснительный текст ("почему это нужно") и кнопка "Сделать сейчас" — ссылка на релевантную страницу
 - [ ] **PHW-04**: Widget показывает общий прогресс (N/7) и выделяет "следующий шаг" — тот, с которого пользователь должен начать, если зашёл впервые или после перерыва
