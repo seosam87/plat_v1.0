@@ -45,7 +45,7 @@
         <button
           hx-post="/notifications/{{ n.id }}/dismiss"
           hx-target="closest .notif-row"
-          hx-swap="outerHTML"
+          hx-swap="delete"
           style="flex-shrink:0;background:transparent;border:none;cursor:pointer;padding:0.25rem;color:#9ca3af;border-radius:4px;"
           title="Скрыть"
           onmouseover="this.style.color='#ef4444'"

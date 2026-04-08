@@ -54,3 +54,30 @@ async def _cleanup() -> dict:
 
     logger.info("Notification cleanup complete", deleted_count=deleted)
     return {"status": "ok", "deleted_count": deleted}
+
+
+def register_notifications_cleanup_schedule() -> None:
+    """Register nightly cleanup schedule in RedBeat (idempotent).
+
+    RedBeat scheduler ignores static ``celery_app.conf.beat_schedule`` — entries
+    must be persisted as ``RedBeatSchedulerEntry`` in Redis. Called from the
+    ``beat_init`` hook in ``app.celery_app`` alongside other restore_* functions.
+    """
+    from celery.schedules import crontab
+    from redbeat import RedBeatSchedulerEntry
+
+    key = "notifications-cleanup-nightly"
+    try:
+        existing = RedBeatSchedulerEntry.from_key(f"redbeat:{key}", app=celery_app)
+        existing.delete()
+    except KeyError:
+        pass
+
+    entry = RedBeatSchedulerEntry(
+        name=key,
+        task="app.tasks.notification_tasks.cleanup_old_notifications",
+        schedule=crontab(hour=3, minute=0),
+        app=celery_app,
+    )
+    entry.save()
+    logger.info("Registered notifications-cleanup-nightly in RedBeat (03:00 daily)")

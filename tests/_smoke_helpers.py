@@ -246,6 +246,8 @@ def is_partial(path: str) -> bool:
       - "/widget"       — dashboard widget partial (e.g. /metrika/{id}/widget)
       - "/fix-status/"  — fix-status row swap
       - "/quick-wins/table" — table-only swap inside quick-wins page
+      - "/notifications/bell"     — Phase 17 bell badge HTMX fragment
+      - "/notifications/dropdown" — Phase 17 dropdown list HTMX fragment
 
     Only relaxes the structural HTML check for these paths. The body
     error-marker scan and the non-empty body check still apply.
@@ -257,4 +259,6 @@ def is_partial(path: str) -> bool:
         or "/widget" in path
         or "/fix-status/" in path
         or "/quick-wins/table" in path
+        or path == "/notifications/bell"
+        or path == "/notifications/dropdown"
     )

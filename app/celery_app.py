@@ -1,5 +1,4 @@
 from celery import Celery
-from celery.schedules import crontab
 from celery.signals import beat_init, worker_process_init, worker_process_shutdown
 
 from app.config import settings
@@ -46,12 +45,6 @@ celery_app.conf.update(
     },
     task_default_queue="default",
     redbeat_redis_url=settings.REDIS_URL,
-    beat_schedule={
-        "notifications-cleanup-nightly": {
-            "task": "app.tasks.notification_tasks.cleanup_old_notifications",
-            "schedule": crontab(hour=3, minute=0),
-        },
-    },
 )
 
 # Module-level Playwright browser instance (one per worker process)
@@ -118,6 +111,8 @@ def restore_crawl_schedules(**kwargs):
         restore_digest_schedules_from_db()
         from app.tasks.report_tasks import restore_report_schedules_from_db
         restore_report_schedules_from_db()
+        from app.tasks.notification_tasks import register_notifications_cleanup_schedule
+        register_notifications_cleanup_schedule()
     except Exception as exc:
         import logging
 
