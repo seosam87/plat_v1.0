@@ -8,6 +8,8 @@ Exports:
 - SMOKE_IDS: deterministic UUID strings for every path-param key
 - SeedHandle: dataclass with ids/session/connection
 - smoke_seed: pytest-asyncio session-scoped fixture (populated in task 2/3)
+- seed_core / seed_extended: public so tests.fixtures.scenario_runner.seed
+  can reuse them against the live stack (Phase 19.1).
 """
 from __future__ import annotations
 
@@ -89,7 +91,7 @@ def _u(key: str) -> UUID:
 _NOW = datetime.now(timezone.utc)
 
 
-async def _seed_core(session: AsyncSession) -> None:
+async def seed_core(session: AsyncSession) -> None:
     """Insert CORE entities — Wave A (Task 2)."""
     # SiteGroup first (Site FKs SET NULL to site_groups)
     session.add(
@@ -267,7 +269,7 @@ async def _seed_core(session: AsyncSession) -> None:
     await session.flush()
 
 
-async def _seed_extended(session: AsyncSession) -> None:
+async def seed_extended(session: AsyncSession) -> None:
     """Insert EXTENDED entities — Wave B (Task 3).
 
     Substitutions from plan (documented for Plan 02 SMOKE_SKIP awareness):
@@ -370,8 +372,8 @@ async def smoke_seed() -> Any:
     )
     session = Session()
     try:
-        await _seed_core(session)
-        await _seed_extended(session)
+        await seed_core(session)
+        await seed_extended(session)
         await session.flush()
         yield SeedHandle(ids=SMOKE_IDS, session=session, connection=conn)
     finally:
