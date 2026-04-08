@@ -8,12 +8,12 @@
 
 ### Project Health Widget (PHW) — Phase 18
 
-- [ ] **PHW-01**: На Site Overview отображается widget с 7-шаговым чек-листом настройки сайта: (1) Site created, (2) WordPress access (`encrypted_app_password` + `wp_url`), (3) Keywords added, (4) Competitors added, (5) First crawl run, (6) First position check run, (7) Schedule configured (active `CrawlSchedule`/`PositionSchedule` not manual). Metrika/GSC — secondary optional индикатор, не блокирует "fully set up"
-- [ ] **PHW-02**: Каждый шаг показывает статус ✅/⏳/⚠️ с цветной индикацией (green/gray/amber), вычисляется из существующих моделей (без новой БД)
-- [ ] **PHW-03**: Для каждого невыполненного шага виден короткий пояснительный текст ("почему это нужно") и кнопка "Сделать сейчас" — ссылка на релевантную страницу
-- [ ] **PHW-04**: Widget показывает общий прогресс (N/7) и выделяет "следующий шаг" — тот, с которого пользователь должен начать, если зашёл впервые или после перерыва
-- [ ] **PHW-05**: Status signals добавлены в `site_service.compute_site_health()` — единая функция, возвращающая структуру `{step: {done, message, next_url}}`, переиспользуемая на Overview и в будущих дашбордах
-- [ ] **PHW-06**: Widget полностью выполнен если все 7 шагов ✅ — отображается свёрнутым с CTA "Показать снова" (не мешает дальнейшей работе)
+- [x] **PHW-01**: На Site Overview отображается widget с 7-шаговым чек-листом настройки сайта: (1) Site created, (2) WordPress access (`encrypted_app_password` + `wp_url`), (3) Keywords added, (4) Competitors added, (5) First crawl run, (6) First position check run, (7) Schedule configured (active `CrawlSchedule`/`PositionSchedule` not manual). Metrika/GSC — secondary optional индикатор, не блокирует "fully set up"
+- [x] **PHW-02**: Каждый шаг показывает статус ✅/⏳/⚠️ с цветной индикацией (green/gray/amber), вычисляется из существующих моделей (без новой БД)
+- [x] **PHW-03**: Для каждого невыполненного шага виден короткий пояснительный текст ("почему это нужно") и кнопка "Сделать сейчас" — ссылка на релевантную страницу
+- [x] **PHW-04**: Widget показывает общий прогресс (N/7) и выделяет "следующий шаг" — тот, с которого пользователь должен начать, если зашёл впервые или после перерыва
+- [x] **PHW-05**: Status signals добавлены в `site_service.compute_site_health()` — единая функция, возвращающая структуру `{step: {done, message, next_url}}`, переиспользуемая на Overview и в будущих дашбордах
+- [x] **PHW-06**: Widget полностью выполнен если все 7 шагов ✅ — отображается свёрнутым с CTA "Показать снова" (не мешает дальнейшей работе)
 
 ### Empty States (EMP) — Phase 19
 
@@ -47,12 +47,12 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| PHW-01 | Phase 18 (1 plan) | Pending |
-| PHW-02 | Phase 18 (1 plan) | Pending |
-| PHW-03 | Phase 18 (1 plan) | Pending |
-| PHW-04 | Phase 18 (1 plan) | Pending |
-| PHW-05 | Phase 18 (1 plan) | Pending |
-| PHW-06 | Phase 18 (1 plan) | Pending |
+| PHW-01 | Phase 18 (1 plan) | Complete |
+| PHW-02 | Phase 18 (1 plan) | Complete |
+| PHW-03 | Phase 18 (1 plan) | Complete |
+| PHW-04 | Phase 18 (1 plan) | Complete |
+| PHW-05 | Phase 18 (1 plan) | Complete |
+| PHW-06 | Phase 18 (1 plan) | Complete |
 | EMP-01 | Phase 19-01 | Pending |
 | EMP-02 | Phase 19-01 | Pending |
 | EMP-03 | Phase 19-02 | Pending |

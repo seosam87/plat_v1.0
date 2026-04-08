@@ -53,7 +53,7 @@ Full details: [milestones/v2.0-ROADMAP.md](milestones/v2.0-ROADMAP.md)
 
 **Milestone Goal:** Сделать платформу самодокументируемой для возвращающегося пользователя — каждая страница объясняет, почему нет данных и как получить результат; Site Overview показывает 7-шаговый чек-лист настройки проекта с прогрессом и следующим действием.
 
-- [ ] **Phase 18: Project Health Widget** — 7-шаговый setup чек-лист на Overview, status signals в site_service, ссылки на следующий шаг
+- [x] **Phase 18: Project Health Widget** — 7-шаговый setup чек-лист на Overview, status signals в site_service, ссылки на следующий шаг (completed 2026-04-08)
 - [ ] **Phase 19: Empty States Everywhere** — reusable Jinja2-макрос + contextual empty states на всех основных страницах (core workflow, analytics, content, tools)
 
 ## Phase Details
@@ -88,7 +88,7 @@ Full details: [milestones/v2.0-ROADMAP.md](milestones/v2.0-ROADMAP.md)
   7. Widget route covered by Phase 15.1 smoke crawler (Site Overview page already in fixture — no new smoke infra needed)
 **Plans**: 1 plan
 Plans:
-- [ ] 18-01-PLAN.md — DB status checks in `site_service.get_site_detail` + widget Jinja template + Overview page integration + unit tests for each status signal + widget placement (right sidebar or full-width card — decided during implementation based on current Overview layout)
+- [x] 18-01-PLAN.md — DB status checks in `site_service.get_site_detail` + widget Jinja template + Overview page integration + unit tests for each status signal + widget placement (right sidebar or full-width card — decided during implementation based on current Overview layout)
 **UI hint**: yes
 
 ### Phase 19: Empty States Everywhere
@@ -285,7 +285,7 @@ Phase 20 (Client CRM)
 | 15.1. UI Smoke Crawler | v2.0 | 5/5 | Complete   | 2026-04-07 |
 | 16. AI/GEO Readiness & LLM Briefs | v2.0 | 4/4 | Complete (LLM e2e deferred) | 2026-04-08 |
 | 17. In-app Notifications | v2.0 | 3/3 | Complete   | 2026-04-08 |
-| 18. Project Health Widget | v2.1 | 0/1 | Not started | - |
+| 18. Project Health Widget | v2.1 | 1/1 | Complete   | 2026-04-08 |
 | 19. Empty States Everywhere | v2.1 | 0/3 | Not started | - |
 | 20. Client CRM | v3.0 | 0/3 | Not started | - |
 | 21. Site Audit Intake | v3.0 | 0/4 | Not started | - |
@@ -300,7 +300,7 @@ Phase 20 (Client CRM)
 
 **Goal:** YAML-based scenario runner using Playwright async. Format: steps with open/click/fill/wait_for/expect_text/expect_status. Runs in CI against full docker-compose stack. Reuses seed fixtures from Phase 15.1. Covers interactive flows: form submit, HTMX polling, slide-over detail panels, suggest→results flow, gap analysis, position checks. Scenarios stored in `scenarios/*.yaml` — same files later consumed by 999.2 tour player (one source of truth for tests and tours).
 **Requirements:** TBD
-**Plans:** 3/3 plans complete
+**Plans:** 1/1 plans complete
 
 Plans:
 - [ ] TBD (promote with /gsd:review-backlog when ready)
