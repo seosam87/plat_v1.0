@@ -4,6 +4,7 @@
 
 - **v1.0 MVP** — 16 phases (shipped 2026-04-06) — [details](milestones/v1.0-ROADMAP.md)
 - **v2.0 SEO Insights & AI** — Phases 12–17 (in progress)
+- **v3.0 Client & Proposal** — Phases 18–21 (planned)
 
 ## Phases
 
@@ -139,7 +140,7 @@ Plans:
 - [x] 16-01-PLAN.md — GEO check runners + migration (geo_score, llm tables, anthropic_api_key column) + tests
 - [x] 16-02-PLAN.md — Audit table UI: geo_score column + score-range and check-code filters
 - [x] 16-03-PLAN.md — LLM backend: SDK install, per-user encrypted key, circuit breaker, prompt builder, Celery task
-- [ ] 16-04-PLAN.md — LLM UI: profile key management + Usage tab, brief detail Generate AI brief button, HTMX polling, Accept/Regenerate
+- [x] 16-04-PLAN.md — LLM UI: profile key management + Usage tab, brief detail Generate AI brief button, HTMX polling, Accept/Regenerate (human-verify deferred → Phase 999.6)
 **UI hint**: yes
 
 ### Phase 17: In-app Notifications
@@ -154,6 +155,100 @@ Plans:
 **Plans**: TBD
 **UI hint**: yes
 
+### v3.0 Client & Proposal
+
+**Milestone Goal:** Превратить платформу из инструмента мониторинга в инструмент продаж — карточки клиентов, аудит-анкеты, шаблоны КП и генератор документов. SEO-специалист получает полный цикл от первого контакта до отправки КП без выхода из системы.
+
+- [ ] **Phase 18: Client CRM** — карточка клиента, история взаимодействий, статусы лид/активный/завершён
+- [ ] **Phase 19: Site Audit Intake** — аудит-анкета сайта, импорт данных из XLSX/CSV (Топвизор, PageSpeed, Вебмастер), парсинг SEO-полей через краулер
+- [ ] **Phase 20: Proposal Templates & Tariffs** — тарифная сетка, библиотека блоков КП, адаптация под клиента
+- [ ] **Phase 21: Document Generator** — генерация DOCX/PDF с версионированием, экспорт КП
+
+### Phase 18: Client CRM
+**Goal**: Users can create and manage client records with domain, niche, tariff, status, and interaction history — so every proposal and audit is linked to a client and searchable across the platform
+**Depends on**: Phase 17
+**Requirements**: CRM-01, CRM-02, CRM-03, CRM-04
+**Success Criteria** (what must be TRUE):
+  1. User can create a client record with: domain, company name, niche, contact name, contact channel (phone/telegram/email), assigned tariff, status (lead / active / paused / closed), start date, notes
+  2. User can view a client's timeline — chronological list of proposals sent, audits created, tasks created, and manual notes — on a single page
+  3. User can filter the client list by status, niche, and tariff; the list loads in under 2 seconds for 100+ clients
+  4. Every existing Site record can be linked to a Client record via a foreign key — migration preserves all existing sites with client_id = NULL (nullable, not required)
+  5. Audit log captures all client record changes (field, old value, new value, user, timestamp) using the existing audit log infrastructure
+**Plans**: 3 plans
+Plans:
+- [ ] 18-01-PLAN.md — Backend: Client model + migration + ClientSite link + service + CRUD router + tests
+- [ ] 18-02-PLAN.md — Frontend: client list + detail page + timeline + HTMX inline edit + sidebar navigation
+- [ ] 18-03-PLAN.md — Link existing Sites to Clients: UI picker + migration + audit log integration + tests
+**UI hint**: yes
+
+### Phase 19: Site Audit Intake
+**Goal**: Users can run a structured audit intake for any client site — filling a checklist, importing position/error data from XLSX/CSV exports (Topvisor, PageSpeed, Webmaster), and triggering SEO-field extraction via the existing crawler — producing a saved audit snapshot that feeds the proposal
+**Depends on**: Phase 18
+**Requirements**: AUD-01, AUD-02, AUD-03, AUD-04, AUD-05
+**Success Criteria** (what must be TRUE):
+  1. User can open "New Audit" for a client and fill a structured intake checklist covering: technical block (HTTPS, robots.txt, sitemap, CMS, SEO plugin, page speed score), local SEO block (Yandex.Business status, NAP consistency, geo services), positions block (top competitors, tracking status), content block (intent issues flagged, key sections)
+  2. User can upload a Topvisor XLSX export (multi-domain position comparison format) and have the system parse it into a positions comparison table: keyword / client position / competitor positions — stored against the audit record
+  3. User can upload a PageSpeed or Webmaster CSV/XLSX export and have key metrics (LCP, TBT, CLS, score, error counts) extracted and stored against the audit record with column mapping UI for non-standard exports
+  4. User can trigger SEO-field extraction for up to 20 URLs from the client's site using the existing Playwright crawler — the system fetches each URL and stores: title, H1, meta description, H2 list, presence of price/CTA in body text, detected intent type (informational / commercial heuristic)
+  5. An audit snapshot is saved with a timestamp and version number; user can create multiple audit versions for the same client and compare them side by side
+**Plans**: 4 plans
+Plans:
+- [ ] 19-01-PLAN.md — Backend: SiteAudit model + AuditSnapshot + migration + service + tests
+- [ ] 19-02-PLAN.md — Intake checklist UI: structured form + HTMX save + checklist renderer + router
+- [ ] 19-03-PLAN.md — XLSX/CSV import: Topvisor parser + PageSpeed/Webmaster parser + column mapping UI + Celery task + tests
+- [ ] 19-04-PLAN.md — SEO-field crawler: URL list input + Playwright extraction + intent heuristic + results table + tests
+**UI hint**: yes
+
+### Phase 20: Proposal Templates & Tariffs
+**Goal**: Users can define tariffs with structured work compositions, build proposals from a block library, and adapt any block to client-specific data — so a proposal for a new client in a known niche takes minutes, not hours
+**Depends on**: Phase 19
+**Requirements**: PROP-01, PROP-02, PROP-03, PROP-04
+**Success Criteria** (what must be TRUE):
+  1. User can create and edit tariffs in the system UI: name, monthly price, pages per month by type (event / route / blog), included work directions (list of named items), excluded items — stored in DB and reusable across proposals
+  2. User can open a proposal builder for a client, select a tariff, and have tariff content auto-populated into the proposal sections (work composition, volume, pricing)
+  3. User can insert pre-written blocks from a block library into any proposal section — blocks are tagged by type (technical, local SEO, content, schema, audit finding) and searchable; each block contains a title and body text with {{placeholders}} for client-specific values
+  4. Placeholders in blocks are resolved automatically from the linked client record and audit snapshot (e.g. {{domain}}, {{lcp_score}}, {{top_competitor}}, {{pages_in_index}}); unresolved placeholders are highlighted in the UI for manual fill
+  5. User can save a proposal as a named version (e.g. "v1 — initial", "v2 — after call") and restore any previous version; version list is visible on the proposal detail page
+**Plans**: 4 plans
+Plans:
+- [ ] 20-01-PLAN.md — Backend: Tariff model + ProposalTemplate + ProposalBlock library + migration + service + tests
+- [ ] 20-02-PLAN.md — Tariff editor UI: CRUD + composition builder + price input + HTMX preview
+- [ ] 20-03-PLAN.md — Proposal builder UI: block library sidebar + drag-in blocks + placeholder resolver + section editor
+- [ ] 20-04-PLAN.md — Proposal versioning: snapshot save + version list + restore + diff view + tests
+**UI hint**: yes
+
+### Phase 21: Document Generator
+**Goal**: Users can export any saved proposal as a DOCX or PDF document — with the platform's visual style applied, tables and lists rendered correctly, and each export saved as a file artifact linked to the proposal version
+**Depends on**: Phase 20
+**Requirements**: DOC-01, DOC-02, DOC-03
+**Success Criteria** (what must be TRUE):
+  1. User can click "Export DOCX" on any proposal version and receive a downloadable .docx file within 30 seconds via Celery task — generated by python-docx with styles matching the platform's document conventions (headings, tables, bullet lists, color scheme)
+  2. User can click "Export PDF" on any proposal version and receive a downloadable .pdf file — generated by the existing subprocess-isolated WeasyPrint infrastructure (same pattern as Phase 14) to prevent OOM kills
+  3. The generated document includes all proposal sections in order: intro, audit findings (from audit snapshot), strategy, local SEO block, tariff cards, work stages table, forecast, next steps — sections present in the proposal are included; empty sections are omitted automatically
+  4. Position comparison data from the audit snapshot (keyword / client / competitor columns) is rendered as a formatted table in the audit section of the document, with color coding applied where the export format supports it
+  5. Each export is saved as a ProposalExport record (file path, format, timestamp, generated_by user) linked to the proposal version — user can download any previous export from the proposal history page
+**Plans**: 3 plans
+Plans:
+- [ ] 21-01-PLAN.md — Backend: python-docx renderer + ProposalExport model + migration + Celery task + tests
+- [ ] 21-02-PLAN.md — PDF renderer: WeasyPrint subprocess adapter + HTML proposal template + CSS styles
+- [ ] 21-03-PLAN.md — Export UI: export buttons + status polling (HTMX) + download links + export history tab + tests
+**UI hint**: yes
+
+**Dependency Graph (v3.0):**
+```
+Phase 18 (Client CRM)
+    └── Phase 19 (Site Audit Intake)
+            └── Phase 20 (Proposal Templates & Tariffs)
+                    └── Phase 21 (Document Generator)
+```
+
+**Notes:**
+- Phases 18–21 form a single milestone (v3.0) and should be planned as a wave sequence
+- Phase 19-03 (XLSX/CSV import) can run in parallel with 19-02 (checklist UI) as Wave 2
+- Phase 19-04 (SEO-field crawler) reuses existing Playwright infrastructure — lower effort than a new crawler build
+- Phase 21-01 (DOCX) and 21-02 (PDF) can run in parallel as Wave 2 within Phase 21
+- Block library in Phase 20 can be seeded with content from the primeboat.ru proposal session as real-world examples
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -163,8 +258,12 @@ Plans:
 | 14. Client Instructions PDF | v2.0 | 3/3 | Complete    | 2026-04-06 |
 | 15. Keyword Suggest | v2.0 | 3/3 | Complete   | 2026-04-07 |
 | 15.1. UI Smoke Crawler | v2.0 | 5/5 | Complete   | 2026-04-07 |
-| 16. AI/GEO Readiness & LLM Briefs | v2.0 | 3/4 | In Progress|  |
+| 16. AI/GEO Readiness & LLM Briefs | v2.0 | 4/4 | Complete (LLM e2e deferred) | 2026-04-08 |
 | 17. In-app Notifications | v2.0 | 0/TBD | Not started | - |
+| 18. Client CRM | v3.0 | 0/3 | Not started | - |
+| 19. Site Audit Intake | v3.0 | 0/4 | Not started | - |
+| 20. Proposal Templates & Tariffs | v3.0 | 0/4 | Not started | - |
+| 21. Document Generator | v3.0 | 0/3 | Not started | - |
 
 ## Backlog
 
@@ -196,6 +295,16 @@ Plans:
 **Goal:** Two independent deployment-drift incidents were caught in a single work session between `/projects/test/app/` (git repo) and `/opt/seo-platform/app/` (running deployment tree): (1) `opportunities_gaps.html` stale in `/opt/...` (Plan 15.1-03), (2) `opportunities_{cannibal,losses}.html` stale in `/opt/...` (debug phase-15.1-deferred-routes Group A). Root cause: no automated sync. Options to evaluate: rsync post-commit hook, symlink `/opt/seo-platform/app → /projects/test/app`, docker bind-mount restructure, or CI-driven rsync on merge to master. Decision deferred — needs discuss-phase to weigh against deployment model. Until fixed, the smoke gate running against `/opt/...` will keep catching drift as it happens, which is the safety net for this debt.
 **Requirements:** TBD
 **Plans:** 0 plans
+
+Plans:
+- [ ] TBD (promote with /gsd:review-backlog when ready)
+
+### Phase 999.6: LLM API Integration & Live Verification (BACKLOG)
+
+**Goal:** Complete the human-verify checkpoint deferred from Phase 16-04. Requires a real Anthropic API key. Steps: (1) obtain Claude API key, (2) set via `/profile/` Save → Validate → green "Ключ работает", (3) open `/analytics/briefs/{id}/view` and confirm "Generate AI brief" button appears, (4) click → HTMX polling → preview with 3 collapsible sections (Расширенные разделы / FAQ блок / Title+Meta) → Accept merges, (5) verify Usage tab populates with cost, (6) remove key → button hidden and grey hint shown. Optionally: add integration test hitting Anthropic sandbox, and a smoke test for `/analytics/briefs/{id}/view` with a key-set fixture user.
+**Depends on:** Phase 16 (code already in master)
+**Requirements:** LLM-01, LLM-02 (live verification only — code coverage already complete)
+**Plans:** TBD
 
 Plans:
 - [ ] TBD (promote with /gsd:review-backlog when ready)

@@ -140,6 +140,24 @@ Each task was committed atomically (TDD — RED then GREEN):
 - `has_anthropic_key` property ready for Plan 04 template conditionals (D-02)
 - No blockers for Plan 04 UI wiring
 
+## Self-Check: PASSED
+
+All created files verified present:
+- FOUND: app/services/llm/config.py
+- FOUND: app/services/llm/pricing.py
+- FOUND: app/services/llm/llm_service.py
+- FOUND: app/models/llm_brief_job.py
+- FOUND: app/tasks/llm_tasks.py
+- FOUND: tests/test_llm_service.py
+- FOUND: tests/test_llm_tasks.py
+
+All commits verified:
+- e7b8df5: test(16-03) RED Task 1
+- 579a950: feat(16-03) GREEN Task 1
+- cbf3c6c: test(16-03) RED Task 2
+- 56f7e2e: feat(16-03) GREEN Task 2
+- 097e8be: docs(16-03) final commit
+
 ---
 *Phase: 16-ai-geo-readiness-llm-briefs*
 *Completed: 2026-04-08*
