@@ -1,5 +1,8 @@
 from uuid import UUID
 
+# Phase 19.1 scenario runner — custom pytest collector for scenarios/*.yaml
+pytest_plugins = ["tests.fixtures.scenario_runner.collector"]
+
 import pytest_asyncio
 from httpx import AsyncClient, ASGITransport
 from sqlalchemy.ext.asyncio import (
