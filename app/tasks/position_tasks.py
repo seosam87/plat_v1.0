@@ -9,6 +9,7 @@ from loguru import logger
 from app.celery_app import celery_app
 from app.database import get_sync_db
 from app.tasks.wp_tasks import site_active_guard
+from app.services.notifications import notify  # noqa: F401 — used for notify() wiring per D-02
 
 
 @celery_app.task(
@@ -93,6 +94,31 @@ def check_positions(self, site_id: str) -> dict:
     elif written > 0:
         diagnostics.append({"level": "info", "message": f"Successfully recorded {written} position(s)"})
 
+    # In-app notification guard (D-02): check_positions has no user_id arg today.
+    # Pass user_id once callers plumb it through; Telegram dispatch above is unchanged.
+    _user_id = None  # TODO: accept user_id kwarg in a future phase
+    if _user_id is not None:
+        import asyncio as _aio
+        from app.database import AsyncSessionLocal as _ASL
+
+        async def _emit_pos_done():
+            async with _ASL() as _db:
+                await notify(
+                    db=_db, user_id=_user_id, kind="position_check.completed",
+                    title="Проверка позиций завершена",
+                    body=f"Сайт: проверено {written} ключей",
+                    link_url=f"/sites/{site_id}/positions",
+                    site_id=uuid.UUID(site_id), severity="info",
+                )
+                await _db.commit()
+
+        _aio.run(_emit_pos_done())
+    else:
+        logger.debug(
+            "no user scope; skipping in-app notification",
+            task="check_positions",
+            kind="position_check.completed",
+        )
     return {"status": "done", "site_id": site_id, "positions_written": written, "alerts_sent": alerts_sent, "diagnostics": diagnostics}
 
 
@@ -316,12 +342,25 @@ def _check_via_serp_parser(site_id: str, keywords) -> int:
 
 
 def _send_drop_alerts(site_id: str) -> int:
-    """Check recent positions for drops exceeding threshold, send Telegram alerts."""
+    """Check recent positions for drops exceeding threshold, send Telegram alerts.
+
+    In-app notification for kind='position_drop' is not emitted here — this helper
+    has no user_id in scope. Telegram-only until a future phase plumbs user_id through.
+    # TODO(Phase 18): pass user_id into _send_drop_alerts so position_drop events
+    # can also appear in the in-app feed.
+    """
     from app.config import settings
     from app.services.telegram_service import is_configured, send_message_sync, format_position_drop_alert
 
     if not is_configured():
         return 0
+
+    # In-app notification skipped — no user_id in scope; Telegram-only per D-02
+    logger.debug(
+        "no user scope; skipping in-app notification",
+        task="_send_drop_alerts",
+        kind="position_drop",
+    )
 
     threshold = settings.POSITION_DROP_THRESHOLD
     from app.models.position import KeywordPosition

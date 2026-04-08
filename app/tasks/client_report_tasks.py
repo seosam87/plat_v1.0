@@ -6,6 +6,7 @@ import asyncio
 from loguru import logger
 
 from app.celery_app import celery_app
+from app.services.notifications import notify  # noqa: F401 — used for notify() wiring per D-02
 
 
 @celery_app.task(
@@ -34,12 +35,47 @@ def generate_client_pdf(self, report_id: str, site_id: str, blocks_config: dict)
                 await save_report_pdf(db, uuid.UUID(report_id), pdf_bytes)
                 await db.commit()
                 logger.info("Client PDF generated", report_id=report_id, size=len(pdf_bytes))
+                # In-app notification guard (D-02): generate_client_pdf has no user_id arg today.
+                # Pass user_id once callers plumb it through; Telegram dispatch is unchanged.
+                _user_id = None  # TODO: accept user_id kwarg in a future phase
+                if _user_id is not None:
+                    await notify(
+                        db=db, user_id=_user_id, kind="client_pdf.ready",
+                        title="Клиентский PDF готов",
+                        body=f"Инструкции готовы (report_id={report_id})",
+                        link_url=f"/client-reports/{report_id}",
+                        site_id=uuid.UUID(site_id), severity="info",
+                    )
+                    await db.commit()
+                else:
+                    logger.debug(
+                        "no user scope; skipping in-app notification",
+                        task="generate_client_pdf",
+                        kind="client_pdf.ready",
+                    )
                 return {"status": "ready", "size": len(pdf_bytes)}
             except Exception as exc:
                 await db.rollback()
                 await mark_report_failed(db, uuid.UUID(report_id), str(exc))
                 await db.commit()
                 logger.error("Client PDF generation failed", report_id=report_id, error=str(exc))
+                # In-app notification guard (D-02): no user_id in scope; skip silently
+                _user_id = None  # TODO: accept user_id kwarg in a future phase
+                if _user_id is not None:
+                    await notify(
+                        db=db, user_id=_user_id, kind="client_pdf.failed",
+                        title="Клиентский PDF: ошибка",
+                        body=str(exc)[:200],
+                        link_url=f"/client-reports/{report_id}",
+                        site_id=uuid.UUID(site_id), severity="error",
+                    )
+                    await db.commit()
+                else:
+                    logger.debug(
+                        "no user scope; skipping in-app notification",
+                        task="generate_client_pdf",
+                        kind="client_pdf.failed",
+                    )
                 raise
 
     try:

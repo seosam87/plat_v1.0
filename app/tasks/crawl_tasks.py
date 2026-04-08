@@ -17,6 +17,9 @@ from loguru import logger
 from app.celery_app import celery_app, get_browser
 from app.config import settings
 from app.tasks.wp_tasks import site_active_guard
+from app.services.notifications import notify
+
+
 
 
 def _is_internal_link(base_url: str, href: str) -> bool:
@@ -213,6 +216,32 @@ def crawl_site(self, site_id: str, use_playwright: bool = False) -> dict:
             pages_crawled=pages_crawled,
             mode=mode,
         )
+        # In-app notification guard (D-02): crawl_site has no user_id arg today.
+        # Pass user_id once callers plumb it through; Telegram dispatch above is unchanged.
+        _user_id = None  # TODO: accept user_id kwarg in a future phase
+        _domain = site.domain if site and hasattr(site, "domain") else site_id
+        if _user_id is not None:
+            import asyncio as _aio
+            from app.database import AsyncSessionLocal as _ASL
+
+            async def _emit_crawl_done():
+                async with _ASL() as _db:
+                    await notify(
+                        db=_db, user_id=_user_id, kind="crawl.completed",
+                        title="Краул завершён",
+                        body=f"Сайт {_domain}: обработано {pages_crawled} страниц",
+                        link_url=f"/sites/{site_id}/crawl",
+                        site_id=uuid.UUID(site_id), severity="info",
+                    )
+                    await _db.commit()
+
+            _aio.run(_emit_crawl_done())
+        else:
+            logger.debug(
+                "no user scope; skipping in-app notification",
+                task="crawl_site",
+                kind="crawl.completed",
+            )
         return {"status": "done", "site_id": site_id, "crawl_job_id": str(crawl_job_id), "pages_crawled": pages_crawled}
 
     except SoftTimeLimitExceeded:
@@ -222,6 +251,29 @@ def crawl_site(self, site_id: str, use_playwright: bool = False) -> dict:
             job.status = CrawlJobStatus.failed
             job.error_message = "timeout"
             job.finished_at = datetime.now(timezone.utc)
+        # In-app notification guard (D-02): no user_id in scope; skip silently
+        _user_id = None  # TODO: accept user_id kwarg in a future phase
+        if _user_id is not None:
+            import asyncio as _aio
+            from app.database import AsyncSessionLocal as _ASL
+
+            async def _emit_crawl_timeout():
+                async with _ASL() as _db:
+                    await notify(
+                        db=_db, user_id=_user_id, kind="crawl.failed",
+                        title="Краул: ошибка", body="Превышено время выполнения краула",
+                        link_url=f"/sites/{site_id}/crawl",
+                        site_id=uuid.UUID(site_id), severity="error",
+                    )
+                    await _db.commit()
+
+            _aio.run(_emit_crawl_timeout())
+        else:
+            logger.debug(
+                "no user scope; skipping in-app notification",
+                task="crawl_site",
+                kind="crawl.failed",
+            )
         return {"status": "failed", "reason": "timeout", "site_id": site_id}
 
     except Exception as exc:
@@ -237,6 +289,29 @@ def crawl_site(self, site_id: str, use_playwright: bool = False) -> dict:
             job.error_message = str(exc)[:500]
             job.finished_at = datetime.now(timezone.utc)
 
+        # In-app notification guard (D-02): no user_id in scope; skip silently
+        _user_id = None  # TODO: accept user_id kwarg in a future phase
+        if _user_id is not None:
+            import asyncio as _aio
+            from app.database import AsyncSessionLocal as _ASL
+
+            async def _emit_crawl_error():
+                async with _ASL() as _db:
+                    await notify(
+                        db=_db, user_id=_user_id, kind="crawl.failed",
+                        title="Краул: ошибка", body=str(exc)[:200],
+                        link_url=f"/sites/{site_id}/crawl",
+                        site_id=uuid.UUID(site_id), severity="error",
+                    )
+                    await _db.commit()
+
+            _aio.run(_emit_crawl_error())
+        else:
+            logger.debug(
+                "no user scope; skipping in-app notification",
+                task="crawl_site",
+                kind="crawl.failed",
+            )
         if is_network_error:
             raise self.retry(exc=exc, countdown=60)
         return {"status": "failed", "reason": str(exc), "site_id": site_id}

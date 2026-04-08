@@ -14,6 +14,7 @@ from app.models.change_monitoring import (
     ChangeAlertRule,
     ChangeType,
 )
+from app.services.notifications import notify  # noqa: F401 — used for notify() wiring per D-02
 
 
 # ---- Pure detection ----
@@ -151,8 +152,22 @@ def mark_alerts_sent(db: Session, alert_ids: list[uuid.UUID]) -> None:
 def dispatch_immediate_alerts(
     db: Session, site_name: str, alerts: list[ChangeAlert]
 ) -> int:
-    """Send Telegram alerts for error-severity changes. Returns count sent."""
+    """Send Telegram alerts for error-severity changes. Returns count sent.
+
+    In-app notification is not emitted here — dispatch_immediate_alerts() has no
+    user_id in scope today. Telegram fires unchanged.
+
+    TODO(Phase 18): Plumb user_id via ChangeAlertRule.owner_id when monitoring
+    gains per-user rules, then call notify() for each alert alongside Telegram.
+    """
     from app.services.telegram_service import format_change_alert, send_message_sync
+
+    # In-app notification skipped — no user_id in scope per D-02
+    logger.debug(
+        "no user scope; skipping in-app notification",
+        dispatcher="change_monitoring_service",
+        kind="monitoring.alert",
+    )
 
     sent = 0
     error_alerts = [a for a in alerts if a.severity == AlertSeverity.error.value or a.severity == AlertSeverity.error]

@@ -20,6 +20,7 @@ from loguru import logger
 
 from app.celery_app import celery_app
 from app.services.llm.config import ANTHROPIC_MODEL
+from app.services.notifications import notify
 
 
 # ---------------------------------------------------------------------------
@@ -289,6 +290,18 @@ async def _run_enhance(job_id: int, task_retries: int, max_retries: int) -> None
             job_id, job.brief_id, in_tok, out_tok,
         )
 
+        # In-app notification — user_id is available from loaded user object (D-02)
+        await notify(
+            db=session,
+            user_id=user.id,
+            kind="llm_brief.ready",
+            title="AI-бриф готов",
+            body=f"Бриф для {brief.topic} сгенерирован",
+            link_url=f"/llm-briefs/{job.brief_id}",
+            severity="info",
+        )
+        await session.commit()
+
 
 async def _mark_failed(
     session,
@@ -323,3 +336,18 @@ async def _mark_failed(
             await session.commit()
         except Exception as log_exc:
             logger.warning("Failed to log LLM usage for failed job {}: {}", job.id, log_exc)
+
+        # In-app failure notification — user_id is available from loaded user object (D-02)
+        try:
+            await notify(
+                db=session,
+                user_id=user.id,
+                kind="llm_brief.failed",
+                title="AI-бриф: ошибка",
+                body=f"Ошибка генерации брифа: {message[:200]}",
+                link_url=f"/llm-briefs/{job.brief_id}",
+                severity="error",
+            )
+            await session.commit()
+        except Exception as notify_exc:
+            logger.warning("Failed to insert failure notification for job {}: {}", job.id, notify_exc)

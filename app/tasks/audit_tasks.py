@@ -8,6 +8,7 @@ from loguru import logger
 
 from app.celery_app import celery_app
 from app.tasks.wp_tasks import site_active_guard
+from app.services.notifications import notify  # noqa: F401 — used for notify() wiring per D-02
 
 
 @celery_app.task(
@@ -29,9 +30,54 @@ def run_site_audit(self, site_id: str) -> dict:
 
     loop = asyncio.new_event_loop()
     try:
-        return loop.run_until_complete(_audit_site(site_id))
+        result = loop.run_until_complete(_audit_site(site_id))
+        # In-app notification guard (D-02): run_site_audit has no user_id arg today.
+        # Pass user_id once callers plumb it through; no Telegram here (audit uses Telegram indirectly).
+        _user_id = None  # TODO: accept user_id kwarg in a future phase
+        if _user_id is not None:
+            async def _emit_audit_done():
+                from app.database import AsyncSessionLocal
+                async with AsyncSessionLocal() as _db:
+                    await notify(
+                        db=_db, user_id=_user_id, kind="audit.completed",
+                        title="Аудит завершён",
+                        body=f"Сайт {site_id}: аудит закончен",
+                        link_url=f"/sites/{site_id}/audit",
+                        site_id=uuid.UUID(site_id), severity="info",
+                    )
+                    await _db.commit()
+
+            loop.run_until_complete(_emit_audit_done())
+        else:
+            logger.debug(
+                "no user scope; skipping in-app notification",
+                task="run_site_audit",
+                kind="audit.completed",
+            )
+        return result
     except Exception as exc:
         logger.error("Site audit failed", site_id=site_id, error=str(exc))
+        # In-app notification guard (D-02): no user_id in scope; skip silently
+        _user_id = None  # TODO: accept user_id kwarg in a future phase
+        if _user_id is not None:
+            async def _emit_audit_failed():
+                from app.database import AsyncSessionLocal
+                async with AsyncSessionLocal() as _db:
+                    await notify(
+                        db=_db, user_id=_user_id, kind="audit.failed",
+                        title="Аудит: ошибка", body=str(exc)[:200],
+                        link_url=f"/sites/{site_id}/audit",
+                        site_id=uuid.UUID(site_id), severity="error",
+                    )
+                    await _db.commit()
+
+            loop.run_until_complete(_emit_audit_failed())
+        else:
+            logger.debug(
+                "no user scope; skipping in-app notification",
+                task="run_site_audit",
+                kind="audit.failed",
+            )
         raise self.retry(exc=exc, countdown=30)
     finally:
         loop.close()

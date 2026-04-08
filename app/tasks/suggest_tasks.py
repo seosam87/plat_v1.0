@@ -19,6 +19,7 @@ from app.celery_app import celery_app
 from app.config import settings
 from app.database import get_sync_db
 from app.models.suggest_job import SuggestJob
+from app.services.notifications import notify  # noqa: F401 — used for notify() wiring per D-02
 from app.services.suggest_service import (
     RU_ALPHABET,
     SUGGEST_CACHE_TTL,
@@ -168,6 +169,33 @@ def fetch_suggest_keywords(self, job_id: str) -> dict:
             elif not combined:
                 job.error_message = "Не удалось получить подсказки — все прокси заблокированы"
             db.commit()
+
+    # In-app notification guard (D-02): fetch_suggest_keywords has no user_id arg today.
+    # Pass user_id once callers plumb it through; Telegram not used for suggest.
+    _user_id = None  # TODO: accept user_id kwarg in a future phase
+    _notify_kind = "keyword_suggest.ready" if status in ("complete", "partial") else "keyword_suggest.failed"
+    if _user_id is not None:
+        import asyncio as _aio
+        from app.database import AsyncSessionLocal as _ASL
+
+        async def _emit_suggest_done():
+            async with _ASL() as _db:
+                await notify(
+                    db=_db, user_id=_user_id, kind=_notify_kind,
+                    title="Подсказки ключей готовы",
+                    body=f"Seed: получено {len(combined)} подсказок",
+                    link_url=f"/keyword-suggest/{job_id}",
+                    severity="info" if status in ("complete", "partial") else "error",
+                )
+                await _db.commit()
+
+        _aio.run(_emit_suggest_done())
+    else:
+        logger.debug(
+            "no user scope; skipping in-app notification",
+            task="fetch_suggest_keywords",
+            kind=_notify_kind,
+        )
 
     return {"status": status, "count": len(combined), "was_banned": was_banned}
 
