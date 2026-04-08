@@ -1,7 +1,7 @@
 """Content Audit router: audit pages, check definitions, schema templates, CTA."""
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse
 from app.template_engine import templates
 from pydantic import BaseModel
@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import require_admin
 from app.dependencies import get_db
-from app.models.audit import AuditCheckDefinition, SchemaTemplate
+from app.models.audit import AuditCheckDefinition, AuditResult, SchemaTemplate
 from app.models.crawl import Page
 from app.models.site import Site
 from app.models.user import User
@@ -18,6 +18,7 @@ from app.models.wp_content_job import JobStatus
 from app.services import content_audit_service as cas
 from app.services import schema_service as ss
 from app.services import audit_fix_service as afs
+from app.services.llm.geo_checks import GEO_WEIGHTS
 
 router = APIRouter(prefix="/audit", tags=["audit"])
 
@@ -84,19 +85,48 @@ async def audit_page(
     content_type: str = "all",
     status: str = "all",
     page: int = 1,
+    geo_score_min: int | None = Query(None, ge=0, le=100),
+    geo_score_max: int | None = Query(None, ge=0, le=100),
+    geo_check: str | None = Query(None),
     db: AsyncSession = Depends(get_db),
     _: User = Depends(require_admin),
 ):
     """Main audit page for a site."""
     site = await _get_site_or_404(db, site_id)
 
-    # Get latest crawl pages (deduplicated by URL)
-    result = await db.execute(
+    # Validate geo_check against known GEO codes (silent skip if invalid)
+    valid_geo_checks = set(GEO_WEIGHTS.keys())
+    geo_check_filter = geo_check if geo_check in valid_geo_checks else None
+
+    # Build base query for pages
+    pages_query = (
         select(Page)
         .where(Page.site_id == site_id, Page.http_status == 200)
         .order_by(Page.crawled_at.desc())
     )
+
+    # Apply geo_score filters at DB level
+    if geo_score_min is not None:
+        pages_query = pages_query.where(Page.geo_score >= geo_score_min)
+    if geo_score_max is not None:
+        pages_query = pages_query.where(Page.geo_score <= geo_score_max)
+
+    # Apply geo_check filter: require a passing audit result for this check code
+    if geo_check_filter is not None:
+        pages_query = pages_query.where(
+            Page.url.in_(
+                select(AuditResult.page_url).where(
+                    AuditResult.site_id == site_id,
+                    AuditResult.check_code == geo_check_filter,
+                    AuditResult.status == "pass",
+                )
+            )
+        )
+
+    result = await db.execute(pages_query)
     all_pages = result.scalars().all()
+
+    # Deduplicate by URL (keep most recent crawl per URL)
     seen_urls: set[str] = set()
     unique_pages = []
     for p in all_pages:
@@ -137,6 +167,9 @@ async def audit_page(
     )
     pages_unchecked = total - len(set(r.page_url for r in audit_results))
 
+    # GEO filter options for the template dropdown
+    geo_check_options = sorted(GEO_WEIGHTS.keys())
+
     return templates.TemplateResponse(
         "audit/index.html",
         {
@@ -155,6 +188,10 @@ async def audit_page(
             "search": search,
             "content_type_filter": content_type,
             "status_filter": status,
+            "geo_score_min": geo_score_min,
+            "geo_score_max": geo_score_max,
+            "geo_check": geo_check or "",
+            "geo_check_options": geo_check_options,
         },
     )
 
