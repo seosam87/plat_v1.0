@@ -4,8 +4,9 @@
 
 - **v1.0 MVP** — 16 phases (shipped 2026-04-06) — [details](milestones/v1.0-ROADMAP.md)
 - **v2.0 SEO Insights & AI** — Phases 12–17 (in progress)
-- **v3.0 Client & Proposal** — Phases 18–21 (planned)
-- **v3.1 SEO Tools** — Phases 22–23 (planned)
+- **v2.1 Onboarding & Project Health** — Phases 18–19 (planned)
+- **v3.0 Client & Proposal** — Phases 20–23 (planned)
+- **v3.1 SEO Tools** — Phases 24–25 (planned)
 
 ## Phases
 
@@ -43,6 +44,13 @@ v3.x analytics phases (Metrika, Content Audit, Change Monitoring, Analytics Work
 - [x] **Phase 15: Keyword Suggest** - Yandex/Google autocomplete with Redis caching and rate-limited Celery tasks (completed 2026-04-07)
 - [ ] **Phase 16: AI/GEO Readiness & LLM Briefs** - GEO checklist + opt-in Anthropic-powered brief enhancement
 - [ ] **Phase 17: In-app Notifications** - Bell icon + notification feed for async task completions via HTMX polling
+
+### v2.1 Onboarding & Project Health
+
+**Milestone Goal:** Сделать платформу самодокументируемой для возвращающегося пользователя — каждая страница объясняет, почему нет данных и как получить результат; Site Overview показывает 7-шаговый чек-лист настройки проекта с прогрессом и следующим действием.
+
+- [ ] **Phase 18: Project Health Widget** — 7-шаговый setup чек-лист на Overview, status signals в site_service, ссылки на следующий шаг
+- [ ] **Phase 19: Empty States Everywhere** — reusable Jinja2-макрос + contextual empty states на всех основных страницах (core workflow, analytics, content, tools)
 
 ## Phase Details
 
@@ -155,7 +163,7 @@ Plans:
   4. Read notifications can be dismissed; dismissed notifications are hard-deleted (not soft-deleted) and a nightly Celery Beat task cleans up notifications older than 30 days
 **Plans**: 3 plans
 - [x] 17-01-PLAN.md — Notification model, migration, notify() helper, nightly cleanup task
-- [ ] 17-02-PLAN.md — Router + bell/dropdown/full-page templates + sidebar wiring + smoke routes
+- [x] 17-02-PLAN.md — Router + bell/dropdown/full-page templates + sidebar wiring + smoke routes
 - [ ] 17-03-PLAN.md — Wire notify() into 7 Celery tasks + monitoring alert dispatcher
 **UI hint**: yes
 
@@ -163,14 +171,73 @@ Plans:
 
 **Milestone Goal:** Превратить платформу из инструмента мониторинга в инструмент продаж — карточки клиентов, аудит-анкеты, шаблоны КП и генератор документов. SEO-специалист получает полный цикл от первого контакта до отправки КП без выхода из системы.
 
-- [ ] **Phase 18: Client CRM** — карточка клиента, история взаимодействий, статусы лид/активный/завершён
-- [ ] **Phase 19: Site Audit Intake** — аудит-анкета сайта, импорт данных из XLSX/CSV (Топвизор, PageSpeed, Вебмастер), парсинг SEO-полей через краулер
-- [ ] **Phase 20: Proposal Templates & Tariffs** — тарифная сетка, библиотека блоков КП, адаптация под клиента
-- [ ] **Phase 21: Document Generator** — генерация DOCX/PDF с версионированием, экспорт КП
+- [ ] **Phase 20: Client CRM** — карточка клиента, история взаимодействий, статусы лид/активный/завершён
+- [ ] **Phase 21: Site Audit Intake** — аудит-анкета сайта, импорт данных из XLSX/CSV (Топвизор, PageSpeed, Вебмастер), парсинг SEO-полей через краулер
+- [ ] **Phase 22: Proposal Templates & Tariffs** — тарифная сетка, библиотека блоков КП, адаптация под клиента
+- [ ] **Phase 23: Document Generator** — генерация DOCX/PDF с версионированием, экспорт КП
 
-### Phase 18: Client CRM
-**Goal**: Users can create and manage client records with domain, niche, tariff, status, and interaction history — so every proposal and audit is linked to a client and searchable across the platform
+### Phase 18: Project Health Widget
+**Goal**: A user returning to any site after weeks of inactivity immediately sees a 7-step setup checklist on the Site Overview page showing what's done, what's next, and a one-click link to the next required action — derived from existing DB state with zero new queries or Celery tasks
 **Depends on**: Phase 17
+**Requirements**: HEALTH-01, HEALTH-02, HEALTH-03
+**Success Criteria** (what must be TRUE):
+  1. The Site Overview page contains a Project Health widget showing the 7 setup steps as a vertical checklist; each step shows: completion status icon (✓ done / → current / ○ pending), step title, internal link to the relevant page, and a one-line description
+  2. The widget derives status from DB state checks inside the existing `site_service.get_site_detail` call — no additional Celery tasks, no additional round-trips; reuses counts already loaded for the page (keywords, competitors, crawl_jobs, position_runs, scheduled_tasks)
+  3. The widget highlights exactly one step as "current" — the first incomplete step in sequence; below the checklist a single line reads "Следующий шаг: [step name] →" linking directly to the target page
+  4. If all 7 steps are complete the widget shows a success state ("Проект полностью настроен") with a link to the Overview dashboard
+  5. The 7 checklist steps and their completion signals:
+     1. Site created — always ✓ (site record exists)
+     2. WordPress access configured — `site.wp_password` is set and `site.wp_url` is non-empty
+     3. Keywords added — `keywords.count(site_id) > 0`
+     4. Competitors added — `competitors.count(site_id) > 0`
+     5. First crawl run — `crawl_jobs.count(site_id) > 0`
+     6. First position check run — `position_check_runs.count(site_id) > 0`
+     7. Schedule configured — at least one active `scheduled_task` for this site
+  6. Step 7b "Analytics connected" (optional, shown as secondary) — Metrika token or GSC token configured; does NOT block the "fully set up" state
+  7. Widget route covered by Phase 15.1 smoke crawler (Site Overview page already in fixture — no new smoke infra needed)
+**Plans**: 1 plan
+Plans:
+- [ ] 18-01-PLAN.md — DB status checks in `site_service.get_site_detail` + widget Jinja template + Overview page integration + unit tests for each status signal + widget placement (right sidebar or full-width card — decided during implementation based on current Overview layout)
+**UI hint**: yes
+
+### Phase 19: Empty States Everywhere
+**Goal**: Every main platform page shows a contextual empty state explaining why there is no data and how to use the feature — so a user returning after weeks of inactivity can self-orient without documentation
+**Depends on**: Phase 18
+**Requirements**: EMPTY-01, EMPTY-02, EMPTY-03
+**Success Criteria** (what must be TRUE):
+  1. Every page listed in the page inventory (below) renders a reusable empty state component instead of a bare "No data" message when its primary data source is empty
+  2. Each empty state contains three elements: (a) one-sentence reason why there is no data yet, (b) collapsible "Как использовать" section (HTML `<details>` / `<summary>` — works without JavaScript, HTMX-compatible) with prerequisites + step-by-step instructions + expected result format, (c) primary CTA button or link to the action that produces data
+  3. The "Как использовать" content is written in Russian matching existing UI language and describes: what settings/credentials must be configured first, the sequence of actions, and what the result looks like when data is present
+  4. Empty state implemented as a reusable Jinja2 macro in `app/templates/macros/empty_state.html` accepting: `reason` (str), `how_to_use` (HTML block via caller), `cta_label` (str), `cta_url` (str), `docs_url` (str, optional — parameter reserved for future help docs, not wired up yet); pages pass their specific content via Jinja2 `{% call %}` blocks so no logic lives in the macro
+  5. All new empty state routes are registered in Phase 15.1 smoke crawler parametrization — no new smoke test infrastructure, just fixture additions
+  6. Page inventory covered:
+     - **Core workflow** — Crawls `/sites/{id}/crawls/`, Crawl schedule `/sites/{id}/crawls/schedule/`, Positions `/sites/{id}/positions/`, Keywords `/sites/{id}/keywords/`, Competitors `/sites/{id}/competitors/`
+     - **Analytics & Content** — Traffic, Quick Wins, Dead Content, Gap Analysis, Cannibalization, Content Pipeline, Client Reports, Keyword Suggest
+     - **Tools section** — every tool from Phase 24–25 (Commercialization Check, Meta Parser, Relevant URL Finder, Copywriting Brief, PAA Parser, Batch Wordstat) gets an empty state with input format hint + expected result description
+**Plans**: 3 plans
+Plans:
+- [ ] 19-01-PLAN.md — Empty state macro + core workflow pages: Crawls, Crawl Schedule, Positions, Keywords, Competitors (reason + how-to + CTA for each)
+- [ ] 19-02-PLAN.md — Empty state Analytics/Content pages: Traffic, Quick Wins, Dead Content, Gap Analysis, Cannibalization, Content Pipeline, Client Reports, Keyword Suggest
+- [ ] 19-03-PLAN.md — Empty state Tools section (Phase 24–25 tool pages) + smoke crawler registration for all new empty state routes + router tests
+**UI hint**: yes
+
+**Dependency Graph (v2.1):**
+```
+Phase 18 (Project Health Widget)
+    └── Phase 19 (Empty States Everywhere)
+```
+
+**Notes:**
+- Phase 18 is intentionally small (1 plan, pure read-path derivation) — it unblocks "where do I go next?" UX without requiring new models or migrations
+- Phase 19-01 and 19-02 can run in parallel as Wave 2 after 19-01's macro is committed (shared macro only; disjoint page sets)
+- Phase 19-03 depends on Phase 24–25 tool pages existing; if those aren't built yet, skip the Tools half of 19-03 and run it again after Phase 25 lands
+- `<details>`/`<summary>` needs no custom JS and is HTMX-compatible — no sidebar wiring required
+- `docs_url` macro parameter stays unused in Phase 19; wired up later when help.arsenkin.ru-style docs surface
+- Step 7b "Analytics connected" in Phase 18 widget is deliberately non-blocking — separate visual style (link, no ✓/→/○), so users still see "Проект полностью настроен" after step 7 without confusion
+
+### Phase 20: Client CRM
+**Goal**: Users can create and manage client records with domain, niche, tariff, status, and interaction history — so every proposal and audit is linked to a client and searchable across the platform
+**Depends on**: Phase 19
 **Requirements**: CRM-01, CRM-02, CRM-03, CRM-04
 **Success Criteria** (what must be TRUE):
   1. User can create a client record with: domain, company name, niche, contact name, contact channel (phone/telegram/email), assigned tariff, status (lead / active / paused / closed), start date, notes
@@ -180,14 +247,14 @@ Plans:
   5. Audit log captures all client record changes (field, old value, new value, user, timestamp) using the existing audit log infrastructure
 **Plans**: 3 plans
 Plans:
-- [ ] 18-01-PLAN.md — Backend: Client model + migration + ClientSite link + service + CRUD router + tests
-- [ ] 18-02-PLAN.md — Frontend: client list + detail page + timeline + HTMX inline edit + sidebar navigation
-- [ ] 18-03-PLAN.md — Link existing Sites to Clients: UI picker + migration + audit log integration + tests
+- [ ] 20-01-PLAN.md — Backend: Client model + migration + ClientSite link + service + CRUD router + tests
+- [ ] 20-02-PLAN.md — Frontend: client list + detail page + timeline + HTMX inline edit + sidebar navigation
+- [ ] 20-03-PLAN.md — Link existing Sites to Clients: UI picker + migration + audit log integration + tests
 **UI hint**: yes
 
-### Phase 19: Site Audit Intake
+### Phase 21: Site Audit Intake
 **Goal**: Users can run a structured audit intake for any client site — filling a checklist, importing position/error data from XLSX/CSV exports (Topvisor, PageSpeed, Webmaster), and triggering SEO-field extraction via the existing crawler — producing a saved audit snapshot that feeds the proposal
-**Depends on**: Phase 18
+**Depends on**: Phase 20
 **Requirements**: AUD-01, AUD-02, AUD-03, AUD-04, AUD-05
 **Success Criteria** (what must be TRUE):
   1. User can open "New Audit" for a client and fill a structured intake checklist covering: technical block (HTTPS, robots.txt, sitemap, CMS, SEO plugin, page speed score), local SEO block (Yandex.Business status, NAP consistency, geo services), positions block (top competitors, tracking status), content block (intent issues flagged, key sections)
@@ -197,15 +264,15 @@ Plans:
   5. An audit snapshot is saved with a timestamp and version number; user can create multiple audit versions for the same client and compare them side by side
 **Plans**: 4 plans
 Plans:
-- [ ] 19-01-PLAN.md — Backend: SiteAudit model + AuditSnapshot + migration + service + tests
-- [ ] 19-02-PLAN.md — Intake checklist UI: structured form + HTMX save + checklist renderer + router
-- [ ] 19-03-PLAN.md — XLSX/CSV import: Topvisor parser + PageSpeed/Webmaster parser + column mapping UI + Celery task + tests
-- [ ] 19-04-PLAN.md — SEO-field crawler: URL list input + Playwright extraction + intent heuristic + results table + tests
+- [ ] 21-01-PLAN.md — Backend: SiteAudit model + AuditSnapshot + migration + service + tests
+- [ ] 21-02-PLAN.md — Intake checklist UI: structured form + HTMX save + checklist renderer + router
+- [ ] 21-03-PLAN.md — XLSX/CSV import: Topvisor parser + PageSpeed/Webmaster parser + column mapping UI + Celery task + tests
+- [ ] 21-04-PLAN.md — SEO-field crawler: URL list input + Playwright extraction + intent heuristic + results table + tests
 **UI hint**: yes
 
-### Phase 20: Proposal Templates & Tariffs
+### Phase 22: Proposal Templates & Tariffs
 **Goal**: Users can define tariffs with structured work compositions, build proposals from a block library, and adapt any block to client-specific data — so a proposal for a new client in a known niche takes minutes, not hours
-**Depends on**: Phase 19
+**Depends on**: Phase 21
 **Requirements**: PROP-01, PROP-02, PROP-03, PROP-04
 **Success Criteria** (what must be TRUE):
   1. User can create and edit tariffs in the system UI: name, monthly price, pages per month by type (event / route / blog), included work directions (list of named items), excluded items — stored in DB and reusable across proposals
@@ -215,15 +282,15 @@ Plans:
   5. User can save a proposal as a named version (e.g. "v1 — initial", "v2 — after call") and restore any previous version; version list is visible on the proposal detail page
 **Plans**: 4 plans
 Plans:
-- [ ] 20-01-PLAN.md — Backend: Tariff model + ProposalTemplate + ProposalBlock library + migration + service + tests
-- [ ] 20-02-PLAN.md — Tariff editor UI: CRUD + composition builder + price input + HTMX preview
-- [ ] 20-03-PLAN.md — Proposal builder UI: block library sidebar + drag-in blocks + placeholder resolver + section editor
-- [ ] 20-04-PLAN.md — Proposal versioning: snapshot save + version list + restore + diff view + tests
+- [ ] 22-01-PLAN.md — Backend: Tariff model + ProposalTemplate + ProposalBlock library + migration + service + tests
+- [ ] 22-02-PLAN.md — Tariff editor UI: CRUD + composition builder + price input + HTMX preview
+- [ ] 22-03-PLAN.md — Proposal builder UI: block library sidebar + drag-in blocks + placeholder resolver + section editor
+- [ ] 22-04-PLAN.md — Proposal versioning: snapshot save + version list + restore + diff view + tests
 **UI hint**: yes
 
-### Phase 21: Document Generator
+### Phase 23: Document Generator
 **Goal**: Users can export any saved proposal as a DOCX or PDF document — with the platform's visual style applied, tables and lists rendered correctly, and each export saved as a file artifact linked to the proposal version
-**Depends on**: Phase 20
+**Depends on**: Phase 22
 **Requirements**: DOC-01, DOC-02, DOC-03
 **Success Criteria** (what must be TRUE):
   1. User can click "Export DOCX" on any proposal version and receive a downloadable .docx file within 30 seconds via Celery task — generated by python-docx with styles matching the platform's document conventions (headings, tables, bullet lists, color scheme)
@@ -233,21 +300,21 @@ Plans:
   5. Each export is saved as a ProposalExport record (file path, format, timestamp, generated_by user) linked to the proposal version — user can download any previous export from the proposal history page
 **Plans**: 3 plans
 Plans:
-- [ ] 21-01-PLAN.md — Backend: python-docx renderer + ProposalExport model + migration + Celery task + tests
-- [ ] 21-02-PLAN.md — PDF renderer: WeasyPrint subprocess adapter + HTML proposal template + CSS styles
-- [ ] 21-03-PLAN.md — Export UI: export buttons + status polling (HTMX) + download links + export history tab + tests
+- [ ] 23-01-PLAN.md — Backend: python-docx renderer + ProposalExport model + migration + Celery task + tests
+- [ ] 23-02-PLAN.md — PDF renderer: WeasyPrint subprocess adapter + HTML proposal template + CSS styles
+- [ ] 23-03-PLAN.md — Export UI: export buttons + status polling (HTMX) + download links + export history tab + tests
 **UI hint**: yes
 
 ### v3.1 SEO Tools
 
 **Milestone Goal:** Добавить в платформу раздел «Инструменты» — автономные SERP-инструменты без привязки к сайту клиента, работающие по модели Job: пользователь запускает задачу, Celery выполняет, результат доступен для просмотра и CSV/XLSX экспорта. Архитектура по образцу Phase 15 (SuggestJob), каждый инструмент — своя модель.
 
-- [ ] **Phase 22: Tools Infrastructure & Fast Tools** — новый раздел сайдбара, базовая Job-архитектура, три инструмента на существующих компонентах (коммерциализация, парсер мета-тегов, релевантный URL)
-- [ ] **Phase 23: SERP Aggregation Tools** — три инструмента, требующие SERP-краулинга (ТЗ на основе ТОП, PAA, пакетная частотность Wordstat)
+- [ ] **Phase 24: Tools Infrastructure & Fast Tools** — новый раздел сайдбара, базовая Job-архитектура, три инструмента на существующих компонентах (коммерциализация, парсер мета-тегов, релевантный URL)
+- [ ] **Phase 25: SERP Aggregation Tools** — три инструмента, требующие SERP-краулинга (ТЗ на основе ТОП, PAA, пакетная частотность Wordstat)
 
-### Phase 22: Tools Infrastructure & Fast Tools
+### Phase 24: Tools Infrastructure & Fast Tools
 **Goal**: Users can access a new "Tools" sidebar section with three standalone SERP instruments — commercialization check, meta-tag parser, and relevant URL finder — each running as an async Celery job with typed result storage, downloadable CSV output, and no site binding required
-**Depends on**: Phase 21
+**Depends on**: Phase 23
 **Requirements**: TOOL-INFRA-01, TOOL-INFRA-02, COM-01, META-01, REL-01
 **Success Criteria** (what must be TRUE):
   1. A "Tools" section appears in the sidebar navigation, accessible to admin and manager roles; the section lists all available tools with a status indicator (running / ready / failed) for the user's recent jobs across all tools
@@ -258,16 +325,16 @@ Plans:
   6. All three tools are rate-limited (10 requests/minute per user), run exclusively inside Celery tasks (no inline HTTP in request handlers), have retry=3 on external calls, and are covered by service-layer tests with mocked external responses
 **Plans**: 5 plans
 Plans:
-- [ ] 22-01-PLAN.md — Tools infrastructure: sidebar section + shared job-list page + HTMX polling pattern + CSV/XLSX export helper + navigation + smoke tests
-- [ ] 22-02-PLAN.md — Commercialization Check: CommerceCheckJob + CommerceCheckResult models + migration + service + Celery task + XMLProxy integration + UI + tests
-- [ ] 22-03-PLAN.md — Meta Tag Parser: MetaParseJob + MetaParseResult models + migration + async httpx fetcher service + Celery task + UI + tests
-- [ ] 22-04-PLAN.md — Relevant URL Finder: RelevantUrlJob + RelevantUrlResult models + migration + service + Celery task + XMLProxy integration + UI + tests
-- [ ] 22-05-PLAN.md — Integration: tools index page + recent jobs across all tools + role-based access + router tests
+- [ ] 24-01-PLAN.md — Tools infrastructure: sidebar section + shared job-list page + HTMX polling pattern + CSV/XLSX export helper + navigation + smoke tests
+- [ ] 24-02-PLAN.md — Commercialization Check: CommerceCheckJob + CommerceCheckResult models + migration + service + Celery task + XMLProxy integration + UI + tests
+- [ ] 24-03-PLAN.md — Meta Tag Parser: MetaParseJob + MetaParseResult models + migration + async httpx fetcher service + Celery task + UI + tests
+- [ ] 24-04-PLAN.md — Relevant URL Finder: RelevantUrlJob + RelevantUrlResult models + migration + service + Celery task + XMLProxy integration + UI + tests
+- [ ] 24-05-PLAN.md — Integration: tools index page + recent jobs across all tools + role-based access + router tests
 **UI hint**: yes
 
-### Phase 23: SERP Aggregation Tools
-**Goal**: Users can run three advanced tools requiring multi-step SERP aggregation and page crawling — a full copywriting brief generator (TOP-10 analysis + Playwright crawl of each result), a PAA parser, and a batch Wordstat frequency tool — each following the same Job architecture established in Phase 22
-**Depends on**: Phase 22
+### Phase 25: SERP Aggregation Tools
+**Goal**: Users can run three advanced tools requiring multi-step SERP aggregation and page crawling — a full copywriting brief generator (TOP-10 analysis + Playwright crawl of each result), a PAA parser, and a batch Wordstat frequency tool — each following the same Job architecture established in Phase 24
+**Depends on**: Phase 24
 **Requirements**: BRIEF-01, BRIEF-02, PAA-01, FREQ-01
 **Success Criteria** (what must be TRUE):
   1. User can submit a group of keyword phrases (up to 30, intended for one landing page) to the Copywriting Brief tool and receive a structured brief containing: recommended title and H1 suggestions, list of H2 headings aggregated from TOP-10 pages, Yandex search highlights (подсветки) across TOP-10, thematic words frequency table, average text volume from TOP-10 pages, commercialization % for the group — all stored in BriefJob + BriefResult with section-level JSON structure
@@ -277,44 +344,44 @@ Plans:
   5. All three tools appear in the Tools sidebar section with the same job-list UX from Phase 22; the Batch Wordstat tool shows a warning if no Yandex Direct OAuth token is configured and links to the settings page; all tools have service-layer tests with mocked external calls
 **Plans**: 5 plans
 Plans:
-- [ ] 23-01-PLAN.md — Copywriting Brief backend: BriefJob + BriefResult models + migration + XMLProxy TOP-10 fetcher + Playwright page crawler + aggregation service + Celery chain + tests
-- [ ] 23-02-PLAN.md — Copywriting Brief UI: input form (phrase group + region + PS selector) + Celery chain status polling + brief renderer (sections: title/H1, H2 cloud, highlights, thematic words, volume) + XLSX export
-- [ ] 23-03-PLAN.md — PAA Parser: PAAJob + PAAResult models + migration + Playwright SERP scenario + nested question extractor + Celery task + UI + CSV export + tests
-- [ ] 23-04-PLAN.md — Batch Wordstat: WordstatBatchJob + WordstatBatchResult models + migration + Wordstat API service (extends Phase 15.3) + Celery task + UI + XLSX export + OAuth token check + tests
-- [ ] 23-05-PLAN.md — Tools section completion: unified job history page across all 6 tools + pagination + job deletion + re-run button + router tests
+- [ ] 25-01-PLAN.md — Copywriting Brief backend: BriefJob + BriefResult models + migration + XMLProxy TOP-10 fetcher + Playwright page crawler + aggregation service + Celery chain + tests
+- [ ] 25-02-PLAN.md — Copywriting Brief UI: input form (phrase group + region + PS selector) + Celery chain status polling + brief renderer (sections: title/H1, H2 cloud, highlights, thematic words, volume) + XLSX export
+- [ ] 25-03-PLAN.md — PAA Parser: PAAJob + PAAResult models + migration + Playwright SERP scenario + nested question extractor + Celery task + UI + CSV export + tests
+- [ ] 25-04-PLAN.md — Batch Wordstat: WordstatBatchJob + WordstatBatchResult models + migration + Wordstat API service (extends Phase 15.3) + Celery task + UI + XLSX export + OAuth token check + tests
+- [ ] 25-05-PLAN.md — Tools section completion: unified job history page across all 6 tools + pagination + job deletion + re-run button + router tests
 **UI hint**: yes
 
 **Dependency Graph (v3.1):**
 ```
-Phase 22 (Tools Infrastructure & Fast Tools)
-    └── Phase 23 (SERP Aggregation Tools)
+Phase 24 (Tools Infrastructure & Fast Tools)
+    └── Phase 25 (SERP Aggregation Tools)
 ```
 
 **Wave structure:**
-- Phase 22: Wave 1 → 22-01 (infra); Wave 2 → 22-02 + 22-03 + 22-04 (parallel); Wave 3 → 22-05
-- Phase 23: Wave 1 → 23-01 + 23-03 + 23-04 (parallel backends); Wave 2 → 23-02 (Brief UI, depends on 23-01) + 23-05 (completion)
+- Phase 24: Wave 1 → 24-01 (infra); Wave 2 → 24-02 + 24-03 + 24-04 (parallel); Wave 3 → 24-05
+- Phase 25: Wave 1 → 25-01 + 25-03 + 25-04 (parallel backends); Wave 2 → 25-02 (Brief UI, depends on 25-01) + 25-05 (completion)
 
 **Notes:**
-- Copywriting Brief (23-01/02) is the heaviest plan — Playwright crawling N×10 pages per job; enforce per-job concurrency limit (max 3 parallel Playwright workers) to avoid VPS memory pressure
-- Batch Wordstat (23-04) reuses Yandex Direct OAuth infrastructure from Phase 15.3 — low effort relative to other Phase 23 plans
+- Copywriting Brief (25-01/02) is the heaviest plan — Playwright crawling N×10 pages per job; enforce per-job concurrency limit (max 3 parallel Playwright workers) to avoid VPS memory pressure
+- Batch Wordstat (25-04) reuses Yandex Direct OAuth infrastructure from Phase 15.3 — low effort relative to other Phase 25 plans
 - All six tool models follow the same pattern: `Job (input, status, user_id, created_at, completed_at)` + `Result (job_id FK, per-row data)`; no shared base model (variant B per architecture decision)
 - XMLProxy is already rate-limited via the existing proxy management module — tool jobs must respect the same queue
-- Phase 22 smoke tests must cover the HTMX polling pattern — add tool job routes to the Phase 15.1 smoke crawler parametrization
+- Phase 24 smoke tests must cover the HTMX polling pattern — add tool job routes to the Phase 15.1 smoke crawler parametrization
 
 **Dependency Graph (v3.0):**
 ```
-Phase 18 (Client CRM)
-    └── Phase 19 (Site Audit Intake)
-            └── Phase 20 (Proposal Templates & Tariffs)
-                    └── Phase 21 (Document Generator)
+Phase 20 (Client CRM)
+    └── Phase 21 (Site Audit Intake)
+            └── Phase 22 (Proposal Templates & Tariffs)
+                    └── Phase 23 (Document Generator)
 ```
 
 **Notes:**
-- Phases 18–21 form a single milestone (v3.0) and should be planned as a wave sequence
-- Phase 19-03 (XLSX/CSV import) can run in parallel with 19-02 (checklist UI) as Wave 2
-- Phase 19-04 (SEO-field crawler) reuses existing Playwright infrastructure — lower effort than a new crawler build
-- Phase 21-01 (DOCX) and 21-02 (PDF) can run in parallel as Wave 2 within Phase 21
-- Block library in Phase 20 can be seeded with content from the primeboat.ru proposal session as real-world examples
+- Phases 20–23 form a single milestone (v3.0) and should be planned as a wave sequence
+- Phase 21-03 (XLSX/CSV import) can run in parallel with 21-02 (checklist UI) as Wave 2
+- Phase 21-04 (SEO-field crawler) reuses existing Playwright infrastructure — lower effort than a new crawler build
+- Phase 23-01 (DOCX) and 23-02 (PDF) can run in parallel as Wave 2 within Phase 23
+- Block library in Phase 22 can be seeded with content from the primeboat.ru proposal session as real-world examples
 
 ## Progress
 
@@ -326,13 +393,15 @@ Phase 18 (Client CRM)
 | 15. Keyword Suggest | v2.0 | 3/3 | Complete   | 2026-04-07 |
 | 15.1. UI Smoke Crawler | v2.0 | 5/5 | Complete   | 2026-04-07 |
 | 16. AI/GEO Readiness & LLM Briefs | v2.0 | 4/4 | Complete (LLM e2e deferred) | 2026-04-08 |
-| 17. In-app Notifications | v2.0 | 1/3 | In Progress|  |
-| 18. Client CRM | v3.0 | 0/3 | Not started | - |
-| 19. Site Audit Intake | v3.0 | 0/4 | Not started | - |
-| 20. Proposal Templates & Tariffs | v3.0 | 0/4 | Not started | - |
-| 21. Document Generator | v3.0 | 0/3 | Not started | - |
-| 22. Tools Infrastructure & Fast Tools | v3.1 | 0/5 | Not started | - |
-| 23. SERP Aggregation Tools | v3.1 | 0/5 | Not started | - |
+| 17. In-app Notifications | v2.0 | 2/3 | In Progress|  |
+| 18. Project Health Widget | v2.1 | 0/1 | Not started | - |
+| 19. Empty States Everywhere | v2.1 | 0/3 | Not started | - |
+| 20. Client CRM | v3.0 | 0/3 | Not started | - |
+| 21. Site Audit Intake | v3.0 | 0/4 | Not started | - |
+| 22. Proposal Templates & Tariffs | v3.0 | 0/4 | Not started | - |
+| 23. Document Generator | v3.0 | 0/3 | Not started | - |
+| 24. Tools Infrastructure & Fast Tools | v3.1 | 0/5 | Not started | - |
+| 25. SERP Aggregation Tools | v3.1 | 0/5 | Not started | - |
 
 ## Backlog
 
@@ -340,7 +409,7 @@ Phase 18 (Client CRM)
 
 **Goal:** YAML-based scenario runner using Playwright async. Format: steps with open/click/fill/wait_for/expect_text/expect_status. Runs in CI against full docker-compose stack. Reuses seed fixtures from Phase 15.1. Covers interactive flows: form submit, HTMX polling, slide-over detail panels, suggest→results flow, gap analysis, position checks. Scenarios stored in `scenarios/*.yaml` — same files later consumed by 999.2 tour player (one source of truth for tests and tours).
 **Requirements:** TBD
-**Plans:** 1/3 plans executed
+**Plans:** 2/3 plans executed
 
 Plans:
 - [ ] TBD (promote with /gsd:review-backlog when ready)
