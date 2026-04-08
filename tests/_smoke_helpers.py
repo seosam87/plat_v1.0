@@ -63,6 +63,7 @@ UI_PREFIXES: tuple[str, ...] = (
     "/monitoring/",
     "/competitors/",
     "/metrika/",
+    "/profile/",
 )
 
 # ---------------------------------------------------------------------------

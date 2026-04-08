@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}Профиль — SEO Platform{% endblock %}
+{% block breadcrumbs %}
+<div class="breadcrumbs"><a href="/ui/dashboard">Dashboard</a><span>&rsaquo;</span>Профиль</div>
+{% endblock %}
+{% block content %}
+<div class="flex justify-between items-center mb-6">
+  <h2 class="m-0 text-lg font-semibold text-gray-800">Профиль</h2>
+</div>
+
+{% if msg == "saved" %}
+<div class="mb-4 p-3 bg-green-50 border border-green-200 rounded text-sm text-green-700">
+  Ключ сохранён.
+</div>
+{% elif msg == "removed" %}
+<div class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded text-sm text-blue-700">
+  Ключ удалён.
+</div>
+{% endif %}
+
+<!-- Anthropic API Key card -->
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-5 mb-6">
+  <h3 class="m-0 mb-4 text-base font-semibold text-gray-800">Anthropic API Key</h3>
+
+  {% if current_user.has_anthropic_key %}
+  <div class="mb-4 flex items-center gap-3">
+    <span class="text-sm text-gray-600">Текущий ключ:</span>
+    <span class="font-mono text-sm bg-gray-100 px-2 py-1 rounded">{{ key_preview }}</span>
+    <span class="badge badge-connected text-xs">настроен</span>
+  </div>
+
+  <!-- Validate -->
+  <div class="mb-3">
+    <button
+      hx-post="/profile/anthropic-key/validate"
+      hx-target="#validate-result"
+      hx-swap="innerHTML"
+      class="px-3 py-1.5 text-sm font-medium rounded bg-indigo-600 text-white hover:bg-indigo-700 mr-2">
+      Validate
+    </button>
+    <div id="validate-result" class="inline-block"></div>
+  </div>
+
+  <!-- Remove -->
+  <form method="POST" action="/profile/anthropic-key/remove" class="inline">
+    <button type="submit"
+      class="px-3 py-1.5 text-sm font-medium rounded bg-gray-200 text-gray-700 hover:bg-gray-300"
+      onclick="return confirm('Удалить ключ?')">
+      Удалить ключ
+    </button>
+  </form>
+
+  <hr class="my-4 border-gray-100">
+  <p class="text-xs text-gray-400 italic mb-0">Powered by Claude Haiku 4.5. Хранится Fernet-зашифрованным. Для апгрейда модели отредактируй ANTHROPIC_MODEL в app/services/llm/config.py и пересобери.</p>
+  {% endif %}
+
+  <!-- Save new key form -->
+  <div class="mt-{% if current_user.has_anthropic_key %}4{% else %}0{% endif %}">
+    {% if not current_user.has_anthropic_key %}
+    <p class="text-sm text-gray-500 mb-3">Ключ не настроен. Введите ваш Anthropic API key:</p>
+    {% else %}
+    <p class="text-sm text-gray-500 mb-3 mt-2">Обновить ключ:</p>
+    {% endif %}
+    <form method="POST" action="/profile/anthropic-key" class="flex gap-2 items-end flex-wrap">
+      <div>
+        <label class="text-xs text-gray-500 block mb-1">Anthropic API Key</label>
+        <input
+          type="password"
+          name="api_key"
+          placeholder="sk-ant-..."
+          required
+          class="w-72 px-3 py-2 border border-gray-300 rounded text-sm focus:ring-indigo-500 focus:border-indigo-500">
+      </div>
+      <button type="submit"
+        class="px-4 py-2 text-sm font-medium rounded bg-indigo-600 text-white hover:bg-indigo-700">
+        Сохранить
+      </button>
+    </form>
+    {% if not current_user.has_anthropic_key %}
+    <p class="text-xs text-gray-400 italic mt-3 mb-0">Powered by Claude Haiku 4.5. Хранится Fernet-зашифрованным. Для апгрейда модели отредактируй ANTHROPIC_MODEL в app/services/llm/config.py и пересобери.</p>
+    {% endif %}
+  </div>
+</div>
+
+<!-- LLM Usage tab -->
+{% include "profile/_usage_tab.html" %}
+{% endblock %}

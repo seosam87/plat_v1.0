@@ -152,6 +152,9 @@ app.include_router(client_reports_router)
 from app.routers.keyword_suggest import router as keyword_suggest_router
 app.include_router(keyword_suggest_router)
 
+from app.routers.profile import router as profile_router
+app.include_router(profile_router)
+
 
 # ---- Site selector API endpoints for nav sidebar ----
 
