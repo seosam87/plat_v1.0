@@ -14,3 +14,8 @@ dist/
 uploads/
 backups/
 .env.prod
+
+# Phase 19.1 scenario runner
+artifacts/
+**/storage_state.json
+scenarios/__pycache__/
