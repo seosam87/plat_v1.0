@@ -14,6 +14,8 @@ Bell icon in sidebar with live unread count and a notification feed for async ta
 - Soft-delete (dismissed = hard-deleted)
 - Retention beyond 30 days (Celery Beat cleanup task)
 - Telegram replacement (stays as-is, additive only)
+- Beat-scheduled digest tasks (`app/tasks/report_tasks.py::send_morning_digest`, `send_weekly_summary_report`) — no user scope, stay Telegram/email only
+- Adding `owner_id` (or any user FK) to the `Site` model — scope creep
 
 </domain>
 
@@ -25,10 +27,17 @@ Bell icon in sidebar with live unread count and a notification feed for async ta
 
 **Rationale:** Explicit and testable; no signal magic; consistent text formatting; one place to change cross-cutting behaviour (deduplication, throttling).
 
-### D-02 — User scoping
-**Decision:** Per-initiator — `notifications.user_id` references the user who triggered the task. For scheduled tasks (Celery Beat) with no initiator, fall back to the `Site.owner_id` if applicable; otherwise skip in-app notification and keep only Telegram.
+### D-02 — User scoping (REVISED 2026-04-08 after checker feedback)
+**Decision:** Per-initiator — `notifications.user_id` references the user who triggered the task.
 
-**Rationale:** Smaller team (under 20 users) but each has their own workflow — a personal feed keeps noise down. Global fan-out would drown every user in other people's crawl reports.
+Fallback behaviour (revised — the original plan referenced `Site.owner_id`, which does not exist on the Site model, so the original fallback was dead code):
+- If the task signature has a `user_id` arg → pass it to `notify()`.
+- If the task has no `user_id` arg → SKIP the in-app notification and emit `logger.debug("no user scope; skipping in-app notification", ...)`. Telegram/email paths continue to fire unchanged.
+- We do NOT add `owner_id` (or any user FK) to the `Site` model in Phase 17 — that is explicit scope creep.
+- Consequence: most existing Celery tasks today do not carry `user_id`, so in-app notifications for them will only light up once callers are updated to pass `user_id` (either in this plan where trivially possible, or in follow-up phases). This is accepted — the scaffold, helper, feed UI, bell, and polling still ship in Phase 17, and real notifications progressively fill in as call sites grow a user scope.
+- The monitoring alert dispatcher (`app/services/change_monitoring_service.py::dispatch_immediate_alerts()`) also has no user scope today. It will log the debug skip and leave a `TODO(Phase 18)` comment pointing at plumbing `user_id` via `ChangeAlertRule.owner_id` once monitoring gains per-user rules.
+
+**Rationale:** Smaller team (under 20 users) but each has their own workflow — a personal feed keeps noise down. Global fan-out would drown every user in other people's crawl reports. The revised fallback is honest about the current state of the codebase instead of silently AttributeError-ing on a non-existent column.
 
 ### D-03 — Notification model schema
 **Decision:** Standard set of fields:
@@ -104,8 +113,10 @@ All filters are GET query params, composable, preserved across HTMX updates. Pag
 - `app/routers/llm_briefs.py` — reference pattern for returning HTMX fragments vs full pages
 
 ### Celery task finalization hook
-- `app/tasks/` — every task that should emit notifications needs a `notify(...)` call at the end of its happy path and in its exception handler
-- Existing tasks to wire up: `app/tasks/crawl_tasks.py`, `app/tasks/position_check_tasks.py`, `app/tasks/pdf_tasks.py`, `app/tasks/client_pdf_tasks.py`, `app/tasks/audit_tasks.py`, `app/tasks/suggest_tasks.py`, `app/tasks/llm_tasks.py`, plus the monitoring alert dispatcher
+- `app/tasks/` — tasks that should emit notifications need a `notify(...)` call at the end of the happy path and in the exception handler, guarded by "is `user_id` in scope?" per revised D-02
+- In-scope tasks for Phase 17: `app/tasks/crawl_tasks.py`, `app/tasks/position_tasks.py` (including `_send_drop_alerts`), `app/tasks/client_report_tasks.py`, `app/tasks/audit_tasks.py`, `app/tasks/suggest_tasks.py`, `app/tasks/llm_tasks.py`
+- Monitoring dispatcher in scope: `app/services/change_monitoring_service.py::dispatch_immediate_alerts()` (the real dispatcher — `app/services/monitoring_alerts.py` does NOT exist)
+- Out of scope: `app/tasks/report_tasks.py` (Beat-scheduled `send_morning_digest` + `send_weekly_summary_report`) — no user scope, Telegram/email only
 
 ### UI color palette
 - Memory: `feedback_ui_colors.md` — Tailwind CSS hex colors used consistently across templates. Use standard Tailwind `green-500 / yellow-500 / red-500` for severity.
@@ -148,6 +159,8 @@ All filters are GET query params, composable, preserved across HTMX updates. Pag
 - **Email digest of unread notifications** — out of scope; Telegram already covers the push channel.
 - **Deduplication / throttling** — implement only if testing shows it's noisy.
 - **Mobile/responsive dropdown** — style defensively but don't block on it; desktop first.
+- **Plumbing `user_id` into tasks that currently lack it** (crawl, position, audit, suggest, llm, monitoring rules) — progressively handled as each caller is updated; not a Phase 17 blocker.
+- **Adding `owner_id` to `Site` model** — rejected; scope creep.
 
 </deferred>
 
@@ -155,3 +168,4 @@ All filters are GET query params, composable, preserved across HTMX updates. Pag
 
 *Phase: 17-in-app-notifications*
 *Context gathered: 2026-04-08 via /gsd:discuss-phase*
+*D-02 revised 2026-04-08 after checker feedback (Site.owner_id does not exist; fallback is "skip silently")*
