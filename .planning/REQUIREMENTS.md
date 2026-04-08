@@ -75,11 +75,11 @@
 | EMP-07 | Phase 19-03 | Pending |
 | SCN-01 | Phase 19.1-02 | Complete |
 | SCN-02 | Phase 19.1-02 | Complete |
-| SCN-03 | Phase 19.1-03 | Pending |
-| SCN-04 | Phase 19.1-03 | Pending |
-| SCN-05 | Phase 19.1-03 | Pending |
+| SCN-03 | Phase 19.1-03 | Complete |
+| SCN-04 | Phase 19.1-03 | Complete |
+| SCN-05 | Phase 19.1-03 | Complete |
 | SCN-06 | Phase 19.1-04 | Pending |
-| SCN-07 | Phase 19.1-03 | Pending |
+| SCN-07 | Phase 19.1-03 | Complete |
 | SCN-08 | Phase 19.1-05 | Pending |
 | SCN-09 | Phase 19.1-05 | Pending |
 | SCN-10 | Phase 19.1-05 | Pending |
