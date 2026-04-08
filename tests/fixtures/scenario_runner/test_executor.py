@@ -42,15 +42,19 @@ def test_reserved_only_scenario_runs_with_warnings(caplog):
     assert all("reserved" in r.getMessage().lower() for r in warnings)
 
 
-def test_p0_step_raises_not_implemented():
-    """P0 step types raise NotImplementedError (real ops wired in plan 03)."""
+def test_p0_step_requires_page():
+    """P0 step dispatch (wired in plan 19.1-03) requires a real Playwright page.
+
+    Passing ``page=None`` raises RuntimeError — this is the contract that
+    replaced plan 02's NotImplementedError stub.
+    """
     sc = Scenario.model_validate(
         {
             "name": "p0_open",
             "steps": [{"op": "open", "url": "/ui/dashboard"}],
         }
     )
-    with pytest.raises(NotImplementedError, match="19.1-03"):
+    with pytest.raises(RuntimeError, match="requires a Playwright page"):
         asyncio.run(run_scenario(None, sc))
 
 

@@ -14,6 +14,7 @@ from pathlib import Path
 import pytest
 import yaml
 
+from .artifacts import save_failure_artifacts
 from .executor import run_scenario
 from .schema import Scenario
 
@@ -41,17 +42,35 @@ class ScenarioItem(pytest.Item):
         self.scenario = scenario
 
     def runtest(self) -> None:
-        # Plan 19.1-03 will replace ``None`` with a Playwright page fetched via
-        # ``self._request.getfixturevalue("scenario_page")``. For now the
-        # executor accepts None for reserved-only scenarios.
-        page = None
+        # Reserved-only scenarios can run without a browser — fall back to
+        # page=None if the scenario_page fixture is unavailable (e.g. the
+        # collector unit tests that don't launch Playwright).
         try:
             page = self._request.getfixturevalue("scenario_page")
         except Exception:
-            # scenario_page fixture not yet defined (plan 19.1-03); for
-            # reserved-only scenarios None is fine.
-            pass
-        asyncio.run(run_scenario(page, self.scenario))
+            asyncio.run(run_scenario(None, self.scenario))
+            return
+
+        scenario = self.scenario
+
+        async def _run_with_artifacts() -> None:
+            # SINGLE event loop wrapping scenario run + failure artifact
+            # capture. The Page is bound to the loop/context created by the
+            # scenario_page fixture; a second asyncio.run would operate on a
+            # closed loop / closed Page and raise "Event loop is closed" or
+            # "Page is already closed". By awaiting both run_scenario and
+            # save_failure_artifacts inside ONE helper we guarantee they
+            # share the same loop and the same Page/Context instance.
+            try:
+                await run_scenario(page, scenario)
+            except Exception:
+                await save_failure_artifacts(page, scenario.name)
+                raise
+            else:
+                # Success path: stop tracing without writing trace.zip.
+                await page.context.tracing.stop()
+
+        asyncio.run(_run_with_artifacts())
 
     def repr_failure(self, excinfo):  # pragma: no cover - surface cleanup
         return f"Scenario {self.name} failed:\n{excinfo.getrepr()}"
