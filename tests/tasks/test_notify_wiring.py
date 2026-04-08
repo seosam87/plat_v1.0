@@ -378,6 +378,37 @@ def test_client_pdf_task_without_user_id_skips_inapp():
 # Monitoring dispatcher: skip in-app, Telegram fires
 # ---------------------------------------------------------------------------
 
+def test_position_check_failed_skips_inapp_when_no_user_id():
+    """check_positions raises → failure-path notify() is skipped when no user_id (D-02).
+
+    Pins the skip-on-no-scope behaviour for the position_check.failed event:
+    zero Notification rows, task re-raises the exception.
+    """
+    import uuid as _uuid
+
+    site_id = str(_uuid.uuid4())
+
+    with patch("app.tasks.position_tasks.site_active_guard", return_value=None), \
+         patch("app.tasks.position_tasks.get_sync_db") as mock_get_sync_db, \
+         patch("app.services.notifications.notify") as mock_notify:
+
+        mock_db = MagicMock()
+        mock_db_ctx = MagicMock()
+        mock_db_ctx.__enter__ = MagicMock(return_value=mock_db)
+        mock_db_ctx.__exit__ = MagicMock(return_value=False)
+
+        # Simulate a DB failure that causes the task to raise
+        mock_db.execute.side_effect = RuntimeError("DB connection lost")
+        mock_get_sync_db.return_value = mock_db_ctx
+
+        from app.tasks.position_tasks import check_positions
+        with pytest.raises(RuntimeError, match="DB connection lost"):
+            check_positions(site_id)
+
+    # notify() never called — _user_id is None, D-02 skip applies
+    mock_notify.assert_not_called()
+
+
 def test_monitoring_dispatch_skips_inapp():
     """dispatch_immediate_alerts() logs debug skip + notify() never called.
 

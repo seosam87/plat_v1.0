@@ -41,85 +41,119 @@ def check_positions(self, site_id: str) -> dict:
 
     diagnostics = []  # list of {"level": "info"|"warning"|"error", "message": str}
 
-    with get_sync_db() as db:
-        keywords = db.execute(
-            select(Keyword).where(Keyword.site_id == uuid.UUID(site_id))
-        ).scalars().all()
-
-    if not keywords:
-        diagnostics.append({"level": "warning", "message": "No keywords found for this site. Import keywords first."})
-        return {"status": "skipped", "reason": "no keywords", "site_id": site_id, "positions_written": 0, "alerts_sent": 0, "diagnostics": diagnostics}
-
-    logger.info("Position check started", site_id=site_id, keywords=len(keywords))
-
-    # Split keywords by engine — default to yandex if engine is NULL
-    yandex_kws = [kw for kw in keywords if not kw.engine or kw.engine.value == "yandex"]
-    google_kws = [kw for kw in keywords if kw.engine and kw.engine.value == "google"]
-
-    # Diagnostic info about keyword split
-    if yandex_kws:
-        diagnostics.append({"level": "info", "message": f"Found {len(yandex_kws)} Yandex keyword(s) — will check via XMLProxy"})
-    if google_kws:
-        diagnostics.append({"level": "info", "message": f"Found {len(google_kws)} Google keyword(s)"})
-    if not yandex_kws and not google_kws:
-        diagnostics.append({"level": "warning", "message": "Keywords exist but none matched engine filter"})
-
-    written = 0
-
-    # Process Yandex keywords via XMLProxy (per D-01: ONLY source for Yandex)
-    if yandex_kws:
-        written += _check_via_xmlproxy(self, site_id, yandex_kws, diagnostics)
-
-    # Process Google keywords via DataForSEO or log as skipped (per D-17)
-    if google_kws:
-        if settings.DATAFORSEO_LOGIN and settings.DATAFORSEO_PASSWORD:
-            written += _check_via_dataforseo(site_id, google_kws, diagnostics)
-        else:
-            # Per D-17: Google parsing out of scope for this phase
-            diagnostics.append({"level": "warning", "message": f"{len(google_kws)} Google keyword(s) skipped — DataForSEO not configured. Go to Settings > Data Sources."})
-            for kw in google_kws:
-                logger.info(
-                    "Google keyword skipped: no source configured",
-                    phrase=kw.phrase,
-                    site_id=site_id,
-                )
-
-    # Check for position drops and send Telegram alerts
-    alerts_sent = _send_drop_alerts(site_id)
-
-    logger.info("Position check done", site_id=site_id, written=written, alerts=alerts_sent)
-
-    if written == 0 and not diagnostics:
-        diagnostics.append({"level": "warning", "message": "Check completed but no positions were recorded. Verify API credentials and keyword configuration."})
-    elif written > 0:
-        diagnostics.append({"level": "info", "message": f"Successfully recorded {written} position(s)"})
-
     # In-app notification guard (D-02): check_positions has no user_id arg today.
     # Pass user_id once callers plumb it through; Telegram dispatch above is unchanged.
     _user_id = None  # TODO: accept user_id kwarg in a future phase
-    if _user_id is not None:
-        import asyncio as _aio
-        from app.database import AsyncSessionLocal as _ASL
 
-        async def _emit_pos_done():
-            async with _ASL() as _db:
-                await notify(
-                    db=_db, user_id=_user_id, kind="position_check.completed",
-                    title="Проверка позиций завершена",
-                    body=f"Сайт: проверено {written} ключей",
-                    link_url=f"/sites/{site_id}/positions",
-                    site_id=uuid.UUID(site_id), severity="info",
-                )
-                await _db.commit()
+    try:
+        with get_sync_db() as db:
+            keywords = db.execute(
+                select(Keyword).where(Keyword.site_id == uuid.UUID(site_id))
+            ).scalars().all()
 
-        _aio.run(_emit_pos_done())
-    else:
-        logger.debug(
-            "no user scope; skipping in-app notification",
-            task="check_positions",
-            kind="position_check.completed",
-        )
-    return {"status": "done", "site_id": site_id, "positions_written": written, "alerts_sent": alerts_sent, "diagnostics": diagnostics}
+        if not keywords:
+            diagnostics.append({"level": "warning", "message": "No keywords found for this site. Import keywords first."})
+            return {"status": "skipped", "reason": "no keywords", "site_id": site_id, "positions_written": 0, "alerts_sent": 0, "diagnostics": diagnostics}
+
+        logger.info("Position check started", site_id=site_id, keywords=len(keywords))
+
+        # Split keywords by engine — default to yandex if engine is NULL
+        yandex_kws = [kw for kw in keywords if not kw.engine or kw.engine.value == "yandex"]
+        google_kws = [kw for kw in keywords if kw.engine and kw.engine.value == "google"]
+
+        # Diagnostic info about keyword split
+        if yandex_kws:
+            diagnostics.append({"level": "info", "message": f"Found {len(yandex_kws)} Yandex keyword(s) — will check via XMLProxy"})
+        if google_kws:
+            diagnostics.append({"level": "info", "message": f"Found {len(google_kws)} Google keyword(s)"})
+        if not yandex_kws and not google_kws:
+            diagnostics.append({"level": "warning", "message": "Keywords exist but none matched engine filter"})
+
+        written = 0
+
+        # Process Yandex keywords via XMLProxy (per D-01: ONLY source for Yandex)
+        if yandex_kws:
+            written += _check_via_xmlproxy(self, site_id, yandex_kws, diagnostics)
+
+        # Process Google keywords via DataForSEO or log as skipped (per D-17)
+        if google_kws:
+            if settings.DATAFORSEO_LOGIN and settings.DATAFORSEO_PASSWORD:
+                written += _check_via_dataforseo(site_id, google_kws, diagnostics)
+            else:
+                # Per D-17: Google parsing out of scope for this phase
+                diagnostics.append({"level": "warning", "message": f"{len(google_kws)} Google keyword(s) skipped — DataForSEO not configured. Go to Settings > Data Sources."})
+                for kw in google_kws:
+                    logger.info(
+                        "Google keyword skipped: no source configured",
+                        phrase=kw.phrase,
+                        site_id=site_id,
+                    )
+
+        # Check for position drops and send Telegram alerts
+        alerts_sent = _send_drop_alerts(site_id)
+
+        logger.info("Position check done", site_id=site_id, written=written, alerts=alerts_sent)
+
+        if written == 0 and not diagnostics:
+            diagnostics.append({"level": "warning", "message": "Check completed but no positions were recorded. Verify API credentials and keyword configuration."})
+        elif written > 0:
+            diagnostics.append({"level": "info", "message": f"Successfully recorded {written} position(s)"})
+
+        if _user_id is not None:
+            import asyncio as _aio
+            from app.database import AsyncSessionLocal as _ASL
+
+            async def _emit_pos_done():
+                async with _ASL() as _db:
+                    await notify(
+                        db=_db, user_id=_user_id, kind="position_check.completed",
+                        title="Проверка позиций завершена",
+                        body=f"Сайт: проверено {written} ключей",
+                        link_url=f"/sites/{site_id}/positions/",
+                        site_id=uuid.UUID(site_id), severity="info",
+                    )
+                    await _db.commit()
+
+            _aio.run(_emit_pos_done())
+        else:
+            logger.debug(
+                "no user scope; skipping in-app notification",
+                task="check_positions",
+                kind="position_check.completed",
+            )
+        return {"status": "done", "site_id": site_id, "positions_written": written, "alerts_sent": alerts_sent, "diagnostics": diagnostics}
+
+    except Exception as exc:
+        logger.error("check_positions failed", site_id=site_id, error=str(exc))
+        if _user_id is not None:
+            import asyncio as _aio
+            from app.database import AsyncSessionLocal as _ASL
+
+            async def _emit_pos_failed():
+                async with _ASL() as _db:
+                    try:
+                        await notify(
+                            db=_db,
+                            user_id=_user_id,
+                            kind="position_check.failed",
+                            title="Проверка позиций не удалась",
+                            body=f"Ошибка: {str(exc)[:200]}",
+                            link_url=f"/sites/{site_id}/positions/",
+                            site_id=uuid.UUID(site_id),
+                            severity="error",
+                        )
+                        await _db.commit()
+                    except Exception:
+                        logger.exception("failed to emit position_check.failed notification")
+
+            _aio.run(_emit_pos_failed())
+        else:
+            logger.debug(
+                "no user scope; skipping in-app notification",
+                task="check_positions",
+                kind="position_check.failed",
+            )
+        raise
 
 
 def _check_via_xmlproxy(self_task, site_id: str, keywords, diagnostics: list | None = None) -> int:
