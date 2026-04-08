@@ -22,6 +22,7 @@ celery_app = Celery(
         "app.tasks.report_tasks",
         "app.tasks.impact_tasks",
         "app.tasks.suggest_tasks",
+        "app.tasks.llm_tasks",
     ],
 )
 
