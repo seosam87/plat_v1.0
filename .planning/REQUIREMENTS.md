@@ -1,116 +1,93 @@
-# Requirements: SEO Management Platform v2.0
+# Requirements: SEO Management Platform v2.1
 
-**Defined:** 2026-04-06
-**Milestone:** v2.0 SEO Insights & AI
-**Core Value:** Превратить собранные данные в actionable insights + AI-возможности + расширение семантики
+**Defined:** 2026-04-08
+**Milestone:** v2.1 Onboarding & Project Health
+**Core Value:** Платформа объясняет сама себя возвращающемуся пользователю — каждая страница отвечает на "почему пусто?" и "что делать дальше?" без необходимости помнить workflow.
 
-## v2.0 Requirements
+## v2.1 Requirements
 
-### SEO Insights — Analytical Surfaces
+### Project Health Widget (PHW) — Phase 18
 
-- [x] **QW-01**: Пользователь видит список страниц с позициями 4–20, у которых есть хотя бы одна нерешённая SEO-проблема (нет TOC, нет schema, мало ссылок, тонкий контент)
-- [x] **QW-02**: Каждая страница в Quick Wins имеет opportunity score = (21 - позиция) x недельный трафик, список отсортирован по score
-- [x] **QW-03**: Пользователь может запустить батч-фикс выбранных страниц (TOC/schema/ссылки) через существующий content pipeline
-- [x] **DEAD-01**: Пользователь видит страницы с 0 визитов за 30 дней (из Метрики) и/или падением позиций > 10 за 30 дней
-- [x] **DEAD-02**: Каждая мёртвая страница имеет рекомендацию: merge, redirect, rewrite или delete — на основе наличия ключей и трафика
-- [x] **IMP-01**: Все ошибки (404, noindex, нет schema) имеют impact_score = severity_weight x месячный трафик страницы
-- [x] **IMP-02**: Задачи в Kanban можно сортировать по impact_score; самые критичные ошибки видны первыми
-- [x] **GRO-01**: Дашборд Growth Opportunities агрегирует: gap-ключи (кол-во + потенциальный трафик), потерянные позиции, каннибализации, visibility тренд
-- [x] **GRO-02**: Пользователь может drill-down из карточки Opportunities в соответствующий раздел (gap analysis, positions, clusters)
+- [x] **PHW-01**: На Site Overview отображается widget с 7-шаговым чек-листом настройки сайта: (1) Site created, (2) WordPress access (`encrypted_app_password` + `wp_url`), (3) Keywords added, (4) Competitors added, (5) First crawl run, (6) First position check run, (7) Schedule configured (active `CrawlSchedule`/`PositionSchedule` not manual). Metrika/GSC — secondary optional индикатор, не блокирует "fully set up"
+- [x] **PHW-02**: Каждый шаг показывает статус ✅/⏳/⚠️ с цветной индикацией (green/gray/amber), вычисляется из существующих моделей (без новой БД)
+- [x] **PHW-03**: Для каждого невыполненного шага виден короткий пояснительный текст ("почему это нужно") и кнопка "Сделать сейчас" — ссылка на релевантную страницу
+- [x] **PHW-04**: Widget показывает общий прогресс (N/7) и выделяет "следующий шаг" — тот, с которого пользователь должен начать, если зашёл впервые или после перерыва
+- [x] **PHW-05**: Status signals добавлены в `site_service.compute_site_health()` — единая функция, возвращающая структуру `{step: {done, message, next_url}}`, переиспользуемая на Overview и в будущих дашбордах
+- [x] **PHW-06**: Widget полностью выполнен если все 7 шагов ✅ — отображается свёрнутым с CTA "Показать снова" (не мешает дальнейшей работе)
 
-### AI/GEO Readiness
+### Empty States (EMP) — Phase 19
 
-- [x] **GEO-01**: Каждая страница получает GEO-score 0–100 на основе проверок: FAQPage schema, Article/Author schema, BreadcrumbList, answer-first структура, дата обновления
-- [x] **GEO-02**: Новые проверки добавляются в существующую систему audit_check_definitions как `geo_*` коды
-- [x] **GEO-03**: Пользователь видит GEO readiness в таблице аудита с фильтром по score и типу проверки
-
-### Client Instructions PDF
-
-- [x] **CPDF-01**: Пользователь может сгенерировать PDF-отчёт для владельца сайта с пошаговыми инструкциями по исправлению проблем
-- [x] **CPDF-02**: Отчёт объединяет Quick Wins + ошибки + рекомендации в понятном формате (проблема -> решение -> шаги в WP admin)
-- [x] **CPDF-03**: Для каждого типа ошибки существует шаблон инструкции на русском языке
-
-### Keyword Suggest
-
-- [x] **SUG-01**: Пользователь может получить подсказки ключей через Яндекс Suggest по seed-ключу с алфавитным перебором (200+ результатов)
-- [x] **SUG-02**: Google Suggest работает как дополнительный источник (простой endpoint, без авторизации)
-- [x] **SUG-03**: Wordstat API интеграция (opt-in, требует OAuth токен Яндекс Директ) для частотности
-- [x] **SUG-04**: Результаты suggest кэшируются в Redis (TTL 24h); повторный запрос не делает внешних вызовов
-
-### LLM Briefs
-
-- [x] **LLM-01**: Пользователь может сгенерировать AI-бриф через Claude API (opt-in, кнопка видна только при настроенном API key)
-- [x] **LLM-02**: AI-бриф получает контекст: позиции, gap-ключи, GEO-score, каннибализация, конкуренты из аналитики
-- [x] **LLM-03**: Шаблонный бриф всегда генерируется как fallback; AI-бриф дополняет, не заменяет
-- [x] **LLM-04**: Жёсткий лимит токенов (input ~2000, output ~800) и circuit breaker при недоступности API
-
-### In-app Notifications
-
-- [x] **NOTIF-01**: В sidebar отображается иконка уведомлений с badge-счётчиком непрочитанных
-- [x] **NOTIF-02**: Лента уведомлений показывает: завершение краула, проверка позиций, генерация PDF, алерты мониторинга
-- [x] **NOTIF-03**: Уведомления работают параллельно с Telegram (не заменяют); HTMX polling каждые 30 секунд
-
-### Infrastructure
-
-- [x] **INFRA-V2-01**: `normalize_url()` унифицирует URL при JOIN между pages, metrika, positions (trailing slash, http/https, UTM)
-- [x] **INFRA-V2-02**: `keyword_latest_positions` flat-таблица для быстрых запросов без сканирования всех партиций
+- [ ] **EMP-01**: Создан reusable Jinja2-макрос `{% from "macros/empty_state.html" import empty_state %}` с параметрами: `icon`, `title`, `message`, `action_url`, `action_label`, `secondary_url`, `secondary_label`
+- [ ] **EMP-02**: Макрос применён на всех основных страницах **core workflow**: Keywords, Positions, Clusters, Gap Analysis, Site Overview (когда данных нет)
+- [ ] **EMP-03**: Макрос применён на **analytics** страницах: Metrika, Traffic Analysis, Growth Opportunities, Dead Content, Quick Wins
+- [ ] **EMP-04**: Макрос применён на **content** страницах: WP Pipeline, Content Plan, Briefs, Client Reports
+- [ ] **EMP-05**: Каждое empty state объясняет **почему пусто** ("нет данных потому что...") и даёт минимум одну прямую кнопку-действие ("Запустить краул", "Импортировать ключи" и т.д.)
+- [ ] **EMP-06**: Empty state применён на **tools** страницах (если Phase 24–25 не готов на момент выполнения Phase 19 — tools-половину отложить на after Phase 25 per roadmap)
+- [ ] **EMP-07**: Smoke-тесты Phase 15.1 не ломаются — все страницы с empty state корректно рендерятся на seed-данных (и пустых, и с данными)
 
 ## Future Requirements (deferred)
 
-- **INT-01**: GSC URL Inspection API — обнаружение деиндексированных страниц
-- **INT-02/03/04**: Прямые API Google Ads, Yandex Direct, Facebook Ads
-- **PLAT-V2-01**: White-label branding
-- **PLAT-V2-02**: 2FA (TOTP) — отложено из v2.0
-- **CONT-V2-02**: Scheduled content plan reminders
+- **TOUR-01**: Interactive walkthrough (Shepherd.js / introJs) — запланирован в backlog Phase 999.2
+- **HINT-01**: Контекстные tooltips при наведении — отдельный паттерн, не блокирует v2.1
+- **I18N-01**: Многоязычные onboarding тексты — RU-only решение текущего milestone
+- **CLIENT-ONBOARD-01**: Onboarding для клиентов (read-only) — v2.1 фокусируется на соло-разработчика
 
 ## Out of Scope
 
 | Feature | Reason |
 |---------|--------|
-| Сложные Google API интеграции (Ads, URL Inspection) | Пользователь решил не подключать сложные Google-сервисы |
-| 2FA (TOTP) | Отложено — не приоритет для текущего milestone |
-| Real-time WebSocket/SSE | HTMX polling достаточен для текущего масштаба |
-| NLP/spaCy для анализа контента | DOM-инспекция через bs4+lxml достаточна для GEO проверок |
-| Автофикс без подтверждения | Нарушает существующий контракт diff-approval |
+| Interactive tour/walkthrough (Shepherd.js) | Запланировано в Phase 999.2 backlog, не блокирует v2.1 |
+| Контекстные hints / tooltips при наведении | Отдельный паттерн, можно добавить позже |
+| Многоязычные onboarding тексты | RU-only, английский не нужен |
+| Onboarding для клиентов (read-only роль) | v2.1 фокус — соло-разработчик; клиенты позже |
+| Analytics событий (сколько юзеров завершили onboarding) | Нет нужды в аналитике для соло-юзера |
+| Новая БД для хранения прогресса onboarding | Всё вычисляется из существующих моделей — no migrations |
+
+### Scenario Runner (SCN) — Phase 19.1
+
+- **SCN-01** — Custom pytest collector (`pytest_collect_file`) that discovers `scenarios/*.yaml` as `pytest.Item`s and routes them through the async executor
+- **SCN-02** — Pydantic v2 `Scenario` model with discriminated-union `Step` (open/click/fill/wait_for/expect_text/expect_status) + reserved 19.2 types (say/highlight/wait_for_click) accepted and skipped with warning
+- **SCN-03** — Session-scoped async Playwright Chromium + per-scenario `BrowserContext` constructed from cached `storage_state.json` (programmatic login once per session against seeded smoke_admin)
+- **SCN-04** — HTMX-aware wait/expect helpers built on `expect(locator).to_be_visible(timeout=N)` + locator auto-detect (role/text/label/testid/css) from a single `target:` field
+- **SCN-05** — Out-of-process idempotent live-stack seed (`tests/fixtures/scenario_runner/seed.py`) importing refactored `seed_core`/`seed_extended` from `smoke_seed.py`, runnable via `python -m` inside the `api` container
+- **SCN-06** — `docker-compose.ci.yml` overlay with `tester` service (`mcr.microsoft.com/playwright/python:v1.47.0-jammy`) and worker healthcheck (`celery inspect ping`); CI entry command using `docker compose up --wait`
+- **SCN-07** — Failure artifact capture: full-page screenshot + `trace.zip` (from `context.tracing`) written under `artifacts/scenarios/{scenario_name}/`; `artifacts/` gitignored
+- **SCN-08** — P0 scenario YAML: `scenarios/01-suggest-to-results.yaml` — submit suggest job, HTMX poll, assert result rows render (HTMX polling pattern)
+- **SCN-09** — P0 scenario YAML: `scenarios/02-site-form-submit.yaml` — create-site happy path (synchronous form)
+- **SCN-10** — `scenarios/README.md` documenting YAML schema, step types, reserved types, local run command, and how 19.2 tour player will consume the same files
 
 ## Traceability
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| INFRA-V2-01 | Phase 12 | Complete |
-| INFRA-V2-02 | Phase 12 | Complete |
-| QW-01 | Phase 12 | Complete |
-| QW-02 | Phase 12 | Complete |
-| QW-03 | Phase 12 | Complete |
-| DEAD-01 | Phase 12 | Complete |
-| DEAD-02 | Phase 12 | Complete |
-| IMP-01 | Phase 13 | Complete |
-| IMP-02 | Phase 13 | Complete |
-| GRO-01 | Phase 13 | Complete |
-| GRO-02 | Phase 13 | Complete |
-| CPDF-01 | Phase 14 | Complete |
-| CPDF-02 | Phase 14 | Complete |
-| CPDF-03 | Phase 14 | Complete |
-| SUG-01 | Phase 15 | Complete |
-| SUG-02 | Phase 15 | Complete |
-| SUG-03 | Phase 15 | Complete |
-| SUG-04 | Phase 15 | Complete |
-| GEO-01 | Phase 16 | Complete |
-| GEO-02 | Phase 16 | Complete |
-| GEO-03 | Phase 16 | Complete |
-| LLM-01 | Phase 16 | Complete |
-| LLM-02 | Phase 16 | Complete |
-| LLM-03 | Phase 16 | Complete |
-| LLM-04 | Phase 16 | Complete |
-| NOTIF-01 | Phase 17 | Complete |
-| NOTIF-02 | Phase 17 | Complete |
-| NOTIF-03 | Phase 17 | Complete |
+| PHW-01 | Phase 18 (1 plan) | Complete |
+| PHW-02 | Phase 18 (1 plan) | Complete |
+| PHW-03 | Phase 18 (1 plan) | Complete |
+| PHW-04 | Phase 18 (1 plan) | Complete |
+| PHW-05 | Phase 18 (1 plan) | Complete |
+| PHW-06 | Phase 18 (1 plan) | Complete |
+| EMP-01 | Phase 19-01 | Pending |
+| EMP-02 | Phase 19-01 | Pending |
+| EMP-03 | Phase 19-02 | Pending |
+| EMP-04 | Phase 19-02 | Pending |
+| EMP-05 | Phase 19-01, 19-02 | Pending |
+| EMP-06 | Phase 19-03 (deferred after Phase 25 if tools not ready) | Pending |
+| EMP-07 | Phase 19-03 | Pending |
+| SCN-01 | Phase 19.1-02 | Complete |
+| SCN-02 | Phase 19.1-02 | Complete |
+| SCN-03 | Phase 19.1-03 | Complete |
+| SCN-04 | Phase 19.1-03 | Complete |
+| SCN-05 | Phase 19.1-03 | Complete |
+| SCN-06 | Phase 19.1-04 | Complete |
+| SCN-07 | Phase 19.1-03 | Complete |
+| SCN-08 | Phase 19.1-05 | Complete |
+| SCN-09 | Phase 19.1-05 | Complete |
+| SCN-10 | Phase 19.1-05 | Complete |
 
 **Coverage:**
-- v2.0 requirements: 28 total
-- Mapped to phases: 28
+- v2.1 requirements: 13 total
+- Mapped to phases: 13
 - Unmapped: 0
 
 ---
-*Requirements defined: 2026-04-06*
-*Traceability updated: 2026-04-06 — roadmap created*
+*Requirements defined: 2026-04-08*

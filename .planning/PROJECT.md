@@ -8,13 +8,18 @@ An internal SEO management platform for a team managing 20–100 WordPress sites
 
 A team member or client can open the platform and immediately see the SEO health of any site — positions, recent changes, pending tasks — without switching between GSC, spreadsheets, and WP admin.
 
-## Current State (v2.0 Phase 14 complete 2026-04-06)
+## Current State (v2.0 shipped 2026-04-08)
 
-**Codebase:** 35,402 LOC Python, 559 files, 427 commits
-**Phase 12 complete:** Analytical Foundations — normalize_url(), keyword_latest_positions, Quick Wins page, Dead Content page
-**Phase 13 complete:** Impact Scoring & Growth Opportunities — impact_score backend, Growth Opportunities dashboard (4 tabs), Kanban sort, slide-over drill-down
-**Phase 14 complete:** Client Instructions PDF — subprocess-isolated WeasyPrint renderer, 7 Russian instruction templates, Celery task + HTMX UI, email/Telegram delivery
-**Stack:** Python 3.12, FastAPI 0.115, SQLAlchemy 2.0 async, PostgreSQL 16, Redis 7, Celery 5.4, Playwright, Jinja2 + HTMX 2.0, Tailwind CSS
+**v2.0 SEO Insights & AI — shipped:** 7 phases, 24 plans, 147 commits, +92,913 LOC
+- Phase 12: `normalize_url()` + `keyword_latest_positions` + Quick Wins + Dead Content
+- Phase 13: Impact scoring + Growth Opportunities dashboard + Kanban drill-down
+- Phase 14: Client Instructions PDF (subprocess-isolated WeasyPrint, 7 RU templates)
+- Phase 15: Keyword Suggest (Yandex/Google + Wordstat opt-in, Redis cache)
+- Phase 15.1 (INSERTED): UI Smoke Crawler — 74 routes under pytest gate
+- Phase 16: GEO readiness scoring + Claude LLM Briefs (per-user key, circuit breaker)
+- Phase 17: In-app Notifications (bell + dropdown + /notifications, HTMX 30s polling, D-02 guard)
+
+**Stack:** Python 3.12, FastAPI 0.115, SQLAlchemy 2.0 async, PostgreSQL 16, Redis 7, Celery 5.4, Playwright, Jinja2 + HTMX 2.0, Tailwind CSS, Anthropic SDK (opt-in), WeasyPrint (subprocess)
 
 **What's built:**
 - JWT auth (3 roles), WP site management with Fernet-encrypted credentials
@@ -105,24 +110,17 @@ A team member or client can open the platform and immediately see the SEO health
 | Ad traffic = CSV upload only | API integrations deferred; covers 90% of needs | Good |
 | Celery timezone Europe/Moscow | Server in Spain, team in Moscow | Good |
 
-## Current Milestone: v2.0 SEO Insights & AI
+## Current Milestone: v2.1 Onboarding & Project Health
 
-**Goal:** Превратить собранные данные в actionable insights — Quick Wins, мёртвый контент, приоритизация ошибок, точки роста, AI-готовность, клиентские отчёты — плюс keyword suggest, LLM-briefs и 2FA.
+**Goal:** Сделать платформу самодокументируемой для возвращающегося пользователя — каждая страница объясняет, почему нет данных и как получить результат; Site Overview показывает 7-шаговый чек-лист настройки проекта с прогрессом и следующим действием.
 
 **Target features:**
-- Quick Wins — страницы без TOC/schema/ссылок + позиции 4–20, батч-фикс
-- Dead Content — страницы с 0 визитов + падающие позиции
-- Error Impact Scoring — приоритизация ошибок по трафику
-- Growth Opportunities — агрегация gap-ключей, потерянных позиций, каннибализации
-- AI/GEO Readiness — чеклист готовности к AI-поиску
-- Client Instructions PDF — отчёты для владельцев сайтов
-- Keyword Suggest — подсказки через Google/Yandex + Wordstat
-- LLM Briefs — AI-генерация брифов (opt-in)
-- 2FA (TOTP) + In-app notifications
+- Phase 18: Project Health Widget — 7-шаговый setup чек-лист на Overview, status signals в site_service, ссылки на следующий шаг
+- Phase 19: Empty States Everywhere — reusable Jinja2 макрос + contextual empty states на всех основных страницах
 
 ## Evolution
 
 This document evolves at phase transitions and milestone boundaries.
 
 ---
-*Last updated: 2026-04-06 — Phase 14 (Client Instructions PDF) complete*
+*Last updated: 2026-04-08 — v2.0 SEO Insights & AI milestone shipped*
