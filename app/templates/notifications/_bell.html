@@ -1,0 +1,48 @@
+{#
+  Bell notification badge — HTMX polls every 30s (D-06 silent badge update, NOTIF-03).
+
+  When included from sidebar.html (static page render), unread_count and
+  has_unread_error are not in context → use 0 / false defaults.
+  The 30s HTMX poll will replace this div with live values from /notifications/bell.
+#}
+{% set _unread = unread_count | default(0) %}
+{% set _has_error = has_unread_error | default(false) %}
+<div
+  id="notif-bell"
+  class="relative"
+  hx-get="/notifications/bell"
+  hx-trigger="every 30s"
+  hx-swap="outerHTML"
+  hx-target="#notif-bell"
+>
+  <button
+    type="button"
+    hx-get="/notifications/dropdown"
+    hx-target="#notif-dropdown"
+    hx-swap="innerHTML"
+    onclick="var d=document.getElementById('notif-dropdown');d.style.display=(d.style.display==='none'||!d.style.display)?'block':'none';"
+    style="position:relative;background:transparent;border:none;cursor:pointer;padding:0.5rem;color:white;display:flex;align-items:center;justify-content:center;width:100%;"
+    title="Уведомления"
+    aria-label="Открыть уведомления"
+  >
+    {# Bell icon (Heroicons bell) #}
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width:1.25rem;height:1.25rem;">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0" />
+    </svg>
+    <span class="sidebar-label" style="font-size:0.825rem;color:#a5b4fc;margin-left:0.4rem;">Уведомления</span>
+
+    {# Unread badge — only shown if there are unread notifications #}
+    {% if _unread > 0 %}
+    <span
+      class="{% if _has_error %}bg-red-500{% else %}bg-blue-500{% endif %} text-white text-xs font-bold rounded-full"
+      style="position:absolute;top:0.15rem;right:0.15rem;min-width:1.1rem;height:1.1rem;display:flex;align-items:center;justify-content:center;padding:0 0.2rem;font-size:0.65rem;line-height:1;"
+    >{{ _unread }}</span>
+    {% endif %}
+  </button>
+
+  {# Dropdown container — populated by HTMX on click #}
+  <div
+    id="notif-dropdown"
+    style="display:none;position:fixed;left:16.5rem;bottom:4rem;z-index:200;min-width:24rem;"
+  ></div>
+</div>

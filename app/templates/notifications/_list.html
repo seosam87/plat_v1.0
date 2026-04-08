@@ -1,0 +1,87 @@
+{# Notification list fragment — grouped by kind (D-08), with pagination #}
+{# Used by /notifications index page and by POST /notifications/mark-all-read #}
+
+{% if groups %}
+  {% for kind_label, items in groups.items() %}
+  <section class="mb-6">
+    <h3 style="font-size:0.8rem;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;margin:0 0 0.5rem 0;padding-bottom:0.25rem;border-bottom:1px solid #e5e7eb;">
+      {{ kind_label }} ({{ items|length }})
+    </h3>
+    <ul style="list-style:none;margin:0;padding:0;">
+      {% for n in items %}
+      <li
+        class="notif-row"
+        style="border-left:3px solid {% if n.severity == 'error' %}#ef4444{% elif n.severity == 'warning' %}#eab308{% else %}#22c55e{% endif %};padding:0.6rem 0.75rem 0.6rem 1rem;background:{% if not n.is_read %}#fafafa{% else %}white{% endif %};border-radius:0 4px 4px 0;margin-bottom:0.25rem;border-bottom:1px solid #f3f4f6;display:flex;align-items:flex-start;gap:0.75rem;"
+      >
+        {# Severity icon #}
+        <div style="flex-shrink:0;margin-top:0.15rem;">
+          {% if n.severity == 'error' %}
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="#ef4444" style="width:1rem;height:1rem;">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+          </svg>
+          {% elif n.severity == 'warning' %}
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="#eab308" style="width:1rem;height:1rem;">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+          </svg>
+          {% else %}
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="#22c55e" style="width:1rem;height:1rem;">
+            <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+          </svg>
+          {% endif %}
+        </div>
+
+        {# Content #}
+        <div style="flex:1;min-width:0;">
+          <a href="{{ n.link_url or '#' }}" style="text-decoration:none;color:inherit;">
+            <div style="font-size:0.875rem;font-weight:{% if not n.is_read %}600{% else %}400{% endif %};color:#111827;margin-bottom:0.15rem;">{{ n.title }}</div>
+            <div style="font-size:0.8rem;color:#6b7280;">{{ n.body }}</div>
+            <div style="font-size:0.7rem;color:#9ca3af;margin-top:0.2rem;">
+              {% if n.created_at %}{{ n.created_at.strftime('%d.%m.%Y %H:%M') }}{% endif %}
+            </div>
+          </a>
+        </div>
+
+        {# Dismiss button #}
+        <button
+          hx-post="/notifications/{{ n.id }}/dismiss"
+          hx-target="closest .notif-row"
+          hx-swap="outerHTML"
+          style="flex-shrink:0;background:transparent;border:none;cursor:pointer;padding:0.25rem;color:#9ca3af;border-radius:4px;"
+          title="Скрыть"
+          onmouseover="this.style.color='#ef4444'"
+          onmouseout="this.style.color='#9ca3af'"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width:0.875rem;height:0.875rem;">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endfor %}
+
+  {# Pagination #}
+  {% if total_pages > 1 %}
+  <div style="display:flex;align-items:center;justify-content:center;gap:0.5rem;padding:1rem 0;border-top:1px solid #e5e7eb;margin-top:1rem;">
+    {% if page > 1 %}
+    <a
+      href="?page={{ page - 1 }}&site_id={{ current_site_id }}&kind={{ current_kind }}&read_state={{ current_read_state }}"
+      style="padding:0.4rem 0.75rem;font-size:0.8rem;color:#6366f1;text-decoration:none;border:1px solid #e5e7eb;border-radius:4px;"
+    >← Назад</a>
+    {% endif %}
+    <span style="font-size:0.8rem;color:#6b7280;">{{ page }} / {{ total_pages }}</span>
+    {% if page < total_pages %}
+    <a
+      href="?page={{ page + 1 }}&site_id={{ current_site_id }}&kind={{ current_kind }}&read_state={{ current_read_state }}"
+      style="padding:0.4rem 0.75rem;font-size:0.8rem;color:#6366f1;text-decoration:none;border:1px solid #e5e7eb;border-radius:4px;"
+    >Вперёд →</a>
+    {% endif %}
+  </div>
+  {% endif %}
+
+{% else %}
+<div style="padding:3rem 1rem;text-align:center;">
+  <p style="color:#9ca3af;font-size:0.875rem;">Уведомлений нет</p>
+</div>
+{% endif %}

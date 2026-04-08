@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block title %}Уведомления — SEO Platform{% endblock %}
+
+{% block content %}
+<div class="main-content">
+  <div style="max-width:64rem;margin:0 auto;">
+
+    {# Header #}
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
+      <h1 style="font-size:1.375rem;font-weight:700;color:#111827;margin:0;">Уведомления</h1>
+      {% if total_count > 0 %}
+      <button
+        hx-post="/notifications/mark-all-read?site_id={{ current_site_id }}&kind={{ current_kind }}&read_state={{ current_read_state }}"
+        hx-target="#notif-list"
+        hx-swap="innerHTML"
+        style="padding:0.5rem 1rem;font-size:0.8rem;font-weight:500;background:#6366f1;color:white;border:none;border-radius:6px;cursor:pointer;"
+        onmouseover="this.style.background='#4f46e5'"
+        onmouseout="this.style.background='#6366f1'"
+      >Отметить все прочитанными</button>
+      {% endif %}
+    </div>
+
+    {# Filter bar (D-09) #}
+    <form method="GET" action="/notifications" style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;margin-bottom:1.25rem;padding:0.75rem 1rem;background:white;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.08);">
+
+      {# Site selector #}
+      <div>
+        <label style="font-size:0.75rem;color:#6b7280;display:block;margin-bottom:0.2rem;">Сайт</label>
+        <select name="site_id" style="font-size:0.8rem;padding:0.35rem 0.6rem;border:1px solid #d1d5db;border-radius:4px;background:white;color:#374151;min-width:10rem;">
+          <option value="" {% if not current_site_id %}selected{% endif %}>Все сайты</option>
+          {% for site in site_options %}
+          <option value="{{ site.id }}" {% if current_site_id == site.id|string %}selected{% endif %}>{{ site.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      {# Kind selector #}
+      <div>
+        <label style="font-size:0.75rem;color:#6b7280;display:block;margin-bottom:0.2rem;">Тип</label>
+        <select name="kind" style="font-size:0.8rem;padding:0.35rem 0.6rem;border:1px solid #d1d5db;border-radius:4px;background:white;color:#374151;min-width:10rem;">
+          <option value="" {% if not current_kind %}selected{% endif %}>Все типы</option>
+          {% for k in available_kinds %}
+          <option value="{{ k }}" {% if current_kind == k %}selected{% endif %}>{{ k }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      {# Read state (preserve via hidden input) #}
+      <input type="hidden" name="read_state" value="{{ current_read_state }}">
+
+      <div style="margin-top:1.2rem;">
+        <button type="submit" style="padding:0.35rem 0.75rem;font-size:0.8rem;background:#6366f1;color:white;border:none;border-radius:4px;cursor:pointer;">Применить</button>
+      </div>
+    </form>
+
+    {# Read state tabs #}
+    <div style="display:flex;gap:0.5rem;margin-bottom:1rem;">
+      <a
+        href="/notifications?site_id={{ current_site_id }}&kind={{ current_kind }}&read_state=all"
+        style="padding:0.4rem 0.75rem;font-size:0.8rem;border-radius:6px;text-decoration:none;{% if current_read_state == 'all' %}background:#6366f1;color:white;font-weight:600;{% else %}background:#f3f4f6;color:#374151;{% endif %}"
+      >Все</a>
+      <a
+        href="/notifications?site_id={{ current_site_id }}&kind={{ current_kind }}&read_state=unread"
+        style="padding:0.4rem 0.75rem;font-size:0.8rem;border-radius:6px;text-decoration:none;{% if current_read_state == 'unread' %}background:#6366f1;color:white;font-weight:600;{% else %}background:#f3f4f6;color:#374151;{% endif %}"
+      >Непрочитанные</a>
+    </div>
+
+    {# Total count #}
+    {% if total_count > 0 %}
+    <p style="font-size:0.8rem;color:#9ca3af;margin-bottom:0.75rem;">{{ total_count }} уведомлени{{ 'е' if total_count == 1 else ('я' if 2 <= total_count <= 4 else 'й') }}</p>
+    {% endif %}
+
+    {# Notification list (target for HTMX mark-all) #}
+    <div id="notif-list">
+      {% include "notifications/_list.html" %}
+    </div>
+
+  </div>
+</div>
+{% endblock %}

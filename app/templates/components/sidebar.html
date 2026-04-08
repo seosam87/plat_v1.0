@@ -94,8 +94,12 @@
     {% endfor %}
   </nav>
 
-  {# Footer — logout link #}
+  {# Footer — bell notifications + logout link #}
   <div style="padding:0.75rem;border-top:1px solid #312e81;flex-shrink:0;">
+    {# Bell notification icon #}
+    <div style="margin-bottom:0.5rem;position:relative;">
+      {% include "notifications/_bell.html" %}
+    </div>
     <a href="/ui/logout" style="display:flex;align-items:center;gap:0.5rem;color:#a5b4fc;text-decoration:none;font-size:0.825rem;padding:0.4rem 0.5rem;border-radius:5px;transition:background 0.15s;" onmouseover="this.style.background='#312e81'" onmouseout="this.style.background='transparent'">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width:1.1rem;height:1.1rem;flex-shrink:0;">
         <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15M12 9l-3 3m0 0 3 3m-3-3h12.75" />
