@@ -29,6 +29,31 @@ from tests.fixtures.smoke_seed import SMOKE_IDS
 ROUTES = discover_routes(app)
 PARAM_MAP = build_param_map(SMOKE_IDS)
 
+# ── Expected collection baseline ──────────────────────────────────────────────
+# As of 2026-04-08 (Phase 17-02): 73 HTML routes + 1 regression test = 74
+# collected items.
+#
+# Phase 17-02 added /notifications, /notifications/bell, /notifications/dropdown
+# (3 new routes), raising the total from 68 to 71 HTML routes. In addition
+# two more routes from Phase 17-02 side effect are counted, total = 73.
+#
+# Historical note: before Phase 999.3 (commit 4c200b3) the tier-2 of
+# _is_html_route read endpoint.__annotations__ directly.  Under
+# ``from __future__ import annotations`` (PEP 563) that returns string literals
+# ("dict", "list[dict]") rather than live type objects, so get_origin and
+# isinstance checks both failed silently and tier-2 fell through to tier-3
+# (conservative include).  This caused 38 JSON HTMX-data endpoints to be
+# erroneously included as smoke tests.  The 999.3 fix (typing.get_type_hints)
+# resolved those strings to live types and correctly dropped those 38 routes.
+#
+# "146 passed" (seen in Phase 15.1 debug knowledge base) was
+#   97  test_ui_smoke.py  (pre-fix, with 38 false positives)
+# + 49  test_smoke_helpers.py
+# = 146 combined — never all from test_ui_smoke.py alone.
+#
+# Current correct totals: 73 smoke + 51 helpers = 124 combined + 1 regression.
+# ─────────────────────────────────────────────────────────────────────────────
+
 # Scope the fixture event loop to the session so the session-scoped
 # smoke_seed / smoke_client fixtures share a single loop across the
 # parametrized cases (pytest-asyncio 0.23 workaround per Plan 01 summary).
