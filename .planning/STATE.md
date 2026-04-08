@@ -1,16 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v2.0
-milestone_name: SEO Insights & AI
-status: verifying
-stopped_at: Completed 17-03-PLAN.md
-last_updated: "2026-04-08T13:06:40.464Z"
+milestone: v2.1
+milestone_name: Onboarding & Project Health
+status: milestone_boundary
+stopped_at: v2.0 shipped 2026-04-08 — awaiting /gsd:new-milestone for v2.1
+last_updated: "2026-04-08T20:30:00.000Z"
 last_activity: 2026-04-08
 progress:
-  total_phases: 38
-  completed_phases: 31
-  total_plans: 100
-  completed_plans: 92
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
   percent: 0
 ---
 
@@ -25,12 +25,11 @@ See: .planning/PROJECT.md (updated 2026-04-06)
 
 ## Current Position
 
-Phase: 17 (in-app-notifications) — EXECUTING
-Plan: 3 of 3
-Status: Phase complete — ready for verification
-Last activity: 2026-04-08
+Milestone: v2.0 SEO Insights & AI — **SHIPPED 2026-04-08** (tag `v2.0`)
+Next milestone: v2.1 Onboarding & Project Health — not yet started
+Last activity: 2026-04-08 (milestone archive + tag)
 
-Progress: [__________] 0% (v2.0)
+Progress: v2.0 [██████████] 100% | v2.1 [__________] 0%
 
 ## Performance Metrics
 
@@ -99,6 +98,6 @@ Progress: [__________] 0% (v2.0)
 
 ## Session Continuity
 
-Last session: 2026-04-08T13:06:40.459Z
-Stopped at: Completed 17-03-PLAN.md
+Last session: 2026-04-08T20:30:00.000Z
+Stopped at: v2.0 milestone shipped — ready for /gsd:new-milestone
 Resume file: None
