@@ -304,4 +304,6 @@ async def dismiss_notification(
         delete(Notification).where(Notification.id == notification_id)
     )
     await db.commit()
-    return Response(status_code=204)
+    # NOTE: Return 200 with empty body (NOT 204) so HTMX performs the swap.
+    # HTMX spec: 204 No Content → no swap at all, regardless of hx-swap value.
+    return HTMLResponse("", status_code=200)
