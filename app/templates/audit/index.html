@@ -35,22 +35,38 @@
 
 <!-- Filters -->
 <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
-  <div class="flex gap-4 flex-wrap items-center">
-    <input type="text" id="search-input" placeholder="Поиск по URL или title..." value="{{ search }}"
-      class="flex-1 min-w-[200px] px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-indigo-500 focus:border-indigo-500"
-      oninput="filterTable()">
-    <select id="type-filter" class="px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-indigo-500 focus:border-indigo-500" onchange="filterTable()">
-      <option value="all">Все типы</option>
-      <option value="informational">Информационные</option>
-      <option value="commercial">Коммерческие</option>
-      <option value="unknown">Не определён</option>
+  <form method="get" action="/audit/{{ site.id }}" class="flex gap-4 flex-wrap items-center">
+    <input type="text" name="search" placeholder="Поиск по URL или title..." value="{{ search }}"
+      class="flex-1 min-w-[200px] px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-indigo-500 focus:border-indigo-500">
+    <select name="content_type" class="px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-indigo-500 focus:border-indigo-500">
+      <option value="all" {% if content_type_filter == 'all' %}selected{% endif %}>Все типы</option>
+      <option value="informational" {% if content_type_filter == 'informational' %}selected{% endif %}>Информационные</option>
+      <option value="commercial" {% if content_type_filter == 'commercial' %}selected{% endif %}>Коммерческие</option>
+      <option value="unknown" {% if content_type_filter == 'unknown' %}selected{% endif %}>Не определён</option>
     </select>
-    <select id="status-filter" class="px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-indigo-500 focus:border-indigo-500" onchange="filterTable()">
-      <option value="all">Все</option>
-      <option value="has_issues">С проблемами</option>
-      <option value="all_pass">Без проблем</option>
+    <select name="status" class="px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-indigo-500 focus:border-indigo-500">
+      <option value="all" {% if status_filter == 'all' %}selected{% endif %}>Все</option>
+      <option value="has_issues" {% if status_filter == 'has_issues' %}selected{% endif %}>С проблемами</option>
+      <option value="all_pass" {% if status_filter == 'all_pass' %}selected{% endif %}>Без проблем</option>
     </select>
-  </div>
+    <!-- GEO фильтры -->
+    <input type="number" name="geo_score_min" min="0" max="100"
+      placeholder="Мин GEO"
+      value="{{ request.query_params.get('geo_score_min', '') }}"
+      class="w-24 px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-indigo-500 focus:border-indigo-500">
+    <input type="number" name="geo_score_max" min="0" max="100"
+      placeholder="Макс GEO"
+      value="{{ request.query_params.get('geo_score_max', '') }}"
+      class="w-24 px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-indigo-500 focus:border-indigo-500">
+    <select name="geo_check" class="px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-indigo-500 focus:border-indigo-500">
+      <option value="">— все GEO-проверки —</option>
+      {% for code in geo_check_options %}
+      <option value="{{ code }}" {% if geo_check == code %}selected{% endif %}>{{ code }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit" class="px-3 py-1.5 text-sm font-medium rounded bg-indigo-600 text-white hover:bg-indigo-700">Применить</button>
+    <a href="/audit/{{ site.id }}" class="px-3 py-1.5 text-sm font-medium rounded border border-gray-300 text-gray-700 hover:bg-gray-50">Сбросить</a>
+  </form>
 </div>
 
 <!-- Pages table -->
@@ -60,6 +76,7 @@
       <tr>
         <th>Страница</th>
         <th>Тип</th>
+        <th class="text-center">GEO</th>
         <th class="text-center">TOC</th>
         <th class="text-center">Schema</th>
         <th class="text-center">Автор</th>
@@ -92,6 +109,19 @@
             <option value="commercial" {% if ct == 'commercial' %}selected{% endif %}>Комм</option>
             <option value="unknown" {% if ct == 'unknown' %}selected{% endif %}>—</option>
           </select>
+        </td>
+        <td class="text-center">
+          {% if p.geo_score is not none %}
+            {% if p.geo_score >= 70 %}
+              <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-semibold bg-emerald-100 text-emerald-700">{{ p.geo_score }}</span>
+            {% elif p.geo_score >= 40 %}
+              <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-semibold bg-yellow-100 text-yellow-700">{{ p.geo_score }}</span>
+            {% else %}
+              <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-semibold bg-red-100 text-red-700">{{ p.geo_score }}</span>
+            {% endif %}
+          {% else %}
+            <span class="text-gray-300 text-xs">—</span>
+          {% endif %}
         </td>
         {% set check_map = {"toc_present":"toc","schema_present":"schema","author_block":"author","related_posts":"related","cta_present":"cta","internal_links":"links","noindex_check":"noindex"} %}
         {% for code in ["toc_present","schema_present","author_block","related_posts","cta_present","internal_links","noindex_check"] %}
