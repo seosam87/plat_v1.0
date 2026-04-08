@@ -39,10 +39,10 @@
 
 ### LLM Briefs
 
-- [ ] **LLM-01**: Пользователь может сгенерировать AI-бриф через Claude API (opt-in, кнопка видна только при настроенном API key)
-- [ ] **LLM-02**: AI-бриф получает контекст: позиции, gap-ключи, GEO-score, каннибализация, конкуренты из аналитики
-- [ ] **LLM-03**: Шаблонный бриф всегда генерируется как fallback; AI-бриф дополняет, не заменяет
-- [ ] **LLM-04**: Жёсткий лимит токенов (input ~2000, output ~800) и circuit breaker при недоступности API
+- [x] **LLM-01**: Пользователь может сгенерировать AI-бриф через Claude API (opt-in, кнопка видна только при настроенном API key)
+- [x] **LLM-02**: AI-бриф получает контекст: позиции, gap-ключи, GEO-score, каннибализация, конкуренты из аналитики
+- [x] **LLM-03**: Шаблонный бриф всегда генерируется как fallback; AI-бриф дополняет, не заменяет
+- [x] **LLM-04**: Жёсткий лимит токенов (input ~2000, output ~800) и circuit breaker при недоступности API
 
 ### In-app Notifications
 
@@ -98,10 +98,10 @@
 | GEO-01 | Phase 16 | Complete |
 | GEO-02 | Phase 16 | Complete |
 | GEO-03 | Phase 16 | Complete |
-| LLM-01 | Phase 16 | Pending |
-| LLM-02 | Phase 16 | Pending |
-| LLM-03 | Phase 16 | Pending |
-| LLM-04 | Phase 16 | Pending |
+| LLM-01 | Phase 16 | Complete |
+| LLM-02 | Phase 16 | Complete |
+| LLM-03 | Phase 16 | Complete |
+| LLM-04 | Phase 16 | Complete |
 | NOTIF-01 | Phase 17 | Pending |
 | NOTIF-02 | Phase 17 | Pending |
 | NOTIF-03 | Phase 17 | Pending |
