@@ -1,0 +1,33 @@
+<!-- AI Suggestions block — shown only when current user has an Anthropic API key configured -->
+{% if current_user.has_anthropic_key %}
+<div class="bg-white rounded-lg shadow-sm border border-indigo-100 p-5 mt-4">
+  <div class="flex items-center justify-between mb-3">
+    <h4 class="m-0 text-base font-semibold text-gray-800">AI Suggestions</h4>
+    <span class="text-xs text-gray-400 italic">Powered by Claude Haiku 4.5 — для апгрейда отредактируй ANTHROPIC_MODEL и пересобери</span>
+  </div>
+
+  <!-- Trigger button -->
+  <button
+    hx-post="/briefs/{{ brief.id }}/llm-enhance"
+    hx-target="#ai-brief-result"
+    hx-swap="innerHTML"
+    class="px-4 py-2 text-sm font-medium rounded bg-indigo-600 text-white hover:bg-indigo-700 mb-3">
+    Generate AI brief
+  </button>
+
+  <!-- Polling target -->
+  <div id="ai-brief-result" class="mt-3">
+    {% if accepted_job %}
+    {# Show already-accepted output on page load #}
+    {% set output = accepted_job.output_json or {} %}
+    {% include "analytics/_llm_job_accepted.html" with context %}
+    {% endif %}
+  </div>
+</div>
+{% else %}
+<div class="bg-gray-50 rounded-lg border border-dashed border-gray-200 p-4 mt-4">
+  <p class="text-sm text-gray-500 m-0">
+    Настройте Anthropic API key в <a href="/profile/" class="text-indigo-600 hover:underline">Профиле</a> чтобы получить AI-улучшение брифа.
+  </p>
+</div>
+{% endif %}

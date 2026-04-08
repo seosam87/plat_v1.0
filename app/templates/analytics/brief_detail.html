@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}ТЗ: {{ brief.title }} — SEO Platform{% endblock %}
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="/ui/dashboard">Dashboard</a><span>&rsaquo;</span>
+  <a href="/analytics/sites/{{ brief.site_id }}">Аналитика</a><span>&rsaquo;</span>
+  ТЗ
+</div>
+{% endblock %}
+{% block content %}
+<div class="flex justify-between items-center mb-6">
+  <h2 class="m-0 text-lg font-semibold text-gray-800">{{ brief.title or 'ТЗ без названия' }}</h2>
+  <div class="flex gap-2">
+    <a href="/analytics/briefs/{{ brief.id }}/export?format=text" class="btn btn-sm text-xs">Скачать TXT</a>
+    <a href="/analytics/briefs/{{ brief.id }}/export?format=csv" class="btn btn-sm text-xs">Скачать CSV</a>
+  </div>
+</div>
+
+<!-- Brief metadata -->
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-5 mb-4">
+  <div class="grid grid-cols-2 gap-4 text-sm">
+    <div>
+      <span class="text-gray-500">Целевой URL:</span>
+      <span class="ml-2 text-gray-800 font-medium">{{ brief.target_url or '—' }}</span>
+    </div>
+    <div>
+      <span class="text-gray-500">Дата создания:</span>
+      <span class="ml-2 text-gray-800">{{ brief.created_at.strftime('%Y-%m-%d %H:%M') if brief.created_at else '—' }}</span>
+    </div>
+    {% if brief.recommended_title %}
+    <div class="col-span-2">
+      <span class="text-gray-500">Рекомендованный Title:</span>
+      <span class="ml-2 text-gray-800 font-medium">{{ brief.recommended_title }}</span>
+    </div>
+    {% endif %}
+    {% if brief.recommended_h1 %}
+    <div class="col-span-2">
+      <span class="text-gray-500">Рекомендованный H1:</span>
+      <span class="ml-2 text-gray-800 font-medium">{{ brief.recommended_h1 }}</span>
+    </div>
+    {% endif %}
+    {% if brief.recommended_meta %}
+    <div class="col-span-2">
+      <span class="text-gray-500">Meta Description:</span>
+      <span class="ml-2 text-gray-800">{{ brief.recommended_meta }}</span>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Brief headings outline -->
+{% if brief.headings_json %}
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-5 mb-4">
+  <h3 class="m-0 mb-3 text-sm font-semibold text-gray-700">Структура</h3>
+  <div class="space-y-1">
+    {% for h in brief.headings_json %}
+    <div class="text-sm {% if h.get('level') == 3 %}ml-6 text-gray-500{% else %}text-gray-700 font-medium{% endif %}">
+      H{{ h.get('level', 2) }}: {{ h.get('text', '') }}
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<!-- Keywords -->
+{% if brief.keywords_json %}
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-5 mb-4">
+  <h3 class="m-0 mb-3 text-sm font-semibold text-gray-700">Ключевые слова ({{ brief.keywords_json|length }})</h3>
+  <div class="flex flex-wrap gap-1">
+    {% for kw in brief.keywords_json[:50] %}
+    <span class="inline-block bg-gray-100 text-gray-700 text-xs px-2 py-0.5 rounded">
+      {{ kw.get('phrase', kw) if kw is mapping else kw }}
+    </span>
+    {% endfor %}
+    {% if brief.keywords_json|length > 50 %}
+    <span class="text-xs text-gray-400 self-center">…ещё {{ brief.keywords_json|length - 50 }}</span>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+<!-- Structure notes -->
+{% if brief.structure_notes %}
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-5 mb-4">
+  <h3 class="m-0 mb-3 text-sm font-semibold text-gray-700">Заметки по структуре</h3>
+  <div class="text-sm text-gray-600 whitespace-pre-wrap">{{ brief.structure_notes }}</div>
+</div>
+{% endif %}
+
+<!-- AI Suggestions block — conditional on current_user.has_anthropic_key -->
+{% include "analytics/_brief_ai_block.html" %}
+
+{% endblock %}

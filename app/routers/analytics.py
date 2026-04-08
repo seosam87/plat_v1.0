@@ -402,6 +402,45 @@ async def get_brief(
     }
 
 
+@router.get("/briefs/{brief_id}/view", response_class=HTMLResponse)
+async def brief_detail_view(
+    request: Request,
+    brief_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+) -> HTMLResponse:
+    """HTML detail view for a content brief (Phase 16 LLM-04).
+
+    Renders brief metadata + AI Suggestions block (visible when user has Anthropic key).
+    Does NOT modify brief_service.py — LLM-03 invariant.
+    """
+    from sqlalchemy import select as _select
+    from app.models.llm_brief_job import LLMBriefJob
+
+    brief = await bs.get_brief(db, brief_id)
+    if not brief:
+        raise HTTPException(status_code=404, detail="Brief not found")
+
+    # Check for latest accepted LLM job for auto-show on reload
+    accepted_job_result = await db.execute(
+        _select(LLMBriefJob)
+        .where(LLMBriefJob.brief_id == brief_id, LLMBriefJob.status == "accepted")
+        .order_by(LLMBriefJob.created_at.desc())
+        .limit(1)
+    )
+    accepted_job = accepted_job_result.scalar_one_or_none()
+
+    return templates.TemplateResponse(
+        request,
+        "analytics/brief_detail.html",
+        {
+            "brief": brief,
+            "current_user": current_user,
+            "accepted_job": accepted_job,
+        },
+    )
+
+
 @router.get("/briefs/{brief_id}/export", response_class=PlainTextResponse)
 async def export_brief(
     brief_id: uuid.UUID,

@@ -155,6 +155,9 @@ app.include_router(keyword_suggest_router)
 from app.routers.profile import router as profile_router
 app.include_router(profile_router)
 
+from app.routers.llm_briefs import router as llm_briefs_router
+app.include_router(llm_briefs_router)
+
 
 # ---- Site selector API endpoints for nav sidebar ----
 

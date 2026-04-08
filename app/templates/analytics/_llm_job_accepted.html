@@ -1,0 +1,69 @@
+<!-- LLM job accepted — merged AI content view (no hx-trigger, static display) -->
+<div class="space-y-3">
+  <div class="flex items-center gap-2 mb-3">
+    <span class="text-sm font-medium text-emerald-700">AI улучшения приняты</span>
+    <span class="badge badge-connected text-xs">принято</span>
+  </div>
+
+  <!-- Expanded sections -->
+  {% if expanded_sections %}
+  <details class="bg-white border border-emerald-100 rounded-lg" open>
+    <summary class="px-4 py-3 cursor-pointer font-medium text-gray-800 text-sm select-none hover:bg-gray-50 rounded-t-lg">
+      Расширенные разделы ({{ expanded_sections|length }})
+    </summary>
+    <div class="px-4 pb-4 space-y-3 border-t border-gray-100">
+      {% for sec in expanded_sections %}
+      <div class="mt-3">
+        <div class="text-sm font-semibold text-gray-700 mb-1">{{ sec.heading }}</div>
+        <div class="text-sm text-gray-600 whitespace-pre-wrap">{{ sec.content }}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </details>
+  {% endif %}
+
+  <!-- FAQ block -->
+  {% if faq_block %}
+  <details class="bg-white border border-emerald-100 rounded-lg">
+    <summary class="px-4 py-3 cursor-pointer font-medium text-gray-800 text-sm select-none hover:bg-gray-50 rounded-t-lg">
+      FAQ блок ({{ faq_block|length }} вопросов)
+    </summary>
+    <div class="px-4 pb-4 space-y-3 border-t border-gray-100">
+      {% for item in faq_block %}
+      <div class="mt-3">
+        <div class="text-sm font-semibold text-gray-700 mb-1">{{ item.question }}</div>
+        <div class="text-sm text-gray-600">{{ item.answer }}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </details>
+  {% endif %}
+
+  <!-- Title/Meta variants -->
+  {% if title_variants or meta_variants %}
+  <details class="bg-white border border-emerald-100 rounded-lg">
+    <summary class="px-4 py-3 cursor-pointer font-medium text-gray-800 text-sm select-none hover:bg-gray-50 rounded-t-lg">
+      Title и Meta варианты
+    </summary>
+    <div class="px-4 pb-4 border-t border-gray-100">
+      {% if title_variants %}
+      <div class="mt-3">
+        <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Title варианты</div>
+        {% for t in title_variants %}
+        <div class="text-sm text-gray-700 py-1 border-b border-gray-50">{{ t }}</div>
+        {% endfor %}
+      </div>
+      {% endif %}
+      {% if meta_variants %}
+      <div class="mt-3">
+        <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Meta Description варианты</div>
+        {% for m in meta_variants %}
+        <div class="text-sm text-gray-700 py-1 border-b border-gray-50">{{ m }}</div>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+  </details>
+  {% endif %}
+
+</div>
