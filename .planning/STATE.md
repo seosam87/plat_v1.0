@@ -2,8 +2,8 @@
 gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: Onboarding & Project Health
-status: milestone_boundary
-stopped_at: v2.0 shipped 2026-04-08 — awaiting /gsd:new-milestone for v2.1
+status: defining_requirements
+stopped_at: v2.1 started — defining requirements
 last_updated: "2026-04-08T20:30:00.000Z"
 last_activity: 2026-04-08
 progress:
@@ -25,11 +25,13 @@ See: .planning/PROJECT.md (updated 2026-04-06)
 
 ## Current Position
 
-Milestone: v2.0 SEO Insights & AI — **SHIPPED 2026-04-08** (tag `v2.0`)
-Next milestone: v2.1 Onboarding & Project Health — not yet started
-Last activity: 2026-04-08 (milestone archive + tag)
+Milestone: v2.1 Onboarding & Project Health
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-04-08 — Milestone v2.1 started
 
-Progress: v2.0 [██████████] 100% | v2.1 [__________] 0%
+Progress: v2.1 [__________] 0%
 
 ## Performance Metrics
 

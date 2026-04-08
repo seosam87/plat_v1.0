@@ -110,15 +110,13 @@ A team member or client can open the platform and immediately see the SEO health
 | Ad traffic = CSV upload only | API integrations deferred; covers 90% of needs | Good |
 | Celery timezone Europe/Moscow | Server in Spain, team in Moscow | Good |
 
-## Next Milestone: v2.1 Onboarding & Project Health
+## Current Milestone: v2.1 Onboarding & Project Health
 
 **Goal:** Сделать платформу самодокументируемой для возвращающегося пользователя — каждая страница объясняет, почему нет данных и как получить результат; Site Overview показывает 7-шаговый чек-лист настройки проекта с прогрессом и следующим действием.
 
-**Planned phases:**
-- Phase 18: Project Health Widget — 7-шаговый setup чек-лист на Overview
-- Phase 19: Empty States Everywhere — reusable Jinja2 макрос + contextual empty states
-
-Run `/gsd:new-milestone` to start requirements definition for v2.1.
+**Target features:**
+- Phase 18: Project Health Widget — 7-шаговый setup чек-лист на Overview, status signals в site_service, ссылки на следующий шаг
+- Phase 19: Empty States Everywhere — reusable Jinja2 макрос + contextual empty states на всех основных страницах
 
 ## Evolution
 
