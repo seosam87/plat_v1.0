@@ -163,10 +163,11 @@ _ANSWER_FIRST_RU_HTML = """
 _ANSWER_FIRST_TOO_LONG_HTML = """
 <html><body>
 <h1>Long article</h1>
-<p>This is a very long paragraph that goes on and on and contains way too many words
-to pass the sixty word limit check and it just keeps going and going
-without stopping because we need it to be over sixty words to fail the test
-and this should definitely be over sixty words total right here.</p>
+<p>This paragraph goes on and on and contains way too many words
+to pass the sixty word limit check and it just keeps going
+without stopping because we need more than sixty total words to fail
+the test so let us add even more filler text here to exceed the limit
+so that we reach sixty one words and beyond now done.</p>
 </body></html>
 """
 
