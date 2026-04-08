@@ -121,7 +121,7 @@ Plans:
 **Context**: `19.1-CONTEXT.md` (8 decisions D-01..D-08 captured 2026-04-08) + `19.1-RESEARCH.md`
 **Plans**: 5 plans
 Plans:
-- [ ] 19.1-01-PLAN.md — Wave 0 foundations: refactor smoke_seed public seed_core/seed_extended, scaffold scenario_runner package + scenarios/ dir, add playwright + pyyaml to test deps, gitignore artifacts
+- [x] 19.1-01-PLAN.md — Wave 0 foundations: refactor smoke_seed public seed_core/seed_extended, scaffold scenario_runner package + scenarios/ dir, add playwright + pyyaml to test deps, gitignore artifacts
 - [ ] 19.1-02-PLAN.md — Pydantic v2 Scenario/Step discriminated union schema (incl. reserved 19.2 types) + pytest_collect_file collector + executor skeleton with reserved-type skip-with-warning
 - [ ] 19.1-03-PLAN.md — Playwright runtime: session browser + storage_state auth fixtures, locator auto-detect, full P0 step dispatch, failure-artifact capture (screenshot + trace.zip), idempotent out-of-process live-stack seed
 - [ ] 19.1-04-PLAN.md — CI plumbing: docker-compose.ci.yml overlay with tester service (MS Playwright image) + worker healthcheck, single-command run-scenarios-ci.sh entrypoint
@@ -323,7 +323,7 @@ Phase 20 (Client CRM)
 
 **Goal:** Extend `tests/_smoke_helpers.py::discover_routes` to auto-filter routes by `response_class=HTMLResponse` (or return-type annotation), skipping JSON/CSV endpoints automatically instead of requiring explicit `SMOKE_SKIP` entries. Eliminates the need for the 5 manual skips added during phase-15.1-deferred-routes debug session (`/metrika/{id}/pages`, `/metrika/{id}/compare`, `/analytics/sessions/{id}/export`, `/traffic-analysis/sessions/{id}`, `/traffic-analysis/sessions/{id}/anomalies`). Rationale: surfaced as tech debt in `.planning/phases/15.1-ui-smoke-crawler/deferred-items.md`.
 **Requirements:** TBD
-**Plans:** 1/1 plans complete
+**Plans:** 1/5 plans executed
 
 Plans:
 - [ ] TBD (promote with /gsd:review-backlog when ready)
