@@ -1,5 +1,5 @@
 ---
-status: partial
+status: complete
 phase: 17-in-app-notifications
 source:
   - 17-01-SUMMARY.md
@@ -124,6 +124,16 @@ pending: 0
 skipped: 0
 blocked: 2
 skipped: 0
+
+## Resolution
+
+All 4 gaps fixed in commits `b502596` and `bccdb0f`:
+- Gap 2 (badge alignment) — verified in browser ✓
+- Gap 7 (dismiss swap) — fixed after second iteration (204 → 200 empty body), verified in browser ✓
+- Gap 11 (beat schedule) — `redis-cli KEYS redbeat:notifications*` shows the entry ✓
+- Gap 12 (smoke partials) — `pytest tests/test_ui_smoke.py` → 74 passed ✓
+
+Blocked tests 8, 9 (LLM brief notifications) remain — require Anthropic API key.
 
 ## Diagnoses
 
