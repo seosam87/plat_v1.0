@@ -1,6 +1,8 @@
 {% extends "base.html" %}
+{% from "macros/health.html" import project_health_widget %}
 {% block title %}{{ site.name }} — SEO Platform{% endblock %}
 {% block content %}
+{% if health %}{{ project_health_widget(health) }}{% endif %}
 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem">
   <h2 style="margin:0">{{ site.name }} <a class="help-trigger" onclick="openHelp()" title="Справка">?</a></h2>
   <div style="display:flex;gap:.5rem">

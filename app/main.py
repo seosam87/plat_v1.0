@@ -2178,9 +2178,56 @@ def _inline(text: str) -> str:
 # ---- Site Detail Page ----
 
 
+@app.get("/ui/sites/{site_id}", response_class=HTMLResponse)
+async def ui_site_overview(
+    site_id: str, request: Request, db: AsyncSession = Depends(get_db)
+) -> HTMLResponse:
+    """Per-site Overview page — hosts the Project Health Widget (Phase 18-01)."""
+    import uuid as _uuid
+    from app.services.site_service import get_site, compute_site_health
+    from app.models.schedule import CrawlSchedule, PositionSchedule
+    from sqlalchemy import select as sa_select
+
+    sid = _uuid.UUID(site_id)
+    site = await get_site(db, sid)
+    if not site:
+        return HTMLResponse("Site not found", status_code=404)
+
+    health = await compute_site_health(db, sid)
+
+    cs_row = (
+        await db.execute(
+            sa_select(CrawlSchedule).where(CrawlSchedule.site_id == sid).limit(1)
+        )
+    ).scalar_one_or_none()
+    ps_row = (
+        await db.execute(
+            sa_select(PositionSchedule).where(PositionSchedule.site_id == sid).limit(1)
+        )
+    ).scalar_one_or_none()
+    crawl_schedule = cs_row.schedule_type.value if cs_row else "manual"
+    position_schedule = ps_row.schedule_type.value if ps_row else "manual"
+
+    return templates.TemplateResponse(
+        request,
+        "sites/detail.html",
+        {
+            "site": site,
+            "health": health,
+            "keyword_count": health.keyword_count,
+            "crawl_count": health.crawl_count,
+            "task_count": 0,
+            "recent_tasks": [],
+            "recent_crawls": [],
+            "crawl_schedule": crawl_schedule,
+            "position_schedule": position_schedule,
+        },
+    )
+
+
 @app.get("/ui/sites/{site_id}/detail", response_class=HTMLResponse)
 async def ui_site_detail(site_id: str, request: Request, db: AsyncSession = Depends(get_db)):
-    """Redirects to /ui/sites — detail page removed in v4 (D-06, D-08)."""
+    """Redirects to /ui/sites — legacy detail page removed in v4 (D-06, D-08)."""
     return RedirectResponse(url="/ui/sites", status_code=301)
 
 
