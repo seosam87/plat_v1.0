@@ -47,7 +47,7 @@
 ### In-app Notifications
 
 - [ ] **NOTIF-01**: В sidebar отображается иконка уведомлений с badge-счётчиком непрочитанных
-- [ ] **NOTIF-02**: Лента уведомлений показывает: завершение краула, проверка позиций, генерация PDF, алерты мониторинга
+- [x] **NOTIF-02**: Лента уведомлений показывает: завершение краула, проверка позиций, генерация PDF, алерты мониторинга
 - [ ] **NOTIF-03**: Уведомления работают параллельно с Telegram (не заменяют); HTMX polling каждые 30 секунд
 
 ### Infrastructure
@@ -103,7 +103,7 @@
 | LLM-03 | Phase 16 | Complete |
 | LLM-04 | Phase 16 | Complete |
 | NOTIF-01 | Phase 17 | Pending |
-| NOTIF-02 | Phase 17 | Pending |
+| NOTIF-02 | Phase 17 | Complete |
 | NOTIF-03 | Phase 17 | Pending |
 
 **Coverage:**

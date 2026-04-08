@@ -154,7 +154,7 @@ Plans:
   3. Notifications continue to be sent to Telegram as before; in-app notifications are additive, not a replacement
   4. Read notifications can be dismissed; dismissed notifications are hard-deleted (not soft-deleted) and a nightly Celery Beat task cleans up notifications older than 30 days
 **Plans**: 3 plans
-- [ ] 17-01-PLAN.md — Notification model, migration, notify() helper, nightly cleanup task
+- [x] 17-01-PLAN.md — Notification model, migration, notify() helper, nightly cleanup task
 - [ ] 17-02-PLAN.md — Router + bell/dropdown/full-page templates + sidebar wiring + smoke routes
 - [ ] 17-03-PLAN.md — Wire notify() into 7 Celery tasks + monitoring alert dispatcher
 **UI hint**: yes
@@ -326,7 +326,7 @@ Phase 18 (Client CRM)
 | 15. Keyword Suggest | v2.0 | 3/3 | Complete   | 2026-04-07 |
 | 15.1. UI Smoke Crawler | v2.0 | 5/5 | Complete   | 2026-04-07 |
 | 16. AI/GEO Readiness & LLM Briefs | v2.0 | 4/4 | Complete (LLM e2e deferred) | 2026-04-08 |
-| 17. In-app Notifications | v2.0 | 0/TBD | Not started | - |
+| 17. In-app Notifications | v2.0 | 1/3 | In Progress|  |
 | 18. Client CRM | v3.0 | 0/3 | Not started | - |
 | 19. Site Audit Intake | v3.0 | 0/4 | Not started | - |
 | 20. Proposal Templates & Tariffs | v3.0 | 0/4 | Not started | - |
@@ -340,7 +340,7 @@ Phase 18 (Client CRM)
 
 **Goal:** YAML-based scenario runner using Playwright async. Format: steps with open/click/fill/wait_for/expect_text/expect_status. Runs in CI against full docker-compose stack. Reuses seed fixtures from Phase 15.1. Covers interactive flows: form submit, HTMX polling, slide-over detail panels, suggest→results flow, gap analysis, position checks. Scenarios stored in `scenarios/*.yaml` — same files later consumed by 999.2 tour player (one source of truth for tests and tours).
 **Requirements:** TBD
-**Plans:** 3/4 plans executed
+**Plans:** 1/3 plans executed
 
 Plans:
 - [ ] TBD (promote with /gsd:review-backlog when ready)
