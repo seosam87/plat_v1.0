@@ -5,6 +5,7 @@
 - **v1.0 MVP** — 16 phases (shipped 2026-04-06) — [details](milestones/v1.0-ROADMAP.md)
 - **v2.0 SEO Insights & AI** — Phases 12–17 (in progress)
 - **v3.0 Client & Proposal** — Phases 18–21 (planned)
+- **v3.1 SEO Tools** — Phases 22–23 (planned)
 
 ## Phases
 
@@ -234,6 +235,69 @@ Plans:
 - [ ] 21-03-PLAN.md — Export UI: export buttons + status polling (HTMX) + download links + export history tab + tests
 **UI hint**: yes
 
+### v3.1 SEO Tools
+
+**Milestone Goal:** Добавить в платформу раздел «Инструменты» — автономные SERP-инструменты без привязки к сайту клиента, работающие по модели Job: пользователь запускает задачу, Celery выполняет, результат доступен для просмотра и CSV/XLSX экспорта. Архитектура по образцу Phase 15 (SuggestJob), каждый инструмент — своя модель.
+
+- [ ] **Phase 22: Tools Infrastructure & Fast Tools** — новый раздел сайдбара, базовая Job-архитектура, три инструмента на существующих компонентах (коммерциализация, парсер мета-тегов, релевантный URL)
+- [ ] **Phase 23: SERP Aggregation Tools** — три инструмента, требующие SERP-краулинга (ТЗ на основе ТОП, PAA, пакетная частотность Wordstat)
+
+### Phase 22: Tools Infrastructure & Fast Tools
+**Goal**: Users can access a new "Tools" sidebar section with three standalone SERP instruments — commercialization check, meta-tag parser, and relevant URL finder — each running as an async Celery job with typed result storage, downloadable CSV output, and no site binding required
+**Depends on**: Phase 21
+**Requirements**: TOOL-INFRA-01, TOOL-INFRA-02, COM-01, META-01, REL-01
+**Success Criteria** (what must be TRUE):
+  1. A "Tools" section appears in the sidebar navigation, accessible to admin and manager roles; the section lists all available tools with a status indicator (running / ready / failed) for the user's recent jobs across all tools
+  2. Each tool follows the same UX pattern: input form → submit → HTMX polling on job status → results table rendered in-page → CSV/XLSX download button; no page reload required at any step
+  3. User can submit a list of up to 200 keyword phrases to the Commercialization Check tool and receive for each phrase: commercialization % (0–100), intent classification (informational / mixed / commercial), geo-dependency flag, localization flag — powered by XMLProxy Yandex SERP analysis; results stored in CommerceCheckJob + CommerceCheckResult rows
+  4. User can submit a list of up to 500 URLs to the Meta Tag Parser and receive for each URL: HTTP status code, title, H1, H2 list (up to 10), meta description, canonical — fetched via async httpx with 10s timeout and 5 concurrent workers; results stored in MetaParseJob + MetaParseResult rows
+  5. User can submit a list of up to 100 keyword phrases to the Relevant URL Finder, select a domain to check, and receive for each phrase: which URL from that domain appears in Yandex TOP-10 (or "not found"), its position, and the top-3 competing domains — powered by XMLProxy; results stored in RelevantUrlJob + RelevantUrlResult rows
+  6. All three tools are rate-limited (10 requests/minute per user), run exclusively inside Celery tasks (no inline HTTP in request handlers), have retry=3 on external calls, and are covered by service-layer tests with mocked external responses
+**Plans**: 5 plans
+Plans:
+- [ ] 22-01-PLAN.md — Tools infrastructure: sidebar section + shared job-list page + HTMX polling pattern + CSV/XLSX export helper + navigation + smoke tests
+- [ ] 22-02-PLAN.md — Commercialization Check: CommerceCheckJob + CommerceCheckResult models + migration + service + Celery task + XMLProxy integration + UI + tests
+- [ ] 22-03-PLAN.md — Meta Tag Parser: MetaParseJob + MetaParseResult models + migration + async httpx fetcher service + Celery task + UI + tests
+- [ ] 22-04-PLAN.md — Relevant URL Finder: RelevantUrlJob + RelevantUrlResult models + migration + service + Celery task + XMLProxy integration + UI + tests
+- [ ] 22-05-PLAN.md — Integration: tools index page + recent jobs across all tools + role-based access + router tests
+**UI hint**: yes
+
+### Phase 23: SERP Aggregation Tools
+**Goal**: Users can run three advanced tools requiring multi-step SERP aggregation and page crawling — a full copywriting brief generator (TOP-10 analysis + Playwright crawl of each result), a PAA parser, and a batch Wordstat frequency tool — each following the same Job architecture established in Phase 22
+**Depends on**: Phase 22
+**Requirements**: BRIEF-01, BRIEF-02, PAA-01, FREQ-01
+**Success Criteria** (what must be TRUE):
+  1. User can submit a group of keyword phrases (up to 30, intended for one landing page) to the Copywriting Brief tool and receive a structured brief containing: recommended title and H1 suggestions, list of H2 headings aggregated from TOP-10 pages, Yandex search highlights (подсветки) across TOP-10, thematic words frequency table, average text volume from TOP-10 pages, commercialization % for the group — all stored in BriefJob + BriefResult with section-level JSON structure
+  2. The Copywriting Brief pipeline runs as a multi-step Celery chain: (1) XMLProxy fetches TOP-10 URLs for each phrase → (2) Playwright crawls each TOP-10 page extracting H2s, visible text, and highlights → (3) aggregation service merges results across phrases and computes frequency tables → (4) results written to DB and status set to ready; total runtime under 3 minutes for 10 phrases × 10 results
+  3. User can submit a list of up to 50 keyword phrases to the PAA Parser and receive for each phrase: list of "People Also Ask" questions extracted from Yandex SERP, with nested follow-up questions where available — fetched via Playwright (JavaScript-rendered SERP), results stored in PAAJob + PAAResult rows; exported as flat CSV with phrase / question / level columns
+  4. User can submit a list of up to 1000 keyword phrases to the Batch Wordstat tool (requires configured Yandex Direct OAuth token, same as Phase 15.3) and receive for each phrase: exact-match frequency "phrase", broad-match frequency [phrase], monthly dynamics chart data — stored in WordstatBatchJob + WordstatBatchResult rows; this extends the Phase 15.3 per-suggest Wordstat into a standalone parity tool matching KeyCollector's batch frequency workflow
+  5. All three tools appear in the Tools sidebar section with the same job-list UX from Phase 22; the Batch Wordstat tool shows a warning if no Yandex Direct OAuth token is configured and links to the settings page; all tools have service-layer tests with mocked external calls
+**Plans**: 5 plans
+Plans:
+- [ ] 23-01-PLAN.md — Copywriting Brief backend: BriefJob + BriefResult models + migration + XMLProxy TOP-10 fetcher + Playwright page crawler + aggregation service + Celery chain + tests
+- [ ] 23-02-PLAN.md — Copywriting Brief UI: input form (phrase group + region + PS selector) + Celery chain status polling + brief renderer (sections: title/H1, H2 cloud, highlights, thematic words, volume) + XLSX export
+- [ ] 23-03-PLAN.md — PAA Parser: PAAJob + PAAResult models + migration + Playwright SERP scenario + nested question extractor + Celery task + UI + CSV export + tests
+- [ ] 23-04-PLAN.md — Batch Wordstat: WordstatBatchJob + WordstatBatchResult models + migration + Wordstat API service (extends Phase 15.3) + Celery task + UI + XLSX export + OAuth token check + tests
+- [ ] 23-05-PLAN.md — Tools section completion: unified job history page across all 6 tools + pagination + job deletion + re-run button + router tests
+**UI hint**: yes
+
+**Dependency Graph (v3.1):**
+```
+Phase 22 (Tools Infrastructure & Fast Tools)
+    └── Phase 23 (SERP Aggregation Tools)
+```
+
+**Wave structure:**
+- Phase 22: Wave 1 → 22-01 (infra); Wave 2 → 22-02 + 22-03 + 22-04 (parallel); Wave 3 → 22-05
+- Phase 23: Wave 1 → 23-01 + 23-03 + 23-04 (parallel backends); Wave 2 → 23-02 (Brief UI, depends on 23-01) + 23-05 (completion)
+
+**Notes:**
+- Copywriting Brief (23-01/02) is the heaviest plan — Playwright crawling N×10 pages per job; enforce per-job concurrency limit (max 3 parallel Playwright workers) to avoid VPS memory pressure
+- Batch Wordstat (23-04) reuses Yandex Direct OAuth infrastructure from Phase 15.3 — low effort relative to other Phase 23 plans
+- All six tool models follow the same pattern: `Job (input, status, user_id, created_at, completed_at)` + `Result (job_id FK, per-row data)`; no shared base model (variant B per architecture decision)
+- XMLProxy is already rate-limited via the existing proxy management module — tool jobs must respect the same queue
+- Phase 22 smoke tests must cover the HTMX polling pattern — add tool job routes to the Phase 15.1 smoke crawler parametrization
+
 **Dependency Graph (v3.0):**
 ```
 Phase 18 (Client CRM)
@@ -264,6 +328,8 @@ Phase 18 (Client CRM)
 | 19. Site Audit Intake | v3.0 | 0/4 | Not started | - |
 | 20. Proposal Templates & Tariffs | v3.0 | 0/4 | Not started | - |
 | 21. Document Generator | v3.0 | 0/3 | Not started | - |
+| 22. Tools Infrastructure & Fast Tools | v3.1 | 0/5 | Not started | - |
+| 23. SERP Aggregation Tools | v3.1 | 0/5 | Not started | - |
 
 ## Backlog
 
