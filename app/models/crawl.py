@@ -115,6 +115,7 @@ class Page(Base):
     canonical_url: Mapped[str | None] = mapped_column(String(2000), nullable=True)
     word_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
     inlinks_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    geo_score: Mapped[int | None] = mapped_column(Integer, nullable=True)
     crawled_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=datetime.utcnow
     )

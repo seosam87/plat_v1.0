@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.audit import AuditCheckDefinition, AuditResult
 from app.models.crawl import ContentType
+from app.services.llm.geo_checks import GEO_CHECK_RUNNERS, compute_geo_score
 
 
 # ---- Pure detection functions (no DB) ----
@@ -87,6 +88,10 @@ _CHECK_RUNNERS: dict[str, callable] = {
         pd.get("internal_link_count", 0)
     ),
     "noindex_check": lambda html, pd: not pd.get("has_noindex", False),
+    # GEO readiness checks (Phase 16 — geo_* codes from audit_check_definitions)
+    # geo_ai_robots passes robots_txt from page_data; defaults to "" (not blocked) if absent.
+    # NOTE: robots_txt is not fetched at audit time yet — Phase 16 backlog item.
+    **GEO_CHECK_RUNNERS,
 }
 
 
@@ -147,9 +152,16 @@ async def get_active_checks(db: AsyncSession) -> list[AuditCheckDefinition]:
 
 
 async def save_audit_results(
-    db: AsyncSession, site_id: uuid.UUID, page_url: str, results: list[dict]
+    db: AsyncSession,
+    site_id: uuid.UUID,
+    page_url: str,
+    results: list[dict],
+    page_id: uuid.UUID | None = None,
 ) -> None:
-    """Upsert audit results for a page."""
+    """Upsert audit results for a page.
+
+    If page_id is provided, also computes and persists geo_score on the Page row.
+    """
     for r in results:
         stmt = insert(AuditResult).values(
             id=uuid.uuid4(),
@@ -170,6 +182,17 @@ async def save_audit_results(
             },
         )
         await db.execute(stmt)
+
+    # Update geo_score on the Page row if page_id is provided
+    if page_id is not None:
+        from app.models.crawl import Page
+        from sqlalchemy import update
+
+        geo_score = compute_geo_score(results)
+        await db.execute(
+            update(Page).where(Page.id == page_id).values(geo_score=geo_score)
+        )
+
     await db.flush()
 
 
