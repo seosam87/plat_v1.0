@@ -1,0 +1,5 @@
+name: collector_smoke
+description: collector unit-test fixture — reserved steps only
+steps:
+  - op: say
+    text: "collector works"
