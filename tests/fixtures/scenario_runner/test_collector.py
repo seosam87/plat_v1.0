@@ -66,22 +66,23 @@ def test_non_scenarios_dir_not_collected(pytester: pytest.Pytester):
     assert "inline_fixture" not in result.stdout.str()
 
 
-def test_committed_fixture_scenario_collected(pytester: pytest.Pytester):
-    """The committed scenarios/_test_fixture.yaml (reserved-only) collects.
+def test_reserved_only_scenario_collected(pytester: pytest.Pytester):
+    """A scenario with only reserved (19.2) step types must still collect.
 
-    NOTE: plan 19.1-05 Task 0 will delete scenarios/_test_fixture.yaml and
-    inline this fixture via pytester. Do not add new dependencies on this
-    file existing.
+    Plan 19.1-05 removed the committed scenarios/_test_fixture.yaml; this
+    test now writes the equivalent reserved-only fixture inline via pytester
+    so the collector contract is still exercised without a committed stub.
     """
-    from pathlib import Path
-
-    repo_root = Path(__file__).resolve().parents[3]
-    fixture = repo_root / "scenarios" / "_test_fixture.yaml"
-    assert fixture.exists(), f"missing fixture: {fixture}"
-
+    RESERVED_YAML = (
+        "name: collector_smoke\n"
+        "description: collector unit-test fixture — reserved steps only\n"
+        "steps:\n"
+        "  - op: say\n"
+        "    text: \"collector works\"\n"
+    )
     pytester.makepyfile(conftest=CONFTEST)
     scenarios = pytester.mkdir("scenarios")
-    (scenarios / "_test_fixture.yaml").write_text(fixture.read_text())
+    (scenarios / "_reserved.yaml").write_text(RESERVED_YAML)
 
     result = pytester.runpytest("--collect-only", "scenarios/", "-q")
     result.stdout.fnmatch_lines(["*collector_smoke*"])
