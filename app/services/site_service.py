@@ -1,11 +1,180 @@
 import uuid
+from dataclasses import dataclass, field
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.competitor import Competitor
+from app.models.crawl import CrawlJob
+from app.models.keyword import Keyword
+from app.models.position import KeywordPosition
+from app.models.schedule import CrawlSchedule, PositionSchedule, ScheduleType
 from app.models.site import ConnectionStatus, Site
 from app.services.audit_service import log_action
 from app.services.crypto_service import decrypt, encrypt
+
+
+# ─── Project Health Widget (Phase 18-01) ────────────────────────────────────
+
+
+@dataclass
+class HealthStep:
+    key: str
+    title: str
+    description: str
+    done: bool
+    status: str  # "done" | "current" | "pending"
+    next_url: str | None
+    is_current: bool = False
+
+
+@dataclass
+class SiteHealth:
+    steps: list[HealthStep] = field(default_factory=list)
+    completed_count: int = 0
+    current_step_index: int | None = None
+    is_fully_set_up: bool = False
+    analytics_connected: bool = False
+    keyword_count: int = 0
+    crawl_count: int = 0
+    competitor_count: int = 0
+
+
+# Ordered step definitions — (key, title RU, description RU, next_url template)
+_STEP_DEFS: list[tuple[str, str, str, str | None]] = [
+    (
+        "site_created",
+        "Сайт создан",
+        "Запись о сайте существует в системе",
+        None,
+    ),
+    (
+        "wp_creds",
+        "Доступ к WordPress настроен",
+        "Указаны URL, логин и Application Password",
+        "/ui/sites/{site_id}/edit",
+    ),
+    (
+        "keywords",
+        "Ключевые слова добавлены",
+        "Импортированы или заведены вручную ключи",
+        "/ui/keywords/{site_id}",
+    ),
+    (
+        "competitors",
+        "Конкуренты добавлены",
+        "Указан хотя бы один конкурент для отслеживания",
+        "/ui/competitors/{site_id}",
+    ),
+    (
+        "crawl",
+        "Первый краул выполнен",
+        "Сайт хотя бы раз был просканирован",
+        "/ui/sites/{site_id}/crawls",
+    ),
+    (
+        "positions",
+        "Позиции проверены",
+        "Хотя бы одна проверка позиций выполнена",
+        "/ui/positions/{site_id}",
+    ),
+    (
+        "schedule",
+        "Расписание настроено",
+        "Включён автоматический краул или проверка позиций",
+        "/ui/sites/{site_id}/schedule",
+    ),
+]
+
+
+async def compute_site_health(
+    db: AsyncSession, site_id: uuid.UUID
+) -> SiteHealth:
+    """Compute a 7-step project setup health snapshot for the given site.
+
+    Synchronous (single request) — ≤ 8 indexed queries total. Exposes raw
+    counts so callers can reuse them without duplicating COUNTs.
+    """
+    site = await db.get(Site, site_id)
+    if site is None:
+        return SiteHealth()
+
+    async def _count(model, *filters) -> int:
+        stmt = select(func.count()).select_from(model).where(*filters)
+        return (await db.execute(stmt)).scalar() or 0
+
+    kw_count = await _count(Keyword, Keyword.site_id == site_id)
+    comp_count = await _count(Competitor, Competitor.site_id == site_id)
+    crawl_count_val = await _count(CrawlJob, CrawlJob.site_id == site_id)
+    pos_count = await _count(
+        KeywordPosition, KeywordPosition.site_id == site_id
+    )
+    cs_count = await _count(
+        CrawlSchedule,
+        CrawlSchedule.site_id == site_id,
+        CrawlSchedule.is_active.is_(True),
+        CrawlSchedule.schedule_type != ScheduleType.manual,
+    )
+    ps_count = await _count(
+        PositionSchedule,
+        PositionSchedule.site_id == site_id,
+        PositionSchedule.is_active.is_(True),
+        PositionSchedule.schedule_type != ScheduleType.manual,
+    )
+    sched_count = cs_count + ps_count
+
+    done_flags = [
+        True,  # site_created (site is not None)
+        bool(site.wp_username and site.encrypted_app_password and site.url),
+        kw_count > 0,
+        comp_count > 0,
+        crawl_count_val > 0,
+        pos_count > 0,
+        sched_count > 0,
+    ]
+
+    steps: list[HealthStep] = []
+    current_idx: int | None = None
+    for i, (key, title, desc, url_tpl) in enumerate(_STEP_DEFS):
+        done = done_flags[i]
+        next_url = (
+            None
+            if done or url_tpl is None
+            else url_tpl.format(site_id=site_id)
+        )
+        if done:
+            status = "done"
+        elif current_idx is None:
+            status = "current"
+            current_idx = i
+        else:
+            status = "pending"
+        steps.append(
+            HealthStep(
+                key=key,
+                title=title,
+                description=desc,
+                done=done,
+                status=status,
+                next_url=next_url,
+                is_current=(status == "current"),
+            )
+        )
+
+    completed_count = sum(1 for d in done_flags if d)
+    is_fully_set_up = completed_count == 7
+    analytics_connected = bool(site.metrika_token)
+
+    return SiteHealth(
+        steps=steps,
+        completed_count=completed_count,
+        current_step_index=current_idx,
+        is_fully_set_up=is_fully_set_up,
+        analytics_connected=analytics_connected,
+        keyword_count=kw_count,
+        crawl_count=crawl_count_val,
+        competitor_count=comp_count,
+    )
 
 
 async def get_sites(db: AsyncSession) -> list[Site]:
