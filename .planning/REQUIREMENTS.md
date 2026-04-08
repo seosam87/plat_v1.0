@@ -47,19 +47,19 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| PHW-01 | Phase 18 | Pending |
-| PHW-02 | Phase 18 | Pending |
-| PHW-03 | Phase 18 | Pending |
-| PHW-04 | Phase 18 | Pending |
-| PHW-05 | Phase 18 | Pending |
-| PHW-06 | Phase 18 | Pending |
-| EMP-01 | Phase 19 | Pending |
-| EMP-02 | Phase 19 | Pending |
-| EMP-03 | Phase 19 | Pending |
-| EMP-04 | Phase 19 | Pending |
-| EMP-05 | Phase 19 | Pending |
-| EMP-06 | Phase 19 | Pending |
-| EMP-07 | Phase 19 | Pending |
+| PHW-01 | Phase 18 (1 plan) | Pending |
+| PHW-02 | Phase 18 (1 plan) | Pending |
+| PHW-03 | Phase 18 (1 plan) | Pending |
+| PHW-04 | Phase 18 (1 plan) | Pending |
+| PHW-05 | Phase 18 (1 plan) | Pending |
+| PHW-06 | Phase 18 (1 plan) | Pending |
+| EMP-01 | Phase 19-01 | Pending |
+| EMP-02 | Phase 19-01 | Pending |
+| EMP-03 | Phase 19-02 | Pending |
+| EMP-04 | Phase 19-02 | Pending |
+| EMP-05 | Phase 19-01, 19-02 | Pending |
+| EMP-06 | Phase 19-03 (deferred after Phase 25 if tools not ready) | Pending |
+| EMP-07 | Phase 19-03 | Pending |
 
 **Coverage:**
 - v2.1 requirements: 13 total

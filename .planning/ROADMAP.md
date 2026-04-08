@@ -70,7 +70,7 @@ Full details: [milestones/v2.0-ROADMAP.md](milestones/v2.0-ROADMAP.md)
 ### Phase 18: Project Health Widget
 **Goal**: A user returning to any site after weeks of inactivity immediately sees a 7-step setup checklist on the Site Overview page showing what's done, what's next, and a one-click link to the next required action — derived from existing DB state with zero new queries or Celery tasks
 **Depends on**: Phase 17
-**Requirements**: HEALTH-01, HEALTH-02, HEALTH-03
+**Requirements**: PHW-01, PHW-02, PHW-03, PHW-04, PHW-05, PHW-06
 **Success Criteria** (what must be TRUE):
   1. The Site Overview page contains a Project Health widget showing the 7 setup steps as a vertical checklist; each step shows: completion status icon (✓ done / → current / ○ pending), step title, internal link to the relevant page, and a one-line description
   2. The widget derives status from DB state checks inside the existing `site_service.get_site_detail` call — no additional Celery tasks, no additional round-trips; reuses counts already loaded for the page (keywords, competitors, crawl_jobs, position_runs, scheduled_tasks)
@@ -94,7 +94,7 @@ Plans:
 ### Phase 19: Empty States Everywhere
 **Goal**: Every main platform page shows a contextual empty state explaining why there is no data and how to use the feature — so a user returning after weeks of inactivity can self-orient without documentation
 **Depends on**: Phase 18
-**Requirements**: EMPTY-01, EMPTY-02, EMPTY-03
+**Requirements**: EMP-01, EMP-02, EMP-03, EMP-04, EMP-05, EMP-06, EMP-07
 **Success Criteria** (what must be TRUE):
   1. Every page listed in the page inventory (below) renders a reusable empty state component instead of a bare "No data" message when its primary data source is empty
   2. Each empty state contains three elements: (a) one-sentence reason why there is no data yet, (b) collapsible "Как использовать" section (HTML `<details>` / `<summary>` — works without JavaScript, HTMX-compatible) with prerequisites + step-by-step instructions + expected result format, (c) primary CTA button or link to the action that produces data
