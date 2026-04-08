@@ -117,9 +117,15 @@ Plans:
 ### Phase 19.1: UI Scenario Runner (Playwright)
 **Goal**: YAML-based scenario runner using Playwright async, hosted as a pytest plugin. P0 ships 2 scenarios (suggest→results HTMX polling + site form submit) running against the full docker-compose stack in CI. YAML schema reserves 19.2 tour step types (`say`, `highlight`, `wait_for_click`) so the same files become tour sources later.
 **Depends on**: Phase 15.1 (smoke seed fixture)
-**Requirements**: TBD (define before /gsd:plan-phase)
-**Context**: `19.1-CONTEXT.md` (8 decisions D-01..D-08 captured 2026-04-08)
-**Plans**: TBD
+**Requirements**: SCN-01, SCN-02, SCN-03, SCN-04, SCN-05, SCN-06, SCN-07, SCN-08, SCN-09, SCN-10
+**Context**: `19.1-CONTEXT.md` (8 decisions D-01..D-08 captured 2026-04-08) + `19.1-RESEARCH.md`
+**Plans**: 5 plans
+Plans:
+- [ ] 19.1-01-PLAN.md — Wave 0 foundations: refactor smoke_seed public seed_core/seed_extended, scaffold scenario_runner package + scenarios/ dir, add playwright + pyyaml to test deps, gitignore artifacts
+- [ ] 19.1-02-PLAN.md — Pydantic v2 Scenario/Step discriminated union schema (incl. reserved 19.2 types) + pytest_collect_file collector + executor skeleton with reserved-type skip-with-warning
+- [ ] 19.1-03-PLAN.md — Playwright runtime: session browser + storage_state auth fixtures, locator auto-detect, full P0 step dispatch, failure-artifact capture (screenshot + trace.zip), idempotent out-of-process live-stack seed
+- [ ] 19.1-04-PLAN.md — CI plumbing: docker-compose.ci.yml overlay with tester service (MS Playwright image) + worker healthcheck, single-command run-scenarios-ci.sh entrypoint
+- [ ] 19.1-05-PLAN.md — P0 scenarios (01-suggest-to-results.yaml + 02-site-form-submit.yaml) + scenarios/README.md documenting schema/reserved types/19.2 handoff; end-to-end CI green run
 
 ### Phase 19.2: Interactive Tour Player
 **Goal**: Frontend overlay (`app/static/js/tour.js` — lightweight custom or Shepherd.js via CDN) that highlights elements with tooltip/next/prev controls. Consumes the same `scenarios/*.yaml` files from Phase 19.1 to auto-generate user onboarding tours. Admin-only "Show tour" button on each page. Step types: `highlight` + `say` + `wait_for_click`. One source of truth for tests and tours.

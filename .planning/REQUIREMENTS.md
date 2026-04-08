@@ -43,6 +43,19 @@
 | Analytics событий (сколько юзеров завершили onboarding) | Нет нужды в аналитике для соло-юзера |
 | Новая БД для хранения прогресса onboarding | Всё вычисляется из существующих моделей — no migrations |
 
+### Scenario Runner (SCN) — Phase 19.1
+
+- **SCN-01** — Custom pytest collector (`pytest_collect_file`) that discovers `scenarios/*.yaml` as `pytest.Item`s and routes them through the async executor
+- **SCN-02** — Pydantic v2 `Scenario` model with discriminated-union `Step` (open/click/fill/wait_for/expect_text/expect_status) + reserved 19.2 types (say/highlight/wait_for_click) accepted and skipped with warning
+- **SCN-03** — Session-scoped async Playwright Chromium + per-scenario `BrowserContext` constructed from cached `storage_state.json` (programmatic login once per session against seeded smoke_admin)
+- **SCN-04** — HTMX-aware wait/expect helpers built on `expect(locator).to_be_visible(timeout=N)` + locator auto-detect (role/text/label/testid/css) from a single `target:` field
+- **SCN-05** — Out-of-process idempotent live-stack seed (`tests/fixtures/scenario_runner/seed.py`) importing refactored `seed_core`/`seed_extended` from `smoke_seed.py`, runnable via `python -m` inside the `api` container
+- **SCN-06** — `docker-compose.ci.yml` overlay with `tester` service (`mcr.microsoft.com/playwright/python:v1.47.0-jammy`) and worker healthcheck (`celery inspect ping`); CI entry command using `docker compose up --wait`
+- **SCN-07** — Failure artifact capture: full-page screenshot + `trace.zip` (from `context.tracing`) written under `artifacts/scenarios/{scenario_name}/`; `artifacts/` gitignored
+- **SCN-08** — P0 scenario YAML: `scenarios/01-suggest-to-results.yaml` — submit suggest job, HTMX poll, assert result rows render (HTMX polling pattern)
+- **SCN-09** — P0 scenario YAML: `scenarios/02-site-form-submit.yaml` — create-site happy path (synchronous form)
+- **SCN-10** — `scenarios/README.md` documenting YAML schema, step types, reserved types, local run command, and how 19.2 tour player will consume the same files
+
 ## Traceability
 
 | Requirement | Phase | Status |
@@ -60,6 +73,16 @@
 | EMP-05 | Phase 19-01, 19-02 | Pending |
 | EMP-06 | Phase 19-03 (deferred after Phase 25 if tools not ready) | Pending |
 | EMP-07 | Phase 19-03 | Pending |
+| SCN-01 | Phase 19.1-02 | Pending |
+| SCN-02 | Phase 19.1-02 | Pending |
+| SCN-03 | Phase 19.1-03 | Pending |
+| SCN-04 | Phase 19.1-03 | Pending |
+| SCN-05 | Phase 19.1-03 | Pending |
+| SCN-06 | Phase 19.1-04 | Pending |
+| SCN-07 | Phase 19.1-03 | Pending |
+| SCN-08 | Phase 19.1-05 | Pending |
+| SCN-09 | Phase 19.1-05 | Pending |
+| SCN-10 | Phase 19.1-05 | Pending |
 
 **Coverage:**
 - v2.1 requirements: 13 total
