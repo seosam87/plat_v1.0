@@ -1,0 +1,74 @@
+{% macro project_health_widget(health) -%}
+<div class="card" id="project-health-widget" style="margin-bottom:1.5rem">
+  {% if health.is_fully_set_up %}
+    <div style="display:flex; justify-content:space-between; align-items:center">
+      <div style="font-weight:700; color:#059669">
+        ✅ Проект полностью настроен (7/7)
+      </div>
+      <button type="button" class="btn btn-sm"
+        onclick="document.getElementById('phw-full').classList.toggle('hidden')">
+        Показать снова
+      </button>
+    </div>
+    <div id="phw-full" class="hidden" style="margin-top:1rem">
+      <ul style="list-style:none; padding:0; margin:0">
+        {% for step in health.steps %}
+          <li style="display:flex; gap:.75rem; padding:.5rem 0; border-bottom:1px solid #f3f4f6">
+            <div style="font-size:1.25rem; color:#059669">✅</div>
+            <div>
+              <div style="font-weight:600">{{ step.title }}</div>
+              <div style="font-size:.85rem; color:#6b7280">{{ step.description }}</div>
+            </div>
+          </li>
+        {% endfor %}
+      </ul>
+    </div>
+  {% else %}
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem">
+      <h3 style="margin:0">Настройка проекта</h3>
+      <span class="badge" style="background:#e5e7eb; color:#374151; padding:.25rem .75rem; border-radius:999px; font-weight:700">
+        {{ health.completed_count }}/7
+      </span>
+    </div>
+    <ul style="list-style:none; padding:0; margin:0">
+      {% for step in health.steps %}
+        <li style="display:flex; gap:.75rem; align-items:flex-start; padding:.6rem 0; border-bottom:1px solid #f3f4f6">
+          <div style="font-size:1.25rem; width:1.5rem; text-align:center;
+            {% if step.done %}color:#059669{% elif step.is_current %}color:#f59e0b{% else %}color:#9ca3af{% endif %}">
+            {% if step.done %}✅{% elif step.is_current %}→{% else %}○{% endif %}
+          </div>
+          <div style="flex:1">
+            <div style="font-weight:600;
+              {% if step.is_current %}color:#f59e0b{% endif %}">
+              {{ step.title }}
+            </div>
+            <div style="font-size:.85rem; color:#6b7280">{{ step.description }}</div>
+          </div>
+          {% if not step.done and step.next_url %}
+            <a class="btn btn-sm" href="{{ step.next_url }}"
+              style="background:#2563eb; color:white; align-self:center">
+              Сделать сейчас
+            </a>
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+    {% if health.current_step_index is not none %}
+      <div style="margin-top:1rem; padding-top:.75rem; border-top:1px solid #e5e7eb; font-size:.9rem">
+        Следующий шаг:
+        <a href="{{ health.steps[health.current_step_index].next_url }}"
+          style="color:#f59e0b; font-weight:600; text-decoration:none">
+          {{ health.steps[health.current_step_index].title }} →
+        </a>
+      </div>
+    {% endif %}
+    <div style="margin-top:.5rem; font-size:.8rem; color:#6b7280">
+      {% if health.analytics_connected %}
+        Аналитика подключена: ✅
+      {% else %}
+        Аналитика не подключена (необязательно)
+      {% endif %}
+    </div>
+  {% endif %}
+</div>
+{%- endmacro %}
