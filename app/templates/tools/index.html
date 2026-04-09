@@ -1,6 +1,5 @@
 {% extends "base.html" %}
-{% from "macros/empty_state.html" import empty_state %}
-{% block title %}Инструменты — SEO Platform{% endblock %}
+{% block title %}Инструменты SEO — SEO Platform{% endblock %}
 
 {% block breadcrumbs %}
 <div class="breadcrumbs">
@@ -10,68 +9,19 @@
 {% endblock %}
 
 {% block content %}
-<div class="max-w-4xl">
-  <h1 class="text-2xl font-bold text-gray-900 mb-6">Инструменты SEO</h1>
+<div class="max-w-4xl mx-auto">
+  <h1 class="text-2xl font-semibold text-gray-900 mb-6">Инструменты SEO</h1>
 
-  <h2 class="text-lg font-semibold text-gray-800 mb-3">Проверка коммерциализации</h2>
-  {% call empty_state(
-      reason="Инструмент «Проверка коммерциализации» находится в разработке.",
-      cta_label="Скоро будет доступен",
-      cta_url="/ui/tools/"
-  ) %}
-    <p>Загрузите до 200 ключевых фраз и получите для каждой: процент коммерциализации (0–100), классификацию интента, флаг геозависимости.</p>
-    <p>Данные собираются через анализ выдачи Яндекса.</p>
-  {% endcall %}
-
-  <h2 class="text-lg font-semibold text-gray-800 mb-3">Парсер мета-тегов</h2>
-  {% call empty_state(
-      reason="Инструмент «Парсер мета-тегов» находится в разработке.",
-      cta_label="Скоро будет доступен",
-      cta_url="/ui/tools/"
-  ) %}
-    <p>Загрузите список URL и получите для каждого: title, meta description, h1, robots, canonical.</p>
-    <p>Удобно для массовой проверки мета-тегов конкурентов или своих страниц.</p>
-  {% endcall %}
-
-  <h2 class="text-lg font-semibold text-gray-800 mb-3">Поиск релевантных URL</h2>
-  {% call empty_state(
-      reason="Инструмент «Поиск релевантных URL» находится в разработке.",
-      cta_label="Скоро будет доступен",
-      cta_url="/ui/tools/"
-  ) %}
-    <p>Введите до 100 ключевых фраз и домен — система найдёт, какой URL домена ранжируется по каждому ключу в ТОП-10 Яндекса.</p>
-    <p>Также показывает позицию и топ-3 конкурирующих домена.</p>
-  {% endcall %}
-
-  <h2 class="text-lg font-semibold text-gray-800 mb-3">ТЗ для копирайтера</h2>
-  {% call empty_state(
-      reason="Инструмент «ТЗ для копирайтера» находится в разработке.",
-      cta_label="Скоро будет доступен",
-      cta_url="/ui/tools/"
-  ) %}
-    <p>Загрузите группу ключевых фраз (до 30) для одной целевой страницы.</p>
-    <p>Система проанализирует ТОП-10 и сформирует: рекомендации по title и H1, структуру H2, подсветки Яндекса, частотность тематических слов, средний объём текста.</p>
-  {% endcall %}
-
-  <h2 class="text-lg font-semibold text-gray-800 mb-3">Парсер PAA (Люди также спрашивают)</h2>
-  {% call empty_state(
-      reason="Инструмент «Парсер PAA» находится в разработке.",
-      cta_label="Скоро будет доступен",
-      cta_url="/ui/tools/"
-  ) %}
-    <p>Загрузите до 50 ключевых фраз и получите список вопросов «Люди также спрашивают» из выдачи Яндекса.</p>
-    <p>Полезно для расширения семантики и создания FAQ-секций.</p>
-  {% endcall %}
-
-  <h2 class="text-lg font-semibold text-gray-800 mb-3">Пакетная частотность Wordstat</h2>
-  {% call empty_state(
-      reason="Инструмент «Пакетная частотность» находится в разработке.",
-      cta_label="Скоро будет доступен",
-      cta_url="/ui/tools/"
-  ) %}
-    <p>Загрузите список ключевых фраз и получите частотность по данным Яндекс.Wordstat.</p>
-    <p><strong>Предусловия:</strong> необходим токен Яндекс.Директ (настраивается в разделе «Источники данных»).</p>
-  {% endcall %}
-
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+    {% for tool in tools %}
+    <div class="card">
+      <h2 class="text-lg font-semibold text-gray-800">{{ tool.name }}</h2>
+      <p class="text-sm text-gray-600 mt-2">{{ tool.description }}</p>
+      <div class="mt-4">
+        <a href="/ui/tools/{{ tool.slug }}/" class="btn btn-primary">Открыть инструмент</a>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
 </div>
 {% endblock %}

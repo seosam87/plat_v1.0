@@ -94,6 +94,14 @@ NAV_SECTIONS = [
         ],
     },
     {
+        "id": "tools",
+        "label": "Инструменты",
+        "icon": "wrench",
+        "url": "/ui/tools/",
+        "admin_only": False,
+        "children": [],
+    },
+    {
         "id": "crm",
         "label": "CRM",
         "icon": "user-group",
