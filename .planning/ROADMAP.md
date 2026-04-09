@@ -121,7 +121,11 @@ Plans:
   1. Admin can create, edit, and delete proposal templates; template body uses Jinja2 variable syntax and is stored in the database; admin can clone any existing template
   2. System resolves a documented set of ~15 variables from DB at render time (client name, site URL, top positions count, audit error count, and similar platform metrics) without manual data entry
   3. User can open a preview of any template rendered with real data from a selected client and site — unresolved variables are visibly highlighted; preview renders in under 5 seconds
-**Plans**: TBD
+**Plans**: 3 plans
+Plans:
+- [ ] 22-01-PLAN.md — ProposalTemplate model, migration, service layer, variable resolver, tests
+- [ ] 22-02-PLAN.md — Templates router, list page, edit page with CodeMirror and preview, navigation
+- [ ] 22-03-PLAN.md — Human verification of full feature
 **UI hint**: yes
 
 ### Phase 23: Document Generator
