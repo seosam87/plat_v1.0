@@ -1,29 +1,29 @@
 {
   "version": "1.0",
-  "timestamp": "2026-04-09T14:49:42Z",
-  "phase": "22",
-  "phase_name": "proposal-templates",
-  "phase_dir": ".planning/phases/22-proposal-templates",
-  "plan": null,
-  "task": null,
-  "total_tasks": null,
+  "timestamp": "2026-04-09T23:53:32.542Z",
+  "phase": "24",
+  "phase_name": "tools-infrastructure-fast-tools",
+  "phase_dir": ".planning/phases/24-tools-infrastructure-fast-tools",
+  "plan": 2,
+  "task": 1,
+  "total_tasks": 10,
   "status": "paused",
-  "completed_tasks": [],
-  "remaining_tasks": [],
+  "completed_tasks": [
+    {"id": 1, "name": "24-01 Task 1: Sidebar + TOOL_REGISTRY router + card grid index", "status": "done", "commit": "782908a"},
+    {"id": 2, "name": "24-01 Task 2: Celery task registration + smoke seed", "status": "done", "commit": "02b4800"}
+  ],
+  "remaining_tasks": [
+    {"id": 3, "name": "24-02: Commercialization Check tool", "status": "not_started"},
+    {"id": 4, "name": "24-03: Meta Tag Parser tool", "status": "not_started"},
+    {"id": 5, "name": "24-04: Relevant URL Finder tool", "status": "not_started"},
+    {"id": 6, "name": "24-05: Wiring — index counts, RBAC, router tests", "status": "not_started"}
+  ],
   "blockers": [],
   "human_actions_pending": [],
   "decisions": [
-    {"decision": "CodeMirror code editor with HTML/Jinja2 syntax highlighting", "rationale": "Professional editing UX for Jinja2 templates", "phase": "22"},
-    {"decision": "Side-by-side layout: editor left, preview right", "rationale": "See rendered result without switching tabs", "phase": "22"},
-    {"decision": "Full-page editor (not modal)", "rationale": "CodeMirror + preview + variable panel need space", "phase": "22"},
-    {"decision": "Template type enum: proposal/audit_report/brief + description", "rationale": "Phase 23 Document Generator needs type for filtering", "phase": "22"},
-    {"decision": "Variable panel on the right with click-to-insert", "rationale": "Always visible reference for ~15 platform variables", "phase": "22"},
-    {"decision": "Unresolved variables shown with yellow background", "rationale": "Immediately visible what didn't resolve", "phase": "22"},
-    {"decision": "Card grid for template list", "rationale": "Visual, small number of templates expected", "phase": "22"},
-    {"decision": "Admin CRUD, all users can view/preview", "rationale": "Matches TPL-01 requirement", "phase": "22"},
-    {"decision": "Preview in iframe with client/site dropdowns", "rationale": "Isolates template styles from platform styles", "phase": "22"}
+    {"decision": "TOOL_REGISTRY as central dispatch dict", "rationale": "Single source of truth for all tool routes", "phase": "24"}
   ],
   "uncommitted_files": [],
-  "next_action": "Run /gsd:plan-phase 22 — research + planning. CONTEXT.md and UI-SPEC.md are ready.",
-  "context_notes": "Phase 21 (site-audit-intake) fully executed and verified (9/9 must-haves). Phase 22 (proposal-templates) has CONTEXT.md with all user decisions and UI-SPEC.md approved by checker (3 FLAGs, 0 BLOCKs). Next step is research + planning. No code written yet for phase 22."
+  "next_action": "Execute Wave 2: spawn 3 parallel agents for plans 24-02, 24-03, 24-04",
+  "context_notes": "Phase 24 execution — Wave 1 complete, paused before Wave 2. parallelization=true."
 }
