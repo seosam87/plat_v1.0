@@ -19,8 +19,8 @@
 
 - [x] **EMP-01**: Создан reusable Jinja2-макрос `{% from "macros/empty_state.html" import empty_state %}` с параметрами: `icon`, `title`, `message`, `action_url`, `action_label`, `secondary_url`, `secondary_label`
 - [x] **EMP-02**: Макрос применён на всех основных страницах **core workflow**: Keywords, Positions, Clusters, Gap Analysis, Site Overview (когда данных нет)
-- [ ] **EMP-03**: Макрос применён на **analytics** страницах: Metrika, Traffic Analysis, Growth Opportunities, Dead Content, Quick Wins
-- [ ] **EMP-04**: Макрос применён на **content** страницах: WP Pipeline, Content Plan, Briefs, Client Reports
+- [x] **EMP-03**: Макрос применён на **analytics** страницах: Metrika, Traffic Analysis, Growth Opportunities, Dead Content, Quick Wins
+- [x] **EMP-04**: Макрос применён на **content** страницах: WP Pipeline, Content Plan, Briefs, Client Reports
 - [x] **EMP-05**: Каждое empty state объясняет **почему пусто** ("нет данных потому что...") и даёт минимум одну прямую кнопку-действие ("Запустить краул", "Импортировать ключи" и т.д.)
 - [x] **EMP-06**: Empty state применён на **tools** страницах (если Phase 24–25 не готов на момент выполнения Phase 19 — tools-половину отложить на after Phase 25 per roadmap)
 - [x] **EMP-07**: Smoke-тесты Phase 15.1 не ломаются — все страницы с empty state корректно рендерятся на seed-данных (и пустых, и с данными)
@@ -68,8 +68,8 @@
 | PHW-06 | Phase 18 (1 plan) | Complete |
 | EMP-01 | Phase 19-01 | Complete |
 | EMP-02 | Phase 19-01 | Complete |
-| EMP-03 | Phase 19-02 | Pending |
-| EMP-04 | Phase 19-02 | Pending |
+| EMP-03 | Phase 19-02 | Complete |
+| EMP-04 | Phase 19-02 | Complete |
 | EMP-05 | Phase 19-01, 19-02 | Complete |
 | EMP-06 | Phase 19-03 (deferred after Phase 25 if tools not ready) | Complete |
 | EMP-07 | Phase 19-03 | Complete |
