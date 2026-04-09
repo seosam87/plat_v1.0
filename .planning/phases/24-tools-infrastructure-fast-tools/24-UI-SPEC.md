@@ -53,19 +53,25 @@ Exceptions:
 
 ## Typography
 
-All sizes use `system-ui, sans-serif`. Weights are regular (400) and semibold (600) only.
+All sizes use `system-ui, sans-serif`. Exactly 4 size tokens and 2 weight tokens are declared.
+
+**Weights:**
+- Regular: 400 (`font-normal`)
+- Semibold: 600 (`font-semibold`)
+
+No other weights are permitted in this phase.
 
 | Role | Size | Weight | Line Height | Tailwind class |
 |------|------|--------|-------------|----------------|
+| Utility / label-small (table headers, badges) | 12px (0.75rem) | 600 | 1.3 | `text-xs font-semibold` |
 | Body / table cell | 14px (0.875rem) | 400 | 1.5 | `text-sm` |
-| Label / form label | 14px (0.875rem) | 600 | 1.4 | `text-sm font-semibold` |
-| Section heading (H2) | 18px (1.125rem) | 600 | 1.3 | `text-lg font-semibold` |
-| Page heading (H1) | 24px (1.5rem) | 700 | 1.2 | `text-2xl font-bold` |
+| Label / form label / section heading (H2) | 18px (1.125rem) | 600 | 1.3 | `text-lg font-semibold` |
+| Page heading (H1) | 24px (1.5rem) | 600 | 1.2 | `text-2xl font-semibold` |
 
 Notes:
-- H1 uses `font-bold` (700) — one-off exception for page titles only. All other bold text uses `font-semibold` (600).
-- Table headers: 12px (0.75rem), weight 600, uppercase, color `text-gray-500` — matches existing `th` rule in base.html.
-- Status/badge text: 12-13px (0.8rem), weight 600 — matches `.badge` rule.
+- Table headers: 12px, weight 600, uppercase, color `text-gray-500` — matches existing `th` rule in base.html.
+- Badge/status text: 12px, weight 600 — matches `.badge` rule. The ambiguous "12-13px" notation is removed; all badge and table-header text uses exactly 12px.
+- H1 uses `font-semibold` (600). The 700/bold one-off exception is removed. Visual distinction between 600 and 700 at 24px is negligible.
 
 ---
 
@@ -84,7 +90,7 @@ All hex values extracted from base.html `<style>` block and existing template in
 | Destructive | #dc2626 | Delete job button — confirmation required (see Copywriting) |
 
 Accent (#4f46e5) reserved specifically for:
-- Primary submit buttons ("Запустить задачу", "Экспорт")
+- Primary submit buttons ("Проверить коммерциализацию", "Запустить парсинг", "Найти релевантные URL")
 - Focus ring on text inputs and selects (`focus:ring-indigo-500 focus:border-indigo-500`)
 - Breadcrumb links (`color:#4f46e5`)
 - Sidebar child active state (`#4338ca` — one shade darker, same family)
@@ -107,12 +113,14 @@ These are the concrete UI components required for Phase 24. Each maps to a Jinja
 
 ### Page: Tools Index — `/ui/tools/`
 
+**Primary focal point:** Tool name H2 in each card — it is the largest text element on the card and sits directly above the CTA. All other card elements (description, badge) are visually subordinate to it.
+
 Replace existing stub `tools/index.html` with:
 
 - **Tool card grid** — 3 cards, one per tool. Each card contains:
-  - Tool name (H2, `text-lg font-semibold text-gray-800`)
+  - Tool name (H2, `text-lg font-semibold text-gray-800`) — focal point
   - One-line description (body text, `text-sm text-gray-600`)
-  - "Открыть" link button → `/ui/tools/{slug}/` (styled as `btn btn-primary` but as `<a>`)
+  - "Открыть инструмент" link button → `/ui/tools/{slug}/` (styled as `btn btn-primary` but as `<a>`)
   - Recent job count badge: "N заданий" in gray pill
 
 ### Page: Tool Landing — `/ui/tools/{slug}/`
@@ -132,7 +140,7 @@ Two-column layout at `max-w-5xl`:
 **Right / below: Previous jobs list** (`.card`)
 - Table: columns = [Статус, Фраз, Создано, Действия]
 - Status as colored badge (pending/running/complete/partial/failed)
-- "Результаты" link → `/ui/tools/{slug}/{job_id}`
+- "Смотреть результаты" link → `/ui/tools/{slug}/{job_id}`
 - Delete button (destructive — see Copywriting)
 - Empty state: use `empty_state` macro with tool-specific copy (see Copywriting)
 
@@ -215,10 +223,10 @@ Language: Russian throughout (matches platform lang="ru").
 | **Primary CTA — Commercialization** | "Проверить коммерциализацию" |
 | **Primary CTA — Meta-parser** | "Запустить парсинг" |
 | **Primary CTA — Relevant URL** | "Найти релевантные URL" |
-| **Open tool link (index)** | "Открыть" |
+| **Open tool link (index)** | "Открыть инструмент" |
 | **Export CSV button** | "Скачать CSV" |
 | **Export XLSX button** | "Скачать XLSX" |
-| **Results link in job list** | "Результаты" |
+| **Results link in job list** | "Смотреть результаты" |
 | **Empty state heading (no jobs yet)** | "Заданий пока нет" |
 | **Empty state body (no jobs yet)** | "Введите {фразы/URL} в форму выше и нажмите кнопку запуска. Результаты появятся здесь." |
 | **Empty state (no results in table)** | "Результатов не найдено. Попробуйте изменить фильтр." |
@@ -228,8 +236,8 @@ Language: Russian throughout (matches platform lang="ru").
 | **Partial banner** | "Получено {N} из ~{total} (баланс XMLProxy исчерпан — сохранены частичные данные)" |
 | **Failed banner** | "Не удалось выполнить задание. Проверьте прокси-пул или повторите позже." |
 | **Rate limit error** | "Превышен лимит запросов (10/мин). Подождите минуту и повторите." |
-| **Delete job button** | "Удалить" |
-| **Destructive: delete job confirmation** | Modal/confirm: "Удалить задание #{id}? Результаты будут безвозвратно удалены." — two buttons: "Отмена" (secondary) + "Удалить" (red, `btn-danger`) |
+| **Delete job button** | "Удалить задание" |
+| **Destructive: delete job confirmation** | Modal/confirm: "Удалить задание #{id}? Результаты будут безвозвратно удалены." — two buttons: "Отмена" (secondary) + "Удалить задание" (red, `btn-danger`) |
 | **Input placeholder — keywords** | "Введите ключевые фразы, по одной на строке" |
 | **Input placeholder — URLs** | "Введите URL, по одному на строке" |
 | **Input placeholder — domain** | "example.ru" |
@@ -237,7 +245,7 @@ Language: Russian throughout (matches platform lang="ru").
 | **Sidebar nav label** | "Инструменты" |
 
 **Destructive action — delete job:**
-- Trigger: "Удалить" button in job list row
+- Trigger: "Удалить задание" button in job list row
 - Confirmation: `window.confirm()` dialog with copy above (no custom modal required for this phase)
 - On confirm: `hx-delete="/ui/tools/{slug}/{job_id}"` + `hx-confirm` attribute (HTMX built-in)
 - On cancel: no action taken
