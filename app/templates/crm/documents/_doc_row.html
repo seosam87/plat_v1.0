@@ -84,14 +84,10 @@
       </button>
 
       {# Delete - always shown #}
-      <form style="display:inline;" method="post"
-            action="/ui/crm/clients/{{ client.id }}/documents/{{ doc.id }}/delete"
-            onsubmit="return confirm('Удалить документ? Это действие необратимо.')">
-        <button type="submit"
-                style="background:#fee2e2;color:#991b1b;border:none;padding:0.25rem 0.6rem;border-radius:4px;font-size:0.8rem;cursor:pointer;">
-          Удалить
-        </button>
-      </form>
+      <button onclick="if(confirm('Удалить документ? Это действие необратимо.')) htmx.ajax('POST','/ui/crm/clients/{{ client.id }}/documents/{{ doc.id }}/delete',{target:'#documents-list',swap:'innerHTML'})"
+              style="background:#fee2e2;color:#991b1b;border:none;padding:0.25rem 0.6rem;border-radius:4px;font-size:0.8rem;cursor:pointer;">
+        Удалить
+      </button>
     </div>
   </td>
 </tr>

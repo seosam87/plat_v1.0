@@ -26,9 +26,9 @@
 
 {# Filter controls #}
 <div style="display:flex;gap:0.5rem;margin-bottom:1rem;align-items:center;">
-  <select name="type"
-          hx-get="/ui/crm/clients/{{ client.id }}/documents"
-          hx-target="#documents-list" hx-trigger="change" hx-include="[name='date_from'],[name='date_to']"
+  <select name="doc_type"
+          hx-get="/ui/crm/clients/{{ client.id }}/documents/"
+          hx-target="closest .card" hx-trigger="change" hx-include="[name='date_from'],[name='date_to']"
           style="padding:0.25rem 0.5rem;border:1px solid #d1d5db;border-radius:4px;font-size:0.875rem;">
     <option value="" {% if not doc_type_filter %}selected{% endif %}>Все типы</option>
     <option value="proposal" {% if doc_type_filter == 'proposal' %}selected{% endif %}>Предложение</option>
@@ -37,21 +37,21 @@
   </select>
   <input type="text" name="date_from" placeholder="Дата от" value="{{ date_from_filter or '' }}"
          class="flatpickr-input"
-         hx-get="/ui/crm/clients/{{ client.id }}/documents"
-         hx-target="#documents-list" hx-trigger="change" hx-include="[name='type'],[name='date_to']"
+         hx-get="/ui/crm/clients/{{ client.id }}/documents/"
+         hx-target="closest .card" hx-trigger="change" hx-include="[name='doc_type'],[name='date_to']"
          style="padding:0.25rem 0.5rem;border:1px solid #d1d5db;border-radius:4px;font-size:0.875rem;width:110px;">
   <input type="text" name="date_to" placeholder="Дата до" value="{{ date_to_filter or '' }}"
          class="flatpickr-input"
-         hx-get="/ui/crm/clients/{{ client.id }}/documents"
-         hx-target="#documents-list" hx-trigger="change" hx-include="[name='type'],[name='date_from']"
+         hx-get="/ui/crm/clients/{{ client.id }}/documents/"
+         hx-target="closest .card" hx-trigger="change" hx-include="[name='doc_type'],[name='date_from']"
          style="padding:0.25rem 0.5rem;border:1px solid #d1d5db;border-radius:4px;font-size:0.875rem;width:110px;">
 </div>
 
 {# Documents table or empty state #}
 <div id="documents-list"
-     hx-get="/ui/crm/clients/{{ client.id }}/documents"
+     hx-get="/ui/crm/clients/{{ client.id }}/documents/"
      hx-trigger="refreshDocList from:body"
-     hx-target="#documents-list" hx-swap="innerHTML">
+     hx-target="closest .card" hx-swap="innerHTML">
   {% if documents %}
   <table style="width:100%;border-collapse:collapse;">
     <thead>
