@@ -266,9 +266,17 @@ async def ui_sites(request: Request, db: AsyncSession = Depends(get_db)) -> HTML
         )).scalar() or 0
         site_metrics[str(sid)] = {"keywords": kw_count, "crawls": crawl_count, "tasks": task_count}
 
+    # Intake status prefetch (avoid N+1, per RESEARCH.md pitfall 3)
+    from app.services import intake_service
+    intake_statuses: dict = {}
+    if sites:
+        intake_statuses = await intake_service.get_intake_statuses_for_sites(
+            db, site_ids=[s.id for s in sites]
+        )
+
     return templates.TemplateResponse(
         request, "sites/index.html",
-        {"sites": sites, "schedules": schedules, "site_groups": site_groups, "site_metrics": site_metrics}
+        {"sites": sites, "schedules": schedules, "site_groups": site_groups, "site_metrics": site_metrics, "intake_statuses": intake_statuses}
     )
 
 
