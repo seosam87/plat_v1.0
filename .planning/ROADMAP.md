@@ -89,7 +89,12 @@ Full details: [milestones/v2.1-ROADMAP.md](milestones/v2.1-ROADMAP.md)
   3. User can add multiple contacts to a client (name, phone, email, role) and log dated interaction notes attributed to the current user
   4. User can view a paginated client list with search and filter; results load under 3 seconds for 100+ clients
   5. User can open a client detail page showing attached sites, open tasks across those sites, and the most recent interaction notes in chronological order
-**Plans**: TBD
+**Plans**: 4 plans
+Plans:
+- [ ] 20-01-PLAN.md — CRM models, migration, service layer, tests
+- [ ] 20-02-PLAN.md — Router, navigation, client list page, create/edit modal
+- [ ] 20-03-PLAN.md — Client detail page, contacts tab, interactions tab
+- [ ] 20-04-PLAN.md — Sites tab, site linking, client badge on site pages
 **UI hint**: yes
 
 ### Phase 21: Site Audit Intake
@@ -170,7 +175,7 @@ Full details: [milestones/v2.1-ROADMAP.md](milestones/v2.1-ROADMAP.md)
 | 19. Empty States Everywhere | v2.1 | 3/3 | Complete | 2026-04-09 |
 | 19.1. UI Scenario Runner | v2.1 | 5/5 | Complete | 2026-04-08 |
 | 19.2. Interactive Tour Player | v2.1 | 4/4 | Complete | 2026-04-09 |
-| 20. Client CRM | v3.0 | 0/? | Not started | - |
+| 20. Client CRM | v3.0 | 0/4 | In Progress | - |
 | 21. Site Audit Intake | v3.0 | 0/? | Not started | - |
 | 22. Proposal Templates | v3.0 | 0/? | Not started | - |
 | 23. Document Generator | v3.0 | 0/? | Not started | - |
