@@ -135,7 +135,7 @@ async def resolve_template_variables(
         # ---- Last crawl date ----
         last_crawl_result = await db.execute(
             text(
-                "SELECT MAX(created_at) FROM crawl_jobs "
+                "SELECT MAX(started_at) FROM crawl_jobs "
                 "WHERE site_id = :sid AND status = 'done'"
             ),
             {"sid": str(site_id)},

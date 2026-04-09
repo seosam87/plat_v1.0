@@ -66,7 +66,11 @@
     </div>
 
     {# CodeMirror mount — fills remaining height #}
-    <div id="codemirror-mount" style="flex:1;overflow:hidden;"></div>
+    <div style="padding:8px 24px 0;flex-shrink:0;">
+      <label style="display:block;font-size:0.75rem;font-weight:600;color:#374151;">HTML-код шаблона</label>
+      <p style="font-size:0.7rem;color:#9ca3af;margin:2px 0 0;">Пишите HTML с переменными вида {{ '{{' }} client.name {{ '}}' }}. Нажмите на переменную справа — она вставится сюда.</p>
+    </div>
+    <div id="codemirror-mount" style="flex:1;min-height:300px;overflow:auto;"></div>
 
     {# Hidden input: synced with CodeMirror content before submit #}
     <input type="hidden" id="body-hidden" name="body" form="save-form">
@@ -267,8 +271,9 @@
 
 </div>
 
+{% raw %}
 <script type="module">
-import { basicSetup, EditorView, html } from '/static/js/codemirror.bundle.js';
+let cmView = null;
 
 // Read initial content from the JSON script tag
 let initialContent = '';
@@ -279,46 +284,75 @@ try {
   initialContent = '';
 }
 
-const view = new EditorView({
-  doc: initialContent,
-  extensions: [basicSetup, html()],
-  parent: document.getElementById('codemirror-mount'),
-});
-
-// Make EditorView fill the container height
-const mountEl = document.getElementById('codemirror-mount');
-if (mountEl) {
-  mountEl.style.height = '100%';
-  mountEl.querySelector('.cm-editor').style.height = '100%';
-  mountEl.querySelector('.cm-scroller').style.overflow = 'auto';
+// Helper: get current body text from whichever editor is active
+function getBody() {
+  if (cmView) return cmView.state.doc.toString();
+  const ta = document.getElementById('body-fallback');
+  return ta ? ta.value : '';
 }
 
-// Variable insert function: inserts {{ varName }} at CodeMirror cursor position
-window.insertVariable = function(varName) {
-  const pos = view.state.selection.main.head;
-  const insert = '{{ ' + varName + ' }}';
-  view.dispatch({
-    changes: { from: pos, insert: insert },
-    selection: { anchor: pos + insert.length },
+// Try loading CodeMirror
+try {
+  const CM = await import('/static/js/codemirror.bundle.js');
+  const mountEl = document.getElementById('codemirror-mount');
+
+  cmView = new CM.EditorView({
+    doc: initialContent,
+    extensions: [CM.basicSetup, CM.html()],
+    parent: mountEl,
   });
-  view.focus();
-};
+
+  // Fill container height
+  const editorEl = mountEl.querySelector('.cm-editor');
+  if (editorEl) { editorEl.style.height = '100%'; }
+  const scrollerEl = mountEl.querySelector('.cm-scroller');
+  if (scrollerEl) { scrollerEl.style.overflow = 'auto'; }
+
+  // Variable insert into CodeMirror
+  window.insertVariable = function(varName) {
+    const pos = cmView.state.selection.main.head;
+    const insert = '{{ ' + varName + ' }}';
+    cmView.dispatch({
+      changes: { from: pos, insert: insert },
+      selection: { anchor: pos + insert.length },
+    });
+    cmView.focus();
+  };
+} catch (err) {
+  console.error('CodeMirror failed to load, using textarea fallback:', err);
+  // Show a plain textarea instead
+  const mountEl = document.getElementById('codemirror-mount');
+  if (mountEl) {
+    mountEl.innerHTML = '<textarea id="body-fallback" style="width:100%;height:100%;padding:16px;font-family:monospace;font-size:0.875rem;border:none;resize:none;box-sizing:border-box;">' +
+      initialContent.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') +
+      '</textarea>';
+  }
+  // Variable insert into textarea
+  window.insertVariable = function(varName) {
+    const ta = document.getElementById('body-fallback');
+    if (!ta) return;
+    const insert = '{{ ' + varName + ' }}';
+    const start = ta.selectionStart;
+    ta.value = ta.value.substring(0, start) + insert + ta.value.substring(ta.selectionEnd);
+    ta.selectionStart = ta.selectionEnd = start + insert.length;
+    ta.focus();
+  };
+}
 
 // Sync editor content to hidden input before form submit
 const saveForm = document.getElementById('save-form');
 if (saveForm) {
   saveForm.addEventListener('submit', function() {
-    document.getElementById('body-hidden').value = view.state.doc.toString();
+    document.getElementById('body-hidden').value = getBody();
   });
-  // Also handle HTMX before-request event for hx-post forms
-  saveForm.addEventListener('htmx:configRequest', function() {
-    document.getElementById('body-hidden').value = view.state.doc.toString();
+  saveForm.addEventListener('htmx:configRequest', function(evt) {
+    evt.detail.parameters['body'] = getBody();
   });
 }
 
-// Preview button: fetch rendered HTML and set iframe srcdoc
+// Preview button
 document.getElementById('preview-btn')?.addEventListener('click', async function() {
-  const body = view.state.doc.toString();
+  const body = getBody();
   const clientId = document.getElementById('client-select')?.value;
   const siteId = document.getElementById('site-select')?.value;
   if (!clientId || !siteId) {
@@ -338,8 +372,9 @@ document.getElementById('preview-btn')?.addEventListener('click', async function
     const htmlContent = await resp.text();
     iframe.srcdoc = htmlContent;
   } catch (err) {
-    iframe.srcdoc = '<p style="color:#dc2626;padding:24px;font-family:sans-serif;font-size:0.875rem;">Ошибка рендеринга превью. Проверьте синтаксис Jinja2 в шаблоне.</p>';
+    iframe.srcdoc = '<p style="color:#dc2626;padding:24px;font-family:sans-serif;font-size:0.875rem;">Ошибка рендеринга превью.</p>';
   }
 });
 </script>
+{% endraw %}
 {% endblock %}
