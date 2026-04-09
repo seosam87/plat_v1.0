@@ -66,7 +66,7 @@ Full details: [milestones/v2.1-ROADMAP.md](milestones/v2.1-ROADMAP.md)
 **Milestone Goal:** Превратить платформу из инструмента мониторинга в инструмент продаж — карточки клиентов, аудит-анкеты, шаблоны КП и генератор документов. SEO-специалист получает полный цикл от первого контакта до отправки КП без выхода из системы.
 
 - [x] **Phase 20: Client CRM** — client cards with contacts, manager assignment, site links, interaction log (completed 2026-04-09)
-- [ ] **Phase 21: Site Audit Intake** — structured intake form per site with auto-population from platform data
+- [x] **Phase 21: Site Audit Intake** — structured intake form per site with auto-population from platform data (completed 2026-04-09)
 - [ ] **Phase 22: Proposal Templates** — admin-managed Jinja2 proposal templates with variable resolution and preview
 - [ ] **Phase 23: Document Generator** — async PDF generation from templates, document storage, download, and delivery
 
@@ -109,7 +109,7 @@ Plans:
 **Plans**: 3 plans
 Plans:
 - [x] 21-01-PLAN.md — SiteIntake model, migration, service layer, tests
-- [ ] 21-02-PLAN.md — Intake router, form page with 5-tab layout, HTMX section saves
+- [x] 21-02-PLAN.md — Intake router, form page with 5-tab layout, HTMX section saves
 - [x] 21-03-PLAN.md — Intake badge integration in site list and detail pages
 **UI hint**: yes
 
@@ -180,7 +180,7 @@ Plans:
 | 19.1. UI Scenario Runner | v2.1 | 5/5 | Complete | 2026-04-08 |
 | 19.2. Interactive Tour Player | v2.1 | 4/4 | Complete | 2026-04-09 |
 | 20. Client CRM | v3.0 | 4/4 | Complete    | 2026-04-09 |
-| 21. Site Audit Intake | v3.0 | 2/3 | In Progress|  |
+| 21. Site Audit Intake | v3.0 | 3/3 | Complete   | 2026-04-09 |
 | 22. Proposal Templates | v3.0 | 0/? | Not started | - |
 | 23. Document Generator | v3.0 | 0/? | Not started | - |
 | 24. Tools Infrastructure & Fast Tools | v3.1 | 0/? | Not started | - |
@@ -192,7 +192,7 @@ Plans:
 
 **Goal:** Extend `tests/_smoke_helpers.py::discover_routes` to auto-filter routes by `response_class=HTMLResponse` (or return-type annotation), skipping JSON/CSV endpoints automatically instead of requiring explicit `SMOKE_SKIP` entries. Eliminates the need for the 5 manual skips added during phase-15.1-deferred-routes debug session.
 **Requirements:** TBD
-**Plans:** 2/3 plans executed
+**Plans:** 3/3 plans complete
 
 Plans:
 - [ ] TBD (promote with /gsd:review-backlog when ready)
