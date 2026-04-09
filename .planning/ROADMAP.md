@@ -67,7 +67,7 @@ Full details: [milestones/v2.0-ROADMAP.md](milestones/v2.0-ROADMAP.md)
 - [ ] **Phase 20: Client CRM** — карточка клиента, история взаимодействий, статусы лид/активный/завершён
 - [ ] **Phase 21: Site Audit Intake** — аудит-анкета сайта, импорт данных из XLSX/CSV (Топвизор, PageSpeed, Вебмастер), парсинг SEO-полей через краулер
 - [ ] **Phase 22: Proposal Templates & Tariffs** — тарифная сетка, библиотека блоков КП, адаптация под клиента
-- [x] **Phase 23: Document Generator** — генерация DOCX/PDF с версионированием, экспорт КП (completed 2026-04-09)
+- [ ] **Phase 23: Document Generator** — генерация DOCX/PDF с версионированием, экспорт КП
 
 ### Phase 18: Project Health Widget
 **Goal**: A user returning to any site after weeks of inactivity immediately sees a 7-step setup checklist on the Site Overview page showing what's done, what's next, and a one-click link to the next required action — derived from existing DB state with zero new queries or Celery tasks
@@ -200,7 +200,6 @@ Plans:
 - [ ] 22-02-PLAN.md — Tariff editor UI: CRUD + composition builder + price input + HTMX preview
 - [ ] 22-03-PLAN.md — Proposal builder UI: block library sidebar + drag-in blocks + placeholder resolver + section editor
 - [ ] 22-04-PLAN.md — Proposal versioning: snapshot save + version list + restore + diff view + tests
-
 **UI hint**: yes
 
 ### Phase 23: Document Generator
@@ -215,8 +214,8 @@ Plans:
   5. Each export is saved as a ProposalExport record (file path, format, timestamp, generated_by user) linked to the proposal version — user can download any previous export from the proposal history page
 **Plans**: 3 plans
 Plans:
-- [x] 23-01-PLAN.md — Backend: python-docx renderer + ProposalExport model + migration + Celery task + tests
-- [x] 23-02-PLAN.md — PDF renderer: WeasyPrint subprocess adapter + HTML proposal template + CSS styles
+- [ ] 23-01-PLAN.md — Backend: python-docx renderer + ProposalExport model + migration + Celery task + tests
+- [ ] 23-02-PLAN.md — PDF renderer: WeasyPrint subprocess adapter + HTML proposal template + CSS styles
 - [ ] 23-03-PLAN.md — Export UI: export buttons + status polling (HTMX) + download links + export history tab + tests
 **UI hint**: yes
 
@@ -314,7 +313,7 @@ Phase 20 (Client CRM)
 | 20. Client CRM | v3.0 | 0/3 | Not started | - |
 | 21. Site Audit Intake | v3.0 | 0/4 | Not started | - |
 | 22. Proposal Templates & Tariffs | v3.0 | 0/4 | Not started | - |
-| 23. Document Generator | v3.0 | 2/3 | Complete    | 2026-04-09 |
+| 23. Document Generator | v3.0 | 0/3 | Not started | - |
 | 24. Tools Infrastructure & Fast Tools | v3.1 | 0/5 | Not started | - |
 | 25. SERP Aggregation Tools | v3.1 | 0/5 | Not started | - |
 
@@ -324,11 +323,10 @@ Phase 20 (Client CRM)
 
 **Goal:** Extend `tests/_smoke_helpers.py::discover_routes` to auto-filter routes by `response_class=HTMLResponse` (or return-type annotation), skipping JSON/CSV endpoints automatically instead of requiring explicit `SMOKE_SKIP` entries. Eliminates the need for the 5 manual skips added during phase-15.1-deferred-routes debug session (`/metrika/{id}/pages`, `/metrika/{id}/compare`, `/analytics/sessions/{id}/export`, `/traffic-analysis/sessions/{id}`, `/traffic-analysis/sessions/{id}/anomalies`). Rationale: surfaced as tech debt in `.planning/phases/15.1-ui-smoke-crawler/deferred-items.md`.
 **Requirements:** TBD
-**Plans:** 2 plans
+**Plans:** 2/1 plans complete
 
 Plans:
-- [x] 999.3-01-PLAN.md — Three-tier response_class filter + 5 SMOKE_SKIP removals + unit tests + README
-- [ ] 999.3-02-PLAN.md — Fix 2 missing stub routes in test fixture (/profile/, /notifications)
+- [ ] TBD (promote with /gsd:review-backlog when ready)
 
 ### Phase 999.5: Repo ↔ Deployment Sync Strategy (BACKLOG)
 
@@ -348,3 +346,4 @@ Plans:
 
 Plans:
 - [ ] TBD (promote with /gsd:review-backlog when ready)
+

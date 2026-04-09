@@ -26,7 +26,7 @@ from tests._smoke_helpers import (
 def stub_app() -> FastAPI:
     app = FastAPI()
 
-    # One route per UI prefix (11 total)
+    # One route per UI prefix (13 total)
     @app.get("/ui/dashboard", response_class=HTMLResponse)
     async def ui_dashboard() -> str:  # pragma: no cover
         return "ok"
@@ -69,6 +69,14 @@ def stub_app() -> FastAPI:
 
     @app.get("/metrika/{site_id}", response_class=HTMLResponse)
     async def ui_metrika(site_id: str) -> str:  # pragma: no cover
+        return "ok"
+
+    @app.get("/profile/", response_class=HTMLResponse)
+    async def ui_profile() -> str:  # pragma: no cover
+        return "ok"
+
+    @app.get("/notifications", response_class=HTMLResponse)
+    async def ui_notifications() -> str:  # pragma: no cover
         return "ok"
 
     # Routes that MUST be excluded
