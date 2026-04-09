@@ -104,6 +104,7 @@ class _NavAwareTemplates:
             except Exception:
                 pass
             ctx["nav_sections"] = build_sidebar_sections(ctx["selected_site_id"], is_admin)
+            ctx["is_admin"] = is_admin
 
         # Ensure request is in context for old-style Starlette rendering
         if "request" not in ctx and request is not None:
