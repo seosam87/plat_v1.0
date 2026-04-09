@@ -67,7 +67,7 @@ Full details: [milestones/v2.1-ROADMAP.md](milestones/v2.1-ROADMAP.md)
 
 - [x] **Phase 20: Client CRM** — client cards with contacts, manager assignment, site links, interaction log (completed 2026-04-09)
 - [x] **Phase 21: Site Audit Intake** — structured intake form per site with auto-population from platform data (completed 2026-04-09)
-- [ ] **Phase 22: Proposal Templates** — admin-managed Jinja2 proposal templates with variable resolution and preview
+- [x] **Phase 22: Proposal Templates** — admin-managed Jinja2 proposal templates with variable resolution and preview (completed 2026-04-09)
 - [ ] **Phase 23: Document Generator** — async PDF generation from templates, document storage, download, and delivery
 
 ### v3.1 SEO Tools (Planned)
@@ -125,7 +125,7 @@ Plans:
 Plans:
 - [x] 22-01-PLAN.md — ProposalTemplate model, migration, service layer, variable resolver, tests
 - [x] 22-02-PLAN.md — Templates router, list page, edit page with CodeMirror and preview, navigation
-- [ ] 22-03-PLAN.md — Human verification of full feature
+- [x] 22-03-PLAN.md — Human verification of full feature
 **UI hint**: yes
 
 ### Phase 23: Document Generator
@@ -185,7 +185,7 @@ Plans:
 | 19.2. Interactive Tour Player | v2.1 | 4/4 | Complete | 2026-04-09 |
 | 20. Client CRM | v3.0 | 4/4 | Complete    | 2026-04-09 |
 | 21. Site Audit Intake | v3.0 | 3/3 | Complete    | 2026-04-09 |
-| 22. Proposal Templates | v3.0 | 2/3 | In Progress|  |
+| 22. Proposal Templates | v3.0 | 3/3 | Complete    | 2026-04-09 |
 | 23. Document Generator | v3.0 | 0/? | Not started | - |
 | 24. Tools Infrastructure & Fast Tools | v3.1 | 0/? | Not started | - |
 | 25. SERP Aggregation Tools | v3.1 | 0/? | Not started | - |
@@ -196,7 +196,7 @@ Plans:
 
 **Goal:** Extend `tests/_smoke_helpers.py::discover_routes` to auto-filter routes by `response_class=HTMLResponse` (or return-type annotation), skipping JSON/CSV endpoints automatically instead of requiring explicit `SMOKE_SKIP` entries. Eliminates the need for the 5 manual skips added during phase-15.1-deferred-routes debug session.
 **Requirements:** TBD
-**Plans:** 2/3 plans executed
+**Plans:** 3/3 plans complete
 
 Plans:
 - [ ] TBD (promote with /gsd:review-backlog when ready)
