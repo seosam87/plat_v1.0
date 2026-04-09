@@ -200,10 +200,16 @@ async def download_document(
     if doc.status != "ready" or doc.pdf_data is None:
         raise HTTPException(status_code=400, detail="Document not ready for download")
 
+    # RFC 5987: use filename* with UTF-8 encoding for non-ASCII filenames
+    from urllib.parse import quote
+    safe_name = doc.file_name.encode("ascii", "replace").decode("ascii")
+    encoded_name = quote(doc.file_name)
     return Response(
         content=doc.pdf_data,
         media_type="application/pdf",
-        headers={"Content-Disposition": f'attachment; filename="{doc.file_name}"'},
+        headers={
+            "Content-Disposition": f"attachment; filename=\"{safe_name}\"; filename*=UTF-8''{encoded_name}"
+        },
     )
 
 
@@ -242,7 +248,7 @@ async def send_doc(
     send_document.delay(str(doc.id), channel, recipient, str(client_id))
 
     return HTMLResponse(
-        content='<div style="background:#d1fae5;color:#065f46;padding:0.75rem 1rem;border-radius:6px;font-size:0.875rem;margin-bottom:0.5rem;">Документ отправляется...</div>',
+        content='<div id="send-toast" style="background:#d1fae5;color:#065f46;padding:0.75rem 1rem;border-radius:6px;font-size:0.875rem;margin-bottom:0.5rem;">Документ отправляется...</div><script>setTimeout(function(){var el=document.getElementById("send-toast");if(el)el.remove();},4000)</script>',
     )
 
 

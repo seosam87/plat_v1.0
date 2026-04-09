@@ -2,7 +2,7 @@
 <div style="margin-bottom:1.5rem;display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
   <form id="generate-form" style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;"
         hx-post="/ui/crm/clients/{{ client.id }}/documents/generate"
-        hx-target="#documents-list" hx-swap="afterbegin">
+        hx-target="#gen-status-area" hx-swap="innerHTML">
     <select name="template_id" required
             style="padding:0.4rem 0.5rem;border:1px solid #d1d5db;border-radius:6px;font-size:0.875rem;">
       <option value="">Выберите шаблон</option>
@@ -23,6 +23,9 @@
     </button>
   </form>
 </div>
+
+{# Generation status area #}
+<div id="gen-status-area"></div>
 
 {# Filter controls #}
 <div style="display:flex;gap:0.5rem;margin-bottom:1rem;align-items:center;">
@@ -124,6 +127,6 @@ function confirmRegenerate(docId) {
   if (!confirm('Перегенерировать документ? Будет создана новая версия.')) return;
   var clientId = '{{ client.id }}';
   htmx.ajax('POST', '/ui/crm/clients/' + clientId + '/documents/' + docId + '/regenerate',
-    {target: '#documents-list', swap: 'afterbegin'});
+    {target: '#gen-status-area', swap: 'innerHTML'});
 }
 </script>
