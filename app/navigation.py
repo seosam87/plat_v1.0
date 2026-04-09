@@ -101,6 +101,7 @@ NAV_SECTIONS = [
         "admin_only": False,
         "children": [
             {"id": "crm-clients", "label": "Клиенты", "url": "/ui/crm/clients"},
+            {"id": "crm-templates", "label": "Шаблоны КП", "url": "/ui/templates"},
         ],
     },
     {
