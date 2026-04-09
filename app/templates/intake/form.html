@@ -1,0 +1,392 @@
+{% extends "base.html" %}
+{% block title %}Intake — {{ site.name }} — SEO Platform{% endblock %}
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="/ui/dashboard">Dashboard</a><span>&rsaquo;</span>
+  <a href="/ui/sites">Сайты</a><span>&rsaquo;</span>
+  <a href="/ui/sites/{{ site.id }}">{{ site.name }}</a><span>&rsaquo;</span>
+  Intake
+</div>
+{% endblock %}
+{% block content %}
+
+{# Hidden inputs to track saved sections — used by allSectionsSaved() JS #}
+<input type="hidden" id="section-access" value="{{ 'true' if intake.section_access else 'false' }}">
+<input type="hidden" id="section-goals" value="{{ 'true' if intake.section_goals else 'false' }}">
+<input type="hidden" id="section-analytics" value="{{ 'true' if intake.section_analytics else 'false' }}">
+<input type="hidden" id="section-technical" value="{{ 'true' if intake.section_technical else 'false' }}">
+<input type="hidden" id="section-checklist" value="{{ 'true' if intake.section_checklist else 'false' }}">
+
+{# Header card #}
+<div style="background:#ffffff;padding:1.5rem;border-radius:8px;margin-bottom:1.5rem;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+    <div>
+      <h1 style="font-size:1.25rem;font-weight:600;color:#1f2937;margin:0;">{{ site.name }}</h1>
+      <p style="font-size:0.875rem;color:#6b7280;margin:0.25rem 0 0.5rem;">{{ site.url }}</p>
+      <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
+        {% if intake.status.value == "complete" %}
+        <span id="intake-status-badge" class="badge badge-connected">Анкета заполнена</span>
+        {% else %}
+        <span id="intake-status-badge" class="badge badge-unknown">Анкета не заполнена</span>
+        {% endif %}
+        {% if client %}
+        <span style="display:inline-flex;align-items:center;gap:0.3rem;padding:0.2rem 0.6rem;background:#eef2ff;color:#4338ca;border-radius:4px;font-size:0.8rem;font-weight:600;">
+          {{ client.company_name }}
+        </span>
+        {% endif %}
+      </div>
+    </div>
+    <div>
+      <button
+        class="btn btn-primary"
+        hx-post="/ui/sites/{{ site.id }}/intake/complete"
+        hx-swap="none"
+        onclick="if (!allSectionsSaved()) { if (!confirm('Не все секции заполнены. Завершить все равно?')) { event.preventDefault(); event.stopPropagation(); return false; } }"
+      >Завершить intake</button>
+    </div>
+  </div>
+</div>
+
+{# Tab bar #}
+<div style="display:flex;gap:0;border-bottom:1px solid #e5e7eb;margin-bottom:1.5rem;">
+  <button class="intake-tab active" data-tab="access" onclick="switchTab('access')"
+    style="padding:0.75rem 1.25rem;font-size:0.875rem;font-weight:500;border:none;background:none;cursor:pointer;border-bottom:2px solid #4f46e5;color:#4f46e5;display:flex;align-items:center;gap:0.3rem;">
+    Доступы
+    {% if intake.section_access %}
+    <svg class="checkmark" width="16" height="16" viewBox="0 0 16 16" fill="none" style="color:#059669;">
+      <path d="M13.485 3.515a.75.75 0 010 1.06l-7.5 7.5a.75.75 0 01-1.06 0l-3-3a.75.75 0 111.06-1.06L5.5 10.44l6.97-6.97a.75.75 0 011.015.045z" fill="#059669"/>
+    </svg>
+    {% endif %}
+  </button>
+  <button class="intake-tab" data-tab="goals" onclick="switchTab('goals')"
+    style="padding:0.75rem 1.25rem;font-size:0.875rem;font-weight:500;border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;color:#6b7280;display:flex;align-items:center;gap:0.3rem;">
+    Цели и конкуренты
+    {% if intake.section_goals %}
+    <svg class="checkmark" width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <path d="M13.485 3.515a.75.75 0 010 1.06l-7.5 7.5a.75.75 0 01-1.06 0l-3-3a.75.75 0 111.06-1.06L5.5 10.44l6.97-6.97a.75.75 0 011.015.045z" fill="#059669"/>
+    </svg>
+    {% endif %}
+  </button>
+  <button class="intake-tab" data-tab="analytics" onclick="switchTab('analytics')"
+    style="padding:0.75rem 1.25rem;font-size:0.875rem;font-weight:500;border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;color:#6b7280;display:flex;align-items:center;gap:0.3rem;">
+    Аналитика
+    {% if intake.section_analytics %}
+    <svg class="checkmark" width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <path d="M13.485 3.515a.75.75 0 010 1.06l-7.5 7.5a.75.75 0 01-1.06 0l-3-3a.75.75 0 111.06-1.06L5.5 10.44l6.97-6.97a.75.75 0 011.015.045z" fill="#059669"/>
+    </svg>
+    {% endif %}
+  </button>
+  <button class="intake-tab" data-tab="technical" onclick="switchTab('technical')"
+    style="padding:0.75rem 1.25rem;font-size:0.875rem;font-weight:500;border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;color:#6b7280;display:flex;align-items:center;gap:0.3rem;">
+    Технический SEO
+    {% if intake.section_technical %}
+    <svg class="checkmark" width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <path d="M13.485 3.515a.75.75 0 010 1.06l-7.5 7.5a.75.75 0 01-1.06 0l-3-3a.75.75 0 111.06-1.06L5.5 10.44l6.97-6.97a.75.75 0 011.015.045z" fill="#059669"/>
+    </svg>
+    {% endif %}
+  </button>
+  <button class="intake-tab" data-tab="checklist" onclick="switchTab('checklist')"
+    style="padding:0.75rem 1.25rem;font-size:0.875rem;font-weight:500;border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;color:#6b7280;display:flex;align-items:center;gap:0.3rem;">
+    Чеклист верификации
+    {% if intake.section_checklist %}
+    <svg class="checkmark" width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <path d="M13.485 3.515a.75.75 0 010 1.06l-7.5 7.5a.75.75 0 01-1.06 0l-3-3a.75.75 0 111.06-1.06L5.5 10.44l6.97-6.97a.75.75 0 011.015.045z" fill="#059669"/>
+    </svg>
+    {% endif %}
+  </button>
+</div>
+
+{# Tab panels #}
+
+{# Tab 1: Доступы (Access) #}
+<div id="tab-access" class="intake-tab-panel" style="display:block;">
+  <div class="card" style="padding:1.5rem;">
+    <h2 style="font-size:1.125rem;font-weight:600;color:#1f2937;margin:0 0 1rem;">Доступы</h2>
+    <div style="display:grid;grid-template-columns:max-content 1fr;gap:0.75rem 1.5rem;align-items:center;margin-bottom:1.5rem;">
+      <span style="font-size:0.8rem;font-weight:600;color:#6b7280;">Подключение к WordPress</span>
+      <div>
+        <span class="badge badge-{{ site.connection_status.value }}">{{ site.connection_status.value }}</span>
+      </div>
+      <span style="font-size:0.8rem;font-weight:600;color:#6b7280;">Логин WP</span>
+      <span style="font-size:0.875rem;color:#374151;">{{ site.wp_username or "—" }}</span>
+    </div>
+    <p style="font-size:0.875rem;margin-bottom:1.5rem;">
+      <a href="/ui/sites/{{ site.id }}/edit" style="color:#4f46e5;text-decoration:none;">Настроить доступ</a>
+    </p>
+    <button
+      class="btn btn-primary"
+      hx-post="/ui/sites/{{ site.id }}/intake/access"
+      hx-swap="none"
+    >Сохранить раздел</button>
+  </div>
+</div>
+
+{# Tab 2: Цели и конкуренты (Goals) #}
+<div id="tab-goals" class="intake-tab-panel" style="display:none;">
+  <div class="card" style="padding:1.5rem;">
+    <h2 style="font-size:1.125rem;font-weight:600;color:#1f2937;margin:0 0 1rem;">Цели и конкуренты</h2>
+    <form
+      hx-post="/ui/sites/{{ site.id }}/intake/goals"
+      hx-swap="none"
+      id="goals-form"
+    >
+      <div style="margin-bottom:1rem;">
+        <label style="display:block;font-size:0.8rem;font-weight:600;color:#6b7280;margin-bottom:0.4rem;">Главная цель</label>
+        <textarea
+          name="main_goal"
+          rows="4"
+          placeholder="Опишите основную цель продвижения…"
+          style="width:100%;padding:0.75rem;border:1px solid #d1d5db;border-radius:4px;font-size:0.875rem;font-family:inherit;resize:vertical;box-sizing:border-box;"
+        >{{ intake.goals_data.main_goal if intake.goals_data else "" }}</textarea>
+      </div>
+      <div style="margin-bottom:1rem;">
+        <label style="display:block;font-size:0.8rem;font-weight:600;color:#6b7280;margin-bottom:0.4rem;">Целевые регионы</label>
+        <input
+          type="text"
+          name="target_regions"
+          placeholder="Москва, Санкт-Петербург…"
+          value="{{ intake.goals_data.target_regions if intake.goals_data else '' }}"
+          style="width:100%;padding:0.5rem 0.75rem;border:1px solid #d1d5db;border-radius:4px;font-size:0.875rem;box-sizing:border-box;"
+        >
+      </div>
+      <div style="margin-bottom:1rem;">
+        <label style="display:block;font-size:0.8rem;font-weight:600;color:#6b7280;margin-bottom:0.4rem;">Конкуренты</label>
+        <div id="competitors-list" style="display:flex;flex-direction:column;gap:0.5rem;margin-bottom:0.5rem;">
+          {% if intake.goals_data and intake.goals_data.competitors %}
+          {% for competitor in intake.goals_data.competitors %}
+          <div class="competitor-row" style="display:flex;align-items:center;gap:0.5rem;">
+            <input
+              type="url"
+              name="competitor"
+              value="{{ competitor }}"
+              placeholder="https://example.com"
+              style="flex:1;padding:0.5rem 0.75rem;border:1px solid #d1d5db;border-radius:4px;font-size:0.875rem;"
+            >
+            <button
+              type="button"
+              onclick="this.closest('.competitor-row').remove()"
+              style="padding:0.4rem;border:none;background:none;cursor:pointer;color:#dc2626;line-height:1;"
+              title="Удалить"
+            >
+              <svg width="16" height="16" viewBox="0 0 20 20" fill="none">
+                <path d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" fill="currentColor"/>
+              </svg>
+            </button>
+          </div>
+          {% endfor %}
+          {% endif %}
+        </div>
+        <button
+          type="button"
+          onclick="addCompetitor()"
+          class="btn btn-sm"
+          style="background:#f3f4f6;color:#374151;"
+        >Добавить конкурента</button>
+      </div>
+      <div style="margin-bottom:1.5rem;">
+        <label style="display:block;font-size:0.8rem;font-weight:600;color:#6b7280;margin-bottom:0.4rem;">Заметки</label>
+        <textarea
+          name="notes"
+          rows="3"
+          style="width:100%;padding:0.75rem;border:1px solid #d1d5db;border-radius:4px;font-size:0.875rem;font-family:inherit;resize:vertical;box-sizing:border-box;"
+        >{{ intake.goals_data.notes if intake.goals_data else "" }}</textarea>
+      </div>
+      <button type="submit" class="btn btn-primary">Сохранить раздел</button>
+    </form>
+  </div>
+</div>
+
+{# Tab 3: Аналитика (Analytics) #}
+<div id="tab-analytics" class="intake-tab-panel" style="display:none;">
+  <div class="card" style="padding:1.5rem;">
+    <h2 style="font-size:1.125rem;font-weight:600;color:#1f2937;margin:0 0 1rem;">Аналитика</h2>
+    <div style="display:flex;flex-direction:column;gap:1rem;margin-bottom:1.5rem;">
+      {# GSC status #}
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:0.75rem 1rem;background:#f9fafb;border-radius:6px;">
+        <div>
+          <span style="font-size:0.875rem;font-weight:600;color:#374151;">Google Search Console</span>
+          <div style="margin-top:0.25rem;">
+            {% if gsc_connected %}
+            <span class="badge badge-connected">Подключено</span>
+            {% else %}
+            <span class="badge badge-failed">Не настроено</span>
+            {% endif %}
+          </div>
+        </div>
+        <a href="/ui/sites/{{ site.id }}/gsc" style="font-size:0.875rem;color:#4f46e5;text-decoration:none;">Настроить</a>
+      </div>
+      {# Metrika status #}
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:0.75rem 1rem;background:#f9fafb;border-radius:6px;">
+        <div>
+          <span style="font-size:0.875rem;font-weight:600;color:#374151;">Яндекс.Метрика</span>
+          <div style="margin-top:0.25rem;">
+            {% if site.metrika_counter_id %}
+            <span class="badge badge-connected">{{ site.metrika_counter_id }}</span>
+            {% else %}
+            <span class="badge badge-failed">Не настроено</span>
+            {% endif %}
+          </div>
+        </div>
+        <a href="/ui/sites/{{ site.id }}/edit" style="font-size:0.875rem;color:#4f46e5;text-decoration:none;">Настроить</a>
+      </div>
+      {# Yandex region #}
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:0.75rem 1rem;background:#f9fafb;border-radius:6px;">
+        <div>
+          <span style="font-size:0.875rem;font-weight:600;color:#374151;">Регион Яндекса</span>
+          <div style="margin-top:0.25rem;">
+            <span style="font-size:0.875rem;color:#374151;">{{ site.yandex_region or "Не указан" }}</span>
+          </div>
+        </div>
+        <a href="/ui/sites/{{ site.id }}/edit" style="font-size:0.875rem;color:#4f46e5;text-decoration:none;">Настроить</a>
+      </div>
+    </div>
+    <button
+      class="btn btn-primary"
+      hx-post="/ui/sites/{{ site.id }}/intake/analytics"
+      hx-swap="none"
+    >Сохранить раздел</button>
+  </div>
+</div>
+
+{# Tab 4: Технический SEO (Technical) #}
+<div id="tab-technical" class="intake-tab-panel" style="display:none;">
+  <div class="card" style="padding:1.5rem;">
+    <h2 style="font-size:1.125rem;font-weight:600;color:#1f2937;margin:0 0 1rem;">Технический SEO</h2>
+    <div style="display:grid;grid-template-columns:max-content 1fr;gap:0.75rem 1.5rem;align-items:center;margin-bottom:1.5rem;">
+      <span style="font-size:0.8rem;font-weight:600;color:#6b7280;">SEO-плагин</span>
+      <span style="font-size:0.875rem;color:#374151;">{{ site.seo_plugin or "Не определен" }}</span>
+      <span style="font-size:0.8rem;font-weight:600;color:#6b7280;">Sitemap</span>
+      <span style="font-size:0.875rem;color:#374151;">Проверьте в чеклисте</span>
+    </div>
+    <form
+      hx-post="/ui/sites/{{ site.id }}/intake/technical"
+      hx-swap="none"
+      id="technical-form"
+    >
+      <div style="margin-bottom:1.5rem;">
+        <label style="display:block;font-size:0.8rem;font-weight:600;color:#6b7280;margin-bottom:0.4rem;">Заметки по robots.txt</label>
+        <textarea
+          name="robots_notes"
+          rows="3"
+          style="width:100%;padding:0.75rem;border:1px solid #d1d5db;border-radius:4px;font-size:0.875rem;font-family:inherit;resize:vertical;box-sizing:border-box;"
+        >{{ intake.technical_data.robots_notes if intake.technical_data else "" }}</textarea>
+      </div>
+      <button type="submit" class="btn btn-primary">Сохранить раздел</button>
+    </form>
+  </div>
+</div>
+
+{# Tab 5: Чеклист верификации (Checklist) #}
+<div id="tab-checklist" class="intake-tab-panel" style="display:none;">
+  <div class="card" style="padding:1.5rem;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
+      <h2 style="font-size:1.125rem;font-weight:600;color:#1f2937;margin:0;">Чеклист верификации</h2>
+      <button
+        class="btn btn-primary"
+        hx-get="/ui/sites/{{ site.id }}/intake/checklist"
+        hx-target="#checklist-content"
+        hx-swap="innerHTML"
+      >Перепроверить</button>
+    </div>
+    <div id="checklist-content" style="border:1px solid #e5e7eb;border-radius:6px;overflow:hidden;">
+      {% include "intake/_tab_checklist.html" %}
+    </div>
+    <div style="margin-top:1.5rem;">
+      <button
+        class="btn btn-primary"
+        hx-post="/ui/sites/{{ site.id }}/intake/checklist"
+        hx-swap="none"
+      >Сохранить раздел</button>
+    </div>
+  </div>
+</div>
+
+<script>
+function switchTab(tabName) {
+  // Hide all panels
+  document.querySelectorAll('.intake-tab-panel').forEach(function(panel) {
+    panel.style.display = 'none';
+  });
+  // Deactivate all tabs
+  document.querySelectorAll('.intake-tab').forEach(function(btn) {
+    btn.style.borderBottomColor = 'transparent';
+    btn.style.color = '#6b7280';
+    btn.classList.remove('active');
+  });
+  // Show selected panel
+  var panel = document.getElementById('tab-' + tabName);
+  if (panel) panel.style.display = 'block';
+  // Activate selected tab
+  var tab = document.querySelector('.intake-tab[data-tab="' + tabName + '"]');
+  if (tab) {
+    tab.style.borderBottomColor = '#4f46e5';
+    tab.style.color = '#4f46e5';
+    tab.classList.add('active');
+  }
+}
+
+function addCompetitor() {
+  var list = document.getElementById('competitors-list');
+  var rows = list.querySelectorAll('.competitor-row');
+  if (rows.length >= 10) {
+    showToast('Максимум 10 конкурентов', 'error');
+    return;
+  }
+  var row = document.createElement('div');
+  row.className = 'competitor-row';
+  row.style.cssText = 'display:flex;align-items:center;gap:0.5rem;';
+  row.innerHTML = '<input type="url" name="competitor" placeholder="https://example.com" style="flex:1;padding:0.5rem 0.75rem;border:1px solid #d1d5db;border-radius:4px;font-size:0.875rem;">' +
+    '<button type="button" onclick="this.closest(\'.competitor-row\').remove()" style="padding:0.4rem;border:none;background:none;cursor:pointer;color:#dc2626;line-height:1;" title="Удалить">' +
+    '<svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" fill="currentColor"/></svg>' +
+    '</button>';
+  list.appendChild(row);
+  row.querySelector('input').focus();
+}
+
+function allSectionsSaved() {
+  return (
+    document.getElementById('section-access').value === 'true' &&
+    document.getElementById('section-goals').value === 'true' &&
+    document.getElementById('section-analytics').value === 'true' &&
+    document.getElementById('section-technical').value === 'true' &&
+    document.getElementById('section-checklist').value === 'true'
+  );
+}
+
+// Update tab checkmark and hidden tracking when a section is saved
+document.body.addEventListener('sectionSaved', function(evt) {
+  var section = (evt.detail && (evt.detail.value || evt.detail)) || '';
+  if (!section) return;
+
+  // Update hidden tracking input
+  var hiddenInput = document.getElementById('section-' + section);
+  if (hiddenInput) hiddenInput.value = 'true';
+
+  // Add checkmark to tab button if not already present
+  var tab = document.querySelector('.intake-tab[data-tab="' + section + '"]');
+  if (tab && !tab.querySelector('.checkmark')) {
+    var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('class', 'checkmark');
+    svg.setAttribute('width', '16');
+    svg.setAttribute('height', '16');
+    svg.setAttribute('viewBox', '0 0 16 16');
+    svg.setAttribute('fill', 'none');
+    var path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', 'M13.485 3.515a.75.75 0 010 1.06l-7.5 7.5a.75.75 0 01-1.06 0l-3-3a.75.75 0 111.06-1.06L5.5 10.44l6.97-6.97a.75.75 0 011.015.045z');
+    path.setAttribute('fill', '#059669');
+    svg.appendChild(path);
+    tab.appendChild(svg);
+  }
+});
+
+// Update status badge when intake is completed
+document.body.addEventListener('intakeCompleted', function() {
+  var badge = document.getElementById('intake-status-badge');
+  if (badge) {
+    badge.className = 'badge badge-connected';
+    badge.textContent = 'Анкета заполнена';
+  }
+});
+</script>
+
+{% endblock %}
