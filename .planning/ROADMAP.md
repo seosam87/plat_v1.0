@@ -239,7 +239,7 @@ Plans:
   6. All three tools are rate-limited (10 requests/minute per user), run exclusively inside Celery tasks (no inline HTTP in request handlers), have retry=3 on external calls, and are covered by service-layer tests with mocked external responses
 **Plans**: 5 plans
 Plans:
-- [ ] 24-01-PLAN.md — Tools infrastructure: sidebar section + shared job-list page + HTMX polling pattern + CSV/XLSX export helper + navigation + smoke tests
+- [x] 24-01-PLAN.md — Tools infrastructure: sidebar section + shared job-list page + HTMX polling pattern + CSV/XLSX export helper + navigation + smoke tests
 - [ ] 24-02-PLAN.md — Commercialization Check: CommerceCheckJob + CommerceCheckResult models + migration + service + Celery task + XMLProxy integration + UI + tests
 - [ ] 24-03-PLAN.md — Meta Tag Parser: MetaParseJob + MetaParseResult models + migration + async httpx fetcher service + Celery task + UI + tests
 - [ ] 24-04-PLAN.md — Relevant URL Finder: RelevantUrlJob + RelevantUrlResult models + migration + service + Celery task + XMLProxy integration + UI + tests
@@ -314,7 +314,7 @@ Phase 20 (Client CRM)
 | 21. Site Audit Intake | v3.0 | 0/4 | Complete    | 2026-04-09 |
 | 22. Proposal Templates & Tariffs | v3.0 | 0/4 | Complete    | 2026-04-09 |
 | 23. Document Generator | v3.0 | 0/3 | Complete    | 2026-04-09 |
-| 24. Tools Infrastructure & Fast Tools | v3.1 | 0/5 | Not started | - |
+| 24. Tools Infrastructure & Fast Tools | v3.1 | 1/5 | In Progress|  |
 | 25. SERP Aggregation Tools | v3.1 | 0/5 | Not started | - |
 
 ## Backlog
@@ -323,7 +323,7 @@ Phase 20 (Client CRM)
 
 **Goal:** Extend `tests/_smoke_helpers.py::discover_routes` to auto-filter routes by `response_class=HTMLResponse` (or return-type annotation), skipping JSON/CSV endpoints automatically instead of requiring explicit `SMOKE_SKIP` entries. Eliminates the need for the 5 manual skips added during phase-15.1-deferred-routes debug session (`/metrika/{id}/pages`, `/metrika/{id}/compare`, `/analytics/sessions/{id}/export`, `/traffic-analysis/sessions/{id}`, `/traffic-analysis/sessions/{id}/anomalies`). Rationale: surfaced as tech debt in `.planning/phases/15.1-ui-smoke-crawler/deferred-items.md`.
 **Requirements:** TBD
-**Plans:** 2/3 plans complete
+**Plans:** 1/5 plans executed
 
 Plans:
 - [ ] TBD (promote with /gsd:review-backlog when ready)
