@@ -68,7 +68,18 @@ def test_models_registered_in_init():
 
 
 def test_migration_0043_exists():
-    import importlib
-    mod = importlib.import_module("alembic.versions.0043_add_crm_tables")
+    import importlib.util
+    import os
+
+    path = os.path.join(
+        os.path.dirname(__file__),
+        "..", "..", "alembic", "versions", "0043_add_crm_tables.py",
+    )
+    path = os.path.abspath(path)
+    assert os.path.isfile(path), f"Migration not found at {path}"
+
+    spec = importlib.util.spec_from_file_location("migration_0043", path)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
     assert mod.revision == "0043"
     assert mod.down_revision == "0042"
