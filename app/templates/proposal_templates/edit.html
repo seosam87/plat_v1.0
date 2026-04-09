@@ -1,0 +1,348 @@
+{% extends "base.html" %}
+{% block title %}{% if template %}Редактировать шаблон{% else %}Создать шаблон{% endif %}{% endblock %}
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="/ui/dashboard">Dashboard</a><span>&rsaquo;</span>
+  <a href="/ui/crm/clients">CRM</a><span>&rsaquo;</span>
+  <a href="/ui/templates">Шаблоны КП</a><span>&rsaquo;</span>
+  {% if template %}Редактировать{% else %}Создать{% endif %}
+</div>
+{% endblock %}
+{% block content %}
+
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+  <h1 style="font-size:1.25rem;font-weight:600;color:#1f2937;margin:0;">
+    {% if template %}Редактировать шаблон{% else %}Создать шаблон{% endif %}
+  </h1>
+</div>
+
+{# Three-column flex layout #}
+<div style="display:flex;gap:16px;height:calc(100vh - 140px);">
+
+  {# ===== Left column: CodeMirror editor ===== #}
+  <div class="card" style="flex:2;display:flex;flex-direction:column;padding:0;overflow:hidden;min-width:0;">
+
+    {# Metadata form header #}
+    <div style="padding:24px 24px 16px;border-bottom:1px solid #e5e7eb;flex-shrink:0;">
+      <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-start;">
+        <div style="flex:1;min-width:200px;">
+          <label style="display:block;font-size:0.75rem;font-weight:600;color:#374151;margin-bottom:4px;">Название *</label>
+          <input
+            type="text"
+            id="field-name"
+            name="name"
+            form="save-form"
+            value="{{ template.name if template else '' }}"
+            required
+            placeholder="Название шаблона"
+            style="width:100%;padding:0.4rem 0.5rem;border:1px solid #d1d5db;border-radius:6px;font-size:0.875rem;box-sizing:border-box;"
+          >
+        </div>
+        <div style="min-width:160px;">
+          <label style="display:block;font-size:0.75rem;font-weight:600;color:#374151;margin-bottom:4px;">Тип</label>
+          <select
+            id="field-type"
+            name="template_type"
+            form="save-form"
+            style="width:100%;padding:0.4rem 0.5rem;border:1px solid #d1d5db;border-radius:6px;font-size:0.875rem;"
+          >
+            <option value="proposal" {% if template and template.template_type.value == "proposal" %}selected{% endif %}>Предложение</option>
+            <option value="audit_report" {% if template and template.template_type.value == "audit_report" %}selected{% endif %}>Аудит</option>
+            <option value="brief" {% if template and template.template_type.value == "brief" %}selected{% endif %}>Бриф</option>
+          </select>
+        </div>
+        <div style="flex:1;min-width:200px;">
+          <label style="display:block;font-size:0.75rem;font-weight:600;color:#374151;margin-bottom:4px;">Описание</label>
+          <input
+            type="text"
+            id="field-description"
+            name="description"
+            form="save-form"
+            value="{{ template.description if template and template.description else '' }}"
+            placeholder="Краткое описание (необязательно)"
+            style="width:100%;padding:0.4rem 0.5rem;border:1px solid #d1d5db;border-radius:6px;font-size:0.875rem;box-sizing:border-box;"
+          >
+        </div>
+      </div>
+    </div>
+
+    {# CodeMirror mount — fills remaining height #}
+    <div id="codemirror-mount" style="flex:1;overflow:hidden;"></div>
+
+    {# Hidden input: synced with CodeMirror content before submit #}
+    <input type="hidden" id="body-hidden" name="body" form="save-form">
+
+    {# Initial template body for CodeMirror (JSON-encoded to survive Jinja2 escaping) #}
+    <script type="application/json" id="template-body-initial">{{ template.body|default("", true)|tojson if template else ""|tojson }}</script>
+
+    {# Action bar #}
+    <div style="padding:12px 24px;border-top:1px solid #e5e7eb;display:flex;align-items:center;gap:12px;flex-shrink:0;background:#f9fafb;">
+      {% if template %}
+      {# Existing template: HTMX form save (no full page reload) #}
+      <form
+        id="save-form"
+        hx-post="/ui/templates/{{ template.id }}"
+        hx-target="#save-status"
+        hx-swap="innerHTML"
+        style="display:contents;"
+      >
+        <button type="submit"
+                style="background:#4f46e5;color:white;border:none;padding:0.5rem 1.25rem;border-radius:6px;font-size:0.875rem;font-weight:500;cursor:pointer;">
+          Сохранить шаблон
+        </button>
+        <span id="save-status" style="font-size:0.75rem;color:#6b7280;"></span>
+      </form>
+      {% else %}
+      {# New template: regular POST (redirects to edit page after create) #}
+      <form id="save-form" action="/ui/templates" method="post" style="display:contents;">
+        <button type="submit"
+                style="background:#4f46e5;color:white;border:none;padding:0.5rem 1.25rem;border-radius:6px;font-size:0.875rem;font-weight:500;cursor:pointer;">
+          Сохранить шаблон
+        </button>
+      </form>
+      {% endif %}
+      <a href="/ui/templates"
+         style="background:transparent;color:#6b7280;border:1px solid #d1d5db;padding:0.45rem 1rem;border-radius:6px;font-size:0.875rem;font-weight:500;text-decoration:none;cursor:pointer;">
+        Отмена
+      </a>
+    </div>
+
+  </div>
+
+  {# ===== Center column: iframe preview ===== #}
+  <div class="card" style="flex:2;display:flex;flex-direction:column;padding:0;overflow:hidden;min-width:0;">
+
+    {# Header with dependent selects #}
+    <div style="padding:16px 16px 12px;border-bottom:1px solid #e5e7eb;flex-shrink:0;">
+      <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-bottom:12px;">
+        <div style="flex:1;min-width:140px;">
+          <label style="display:block;font-size:0.75rem;font-weight:600;color:#374151;margin-bottom:4px;">Клиент</label>
+          <select
+            id="client-select"
+            name="client_id"
+            hx-get="/ui/templates/sites"
+            hx-trigger="change"
+            hx-target="#site-select"
+            hx-swap="outerHTML"
+            hx-include="[name='client_id']"
+            style="width:100%;padding:0.4rem 0.5rem;border:1px solid #d1d5db;border-radius:6px;font-size:0.875rem;"
+          >
+            <option value="">-- выберите клиента --</option>
+            {% for client in clients %}
+            <option value="{{ client.id }}">{{ client.company_name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div style="flex:1;min-width:140px;">
+          <label style="display:block;font-size:0.75rem;font-weight:600;color:#374151;margin-bottom:4px;">Сайт</label>
+          <select id="site-select" name="site_id"
+                  style="width:100%;padding:0.4rem 0.5rem;border:1px solid #d1d5db;border-radius:6px;font-size:0.875rem;">
+            <option value="">-- выберите сайт --</option>
+          </select>
+        </div>
+      </div>
+      <button id="preview-btn"
+              style="background:#4f46e5;color:white;border:none;padding:0.4rem 1rem;border-radius:6px;font-size:0.875rem;font-weight:500;cursor:pointer;width:100%;">
+        Обновить превью
+      </button>
+    </div>
+
+    {# iframe preview area #}
+    <iframe
+      id="preview-iframe"
+      srcdoc='<p style="color:#9ca3af;padding:24px;font-family:sans-serif;font-size:0.875rem;">Выберите клиента и сайт, чтобы увидеть превью</p>'
+      style="border:none;width:100%;flex:1;"
+    ></iframe>
+
+  </div>
+
+  {# ===== Right column: variable panel ===== #}
+  <div class="card" style="flex:1;min-width:240px;overflow-y:auto;padding:0;">
+
+    <div style="padding:16px 16px 8px;border-bottom:1px solid #e5e7eb;flex-shrink:0;">
+      <h3 style="font-size:0.875rem;font-weight:600;color:#1f2937;margin:0 0 4px;">Переменные шаблона</h3>
+      <p style="font-size:0.75rem;color:#9ca3af;margin:0;">Нажмите на переменную, чтобы вставить её в редактор</p>
+    </div>
+
+    {# КЛИЕНТ group #}
+    <div style="font-size:0.75rem;font-weight:600;color:#9ca3af;text-transform:uppercase;letter-spacing:0.05em;padding:12px 16px 4px;">КЛИЕНТ</div>
+
+    <div onclick="insertVariable('client.name')"
+         style="cursor:pointer;padding:8px 16px;border-radius:4px;"
+         onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background=''">
+      <div style="font-size:0.75rem;font-weight:600;font-family:monospace;color:#1e1b4b;">{{ '{{' }} client.name {{ '}}' }}</div>
+      <div style="font-size:0.75rem;color:#6b7280;">Название компании</div>
+    </div>
+
+    <div onclick="insertVariable('client.legal_name')"
+         style="cursor:pointer;padding:8px 16px;border-radius:4px;"
+         onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background=''">
+      <div style="font-size:0.75rem;font-weight:600;font-family:monospace;color:#1e1b4b;">{{ '{{' }} client.legal_name {{ '}}' }}</div>
+      <div style="font-size:0.75rem;color:#6b7280;">Юридическое название</div>
+    </div>
+
+    <div onclick="insertVariable('client.inn')"
+         style="cursor:pointer;padding:8px 16px;border-radius:4px;"
+         onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background=''">
+      <div style="font-size:0.75rem;font-weight:600;font-family:monospace;color:#1e1b4b;">{{ '{{' }} client.inn {{ '}}' }}</div>
+      <div style="font-size:0.75rem;color:#6b7280;">ИНН</div>
+    </div>
+
+    <div onclick="insertVariable('client.email')"
+         style="cursor:pointer;padding:8px 16px;border-radius:4px;"
+         onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background=''">
+      <div style="font-size:0.75rem;font-weight:600;font-family:monospace;color:#1e1b4b;">{{ '{{' }} client.email {{ '}}' }}</div>
+      <div style="font-size:0.75rem;color:#6b7280;">Email клиента</div>
+    </div>
+
+    <div onclick="insertVariable('client.phone')"
+         style="cursor:pointer;padding:8px 16px;border-radius:4px;"
+         onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background=''">
+      <div style="font-size:0.75rem;font-weight:600;font-family:monospace;color:#1e1b4b;">{{ '{{' }} client.phone {{ '}}' }}</div>
+      <div style="font-size:0.75rem;color:#6b7280;">Телефон клиента</div>
+    </div>
+
+    <div onclick="insertVariable('client.manager')"
+         style="cursor:pointer;padding:8px 16px;border-radius:4px;"
+         onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background=''">
+      <div style="font-size:0.75rem;font-weight:600;font-family:monospace;color:#1e1b4b;">{{ '{{' }} client.manager {{ '}}' }}</div>
+      <div style="font-size:0.75rem;color:#6b7280;">Менеджер</div>
+    </div>
+
+    {# САЙТ group #}
+    <div style="font-size:0.75rem;font-weight:600;color:#9ca3af;text-transform:uppercase;letter-spacing:0.05em;padding:12px 16px 4px;margin-top:4px;">САЙТ</div>
+
+    <div onclick="insertVariable('site.url')"
+         style="cursor:pointer;padding:8px 16px;border-radius:4px;"
+         onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background=''">
+      <div style="font-size:0.75rem;font-weight:600;font-family:monospace;color:#1e1b4b;">{{ '{{' }} site.url {{ '}}' }}</div>
+      <div style="font-size:0.75rem;color:#6b7280;">URL сайта</div>
+    </div>
+
+    <div onclick="insertVariable('site.domain')"
+         style="cursor:pointer;padding:8px 16px;border-radius:4px;"
+         onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background=''">
+      <div style="font-size:0.75rem;font-weight:600;font-family:monospace;color:#1e1b4b;">{{ '{{' }} site.domain {{ '}}' }}</div>
+      <div style="font-size:0.75rem;color:#6b7280;">Домен</div>
+    </div>
+
+    <div onclick="insertVariable('site.top_positions_count')"
+         style="cursor:pointer;padding:8px 16px;border-radius:4px;"
+         onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background=''">
+      <div style="font-size:0.75rem;font-weight:600;font-family:monospace;color:#1e1b4b;">{{ '{{' }} site.top_positions_count {{ '}}' }}</div>
+      <div style="font-size:0.75rem;color:#6b7280;">Позиции в ТОП-10</div>
+    </div>
+
+    <div onclick="insertVariable('site.audit_errors_count')"
+         style="cursor:pointer;padding:8px 16px;border-radius:4px;"
+         onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background=''">
+      <div style="font-size:0.75rem;font-weight:600;font-family:monospace;color:#1e1b4b;">{{ '{{' }} site.audit_errors_count {{ '}}' }}</div>
+      <div style="font-size:0.75rem;color:#6b7280;">Ошибки аудита</div>
+    </div>
+
+    <div onclick="insertVariable('site.last_crawl_date')"
+         style="cursor:pointer;padding:8px 16px;border-radius:4px;"
+         onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background=''">
+      <div style="font-size:0.75rem;font-weight:600;font-family:monospace;color:#1e1b4b;">{{ '{{' }} site.last_crawl_date {{ '}}' }}</div>
+      <div style="font-size:0.75rem;color:#6b7280;">Дата последнего краулинга</div>
+    </div>
+
+    {# АНАЛИТИКА group #}
+    <div style="font-size:0.75rem;font-weight:600;color:#9ca3af;text-transform:uppercase;letter-spacing:0.05em;padding:12px 16px 4px;margin-top:4px;">АНАЛИТИКА</div>
+
+    <div onclick="insertVariable('site.gsc_connected')"
+         style="cursor:pointer;padding:8px 16px;border-radius:4px;"
+         onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background=''">
+      <div style="font-size:0.75rem;font-weight:600;font-family:monospace;color:#1e1b4b;">{{ '{{' }} site.gsc_connected {{ '}}' }}</div>
+      <div style="font-size:0.75rem;color:#6b7280;">GSC подключён</div>
+    </div>
+
+    <div onclick="insertVariable('site.metrika_id')"
+         style="cursor:pointer;padding:8px 16px;border-radius:4px;margin-bottom:8px;"
+         onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background=''">
+      <div style="font-size:0.75rem;font-weight:600;font-family:monospace;color:#1e1b4b;">{{ '{{' }} site.metrika_id {{ '}}' }}</div>
+      <div style="font-size:0.75rem;color:#6b7280;">ID Метрики</div>
+    </div>
+
+  </div>
+
+</div>
+
+<script type="module">
+import { basicSetup } from 'https://esm.sh/@codemirror/basic-setup@0.20';
+import { EditorView } from 'https://esm.sh/@codemirror/view@6';
+import { html } from 'https://esm.sh/@codemirror/lang-html@6';
+
+// Read initial content from the JSON script tag
+let initialContent = '';
+try {
+  const rawJson = document.getElementById('template-body-initial')?.textContent || '""';
+  initialContent = JSON.parse(rawJson);
+} catch (e) {
+  initialContent = '';
+}
+
+const view = new EditorView({
+  doc: initialContent,
+  extensions: [basicSetup, html()],
+  parent: document.getElementById('codemirror-mount'),
+});
+
+// Make EditorView fill the container height
+const mountEl = document.getElementById('codemirror-mount');
+if (mountEl) {
+  mountEl.style.height = '100%';
+  mountEl.querySelector('.cm-editor').style.height = '100%';
+  mountEl.querySelector('.cm-scroller').style.overflow = 'auto';
+}
+
+// Variable insert function: inserts {{ varName }} at CodeMirror cursor position
+window.insertVariable = function(varName) {
+  const pos = view.state.selection.main.head;
+  const insert = '{{ ' + varName + ' }}';
+  view.dispatch({
+    changes: { from: pos, insert: insert },
+    selection: { anchor: pos + insert.length },
+  });
+  view.focus();
+};
+
+// Sync editor content to hidden input before form submit
+const saveForm = document.getElementById('save-form');
+if (saveForm) {
+  saveForm.addEventListener('submit', function() {
+    document.getElementById('body-hidden').value = view.state.doc.toString();
+  });
+  // Also handle HTMX before-request event for hx-post forms
+  saveForm.addEventListener('htmx:configRequest', function() {
+    document.getElementById('body-hidden').value = view.state.doc.toString();
+  });
+}
+
+// Preview button: fetch rendered HTML and set iframe srcdoc
+document.getElementById('preview-btn')?.addEventListener('click', async function() {
+  const body = view.state.doc.toString();
+  const clientId = document.getElementById('client-select')?.value;
+  const siteId = document.getElementById('site-select')?.value;
+  if (!clientId || !siteId) {
+    alert('Выберите клиента и сайт перед обновлением превью.');
+    return;
+  }
+
+  const iframe = document.getElementById('preview-iframe');
+  iframe.srcdoc = '<p style="color:#6b7280;padding:24px;font-family:sans-serif;font-size:0.875rem;">Загрузка превью...</p>';
+
+  try {
+    const resp = await fetch('/ui/templates/preview', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ body, client_id: clientId, site_id: siteId }),
+    });
+    const htmlContent = await resp.text();
+    iframe.srcdoc = htmlContent;
+  } catch (err) {
+    iframe.srcdoc = '<p style="color:#dc2626;padding:24px;font-family:sans-serif;font-size:0.875rem;">Ошибка рендеринга превью. Проверьте синтаксис Jinja2 в шаблоне.</p>';
+  }
+});
+</script>
+{% endblock %}
