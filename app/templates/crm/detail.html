@@ -160,10 +160,13 @@
   </div>
 </div>
 
-{# Documents tab #}
+{# Documents tab — lazy-loaded from documents router #}
 <div id="tab-documents" class="crm-tab-panel" style="display:{% if active_tab == 'documents' %}block{% else %}none{% endif %};">
-  <div class="card" style="padding:1.5rem;">
-    {% include "crm/_documents_tab.html" %}
+  <div class="card" style="padding:1.5rem;"
+       hx-get="/ui/crm/clients/{{ client.id }}/documents/"
+       hx-trigger="intersect once"
+       hx-swap="innerHTML">
+    <div style="padding:2rem;text-align:center;color:#9ca3af;">Загрузка...</div>
   </div>
 </div>
 
