@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "macros/empty_state.html" import empty_state %}
 {% block title %}Трафик — {{ site.name }} — SEO Platform{% endblock %}
 {% block breadcrumbs %}
 <div class="breadcrumbs"><a href="/ui/dashboard">Dashboard</a><span>&rsaquo;</span><a href="/ui/sites">Sites</a><span>&rsaquo;</span>{% if site %}<a href="/ui/sites">{{ site.name }}</a><span>&rsaquo;</span>{% endif %}Metrika</div>
@@ -30,19 +31,26 @@
 
 {# ─── Empty state: no counter configured ─── #}
 {% if not site.metrika_counter_id %}
-<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
-  <p class="text-gray-500 m-0">
-    Счётчик Метрики не настроен. Добавьте ID счётчика и токен в настройках сайта.
-  </p>
-</div>
+{% call empty_state(
+    reason="Счётчик Яндекс.Метрики не настроен.",
+    cta_label="Настроить счётчик",
+    cta_url="/ui/sites/" ~ site.id ~ "/edit"
+) %}
+  <p>1. Перейдите в настройки сайта и укажите ID счётчика Метрики.</p>
+  <p>2. Также добавьте OAuth-токен Метрики в разделе «Источники данных».</p>
+  <p>3. После настройки данные начнут загружаться автоматически.</p>
+{% endcall %}
 
 {# ─── Empty state: counter set but no data ─── #}
 {% elif not daily_data %}
-<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
-  <p class="text-gray-500 m-0">
-    Данные ещё не загружены. Нажмите «Загрузить данные Метрики».
-  </p>
-</div>
+{% call empty_state(
+    reason="Данные из Метрики ещё не загружены.",
+    cta_label="Обновить данные",
+    cta_url="/metrika/" ~ site.id
+) %}
+  <p>Счётчик настроен. Данные загружаются автоматически по расписанию.</p>
+  <p>Первая загрузка может занять несколько минут.</p>
+{% endcall %}
 
 {% else %}
 
