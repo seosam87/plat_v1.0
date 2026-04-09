@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "macros/empty_state.html" import empty_state %}
 {% block title %}Cannibalization — {{ site_name }} — SEO Platform{% endblock %}
 {% block content %}
 <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
@@ -79,7 +80,16 @@
     </tbody>
   </table>
   {% else %}
-  <p class="text-emerald-600 font-medium">No cannibalization detected. Each keyword has at most one ranking page.</p>
+  {% call empty_state(
+      reason="Каннибализация не обнаружена — это хороший знак!",
+      cta_label="Проверить позиции",
+      cta_url="/ui/positions/" ~ site_id,
+      secondary_label="Перейти к кластерам",
+      secondary_url="/ui/clusters/" ~ site_id
+  ) %}
+    <p>Каннибализация возникает, когда несколько страниц конкурируют за один ключ.</p>
+    <p>Система проверяет это автоматически при каждом обновлении позиций.</p>
+  {% endcall %}
   {% endif %}
 </div>
 

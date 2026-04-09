@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "macros/empty_state.html" import empty_state %}
 {% block title %}Clusters — {{ site_name }} — SEO Platform{% endblock %}
 {% block breadcrumbs %}
 <div class="breadcrumbs"><a href="/ui/dashboard">Dashboard</a><span>&rsaquo;</span><a href="/ui/sites">Sites</a><span>&rsaquo;</span><a href="/ui/sites">{{ site_name }}</a><span>&rsaquo;</span>Clusters</div>
@@ -68,7 +69,16 @@
   </div>
   {% endfor %}
   {% else %}
-  <p class="text-gray-500">No clusters yet. Create one manually or run auto-clustering based on SERP data.</p>
+  {% call empty_state(
+      reason="Кластеры ещё не созданы.",
+      cta_label="Запустить автокластеризацию",
+      cta_url="/ui/clusters/" ~ site_id
+  ) %}
+    <p><strong>Предусловия:</strong> необходимо добавить ключевые слова.</p>
+    <p>1. Добавьте ключевые слова через импорт или вручную.</p>
+    <p>2. Нажмите «Автокластеризация» — система сгруппирует ключи по смыслу.</p>
+    <p>3. Кластеры помогают планировать структуру сайта и контент.</p>
+  {% endcall %}
   {% endif %}
 </div>
 {% endblock %}

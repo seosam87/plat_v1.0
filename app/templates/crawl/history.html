@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "macros/empty_state.html" import empty_state %}
 {% block title %}Краулы — {{ site.name }}{% endblock %}
 {% block content %}
 <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
@@ -59,7 +60,16 @@
     </table>
   </div>
   {% else %}
-  <p class="text-gray-400 text-sm mt-2">No crawl jobs yet for this site.</p>
+  {% call empty_state(
+      reason="Краулинг ещё не запускался.",
+      cta_label="Запустить краул",
+      cta_url="/ui/sites/" ~ site.id ~ "/crawls"
+  ) %}
+    <p><strong>Предусловия:</strong> у сайта должен быть указан URL (поле wp_url в настройках сайта).</p>
+    <p>1. Нажмите «Запустить краул» — система обойдёт страницы сайта.</p>
+    <p>2. Краулер собирает title, meta description, h1-h6, внутренние ссылки, схему и другие SEO-данные.</p>
+    <p>3. После завершения доступны: аудит ошибок, мёртвый контент, контент-пайплайн.</p>
+  {% endcall %}
   {% endif %}
 </div>
 {% endblock %}

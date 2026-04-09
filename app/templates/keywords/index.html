@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "macros/empty_state.html" import empty_state %}
 {% block title %}Keywords — {{ site_name }} — SEO Platform{% endblock %}
 {% block breadcrumbs %}
 <div class="breadcrumbs"><a href="/ui/dashboard">Dashboard</a><span>&rsaquo;</span><a href="/ui/sites">Sites</a><span>&rsaquo;</span><a href="/ui/sites">{{ site_name }}</a><span>&rsaquo;</span>Keywords</div>
@@ -112,7 +113,15 @@
   {% endif %}
 
   {% else %}
-  <p class="text-gray-500">No keywords yet. Add keywords manually above or <a href="/ui/uploads">import from file</a>.</p>
+  {% call empty_state(
+      reason="Ключевые слова ещё не добавлены.",
+      cta_label="Импортировать ключи",
+      cta_url="/ui/uploads"
+  ) %}
+    <p>1. Перейдите в раздел «Импорт» и загрузите файл XLSX из Topvisor или CSV.</p>
+    <p>2. Или добавьте ключевые слова вручную через форму на этой странице.</p>
+    <p>3. После добавления запустите проверку позиций, чтобы увидеть текущие места в выдаче.</p>
+  {% endcall %}
   {% endif %}
 </div>
 {% endblock %}
