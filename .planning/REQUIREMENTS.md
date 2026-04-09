@@ -23,7 +23,7 @@ Requirements for v3.0 Client & Proposal milestone. Each maps to roadmap phases.
 - [x] **INTAKE-02**: User can see a verification checklist (WP verified, GSC connected, Metrika linked, sitemap found, crawl done)
 - [x] **INTAKE-03**: Checklist items auto-populate from existing platform data
 - [x] **INTAKE-04**: User can save intake form as draft and resume later (section-by-section HTMX save)
-- [ ] **INTAKE-05**: Site shows "intake complete" status after form is finished
+- [x] **INTAKE-05**: Site shows "intake complete" status after form is finished
 
 ### Proposal Templates
 
@@ -105,7 +105,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | INTAKE-02 | Phase 21 | Complete |
 | INTAKE-03 | Phase 21 | Complete |
 | INTAKE-04 | Phase 21 | Complete |
-| INTAKE-05 | Phase 21 | Pending |
+| INTAKE-05 | Phase 21 | Complete |
 | TPL-01 | Phase 22 | Pending |
 | TPL-02 | Phase 22 | Pending |
 | TPL-03 | Phase 22 | Pending |
