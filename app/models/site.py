@@ -34,6 +34,11 @@ class Site(Base):
         ForeignKey("site_groups.id", ondelete="SET NULL"),
         nullable=True,
     )
+    client_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("clients.id", ondelete="SET NULL"),
+        nullable=True,
+    )
     seo_plugin: Mapped[str | None] = mapped_column(String(50), nullable=True, default="unknown")
     metrika_counter_id: Mapped[str | None] = mapped_column(String(50), nullable=True)
     metrika_token: Mapped[str | None] = mapped_column(Text, nullable=True)

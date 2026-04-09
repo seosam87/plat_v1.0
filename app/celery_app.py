@@ -24,6 +24,7 @@ celery_app = Celery(
         "app.tasks.suggest_tasks",
         "app.tasks.llm_tasks",
         "app.tasks.notification_tasks",
+        "app.tasks.document_tasks",
     ],
 )
 

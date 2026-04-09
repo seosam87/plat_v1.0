@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% block title %}Клиенты — CRM{% endblock %}
+{% block breadcrumbs %}
+<div class="breadcrumbs"><a href="/ui/dashboard">Dashboard</a><span>&rsaquo;</span>CRM<span>&rsaquo;</span>Клиенты</div>
+{% endblock %}
+{% block content %}
+<div class="card mb-6">
+  {# Header #}
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;">
+    <h2 style="font-size:1.125rem;font-weight:600;color:#1f2937;margin:0;">Клиенты</h2>
+    <button
+      style="background:#4f46e5;color:white;border:none;padding:0.5rem 1rem;border-radius:6px;font-size:0.875rem;font-weight:500;cursor:pointer;"
+      hx-get="/ui/crm/clients/new"
+      hx-target="#modal-container"
+      hx-swap="innerHTML"
+    >Добавить клиента</button>
+  </div>
+
+  {# Filters row #}
+  <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:1rem;flex-wrap:wrap;">
+    <input
+      type="text"
+      name="search"
+      placeholder="Поиск по названию, ИНН или email..."
+      value="{{ search }}"
+      hx-get="/ui/crm/clients"
+      hx-trigger="keyup changed delay:300ms"
+      hx-target="#client-table-body"
+      hx-include="[name='manager_id'],[name='created_from'],[name='created_to']"
+      hx-vals='{"partial": "true"}'
+      style="padding:0.5rem 0.75rem;border:1px solid #d1d5db;border-radius:6px;width:300px;font-size:0.875rem;"
+    >
+    <select
+      name="manager_id"
+      hx-get="/ui/crm/clients"
+      hx-trigger="change"
+      hx-target="#client-table-body"
+      hx-include="[name='search'],[name='created_from'],[name='created_to']"
+      hx-vals='{"partial": "true"}'
+      style="padding:0.5rem 0.75rem;border:1px solid #d1d5db;border-radius:6px;font-size:0.875rem;"
+    >
+      <option value="">Все менеджеры</option>
+      {% for m in managers %}
+      <option value="{{ m.id }}" {% if manager_id and manager_id == m.id %}selected{% endif %}>{{ m.username }}</option>
+      {% endfor %}
+    </select>
+    <label style="font-size:0.8rem;font-weight:600;color:#6b7280;">Дата создания:</label>
+    <input
+      type="date"
+      name="created_from"
+      value="{{ created_from or '' }}"
+      hx-get="/ui/crm/clients"
+      hx-trigger="change"
+      hx-target="#client-table-body"
+      hx-include="[name='search'],[name='manager_id'],[name='created_to']"
+      hx-vals='{"partial": "true"}'
+      style="padding:0.4rem 0.5rem;border:1px solid #d1d5db;border-radius:6px;font-size:0.8rem;"
+      title="С даты"
+    >
+    <span style="color:#9ca3af;font-size:0.8rem;">&mdash;</span>
+    <input
+      type="date"
+      name="created_to"
+      value="{{ created_to or '' }}"
+      hx-get="/ui/crm/clients"
+      hx-trigger="change"
+      hx-target="#client-table-body"
+      hx-include="[name='search'],[name='manager_id'],[name='created_from']"
+      hx-vals='{"partial": "true"}'
+      style="padding:0.4rem 0.5rem;border:1px solid #d1d5db;border-radius:6px;font-size:0.8rem;"
+      title="По дату"
+    >
+  </div>
+
+  {# Table #}
+  {% if clients %}
+  <table class="min-w-full divide-y divide-gray-200">
+    <thead>
+      <tr>
+        <th style="padding:0.75rem 1rem;text-align:left;">Компания</th>
+        <th style="padding:0.75rem 1rem;text-align:left;">Менеджер</th>
+        <th style="padding:0.75rem 1rem;text-align:left;">Сайтов</th>
+        <th style="padding:0.75rem 1rem;text-align:left;">Последнее взаимодействие</th>
+        <th style="padding:0.75rem 1rem;text-align:right;"></th>
+      </tr>
+    </thead>
+    <tbody id="client-table-body">
+      {% include "crm/_client_rows.html" %}
+    </tbody>
+  </table>
+  {% else %}
+  <div id="client-table-body">
+    {% from "macros/empty_state.html" import empty_state %}
+    {{ empty_state("Клиентов пока нет", "Добавить клиента", "#", docs_url=none) }}
+    <p style="font-size:0.875rem;color:#6b7280;margin-top:-0.5rem;padding:0 1.5rem;">Создайте первую карточку клиента, чтобы связывать сайты, контакты и переписку в одном месте.</p>
+  </div>
+  {% endif %}
+
+  {# Pagination #}
+  {% if total_pages > 1 %}
+  <div style="display:flex;justify-content:space-between;align-items:center;padding:0.75rem 1rem;border-top:1px solid #e5e7eb;margin-top:0.5rem;">
+    <span style="font-size:0.8rem;color:#6b7280;">Страница {{ page }} из {{ total_pages }}</span>
+    <div style="display:flex;gap:0.5rem;">
+      {% if page > 1 %}
+      <button
+        style="padding:0.4rem 0.75rem;border:1px solid #d1d5db;border-radius:6px;font-size:0.8rem;background:white;cursor:pointer;"
+        hx-get="/ui/crm/clients?page={{ page - 1 }}&partial=true"
+        hx-target="#client-table-body"
+        hx-include="[name='search'],[name='manager_id'],[name='created_from'],[name='created_to']"
+      >Назад</button>
+      {% endif %}
+      {% if page < total_pages %}
+      <button
+        style="padding:0.4rem 0.75rem;border:1px solid #d1d5db;border-radius:6px;font-size:0.8rem;background:white;cursor:pointer;"
+        hx-get="/ui/crm/clients?page={{ page + 1 }}&partial=true"
+        hx-target="#client-table-body"
+        hx-include="[name='search'],[name='manager_id'],[name='created_from'],[name='created_to']"
+      >Далее</button>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+{# Modal container #}
+<div id="modal-container"></div>
+
+<script>
+document.body.addEventListener("closeModal", function() {
+    document.getElementById("modal-container").innerHTML = "";
+});
+document.body.addEventListener("refreshClientList", function() {
+    htmx.ajax("GET", "/ui/crm/clients?partial=true", {target: "#client-table-body", swap: "innerHTML"});
+});
+</script>
+{% endblock %}

@@ -161,6 +161,9 @@ app.include_router(llm_briefs_router)
 from app.routers.notifications import router as notifications_router
 app.include_router(notifications_router)
 
+from app.routers.documents import router as documents_router
+app.include_router(documents_router)
+
 
 # ---- Site selector API endpoints for nav sidebar ----
 

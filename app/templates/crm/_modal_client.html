@@ -1,0 +1,142 @@
+{# Modal: create/edit client form fragment — loaded into #modal-container via HTMX #}
+<div
+  style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.45);z-index:200;display:flex;align-items:center;justify-content:center;"
+  onclick="if(event.target===this)document.getElementById('modal-container').innerHTML=''"
+  onkeydown="if(event.key==='Escape')document.getElementById('modal-container').innerHTML=''"
+  tabindex="-1"
+  id="client-modal-overlay"
+>
+  <div style="max-width:640px;width:92%;border-radius:10px;max-height:85vh;overflow-y:auto;background:#fff;padding:1.5rem;" onclick="event.stopPropagation()">
+    {# Header #}
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;">
+      <h3 style="font-size:1.125rem;font-weight:600;color:#1f2937;margin:0;">
+        {% if client %}Редактировать клиента{% else %}Новый клиент{% endif %}
+      </h3>
+      <button
+        type="button"
+        onclick="document.getElementById('modal-container').innerHTML=''"
+        style="background:none;border:none;cursor:pointer;color:#9ca3af;font-size:1.25rem;line-height:1;padding:0.25rem;"
+        aria-label="Закрыть"
+      >&times;</button>
+    </div>
+
+    {# Form #}
+    <form
+      {% if client %}
+        hx-put="/ui/crm/clients/{{ client.id }}"
+      {% else %}
+        hx-post="/ui/crm/clients"
+      {% endif %}
+      hx-swap="none"
+      style="display:flex;flex-direction:column;gap:1rem;"
+    >
+      {# Название компании* #}
+      <div>
+        <label style="display:block;font-size:0.8rem;font-weight:600;color:#374151;margin-bottom:0.25rem;">Название компании *</label>
+        <input
+          type="text"
+          name="company_name"
+          required
+          value="{{ client.company_name if client else '' }}"
+          style="padding:0.5rem 0.75rem;border:1px solid #d1d5db;border-radius:6px;width:100%;font-size:0.875rem;box-sizing:border-box;"
+        >
+      </div>
+
+      {# Юридическое название #}
+      <div>
+        <label style="display:block;font-size:0.8rem;font-weight:600;color:#374151;margin-bottom:0.25rem;">Юридическое название</label>
+        <input
+          type="text"
+          name="legal_name"
+          value="{{ client.legal_name if client and client.legal_name else '' }}"
+          style="padding:0.5rem 0.75rem;border:1px solid #d1d5db;border-radius:6px;width:100%;font-size:0.875rem;box-sizing:border-box;"
+        >
+      </div>
+
+      {# ИНН / КПП row #}
+      <div style="display:flex;gap:1rem;">
+        <div style="flex:1;">
+          <label style="display:block;font-size:0.8rem;font-weight:600;color:#374151;margin-bottom:0.25rem;">ИНН</label>
+          <input
+            type="text"
+            name="inn"
+            value="{{ client.inn if client and client.inn else '' }}"
+            style="padding:0.5rem 0.75rem;border:1px solid #d1d5db;border-radius:6px;width:100%;font-size:0.875rem;box-sizing:border-box;"
+          >
+        </div>
+        <div style="flex:1;">
+          <label style="display:block;font-size:0.8rem;font-weight:600;color:#374151;margin-bottom:0.25rem;">КПП</label>
+          <input
+            type="text"
+            name="kpp"
+            value="{{ client.kpp if client and client.kpp else '' }}"
+            style="padding:0.5rem 0.75rem;border:1px solid #d1d5db;border-radius:6px;width:100%;font-size:0.875rem;box-sizing:border-box;"
+          >
+        </div>
+      </div>
+
+      {# Телефон #}
+      <div>
+        <label style="display:block;font-size:0.8rem;font-weight:600;color:#374151;margin-bottom:0.25rem;">Телефон</label>
+        <input
+          type="text"
+          name="phone"
+          value="{{ client.phone if client and client.phone else '' }}"
+          style="padding:0.5rem 0.75rem;border:1px solid #d1d5db;border-radius:6px;width:100%;font-size:0.875rem;box-sizing:border-box;"
+        >
+      </div>
+
+      {# Email #}
+      <div>
+        <label style="display:block;font-size:0.8rem;font-weight:600;color:#374151;margin-bottom:0.25rem;">Email</label>
+        <input
+          type="email"
+          name="email"
+          value="{{ client.email if client and client.email else '' }}"
+          style="padding:0.5rem 0.75rem;border:1px solid #d1d5db;border-radius:6px;width:100%;font-size:0.875rem;box-sizing:border-box;"
+        >
+      </div>
+
+      {# Менеджер #}
+      <div>
+        <label style="display:block;font-size:0.8rem;font-weight:600;color:#374151;margin-bottom:0.25rem;">Менеджер</label>
+        <select
+          name="manager_id"
+          style="padding:0.5rem 0.75rem;border:1px solid #d1d5db;border-radius:6px;width:100%;font-size:0.875rem;box-sizing:border-box;"
+        >
+          <option value="">-- Не назначен --</option>
+          {% for m in managers %}
+          <option value="{{ m.id }}" {% if client and client.manager_id == m.id %}selected{% endif %}>{{ m.username }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      {# Заметки #}
+      <div>
+        <label style="display:block;font-size:0.8rem;font-weight:600;color:#374151;margin-bottom:0.25rem;">Заметки</label>
+        <textarea
+          name="notes"
+          rows="3"
+          style="padding:0.5rem 0.75rem;border:1px solid #d1d5db;border-radius:6px;width:100%;font-size:0.875rem;box-sizing:border-box;resize:vertical;"
+        >{{ client.notes if client and client.notes else '' }}</textarea>
+      </div>
+
+      {# Submit #}
+      <div style="display:flex;justify-content:flex-end;gap:0.75rem;margin-top:0.5rem;">
+        <button
+          type="button"
+          onclick="document.getElementById('modal-container').innerHTML=''"
+          style="padding:0.5rem 1rem;border:1px solid #d1d5db;border-radius:6px;font-size:0.875rem;background:white;cursor:pointer;color:#374151;"
+        >Отмена</button>
+        <button
+          type="submit"
+          style="background:#4f46e5;color:white;border:none;padding:0.5rem 1rem;border-radius:6px;font-size:0.875rem;font-weight:500;cursor:pointer;"
+        >{% if client %}Сохранить{% else %}Создать{% endif %}</button>
+      </div>
+    </form>
+  </div>
+</div>
+<script>
+  // Auto-focus the overlay for ESC key handling
+  document.getElementById('client-modal-overlay').focus();
+</script>

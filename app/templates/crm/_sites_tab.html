@@ -1,0 +1,56 @@
+{# Sites tab partial: attach dropdown + attached sites table #}
+
+{# Attach site search section #}
+<div style="margin-bottom:1.25rem;display:flex;align-items:flex-start;gap:0.75rem;">
+  <div style="position:relative;">
+    <input type="text" name="q"
+           placeholder="Поиск сайта по URL..."
+           hx-get="/ui/crm/clients/{{ client_id }}/sites/search"
+           hx-trigger="keyup changed delay:300ms"
+           hx-target="#site-search-results"
+           style="padding:0.5rem 0.75rem;border:1px solid #d1d5db;border-radius:6px;width:300px;font-size:0.875rem;">
+    <div id="site-search-results" style="position:relative;"></div>
+  </div>
+</div>
+
+{# Attached sites table #}
+{% if sites %}
+<div class="card">
+  <table class="min-w-full divide-y divide-gray-200">
+    <thead>
+      <tr>
+        <th style="padding:0.75rem 1rem;text-align:left;">URL</th>
+        <th style="padding:0.75rem 1rem;text-align:left;">Статус краула</th>
+        <th style="padding:0.75rem 1rem;text-align:left;">Открытых задач</th>
+        <th style="padding:0.75rem 1rem;text-align:right;width:120px;"></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for site in sites %}
+      <tr>
+        <td style="padding:0.75rem 1rem;">
+          <a href="/ui/sites/{{ site.id }}" style="color:#4f46e5;text-decoration:none;">{{ site.url }}</a>
+        </td>
+        <td style="padding:0.75rem 1rem;">
+          <span style="display:inline-block;padding:0.15rem 0.5rem;border-radius:4px;font-size:0.75rem;font-weight:500;
+            {% if site.connection_status.value == 'connected' %}background:#d1fae5;color:#065f46;{% elif site.connection_status.value == 'failed' %}background:#fee2e2;color:#991b1b;{% else %}background:#f3f4f6;color:#6b7280;{% endif %}
+          ">{{ site.connection_status.value }}</span>
+        </td>
+        <td style="padding:0.75rem 1rem;color:#6b7280;font-size:0.875rem;">--</td>
+        <td style="padding:0.75rem 1rem;text-align:right;">
+          <button hx-delete="/ui/crm/clients/{{ client_id }}/sites/{{ site.id }}"
+                  hx-confirm="Открепить сайт {{ site.url }} от клиента?"
+                  hx-target="#sites-tab-content"
+                  hx-swap="innerHTML"
+                  style="color:#dc2626;font-size:0.8rem;background:none;border:none;cursor:pointer;">Открепить</button>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+{% from "macros/empty_state.html" import empty_state %}
+{{ empty_state("Сайты не прикреплены", "Найдите сайт в поиске выше", "#", docs_url=none) }}
+<p style="font-size:0.875rem;color:#6b7280;margin-top:-0.5rem;padding:0 1.5rem;">Прикрепите существующий сайт платформы к этому клиенту.</p>
+{% endif %}

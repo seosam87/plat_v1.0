@@ -1,0 +1,32 @@
+<tr id="contact-row-{{ contact.id }}">
+  <td style="padding:0.5rem 0.75rem;">
+    <input name="name" value="{{ contact.name }}" required style="padding:0.25rem 0.5rem;border:1px solid #d1d5db;border-radius:4px;font-size:0.875rem;width:100%;box-sizing:border-box;">
+  </td>
+  <td style="padding:0.5rem 0.75rem;">
+    <input name="phone" value="{{ contact.phone or '' }}" style="padding:0.25rem 0.5rem;border:1px solid #d1d5db;border-radius:4px;font-size:0.875rem;width:100%;box-sizing:border-box;">
+  </td>
+  <td style="padding:0.5rem 0.75rem;">
+    <input name="email" value="{{ contact.email or '' }}" style="padding:0.25rem 0.5rem;border:1px solid #d1d5db;border-radius:4px;font-size:0.875rem;width:100%;box-sizing:border-box;">
+  </td>
+  <td style="padding:0.5rem 0.75rem;">
+    <input name="role" value="{{ contact.role or '' }}" style="padding:0.25rem 0.5rem;border:1px solid #d1d5db;border-radius:4px;font-size:0.875rem;width:100%;box-sizing:border-box;">
+  </td>
+  <td style="padding:0.5rem 0.75rem;">
+    <input name="telegram_username" value="{{ contact.telegram_username or '' }}" style="padding:0.25rem 0.5rem;border:1px solid #d1d5db;border-radius:4px;font-size:0.875rem;width:100%;box-sizing:border-box;">
+  </td>
+  <td style="padding:0.5rem 0.75rem;text-align:right;white-space:nowrap;">
+    <button
+      hx-put="/ui/crm/clients/{{ client_id }}/contacts/{{ contact.id }}"
+      hx-target="#contact-row-{{ contact.id }}"
+      hx-swap="outerHTML"
+      hx-include="#contact-row-{{ contact.id }} input"
+      style="background:#4f46e5;color:white;border:none;padding:0.25rem 0.6rem;border-radius:4px;font-size:0.8rem;cursor:pointer;margin-right:0.25rem;"
+    >Сохранить</button>
+    <button
+      hx-get="/ui/crm/clients/{{ client_id }}/contacts/{{ contact.id }}"
+      hx-target="#contact-row-{{ contact.id }}"
+      hx-swap="outerHTML"
+      style="background:none;border:1px solid #d1d5db;color:#374151;padding:0.25rem 0.6rem;border-radius:4px;font-size:0.8rem;cursor:pointer;"
+    >Отмена</button>
+  </td>
+</tr>

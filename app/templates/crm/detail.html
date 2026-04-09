@@ -1,0 +1,187 @@
+{% extends "base.html" %}
+{% block title %}{{ client.company_name }} — CRM{% endblock %}
+{% block breadcrumbs %}
+<div class="breadcrumbs"><a href="/ui/dashboard">Dashboard</a><span>&rsaquo;</span><a href="/ui/crm/clients">CRM</a><span>&rsaquo;</span>{{ client.company_name }}</div>
+{% endblock %}
+{% block content %}
+
+{# Header card #}
+<div style="background:#ffffff;padding:1.5rem;border-radius:8px;margin-bottom:1.5rem;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:0.75rem;">
+    <div>
+      <h1 style="font-size:1.25rem;font-weight:600;color:#1f2937;margin:0;">{{ client.company_name }}</h1>
+      {% if client.legal_name %}
+      <p style="font-size:0.875rem;color:#6b7280;margin:0.25rem 0 0;">{{ client.legal_name }}</p>
+      {% endif %}
+    </div>
+    <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
+      {% if manager %}
+      <span style="display:inline-flex;align-items:center;gap:0.3rem;padding:0.2rem 0.6rem;background:#eef2ff;color:#4338ca;border-radius:4px;font-size:0.8rem;font-weight:600;">{{ manager.username }}</span>
+      {% else %}
+      <span style="color:#9ca3af;font-size:0.8rem;">Не назначен</span>
+      {% endif %}
+      <span style="display:inline-flex;align-items:center;gap:0.3rem;padding:0.2rem 0.6rem;background:#f3f4f6;color:#374151;border-radius:4px;font-size:0.8rem;font-weight:600;">{{ site_count }} сайтов</span>
+      <span style="display:inline-flex;align-items:center;gap:0.3rem;padding:0.2rem 0.6rem;background:#f3f4f6;color:#374151;border-radius:4px;font-size:0.8rem;font-weight:600;">{{ open_task_count }} задач</span>
+    </div>
+  </div>
+  <div style="display:flex;gap:1.5rem;flex-wrap:wrap;font-size:0.875rem;color:#374151;">
+    <span>ИНН: {{ client.inn or '—' }}</span>
+    <span>КПП: {{ client.kpp or '—' }}</span>
+    <span>Телефон: {{ client.phone or '—' }}</span>
+    <span>Email: {{ client.email or '—' }}</span>
+  </div>
+</div>
+
+{# Tab bar #}
+<div style="display:flex;gap:0;border-bottom:1px solid #e5e7eb;margin-bottom:1.5rem;">
+  <button class="crm-tab active" data-tab="sites" onclick="switchTab('sites')" style="padding:0.75rem 1.25rem;font-size:0.875rem;font-weight:500;border:none;background:none;cursor:pointer;border-bottom:2px solid #4f46e5;color:#4f46e5;">Сайты</button>
+  <button class="crm-tab" data-tab="contacts" onclick="switchTab('contacts')" style="padding:0.75rem 1.25rem;font-size:0.875rem;font-weight:500;border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;color:#6b7280;">Контакты</button>
+  <button class="crm-tab" data-tab="interactions" onclick="switchTab('interactions')" style="padding:0.75rem 1.25rem;font-size:0.875rem;font-weight:500;border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;color:#6b7280;">Взаимодействия</button>
+  <button class="crm-tab" data-tab="info" onclick="switchTab('info')" style="padding:0.75rem 1.25rem;font-size:0.875rem;font-weight:500;border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;color:#6b7280;">Информация</button>
+</div>
+
+{# Tab panels #}
+
+{# Sites tab #}
+<div id="tab-sites" class="crm-tab-panel" style="display:block;">
+  <div id="sites-tab-content">
+    {% include "crm/_sites_tab.html" %}
+  </div>
+</div>
+
+{# Contacts tab #}
+<div id="tab-contacts" class="crm-tab-panel" style="display:none;">
+  <div class="card" style="padding:1.5rem;">
+    {% if contacts %}
+    <table class="min-w-full divide-y divide-gray-200" style="margin-bottom:1.5rem;">
+      <thead>
+        <tr>
+          <th style="padding:0.75rem 1rem;text-align:left;">Имя</th>
+          <th style="padding:0.75rem 1rem;text-align:left;">Телефон</th>
+          <th style="padding:0.75rem 1rem;text-align:left;">Email</th>
+          <th style="padding:0.75rem 1rem;text-align:left;">Роль</th>
+          <th style="padding:0.75rem 1rem;text-align:left;">Telegram</th>
+          <th style="padding:0.75rem 1rem;text-align:right;width:120px;"></th>
+        </tr>
+      </thead>
+      <tbody id="contacts-table-body">
+        {% for contact in contacts %}
+        {% include "crm/_contact_row.html" %}
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div id="contacts-empty-state">
+      <p style="color:#6b7280;font-size:0.875rem;margin-bottom:1rem;">Контакты не добавлены. Добавьте контактное лицо клиента.</p>
+    </div>
+    <table class="min-w-full divide-y divide-gray-200" style="margin-bottom:1.5rem;display:none;" id="contacts-table-wrapper">
+      <thead>
+        <tr>
+          <th style="padding:0.75rem 1rem;text-align:left;">Имя</th>
+          <th style="padding:0.75rem 1rem;text-align:left;">Телефон</th>
+          <th style="padding:0.75rem 1rem;text-align:left;">Email</th>
+          <th style="padding:0.75rem 1rem;text-align:left;">Роль</th>
+          <th style="padding:0.75rem 1rem;text-align:left;">Telegram</th>
+          <th style="padding:0.75rem 1rem;text-align:right;width:120px;"></th>
+        </tr>
+      </thead>
+      <tbody id="contacts-table-body"></tbody>
+    </table>
+    {% endif %}
+
+    {# Add contact form #}
+    <div style="border-top:1px solid #e5e7eb;padding-top:1rem;">
+      <h3 style="font-size:0.875rem;font-weight:600;color:#374151;margin:0 0 0.75rem;">Добавить контакт</h3>
+      <form hx-post="/ui/crm/clients/{{ client.id }}/contacts"
+            hx-target="#contacts-table-body"
+            hx-swap="beforeend"
+            hx-on::after-request="if(event.detail.successful){this.reset();var es=document.getElementById('contacts-empty-state');if(es)es.style.display='none';var tw=document.getElementById('contacts-table-wrapper');if(tw)tw.style.display='table';}"
+            style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;">
+        <input type="text" name="name" placeholder="Имя *" required style="padding:0.25rem 0.5rem;border:1px solid #d1d5db;border-radius:4px;font-size:0.875rem;">
+        <input type="text" name="phone" placeholder="Телефон" style="padding:0.25rem 0.5rem;border:1px solid #d1d5db;border-radius:4px;font-size:0.875rem;">
+        <input type="email" name="email" placeholder="Email" style="padding:0.25rem 0.5rem;border:1px solid #d1d5db;border-radius:4px;font-size:0.875rem;">
+        <input type="text" name="role" placeholder="Роль" style="padding:0.25rem 0.5rem;border:1px solid #d1d5db;border-radius:4px;font-size:0.875rem;">
+        <input type="text" name="telegram_username" placeholder="Telegram" style="padding:0.25rem 0.5rem;border:1px solid #d1d5db;border-radius:4px;font-size:0.875rem;">
+        <input type="text" name="notes" placeholder="Заметки" style="padding:0.25rem 0.5rem;border:1px solid #d1d5db;border-radius:4px;font-size:0.875rem;">
+        <div style="grid-column:1/-1;">
+          <button type="submit" style="background:#4f46e5;color:white;border:none;padding:0.4rem 1rem;border-radius:6px;font-size:0.8rem;font-weight:500;cursor:pointer;">Добавить контакт</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{# Interactions tab #}
+<div id="tab-interactions" class="crm-tab-panel" style="display:none;">
+  <div class="card" style="padding:1.5rem;">
+    {# Compose form #}
+    <form hx-post="/ui/crm/clients/{{ client.id }}/interactions"
+          hx-target="#interactions-list"
+          hx-swap="afterbegin"
+          hx-on::after-request="if(event.detail.successful){this.reset();var es=document.getElementById('interactions-empty-state');if(es)es.style.display='none';}"
+          style="margin-bottom:1.5rem;">
+      <textarea name="note" rows="3" required
+        placeholder="Заметка о звонке, встрече или задаче..."
+        style="width:100%;padding:0.75rem;border:1px solid #d1d5db;border-radius:6px;font-size:0.875rem;resize:vertical;box-sizing:border-box;margin-bottom:0.5rem;"></textarea>
+      <button type="submit" style="background:#4f46e5;color:white;border:none;padding:0.4rem 1rem;border-radius:6px;font-size:0.8rem;font-weight:500;cursor:pointer;">Добавить заметку</button>
+    </form>
+
+    {# Interactions list #}
+    <div id="interactions-list">
+      {% if interactions %}
+        {% for interaction in interactions %}
+          {% set author = authors_map.get(interaction.author_id) if interaction.author_id else none %}
+          {% include "crm/_interaction_entry.html" %}
+        {% endfor %}
+      {% endif %}
+    </div>
+    {% if not interactions %}
+    <div id="interactions-empty-state">
+      <p style="color:#6b7280;font-size:0.875rem;">Взаимодействий нет. Оставьте первую заметку о звонке, встрече или задаче.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{# Info tab #}
+<div id="tab-info" class="crm-tab-panel" style="display:none;">
+  <div class="card" style="padding:1.5rem;">
+    <h3 style="font-size:0.875rem;font-weight:600;color:#374151;margin:0 0 0.75rem;">Заметки</h3>
+    {% if client.notes %}
+    <p style="font-size:0.875rem;color:#374151;white-space:pre-wrap;margin:0 0 1rem;">{{ client.notes }}</p>
+    {% else %}
+    <p style="font-size:0.875rem;color:#9ca3af;margin:0 0 1rem;">Нет заметок</p>
+    {% endif %}
+    <div style="border-top:1px solid #e5e7eb;padding-top:0.75rem;display:flex;gap:1.5rem;font-size:0.8rem;color:#6b7280;">
+      <span>Создан: {{ client.created_at.strftime('%d.%m.%Y %H:%M') }}</span>
+      <span>Обновлен: {{ client.updated_at.strftime('%d.%m.%Y %H:%M') }}</span>
+    </div>
+  </div>
+</div>
+
+<script>
+function switchTab(tabName) {
+  // Hide all panels
+  document.querySelectorAll('.crm-tab-panel').forEach(function(panel) {
+    panel.style.display = 'none';
+  });
+  // Deactivate all tabs
+  document.querySelectorAll('.crm-tab').forEach(function(btn) {
+    btn.style.borderBottomColor = 'transparent';
+    btn.style.color = '#6b7280';
+    btn.classList.remove('active');
+  });
+  // Show selected panel
+  var panel = document.getElementById('tab-' + tabName);
+  if (panel) panel.style.display = 'block';
+  // Activate selected tab
+  var tab = document.querySelector('.crm-tab[data-tab="' + tabName + '"]');
+  if (tab) {
+    tab.style.borderBottomColor = '#4f46e5';
+    tab.style.color = '#4f46e5';
+    tab.classList.add('active');
+  }
+}
+</script>
+
+{% endblock %}

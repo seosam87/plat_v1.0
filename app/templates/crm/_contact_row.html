@@ -1,0 +1,27 @@
+<tr id="contact-row-{{ contact.id }}" class="contact-row" style="position:relative;">
+  <td style="padding:0.75rem 1rem;">{{ contact.name }}</td>
+  <td style="padding:0.75rem 1rem;color:#6b7280;font-size:0.875rem;">{{ contact.phone or '—' }}</td>
+  <td style="padding:0.75rem 1rem;color:#6b7280;font-size:0.875rem;">{{ contact.email or '—' }}</td>
+  <td style="padding:0.75rem 1rem;color:#6b7280;font-size:0.875rem;">{{ contact.role or '—' }}</td>
+  <td style="padding:0.75rem 1rem;color:#6b7280;font-size:0.875rem;">{{ contact.telegram_username or '—' }}</td>
+  <td style="padding:0.75rem 1rem;text-align:right;">
+    <span class="contact-actions" style="opacity:0;transition:opacity 0.2s;display:inline-flex;gap:0.5rem;">
+      <button
+        hx-get="/ui/crm/clients/{{ client_id }}/contacts/{{ contact.id }}/edit"
+        hx-target="#contact-row-{{ contact.id }}"
+        hx-swap="outerHTML"
+        style="background:none;border:none;color:#4f46e5;font-size:0.8rem;cursor:pointer;padding:0;"
+      >Изменить</button>
+      <button
+        hx-delete="/ui/crm/clients/{{ client_id }}/contacts/{{ contact.id }}"
+        hx-target="#contact-row-{{ contact.id }}"
+        hx-swap="outerHTML"
+        hx-confirm="Удалить контакт &laquo;{{ contact.name }}&raquo;?"
+        style="background:none;border:none;color:#dc2626;font-size:0.8rem;cursor:pointer;padding:0;"
+      >Удалить</button>
+    </span>
+  </td>
+</tr>
+<style>
+  .contact-row:hover .contact-actions { opacity: 1 !important; }
+</style>
