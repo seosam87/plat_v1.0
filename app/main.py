@@ -167,6 +167,9 @@ app.include_router(notifications_router)
 from app.routers.tours import router as tours_router
 app.include_router(tours_router)
 
+from app.routers.tools import router as tools_router
+app.include_router(tools_router)
+
 
 # ---- Site selector API endpoints for nav sidebar ----
 
