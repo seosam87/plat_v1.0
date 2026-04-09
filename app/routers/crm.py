@@ -587,3 +587,91 @@ async def delete_interaction(
     await db.commit()
     logger.info("Interaction deleted: {} by user {}", interaction_id, current_user.id)
     return HTMLResponse("")
+
+
+# ---- Site linking endpoints ----
+
+
+@router.get("/clients/{client_id}/sites/search", response_class=HTMLResponse)
+async def search_unattached_sites(
+    client_id: uuid.UUID,
+    request: Request,
+    q: str = Query(""),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_manager_or_above),
+) -> HTMLResponse:
+    sites = await client_service.list_unattached_sites(
+        db, search=q or None, current_client_id=client_id
+    )
+    return templates.TemplateResponse(
+        request,
+        "crm/_site_search_results.html",
+        {"sites": sites, "client_id": client_id},
+    )
+
+
+@router.post("/clients/{client_id}/sites/{site_id}/attach", response_class=HTMLResponse)
+async def attach_site_to_client(
+    client_id: uuid.UUID,
+    site_id: uuid.UUID,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_manager_or_above),
+) -> HTMLResponse:
+    try:
+        await client_service.attach_site(db, site_id, client_id)
+    except ValueError:
+        resp = HTMLResponse("")
+        resp.headers["HX-Trigger"] = '{"showToast": "\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u043f\u0440\u0438\u043a\u0440\u0435\u043f\u0438\u0442\u044c \u0441\u0430\u0439\u0442. \u0412\u043e\u0437\u043c\u043e\u0436\u043d\u043e, \u043e\u043d \u0443\u0436\u0435 \u043f\u0440\u0438\u0432\u044f\u0437\u0430\u043d \u043a \u0434\u0440\u0443\u0433\u043e\u043c\u0443 \u043a\u043b\u0438\u0435\u043d\u0442\u0443."}'
+        return resp
+    await log_action(
+        db,
+        action="attach_site",
+        user_id=current_user.id,
+        entity_type="client",
+        entity_id=str(client_id),
+        detail={"site_id": str(site_id)},
+    )
+    await db.commit()
+    logger.info("Attached site {} to client {} by user {}", site_id, client_id, current_user.id)
+    # Return refreshed sites tab partial
+    sites_result = await db.execute(
+        select(Site).where(Site.client_id == client_id, Site.is_active == True)  # noqa: E712
+    )
+    sites = list(sites_result.scalars().all())
+    return templates.TemplateResponse(
+        request,
+        "crm/_sites_tab.html",
+        {"sites": sites, "client_id": client_id, "current_user": current_user},
+    )
+
+
+@router.delete("/clients/{client_id}/sites/{site_id}", response_class=HTMLResponse)
+async def detach_site_from_client(
+    client_id: uuid.UUID,
+    site_id: uuid.UUID,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_manager_or_above),
+) -> HTMLResponse:
+    await client_service.detach_site(db, site_id)
+    await log_action(
+        db,
+        action="detach_site",
+        user_id=current_user.id,
+        entity_type="client",
+        entity_id=str(client_id),
+        detail={"site_id": str(site_id)},
+    )
+    await db.commit()
+    logger.info("Detached site {} from client {} by user {}", site_id, client_id, current_user.id)
+    # Return refreshed sites tab partial
+    sites_result = await db.execute(
+        select(Site).where(Site.client_id == client_id, Site.is_active == True)  # noqa: E712
+    )
+    sites = list(sites_result.scalars().all())
+    return templates.TemplateResponse(
+        request,
+        "crm/_sites_tab.html",
+        {"sites": sites, "client_id": client_id, "current_user": current_user},
+    )

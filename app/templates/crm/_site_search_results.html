@@ -1,0 +1,17 @@
+{# Site search dropdown results for attach #}
+{% if sites %}
+<div style="position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid #d1d5db;border-radius:6px;max-height:200px;overflow-y:auto;z-index:50;box-shadow:0 4px 6px -1px rgba(0,0,0,.1);min-width:300px;">
+  {% for site in sites %}
+  <div style="padding:0.5rem 0.75rem;cursor:pointer;font-size:0.875rem;"
+       hx-post="/ui/crm/clients/{{ client_id }}/sites/{{ site.id }}/attach"
+       hx-target="#sites-tab-content"
+       hx-swap="innerHTML"
+       onmouseover="this.style.background='#f3f4f6'"
+       onmouseout="this.style.background='#fff'">{{ site.url }}</div>
+  {% endfor %}
+</div>
+{% else %}
+<div style="position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid #d1d5db;border-radius:6px;z-index:50;box-shadow:0 4px 6px -1px rgba(0,0,0,.1);min-width:300px;">
+  <div style="padding:0.5rem 0.75rem;color:#9ca3af;font-size:0.875rem;">Нет доступных сайтов</div>
+</div>
+{% endif %}
