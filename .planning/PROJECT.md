@@ -8,7 +8,7 @@ An internal SEO management platform for a team managing 20–100 WordPress sites
 
 A team member or client can open the platform and immediately see the SEO health of any site — positions, recent changes, pending tasks — without switching between GSC, spreadsheets, and WP admin.
 
-## Current State (v2.0 shipped 2026-04-08)
+## Current State (v2.1 in progress — 2026-04-09)
 
 **v2.0 SEO Insights & AI — shipped:** 7 phases, 24 plans, 147 commits, +92,913 LOC
 - Phase 12: `normalize_url()` + `keyword_latest_positions` + Quick Wins + Dead Content
@@ -32,6 +32,7 @@ A team member or client can open the platform and immediately see the SEO health
 - Yandex Metrika, content audit, change monitoring, analytics workspace, gap analysis, site architecture, traffic analysis
 - Sidebar UI with 6 sections, Tailwind CSS, smoke test agent
 - Rate limiting, RBAC, invite links, health endpoint, Flower, HTTPS, full README
+- Project health widget, empty states, UI scenario runner (Playwright YAML), interactive tour player (Shepherd.js)
 
 **Known tech debt:**
 - Dark mode (VIS-02) not implemented
@@ -123,4 +124,4 @@ A team member or client can open the platform and immediately see the SEO health
 This document evolves at phase transitions and milestone boundaries.
 
 ---
-*Last updated: 2026-04-08 — v2.0 SEO Insights & AI milestone shipped*
+*Last updated: 2026-04-09 — Phase 19.2 (Interactive Tour Player) complete*
