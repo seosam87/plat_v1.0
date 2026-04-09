@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import sqlalchemy as sa
 from alembic import op
+from sqlalchemy.dialects import postgresql
 from sqlalchemy.dialects.postgresql import UUID
 
 # revision identifiers, used by Alembic.
@@ -16,9 +17,9 @@ down_revision = "0045"
 branch_labels = None
 depends_on = None
 
-# Reuse existing templatetype enum from migration 0045 — create_type=False
-# prevents "type templatetype already exists" error.
-templatetype_enum = sa.Enum(
+# Reuse existing templatetype enum from migration 0045.
+# postgresql.ENUM with create_type=False avoids "type already exists" error.
+templatetype_enum = postgresql.ENUM(
     "proposal", "audit_report", "brief",
     name="templatetype", create_type=False,
 )
