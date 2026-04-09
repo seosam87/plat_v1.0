@@ -8,7 +8,11 @@ An internal SEO management platform for a team managing 20–100 WordPress sites
 
 A team member or client can open the platform and immediately see the SEO health of any site — positions, recent changes, pending tasks — without switching between GSC, spreadsheets, and WP admin.
 
-## Current State (v2.1 shipped — 2026-04-09)
+## Current State (v3.0 in progress — 2026-04-09)
+
+**v3.0 Client & Proposal — in progress:**
+- Phase 20: CRM Core — client model, contact management, site↔client linking (complete)
+- Phase 21: Site Audit Intake — structured intake form per site with 5-tab layout, section-save, auto-checklist, status badges on site list/detail (complete)
 
 **v2.1 Onboarding & Project Health — shipped:** 4 phases, 13 plans, 143 commits, +25,090 LOC
 - Phase 18: Project Health Widget — 7-step setup checklist on Site Overview, status signals from DB
@@ -140,4 +144,4 @@ A team member or client can open the platform and immediately see the SEO health
 This document evolves at phase transitions and milestone boundaries.
 
 ---
-*Last updated: 2026-04-09 after v3.0 milestone start*
+*Last updated: 2026-04-09 after Phase 21 (Site Audit Intake) completion*
