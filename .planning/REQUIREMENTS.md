@@ -34,11 +34,11 @@ Requirements for v3.0 Client & Proposal milestone. Each maps to roadmap phases.
 
 ### Document Generator
 
-- [ ] **DOC-01**: User can generate PDF from a proposal template + client + site data (async Celery task)
-- [ ] **DOC-02**: User can view list of generated documents per client with filters by type and date
-- [ ] **DOC-03**: User can download generated PDF documents
-- [ ] **DOC-04**: System supports document types (proposal, audit_report, brief)
-- [ ] **DOC-05**: User can send generated document via Telegram or SMTP
+- [x] **DOC-01**: User can generate PDF from a proposal template + client + site data (async Celery task)
+- [x] **DOC-02**: User can view list of generated documents per client with filters by type and date
+- [x] **DOC-03**: User can download generated PDF documents
+- [x] **DOC-04**: System supports document types (proposal, audit_report, brief)
+- [x] **DOC-05**: User can send generated document via Telegram or SMTP
 
 ## Future Requirements
 
@@ -110,11 +110,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TPL-02 | Phase 22 | Complete |
 | TPL-03 | Phase 22 | Complete |
 | TPL-04 | Phase 22 | Complete |
-| DOC-01 | Phase 23 | Pending |
-| DOC-02 | Phase 23 | Pending |
-| DOC-03 | Phase 23 | Pending |
-| DOC-04 | Phase 23 | Pending |
-| DOC-05 | Phase 23 | Pending |
+| DOC-01 | Phase 23 | Complete |
+| DOC-02 | Phase 23 | Complete |
+| DOC-03 | Phase 23 | Complete |
+| DOC-04 | Phase 23 | Complete |
+| DOC-05 | Phase 23 | Complete |
 
 **Coverage:**
 - v3.0 requirements: 21 total
