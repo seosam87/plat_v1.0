@@ -200,6 +200,7 @@ Plans:
 - [ ] 22-02-PLAN.md — Tariff editor UI: CRUD + composition builder + price input + HTMX preview
 - [ ] 22-03-PLAN.md — Proposal builder UI: block library sidebar + drag-in blocks + placeholder resolver + section editor
 - [ ] 22-04-PLAN.md — Proposal versioning: snapshot save + version list + restore + diff view + tests
+
 **UI hint**: yes
 
 ### Phase 23: Document Generator
@@ -323,10 +324,11 @@ Phase 20 (Client CRM)
 
 **Goal:** Extend `tests/_smoke_helpers.py::discover_routes` to auto-filter routes by `response_class=HTMLResponse` (or return-type annotation), skipping JSON/CSV endpoints automatically instead of requiring explicit `SMOKE_SKIP` entries. Eliminates the need for the 5 manual skips added during phase-15.1-deferred-routes debug session (`/metrika/{id}/pages`, `/metrika/{id}/compare`, `/analytics/sessions/{id}/export`, `/traffic-analysis/sessions/{id}`, `/traffic-analysis/sessions/{id}/anomalies`). Rationale: surfaced as tech debt in `.planning/phases/15.1-ui-smoke-crawler/deferred-items.md`.
 **Requirements:** TBD
-**Plans:** 2/3 plans complete
+**Plans:** 2 plans
 
 Plans:
-- [ ] TBD (promote with /gsd:review-backlog when ready)
+- [x] 999.3-01-PLAN.md — Three-tier response_class filter + 5 SMOKE_SKIP removals + unit tests + README
+- [ ] 999.3-02-PLAN.md — Fix 2 missing stub routes in test fixture (/profile/, /notifications)
 
 ### Phase 999.5: Repo ↔ Deployment Sync Strategy (BACKLOG)
 
@@ -346,4 +348,3 @@ Plans:
 
 Plans:
 - [ ] TBD (promote with /gsd:review-backlog when ready)
-
