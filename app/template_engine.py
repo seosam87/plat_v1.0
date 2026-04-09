@@ -29,6 +29,7 @@ _HELP_MODULE_MAP = {
     "/ui/dashboard": "reports",
     "/ui/uploads": "keywords",
     "/ui/tasks": "projects",
+    "/ui/crm": "crm",
     "/ui/admin": "admin",
     "/ui/metrika": "metrika",
     "/audit": "audit",

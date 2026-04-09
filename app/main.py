@@ -170,6 +170,9 @@ app.include_router(tours_router)
 from app.routers.tools import router as tools_router
 app.include_router(tools_router)
 
+from app.routers.crm import router as crm_router
+app.include_router(crm_router)
+
 
 # ---- Site selector API endpoints for nav sidebar ----
 

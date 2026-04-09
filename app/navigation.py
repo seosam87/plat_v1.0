@@ -94,6 +94,16 @@ NAV_SECTIONS = [
         ],
     },
     {
+        "id": "crm",
+        "label": "CRM",
+        "icon": "user-group",
+        "url": None,
+        "admin_only": False,
+        "children": [
+            {"id": "crm-clients", "label": "Клиенты", "url": "/ui/crm/clients"},
+        ],
+    },
+    {
         "id": "settings",
         "label": "Настройки",
         "icon": "cog-6-tooth",
