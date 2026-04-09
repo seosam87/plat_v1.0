@@ -214,7 +214,7 @@ Plans:
   5. Each export is saved as a ProposalExport record (file path, format, timestamp, generated_by user) linked to the proposal version — user can download any previous export from the proposal history page
 **Plans**: 3 plans
 Plans:
-- [ ] 23-01-PLAN.md — Backend: python-docx renderer + ProposalExport model + migration + Celery task + tests
+- [x] 23-01-PLAN.md — Backend: python-docx renderer + ProposalExport model + migration + Celery task + tests
 - [ ] 23-02-PLAN.md — PDF renderer: WeasyPrint subprocess adapter + HTML proposal template + CSS styles
 - [ ] 23-03-PLAN.md — Export UI: export buttons + status polling (HTMX) + download links + export history tab + tests
 **UI hint**: yes
@@ -313,7 +313,7 @@ Phase 20 (Client CRM)
 | 20. Client CRM | v3.0 | 0/3 | Not started | - |
 | 21. Site Audit Intake | v3.0 | 0/4 | Not started | - |
 | 22. Proposal Templates & Tariffs | v3.0 | 0/4 | Not started | - |
-| 23. Document Generator | v3.0 | 0/3 | Not started | - |
+| 23. Document Generator | v3.0 | 1/3 | In Progress|  |
 | 24. Tools Infrastructure & Fast Tools | v3.1 | 0/5 | Not started | - |
 | 25. SERP Aggregation Tools | v3.1 | 0/5 | Not started | - |
 
@@ -323,7 +323,7 @@ Phase 20 (Client CRM)
 
 **Goal:** Extend `tests/_smoke_helpers.py::discover_routes` to auto-filter routes by `response_class=HTMLResponse` (or return-type annotation), skipping JSON/CSV endpoints automatically instead of requiring explicit `SMOKE_SKIP` entries. Eliminates the need for the 5 manual skips added during phase-15.1-deferred-routes debug session (`/metrika/{id}/pages`, `/metrika/{id}/compare`, `/analytics/sessions/{id}/export`, `/traffic-analysis/sessions/{id}`, `/traffic-analysis/sessions/{id}/anomalies`). Rationale: surfaced as tech debt in `.planning/phases/15.1-ui-smoke-crawler/deferred-items.md`.
 **Requirements:** TBD
-**Plans:** 5/5 plans complete
+**Plans:** 1/3 plans executed
 
 Plans:
 - [ ] TBD (promote with /gsd:review-backlog when ready)
