@@ -13,6 +13,7 @@ A team member or client can open the platform and immediately see the SEO health
 **v3.0 Client & Proposal — in progress:**
 - Phase 20: CRM Core — client model, contact management, site↔client linking (complete)
 - Phase 21: Site Audit Intake — structured intake form per site with 5-tab layout, section-save, auto-checklist, status badges on site list/detail (complete)
+- Phase 22: Proposal Templates — admin-managed Jinja2 templates with CodeMirror editor, ~15 variable resolution, client/site preview, clone support (complete)
 
 **v2.1 Onboarding & Project Health — shipped:** 4 phases, 13 plans, 143 commits, +25,090 LOC
 - Phase 18: Project Health Widget — 7-step setup checklist on Site Overview, status signals from DB
