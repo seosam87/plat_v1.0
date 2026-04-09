@@ -1,8 +1,8 @@
 # Technology Stack
 
 **Project:** SEO Management Platform
-**Researched:** 2026-04-06 (v2.0 update — additive only)
-**Confidence:** HIGH (existing stack), MEDIUM–HIGH (new additions)
+**Researched:** 2026-04-09 (v3.0 update — additive only)
+**Confidence:** HIGH (existing stack), HIGH (v3.0 additions — zero new libraries required)
 
 ---
 
@@ -12,237 +12,170 @@ Python 3.12, FastAPI 0.115, SQLAlchemy 2.0 async, PostgreSQL 16, Redis 7, Celery
 Playwright 1.47+, Jinja2 3.1, HTMX 2.0, Tailwind CSS, WeasyPrint 62, authlib 1.3,
 httpx 0.27, beautifulsoup4 4.12 + lxml 5, loguru 0.7, redbeat 2.2, openpyxl 3.1,
 python-telegram-bot 21, aiosmtplib 3, slowapi 0.1.9, passlib[bcrypt], python-jose,
-cryptography 42, pytest 8 + pytest-asyncio + respx.
+cryptography 42, pytest 8 + pytest-asyncio + respx, anthropic ≥0.89, pyotp 2.9,
+sse-starlette ≥3.3.3, mammoth 1.6.
 
-Full details in the v1.0 STACK.md section below.
+Full details in the v1.0 and v2.0 STACK.md sections below.
 
 ---
 
-## v2.0 New Additions
+## v3.0 New Additions
+
+### New Libraries Required
+
+**None.** Every capability needed for Client CRM, audit intake forms, proposal templates, and document generation is already in the installed stack. The analysis below explains why.
+
+### Capability-to-Existing-Library Mapping
+
+| v3.0 Capability | Library Already in Stack | How It Covers the Need |
+|-----------------|--------------------------|------------------------|
+| Client CRM data model (contacts, interaction history, linked sites) | SQLAlchemy 2.0 async + PostgreSQL 16 | New `Client`, `ClientContact`, `ClientInteraction` models follow the identical pattern as `Project`, `SeoTask`, `Site`. JSON columns (`JSONB`) handle flexible contact metadata. Foreign keys link clients to sites and users. UUID primary keys, Alembic migrations — no deviation from existing patterns. |
+| Audit intake forms (multi-section checklists, structured input) | python-multipart 0.0.9 + Jinja2 3.1 + HTMX 2.0 | `python-multipart` already handles form bodies. HTMX `hx-post` submits individual form sections without page reload. `hx-on::after-request` + CSS classes track completion state client-side. No JS framework needed. |
+| Dynamic form sections (conditional fields, section toggling) | HTMX 2.0 | `hx-swap="outerHTML"` on form section containers; server returns re-rendered partials with updated state. Already used in the pipeline approval flow — same pattern. |
+| Proposal template variable substitution (client name, site metrics, pricing) | Jinja2 3.1 | `Environment.from_string()` renders a stored template string with a context dict at generation time. This is the exact mechanism used in the 7 Russian instruction templates in `client_report_service.py`. Template bodies stored in DB as `Text` columns; rendered at generation time. No additional templating engine. |
+| Template editor UI (create/edit proposal templates with variable placeholders) | Jinja2 3.1 + Tailwind CSS | A `<textarea>` with syntax-hint overlay using CSS. Variable placeholders documented as `{{ variable_name }}`. Preview endpoint renders template against sample data and returns HTML fragment via HTMX. No rich text editor library needed for this scope. |
+| PDF generation (proposals, audit summaries) | WeasyPrint 62 (subprocess-isolated) | `subprocess_pdf.render_pdf_in_subprocess()` already handles all PDF rendering. Proposal PDF templates follow the `client_instructions.html` / `reports/detailed.html` pattern: standalone HTML with `@page` CSS, no external assets. No changes to the PDF pipeline. |
+| Async PDF generation (queue-based, status polling) | Celery 5.4 + Redis 7 | `ClientReport` model already demonstrates the `pending → generating → ready | failed` lifecycle. Same Celery task pattern, same status polling via HTMX, same `LargeBinary` PDF storage. Proposal documents are a second document type using the identical infrastructure. |
+| Excel export of audit checklists | openpyxl 3.1 | Already used for keyword export. Audit checklist export follows the same `openpyxl.Workbook()` pattern. |
+| Interaction history (notes, timestamps, user attribution) | SQLAlchemy 2.0 + PostgreSQL 16 | `project_comments.py` model already implements `(project_id, user_id, created_at, body)` pattern. Client interaction log is the same structure with `client_id` foreign key instead of `project_id`. |
+| File attachments on client cards (briefs, signed proposals) | FastAPI + python-multipart + PostgreSQL `LargeBinary` | Pattern already established by `ClientReport.pdf_data`. For larger files, store path reference to `artifacts/` directory (already used by the report system). |
+
+---
+
+## Integration Points for v3.0
+
+### CRM Data Model — Follow Existing Patterns Exactly
+
+The `Client` table is a first-class entity, not a sub-entity of `Site`. Sites link to clients (one client, many sites — mirroring how `project_users` links users to projects).
+
+```python
+# Recommended relationship direction (HIGH confidence — matches existing FK patterns)
+class Client(Base):
+    __tablename__ = "clients"
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    company: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    contacts: Mapped[dict] = mapped_column(JSONB, nullable=False, server_default=text("'{}'::jsonb"))
+    # ... created_at, updated_at with server_default=text("NOW()")
+
+# Sites get a nullable client_id FK (most sites may not be linked to a CRM client yet)
+# ALTER TABLE sites ADD COLUMN client_id UUID REFERENCES clients(id) ON DELETE SET NULL;
+```
+
+Use `JSONB` (not `JSON`) for `contacts` — PostgreSQL `JSONB` supports GIN indexing, which is needed if the team searches by phone/email across all clients.
+
+### Proposal Templates — Jinja2 Sandboxed Environment
+
+Proposal templates are stored in the DB and rendered on demand. Use `jinja2.sandbox.SandboxedEnvironment` instead of the main `Environment` to prevent template injection from stored user-authored templates:
+
+```python
+from jinja2.sandbox import SandboxedEnvironment
+
+_proposal_env = SandboxedEnvironment()
+
+def render_proposal(template_body: str, context: dict) -> str:
+    tmpl = _proposal_env.from_string(template_body)
+    return tmpl.render(**context)
+```
+
+This is a **critical** security detail: the main `app/template_engine.py` `_jinja_templates` instance reads files from disk and is trusted. User-authored DB templates must use the sandboxed environment to prevent `{{ config.SECRET_KEY }}` style extraction attacks.
+
+### Audit Intake Forms — HTMX Multi-Step Pattern
+
+Multi-section intake forms work with HTMX section-by-section submission without JS scaffolding:
+
+```html
+<!-- Each section is an independent HTMX form target -->
+<div id="section-technical" hx-post="/ui/clients/{id}/audit/section/technical"
+     hx-swap="outerHTML" hx-trigger="change delay:800ms">
+  <!-- form fields -->
+</div>
+```
+
+Server returns the re-rendered section partial with updated completion state. Progress indicator counts completed sections. This pattern avoids full-page reloads and keeps the server as the single source of truth for form state — consistent with how the pipeline approval diffs work.
+
+### Document Generator — Reuse subprocess_pdf Unchanged
+
+The `render_pdf_in_subprocess` function in `app/services/subprocess_pdf.py` needs zero changes. Proposal PDF generation follows this call sequence:
+
+1. `render_proposal(template_body, context_dict)` → HTML string
+2. Wrap in standalone HTML document with `@page` CSS (same as `client_instructions.html`)
+3. `render_pdf_in_subprocess(html_string)` → PDF bytes
+4. Store in `ProposalDocument.pdf_data` (LargeBinary) with `status="ready"`
+
+Run via Celery task to avoid blocking the web worker. Same `generate_client_report_task` structure.
+
+---
+
+## What NOT to Add (v3.0 Scope)
+
+| Avoid | Why |
+|-------|-----|
+| django-crispy-forms / WTForms / Flask-WTF | Django/Flask form libraries; incompatible with FastAPI. Form handling is `python-multipart` + Pydantic validation — already the project pattern. |
+| TipTap / Quill / ProseMirror (rich text editor) | Heavy JS dependencies; proposal templates use `{{ variable }}` placeholders in plain text/HTML. A `<textarea>` with documented placeholder syntax is sufficient for a team of 2–5 power users. Re-evaluate if clients need WYSIWYG editing. |
+| SQLAlchemy-JSONField | Third-party wrapper for JSON columns; PostgreSQL `JSONB` via native `mapped_column(JSONB, ...)` is cleaner and already used in `audit.py` model. |
+| docx (python-docx) for proposal output | Out of scope per PROJECT.md. If editable DOCX output is needed later, `python-docx` is the correct addition — but not now. PDF via WeasyPrint covers all stated output needs. |
+| Jinja2 main Environment for DB templates | Security risk. User-authored templates stored in DB must use `SandboxedEnvironment`. The existing `templates` singleton in `template_engine.py` is for trusted file-based templates only. |
+| CKEditor / TinyMCE | Server-side CDN dependency; overkill for internal template authoring. Adds content security policy complexity. |
+| Separate CRM service / microservice | Single FastAPI app is the architecture constraint. Client CRM is a new SQLAlchemy model family + router + service, not a separate deployment. |
+| UUID7 / ULID for CRM primary keys | The platform uses `uuid4` throughout (22+ model files). Consistency matters more than sortability for this use case. |
+
+---
+
+## Installation (v3.0 Additions)
+
+```bash
+# No new packages required.
+# All v3.0 features are implemented using the existing installed stack.
+# Run migrations only:
+alembic revision --autogenerate -m "add_clients_audit_intake_proposals"
+alembic upgrade head
+```
+
+---
+
+## Version Compatibility (v3.0 — No Changes)
+
+No new packages means no new compatibility surface. The existing compatibility matrix (v1.0 and v2.0 sections below) applies unchanged.
+
+The one implementation note: `jinja2.sandbox.SandboxedEnvironment` is part of `Jinja2 3.1.x` — no separate install. Confirm with:
+
+```python
+from jinja2.sandbox import SandboxedEnvironment  # ships with jinja2>=2.0
+```
+
+---
+
+## Alternatives Considered (v3.0 Scope)
+
+| Category | Decision | Alternative | Why Not |
+|----------|----------|-------------|---------|
+| Proposal template rendering | Jinja2 `SandboxedEnvironment` | Mustache / Handlebars (chevron) | Jinja2 is already the stack template engine; Mustache is less expressive (no filters, no conditionals); adding a second template engine creates confusion about which to use where |
+| Proposal template rendering | Jinja2 `SandboxedEnvironment` | String `.format()` / f-strings | Not safe for stored templates; no loops or conditionals; Jinja2 sandbox is the correct tool |
+| Audit form state storage | DB rows (per-section answers) | Redis session keys | DB rows are queryable, exportable to Excel, survive Redis flushes; Redis sessions are ephemeral — wrong for audit data that persists through the client relationship |
+| Client contacts storage | `JSONB` column | Separate `client_contacts` table | JSONB is appropriate when contact schema is flexible (phone, email, messenger handles vary); a separate table adds JOIN complexity with no query benefit at this scale (< 500 clients) |
+| PDF proposal output | WeasyPrint (existing) | Playwright `page.pdf()` | Playwright requires a browser launch per document; WeasyPrint subprocess isolation already solves the memory leak problem; no reason to change |
+
+---
+
+## v2.0 New Additions (Preserved Reference)
 
 ### New Libraries Required
 
 | Library | Version | Feature | Why |
 |---------|---------|---------|-----|
-| anthropic | ≥0.89.0 | LLM Briefs (opt-in AI content) | Official Anthropic Python SDK; `AsyncAnthropic` client for non-blocking calls inside Celery tasks and FastAPI endpoints; full streaming support via `async with client.messages.stream()`; Python 3.9+; latest stable as of April 2026 |
-| pyotp | 2.9.0 | 2FA TOTP | De-facto standard Python TOTP library; RFC 6238 compliant; works with Google Authenticator, Authy, any TOTP app; pure Python, no system deps; `pyotp.TOTP(secret).verify(token)` is one line |
-| qrcode[pil] | ≥8.2 | 2FA QR code display | Generates provisioning URI QR codes for authenticator app setup; `qrcode[pil]` extra required for PNG/SVG output; Pillow is already a transitive dep via WeasyPrint so no new system dep added |
-| sse-starlette | ≥3.3.3 | In-app real-time notifications | Production-ready SSE for Starlette/FastAPI following W3C spec; `EventSourceResponse` wraps any async generator; auto-disconnect detection; latest stable v3.3.3 released March 2026 |
+| anthropic | ≥0.89.0 | LLM Briefs (opt-in AI content) | Official Anthropic Python SDK; `AsyncAnthropic` client for non-blocking calls inside Celery tasks and FastAPI endpoints; full streaming support via `async with client.messages.stream()` |
+| pyotp | 2.9.0 | 2FA TOTP | De-facto standard Python TOTP library; RFC 6238 compliant; works with Google Authenticator, Authy, any TOTP app; pure Python, no system deps |
+| qrcode[pil] | ≥8.2 | 2FA QR code display | Generates provisioning URI QR codes for authenticator app setup; `qrcode[pil]` extra required for PNG output; Pillow is already a transitive dep via WeasyPrint |
+| sse-starlette | ≥3.3.3 | In-app real-time notifications | Production-ready SSE for Starlette/FastAPI; `EventSourceResponse` wraps any async generator; auto-disconnect detection |
 
-### Not Needed (Already Covered)
+### Integration Patterns (v2.0)
 
-| Capability | Existing Dep That Covers It | Notes |
-|------------|----------------------------|-------|
-| Keyword suggest HTTP calls (Google/Yandex) | `httpx 0.27` | Google and Yandex autocomplete endpoints are unauthenticated JSON APIs — call directly with `httpx.AsyncClient`; no wrapper library needed |
-| Wordstat API HTTP calls | `httpx 0.27` | Yandex Wordstat API (`api.wordstat.yandex.net`) is a standard REST/JSON API — call with `httpx.AsyncClient` and Bearer token; no wrapper library adds value |
-| GEO/AI readiness content analysis | `beautifulsoup4 + lxml` | Checking for FAQ schema, structured data presence, heading structure, author markup — all HTML parsing already covered by existing bs4+lxml stack |
-| NLP / language detection | Not needed | GEO readiness checklist is rule-based (schema present? FAQ markup? author tag?), not semantic NLP; adding spaCy or langdetect would be massive overhead for what is essentially a DOM traversal task |
-| Streaming SSE to browser (LLM briefs) | `sse-starlette` (new, above) | The same SSE infrastructure covers both notification push and streaming LLM output to the browser |
+**LLM Briefs — anthropic SDK in Celery + FastAPI:**
+Use sync `Anthropic` client inside Celery tasks (no event loop required). Use `AsyncAnthropic` in FastAPI streaming endpoints via `EventSourceResponse`.
 
----
-
-## Integration Patterns
-
-### LLM Briefs — anthropic SDK in Celery + FastAPI
-
-**Problem:** `AsyncAnthropic` uses asyncio; Celery workers run in a synchronous execution context by default.
-
-**Solution — two patterns:**
-
-1. **Celery task generates the brief (non-streaming, background):**
-   Use the sync `Anthropic` client inside the Celery task (Celery handles its own event loop per task).
-   Result stored in DB; UI polls or receives SSE notification when done.
-
-2. **FastAPI endpoint streams brief to browser (opt-in streaming):**
-   Use `AsyncAnthropic` directly in a FastAPI `async def` endpoint wrapped in `EventSourceResponse`.
-   The endpoint itself streams Claude's response token-by-token via SSE.
-
-Do not use `AsyncAnthropic` inside a standard Celery task without `asyncio.run()` — Celery's worker thread does not have a running event loop.
-
-```python
-# Pattern 1: Celery task (sync client)
-from anthropic import Anthropic
-
-@celery_app.task(bind=True, max_retries=3)
-def generate_brief_task(self, site_id: int, keyword_cluster_id: int):
-    client = Anthropic()  # sync client
-    message = client.messages.create(
-        model="claude-opus-4-6",
-        max_tokens=2048,
-        messages=[{"role": "user", "content": prompt}],
-    )
-    # save to DB
-
-# Pattern 2: FastAPI streaming endpoint (async client)
-from anthropic import AsyncAnthropic
-from sse_starlette.sse import EventSourceResponse
-
-@router.get("/briefs/{brief_id}/stream")
-async def stream_brief(brief_id: int):
-    async def generate():
-        client = AsyncAnthropic()
-        async with client.messages.stream(
-            model="claude-opus-4-6",
-            max_tokens=2048,
-            messages=[{"role": "user", "content": prompt}],
-        ) as stream:
-            async for text in stream.text_stream:
-                yield {"data": text}
-    return EventSourceResponse(generate())
-```
-
-### 2FA TOTP — pyotp + qrcode Flow
-
-Store `totp_secret` (base32, Fernet-encrypted) per user in the DB.
-Generate once at 2FA setup; never regenerate unless user disables and re-enables.
-
-```python
-import pyotp, qrcode, io, base64
-
-# Setup: generate secret and QR
-secret = pyotp.random_base32()
-uri = pyotp.totp.TOTP(secret).provisioning_uri(
-    name=user.email, issuer_name="SEO Platform"
-)
-img = qrcode.make(uri)
-buf = io.BytesIO()
-img.save(buf, format="PNG")
-qr_b64 = base64.b64encode(buf.getvalue()).decode()
-# Return qr_b64 to template as data: URI
-
-# Verification: check submitted token
-totp = pyotp.TOTP(decrypted_secret)
-if not totp.verify(submitted_token, valid_window=1):
-    raise HTTPException(status_code=401, detail="Invalid OTP")
-```
-
-The `valid_window=1` allows 1 step of clock drift (±30 seconds) which covers most mobile clock skew.
-
-Encrypt `totp_secret` with the same Fernet key used for WP credentials — already in the stack.
-
-### In-App Notifications — sse-starlette + Redis Pub/Sub
-
-Use Redis pub/sub (already in stack via `redis-py 5.0`) as the notification bus.
-SSE endpoint subscribes to a per-user channel; Celery tasks publish events on task completion.
-
-```python
-from sse_starlette.sse import EventSourceResponse
-import redis.asyncio as aioredis
-
-@router.get("/notifications/stream")
-async def notification_stream(current_user: User = Depends(get_current_user)):
-    async def event_generator():
-        r = aioredis.from_url(settings.REDIS_URL)
-        pubsub = r.pubsub()
-        await pubsub.subscribe(f"user:{current_user.id}:notifications")
-        try:
-            async for message in pubsub.listen():
-                if message["type"] == "message":
-                    yield {"data": message["data"].decode()}
-        finally:
-            await pubsub.unsubscribe()
-            await r.aclose()
-    return EventSourceResponse(event_generator())
-```
-
-HTMX 2.0 supports SSE via the `hx-ext="sse"` extension (moved from core in 2.0).
-Load `htmx-ext-sse` from CDN alongside HTMX core.
-
-### Keyword Suggest — httpx Direct Calls (No New Library)
-
-Google Autocomplete endpoint (no auth, no API key required):
-```
-GET https://www.google.com/complete/search?client=firefox&q={query}&hl=ru
-```
-Returns JSON array; parse with stdlib `json`. Rate-limit to ~1 req/sec with `asyncio.sleep` in Celery batch tasks.
-
-Yandex Suggest endpoint (no auth, no API key required):
-```
-GET https://wordstat-api.yandex.net/v1/suggest?q={query}
-```
-Or Yandex search suggest:
-```
-GET https://suggest.yandex.ru/suggest-ya.cgi?srv=topnews&v=4&part={query}&lang=ru
-```
-Both return JSON; parse with stdlib `json`.
-
-Yandex Wordstat API (`api.wordstat.yandex.net`) — requires OAuth token from Yandex Direct account. Use the existing `httpx.AsyncClient` with `Authorization: Bearer {token}` header. No wrapper library needed.
-
-### GEO/AI Readiness Checks — bs4+lxml (Already in Stack)
-
-Rule-based DOM checks on already-crawled HTML snapshots (stored in DB by Playwright crawler):
-
-| Check | Implementation |
-|-------|---------------|
-| FAQ schema present | `soup.find("script", {"type": "application/ld+json"})` — parse JSON, check `@type == "FAQPage"` |
-| Author markup | `soup.find(itemprop="author")` or `rel="author"` link |
-| Heading structure (H1→H2→H3) | Count heading tags, check nesting order |
-| Article schema | Look for `@type: Article` or `BlogPosting` in JSON-LD |
-| Internal links count | Count `<a href>` pointing to same domain |
-| Page word count | `len(soup.get_text().split())` |
-| Breadcrumb schema | `@type: BreadcrumbList` in JSON-LD |
-| HowTo / Step schema | `@type: HowTo` in JSON-LD |
-
-No NLP, no ML model, no new library. This is pattern matching on existing crawl data.
-
----
-
-## Installation (v2.0 Additions Only)
-
-```bash
-# LLM integration
-uv pip install "anthropic>=0.89.0"
-
-# 2FA
-uv pip install "pyotp>=2.9.0" "qrcode[pil]>=8.2"
-
-# In-app notifications (SSE)
-uv pip install "sse-starlette>=3.3.3"
-
-# HTMX SSE extension (no pip install — load from CDN in base template)
-# <script src="https://unpkg.com/htmx-ext-sse@2.2.2/sse.js"></script>
-```
-
----
-
-## Alternatives Considered (v2.0 Scope)
-
-| Category | Recommended | Alternative | Why Not |
-|----------|-------------|-------------|---------|
-| LLM SDK | anthropic (official) | openai SDK / LiteLLM | Project chose Claude as co-pilot; official SDK has best feature parity and typing; LiteLLM adds abstraction overhead for a single-provider use case |
-| Real-time notifications | SSE via sse-starlette | WebSockets (fastapi-websockets) | SSE is unidirectional server→client — sufficient for notifications; WebSockets add stateful connection management and do not work through HTTP/2 multiplexing without extra config; HTMX 2.0 SSE extension is simpler than a WebSocket integration |
-| Real-time notifications | SSE via sse-starlette | Polling (HTMX hx-trigger="every 5s") | Polling wastes connections; SSE is clean push model; Redis pub/sub backend means no DB polling either |
-| 2FA | pyotp | python-otp | python-otp is a thin wrapper; pyotp is the community standard with 12M+ monthly downloads; better maintained |
-| QR code | qrcode[pil] | segno | segno is a modern alternative with better SVG output; qrcode is simpler and Pillow is already a transitive dep — no additional system library needed |
-| Keyword suggest | Direct httpx calls | google-search-results (SerpApi) | SerpApi is paid; Google's unofficial autocomplete endpoint is free and stable for low-volume SEO tooling; this is not production search infrastructure |
-| Wordstat integration | Direct httpx calls | YandexWordstatAPI PyPI package | The PyPI package is a thin wrapper with minimal maintenance; using httpx directly gives full control and fits existing request patterns |
-| GEO readiness analysis | bs4+lxml (existing) | spaCy + NLP pipeline | GEO readiness is DOM/schema inspection, not semantic NLP; spaCy would add ~150 MB to the Docker image and language model downloads for zero functional benefit |
-
----
-
-## What NOT to Add (v2.0 Scope)
-
-| Avoid | Why |
-|-------|-----|
-| spaCy / NLTK / transformers | GEO readiness checklist is rule-based DOM inspection, not NLP; these libraries add hundreds of MB to the Docker image for no benefit |
-| openai SDK | Anthropic SDK covers all LLM needs; mixing SDKs creates confusion and doubles API key management surface |
-| LiteLLM | Unnecessary abstraction layer for a single LLM provider; adds routing complexity and another dep to update |
-| websockets / starlette WebSocket | SSE is sufficient for one-way notifications; WebSockets add complexity without benefit in this use case |
-| serpapi / dataforseo-suggest | Paid APIs for keyword suggest; free direct endpoints to Google/Yandex autocomplete are sufficient for internal tooling at this scale |
-| YandexWordstatAPI (PyPI) | Unmaintained wrapper; direct httpx calls are cleaner and already the project pattern |
-| qrcode without [pil] extra | The base package generates only ASCII QR codes; `[pil]` is required for PNG output that can be embedded in HTML as a data: URI |
-| pyotp with HOTP instead of TOTP | HOTP is counter-based and requires counter sync; TOTP (time-based) is what every authenticator app uses by default |
-
----
-
-## Version Compatibility (New Additions)
-
-| Package | Compatible With | Notes |
-|---------|-----------------|-------|
-| anthropic ≥0.89.0 | Python 3.9+, httpx 0.27.x | SDK uses httpx internally for transport; already in stack — no conflict |
-| pyotp 2.9.0 | Python 3.9+ | Pure Python; no C extensions; no system deps |
-| qrcode[pil] ≥8.2 | Pillow (auto-installed) | Pillow is already a transitive dep of WeasyPrint; no version conflict expected |
-| sse-starlette ≥3.3.3 | FastAPI 0.115 / Starlette 0.40 | sse-starlette 3.x targets Starlette 0.36+; no breaking changes with FastAPI 0.115 |
+**In-App Notifications — sse-starlette + Redis Pub/Sub:**
+Redis pub/sub (already in stack) as notification bus. SSE endpoint subscribes to per-user channel; Celery tasks publish on completion. HTMX 2.0 `hx-ext="sse"` extension handles browser-side subscription.
 
 ---
 
@@ -252,80 +185,59 @@ uv pip install "sse-starlette>=3.3.3"
 
 | Technology | Version | Purpose | Why Recommended |
 |------------|---------|---------|-----------------|
-| Python | 3.12.x | Runtime | 3.12 is the stable LTS-track release with best async performance; 3.13 exists but ecosystem adoption lags — stay on 3.12 for 2025 builds |
-| FastAPI | 0.115.x | ASGI web framework | 0.115 (released late 2024) is the stable branch for 2025; 0.111 is fine but 0.115 adds Pydantic v2 perf wins and lifespan-only startup (no deprecated `on_event`) |
-| Pydantic | 2.7+ | Data validation (FastAPI dependency) | Pydantic v2 is Rust-core; 3–5x faster than v1; FastAPI 0.111+ requires v2 — do not mix with v1 |
-| PostgreSQL | 16.x | Primary database | PG16 adds logical replication improvements and parallel query gains; PG17 exists (Oct 2024) but Docker images are less battle-tested — 16 is the safe 2025 production choice |
-| asyncpg | 0.29.x | Async PostgreSQL driver | Required by SQLAlchemy async engine; fastest pure-async PG driver; no sync fallback needed |
-| SQLAlchemy | 2.0.x (≥2.0.30) | ORM + query builder | 2.0 is the only version with proper async support; use `AsyncSession` + `async_sessionmaker` pattern; never use 1.4 legacy style |
-| Alembic | 1.13.x | Database migrations | Tight SQLAlchemy coupling means staying on latest 1.13.x; use `--autogenerate` but always review generated migrations before applying |
-| Redis | 7.2.x | Message broker + cache | Redis 7.2 is the LTS branch for 2025; Redis 8 is in preview — don't use it in production yet |
-| Celery | 5.4.x | Distributed task queue | 5.4 fixes several Python 3.12 compatibility issues present in 5.3; use `celery[redis]` extra; configure `task_acks_late=True` for reliability |
-| Celery Beat | 5.4.x (bundled) | Periodic task scheduler | Use `django-celery-beat`-style DB backend via `celery-beat-scheduler` or the built-in `redbeat` for DB-driven schedule changes without worker restart |
-| Playwright | 1.45+ (≥1.47) | Browser automation / SERP parsing | 1.47+ adds better stealth context options; use `playwright[chromium]` only to keep Docker image small; async API throughout |
-| Jinja2 | 3.1.x | Server-side HTML templating | Pairs natively with FastAPI via `Jinja2Templates`; 3.1.x is stable; no breaking changes expected |
-| HTMX | 2.0.x | Partial page updates without SPA | HTMX 2.0 (released mid-2024) removed some legacy attributes (`hx-ws`, `hx-sse` moved to extensions) — use 2.0 from the start to avoid later migration |
+| Python | 3.12.x | Runtime | 3.12 is the stable LTS-track release with best async performance |
+| FastAPI | 0.115.x | ASGI web framework | 0.115 stable branch; lifespan-only startup (no deprecated `on_event`) |
+| Pydantic | 2.7+ | Data validation | Rust-core; 3–5x faster than v1; FastAPI 0.111+ requires v2 |
+| PostgreSQL | 16.x | Primary database | PG16 parallel query gains; battle-tested Docker images |
+| asyncpg | 0.29.x | Async PostgreSQL driver | Required by SQLAlchemy async engine; fastest pure-async PG driver |
+| SQLAlchemy | 2.0.x (≥2.0.30) | ORM + query builder | Only version with proper async support; `AsyncSession` + `async_sessionmaker` |
+| Alembic | 1.13.x | Database migrations | Explicit SQLAlchemy 2.0 async engine support in `env.py` |
+| Redis | 7.2.x | Message broker + cache | LTS branch; Redis 8 in preview — not for production |
+| Celery | 5.4.x | Distributed task queue | 5.4 fixes Python 3.12 compatibility; `task_acks_late=True` for reliability |
+| Playwright | 1.47+ | Browser automation | Async-native; stealth context options; `playwright[chromium]` only |
+| Jinja2 | 3.1.x | Server-side HTML templating | Pairs natively with FastAPI; stable; `SandboxedEnvironment` for DB templates |
+| HTMX | 2.0.x | Partial page updates | 2.0 from the start; `hx-ws`/`hx-sse` moved to extensions |
 
 ### Supporting Libraries
 
-| Library | Version | Purpose | When to Use |
-|---------|---------|---------|-------------|
-| **Auth & Security** | | | |
-| python-jose[cryptography] | 3.3.x | JWT encode/decode | Use for `access_token` + `refresh_token`; set `algorithm="HS256"` minimum, `RS256` if you need public key verification |
-| passlib[bcrypt] | 1.7.x | Password hashing | `CryptContext(schemes=["bcrypt"])` — bcrypt cost factor 12 recommended for 2025 hardware |
-| cryptography | 42.x | Fernet symmetric encryption | WP Application Password encryption at rest; `Fernet` is in this package; pin to 42.x (43 has minor API changes) |
-| python-multipart | 0.0.9+ | Form/file upload parsing | Required for FastAPI form bodies and CSV/XLSX uploads; FastAPI does not auto-install it |
-| slowapi | 0.1.9 | Rate limiting for FastAPI | Wraps `limits` library; integrates with FastAPI middleware; attach to `app.state.limiter`; use Redis storage backend in production |
-| **Database Utilities** | | | |
-| greenlet | 3.x | SQLAlchemy async bridge | Required by SQLAlchemy async; installed automatically but pin it to avoid breakage on Python 3.12 |
-| **HTTP Client** | | | |
-| httpx | 0.27.x | Async HTTP client | Use for WP REST API, GSC OAuth, DataForSEO calls; `httpx.AsyncClient` with connection pooling; replaces `requests` entirely |
-| **Task Queue Extras** | | | |
-| redis-py | 5.0.x | Redis client (Celery uses it internally) | Also use directly for manual cache writes, rate-limit counters, and pub/sub |
-| flower | 2.0.x | Celery task monitoring UI | Web UI at port 5555; shows worker status, task history, failure rates; secure behind HTTP Basic Auth in production |
-| redbeat | 2.2.x | DB-backed Celery Beat schedule | Stores periodic task schedule in Redis; enables UI-driven schedule changes without restarting Beat worker; replaces file-based `celerybeat-schedule` |
-| **Data Import/Export** | | | |
-| openpyxl | 3.1.x | Excel read/write (.xlsx) | Keyword import from Topvisor XLSX format + report export; pure Python, no LibreOffice dependency |
-| **PDF Generation** | | | |
-| weasyprint | 62.x | HTML→PDF conversion | Renders Jinja2 templates to PDF; no headless Chrome dependency; best choice for server-side PDF in Python 2025; produces clean print-quality output |
-| **OAuth** | | | |
-| authlib | 1.3.x | OAuth 2.0 client flows | GSC OAuth 2.0 integration; `AsyncOAuth2Client` wraps `httpx`; handles token refresh automatically; better than `requests-oauthlib` for async |
-| **Notifications** | | | |
-| python-telegram-bot | 21.x | Telegram Bot API | Async-native in v21; use `Bot.send_message()` directly inside Celery tasks; no need for polling — push-only for alerts |
-| aiosmtplib | 3.x | Async SMTP email | Non-blocking email dispatch from Celery tasks; replaces smtplib for async contexts |
-| **Parsing & Content** | | | |
-| beautifulsoup4 | 4.12.x | HTML parsing | TOC generation, schema detection, internal link analysis; use `lxml` parser for speed |
-| lxml | 5.x | Fast XML/HTML parser | BS4 backend; also useful for direct XPath queries on crawled pages |
-| **Monitoring & Logging** | | | |
-| loguru | 0.7.x | Structured logging | JSON sink config: `logger.add("logs/app.log", serialize=True, rotation="10 MB", retention="30 days")`; replaces stdlib logging entirely |
-| **Config & Environment** | | | |
-| pydantic-settings | 2.x | Settings from .env files | `BaseSettings` moved here in Pydantic v2; reads `.env` + environment variables; type-validated config |
-| python-dotenv | 1.0.x | .env file loader | Used by pydantic-settings under the hood; also useful in `docker-compose.yml` env loading |
-| **Testing** | | | |
-| pytest | 8.x | Test runner | 2025 standard; use with `pytest-asyncio` for async test functions |
-| pytest-asyncio | 0.23.x | Async test support | Set `asyncio_mode = "auto"` in `pyproject.toml` to avoid decorating every async test |
-| httpx | 0.27.x | Test HTTP client | `AsyncClient(app=app, base_url="http://test")` replaces `TestClient` for async FastAPI |
-| factory-boy | 3.3.x | Test fixtures/factories | SQLAlchemy factories for seeding test DB; cleaner than raw fixture dicts |
-| pytest-cov | 5.x | Coverage reporting | `--cov=app --cov-fail-under=60` per PROJECT.md constraint |
-| respx | 0.21.x | Mock httpx calls in tests | Mock WP REST API, GSC, DataForSEO calls without real network; pairs naturally with httpx |
+| Library | Version | Purpose |
+|---------|---------|---------|
+| python-jose[cryptography] | 3.3.x | JWT encode/decode |
+| passlib[bcrypt] | 1.7.x | Password hashing (cost factor 12) |
+| cryptography | 42.x | Fernet encryption for WP credentials and TOTP secrets |
+| python-multipart | 0.0.9+ | Form/file upload parsing |
+| slowapi | 0.1.9 | Rate limiting (Redis storage backend) |
+| greenlet | 3.x | SQLAlchemy async bridge |
+| httpx | 0.27.x | Async HTTP client (WP REST, GSC, DataForSEO) |
+| redis-py | 5.0.x | Redis client (cache, pub/sub, rate counters) |
+| flower | 2.0.x | Celery task monitoring UI (secure with Basic Auth) |
+| redbeat | 2.2.x | DB-backed Celery Beat schedule (survives Redis flush) |
+| openpyxl | 3.1.x | Excel read/write (.xlsx) |
+| weasyprint | 62.x | HTML→PDF (subprocess-isolated for memory leak mitigation) |
+| mammoth | 1.6.x | DOCX→HTML conversion (brief uploads) |
+| authlib | 1.3.x | OAuth 2.0 (GSC integration; `AsyncOAuth2Client` on httpx) |
+| python-telegram-bot | 21.x | Telegram push alerts (async-native v21) |
+| aiosmtplib | 3.x | Async SMTP email dispatch |
+| beautifulsoup4 | 4.12.x | HTML parsing (TOC, schema detection, GEO checks) |
+| lxml | 5.x | Fast XML/HTML parser (bs4 backend) |
+| loguru | 0.7.x | Structured JSON logging (10 MB rotation, 30-day retention) |
+| pydantic-settings | 2.x | Type-validated settings from `.env` |
+| pytest | 8.x | Test runner |
+| pytest-asyncio | 0.23.x | Async test support (`asyncio_mode = "auto"`) |
+| pytest-cov | 5.x | Coverage reporting (`--cov-fail-under=60`) |
+| respx | 0.21.x | Mock httpx calls in tests |
 
 ---
 
 ## Sources
 
-- Anthropic Python SDK GitHub (anthropics/anthropic-sdk-python) — v0.89.0, April 3, 2026: [https://github.com/anthropics/anthropic-sdk-python](https://github.com/anthropics/anthropic-sdk-python)
-- Anthropic Python SDK docs: [https://platform.claude.com/docs/en/api/sdks/python](https://platform.claude.com/docs/en/api/sdks/python)
-- pyotp PyPI v2.9.0: [https://pypi.org/project/pyotp/](https://pypi.org/project/pyotp/)
-- pyotp documentation: [https://pyauth.github.io/pyotp/](https://pyauth.github.io/pyotp/)
-- qrcode PyPI v8.2 (May 2025): [https://pypi.org/project/qrcode/](https://pypi.org/project/qrcode/)
-- sse-starlette v3.3.3 (March 2026): [https://pypi.org/project/sse-starlette/](https://pypi.org/project/sse-starlette/)
-- FastAPI SSE tutorial: [https://fastapi.tiangolo.com/tutorial/server-sent-events/](https://fastapi.tiangolo.com/tutorial/server-sent-events/)
-- Yandex Wordstat API documentation: [https://yandex.com/support2/wordstat/en/content/api-structure](https://yandex.com/support2/wordstat/en/content/api-structure)
-- Google Autocomplete suggest endpoint: [https://www.fromdev.com/2025/04/how-to-scrape-google-autocomplete-suggestions-for-long-tail-keyword-research-in-python.html](https://www.fromdev.com/2025/04/how-to-scrape-google-autocomplete-suggestions-for-long-tail-keyword-research-in-python.html)
-- GEO/AI readiness and structured data best practices 2025: [https://totheweb.com/blog/beyond-seo-your-geo-checklist-mastering-content-creation-for-ai-search-engines/](https://totheweb.com/blog/beyond-seo-your-geo-checklist-mastering-content-creation-for-ai-search-engines/)
-- FastAPI + TOTP 2FA implementation: [https://codevoweb.com/two-factor-authentication-2fa-in-fastapi-and-python/](https://codevoweb.com/two-factor-authentication-2fa-in-fastapi-and-python/)
+- Codebase inspection (2026-04-09): `app/services/subprocess_pdf.py`, `app/services/client_report_service.py`, `app/models/client_report.py`, `app/models/project.py`, `app/models/site.py`, `app/template_engine.py`, `requirements.txt` — HIGH confidence
+- Jinja2 3.1 sandbox documentation: `jinja2.sandbox.SandboxedEnvironment` ships with Jinja2 ≥2.0 — HIGH confidence (stdlib knowledge)
+- PostgreSQL 16 JSONB vs JSON: JSONB supports GIN indexes, JSON does not — HIGH confidence
+- WeasyPrint memory leak mitigation via subprocess: Decision D-12, documented in Phase 14 CONTEXT.md — HIGH confidence (in-codebase decision record)
+- mammoth 1.6.x already in requirements.txt for DOCX intake — HIGH confidence (requirements.txt inspection)
 
 ---
 
-*Stack research updated for v2.0 milestone: SEO Insights & AI features*
-*Original research: 2026-03-31 | Updated: 2026-04-06*
+*Stack research updated for v3.0 milestone: Client CRM, Audit Intake, Proposal Templates, Document Generator*
+*Original research: 2026-03-31 | v2.0 update: 2026-04-06 | v3.0 update: 2026-04-09*

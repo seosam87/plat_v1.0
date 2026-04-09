@@ -1,275 +1,288 @@
 # Pitfalls Research
 
-**Domain:** SEO Management Platform v2.0 — Adding 9 features to 35K LOC FastAPI + Celery + PostgreSQL system
-**Researched:** 2026-04-06
+**Domain:** SEO Management Platform v3.0 — Adding Client CRM, Site Audit Intake, Proposal Templates, and Document Generator to a 117K LOC FastAPI + Celery + PostgreSQL system with 44 applied Alembic migrations
+**Researched:** 2026-04-09
 **Confidence:** HIGH
 
-This document focuses exclusively on pitfalls that arise from *adding* these features to the *existing* system — not generic web development mistakes. Each pitfall is grounded in what the codebase already does and where the integration seams create risk.
+This document focuses exclusively on pitfalls that arise from *adding* these four features to the *existing* v2.1 system. Generic web development mistakes are omitted. Every pitfall is grounded in the codebase's current state — the existing models, auth patterns, Alembic history, and the WeasyPrint subprocess infrastructure already in place.
 
 ---
 
 ## Critical Pitfalls
 
-### Pitfall 1: URL Mismatch Between Pages, Metrika, and Positions Ruins Quick Wins / Dead Content Joins
+### Pitfall 1: Client Entity Conflicts With the Existing User+Site Relationship Model
 
 **What goes wrong:**
-Quick Wins and Dead Content both require JOINing `pages` (crawl URLs) with `metrika_traffic_pages` (Metrika URL) and `keyword_positions` (ranking URL). All three tables store `page_url` / `url` as raw strings. In production, the same page appears as `https://example.com/blog/` in one table and `https://example.com/blog` (no trailing slash) in another, or `http://` vs `https://`, or with UTM parameters in Metrika. JOINs return zero rows. Developer sees "no Quick Wins found" and assumes the data isn't there — it is, but joins fail silently.
+The existing system already has a `client` user role in `UserRole` enum (`admin`, `manager`, `client`), a `client_user_id` FK on the `Project` model, and a `site_groups` table. A developer building a Client CRM entity creates a `clients` table with `name`, `contacts`, `linked_sites`, `interaction_history` — and immediately faces ambiguity: is a "client" in the CRM the same as a `client`-role `User`? Or a separate organizational entity that may or may not have a system login? If the answer is not resolved upfront, two competing representations of "client" exist in the DB, and every future query that spans both (e.g., "show this client's sites and their project history") requires joins across both systems.
 
 **Why it happens:**
-Metrika returns the URL exactly as the user visited it. The crawler stores the canonical URL from the `<link rel="canonical">`. `keyword_positions` stores the ranking URL from XMLProxy or DataForSEO. All three sources use different normalization. The existing code at `audit.py`, `metrika.py`, `change_monitoring.py` all store `page_url` as a raw string with no normalization step — this is fine for those features because they query by `site_id` and filter independently, never JOINing across tables.
+The CRM "client" is a business entity (a company, with contacts and contracts). The existing `User` with `role=client` is an authentication principal. They are different concepts, but sharing the word "client" causes developers to conflate them, especially when working solo without a reviewer to catch the semantic drift.
 
 **How to avoid:**
-- Create a `normalize_url(url: str) -> str` utility function: lowercase scheme and host, strip trailing slash, strip `?utm_*` and `#` fragments, decode percent-encoding.
-- Apply normalization on *write* in every service that stores a URL. Add it to `metrika_service.upsert_page_traffic()` immediately — that's the highest-risk callsite.
-- For Quick Wins / Dead Content queries, do the join on `normalize_url(p.url) = normalize_url(m.page_url)` or better: store a `normalized_url` computed column in each table and index it.
-- Write a test with 5 URL variants of the same page and assert all 5 join correctly.
+- Define the CRM entity as `Client` (company-level) — separate from `User`. A `Client` may optionally have zero, one, or many `User` accounts linked (via a `client_id FK` on `users` or a join table).
+- The existing `Project.client_user_id` points to a `User` — do not repurpose this FK to point at the new `Client` table. Keep backward compatibility by leaving `client_user_id` in place and adding a separate `client_id` FK pointing to `Client`.
+- Add a `client_id` column to `sites` (nullable, `SET NULL` on delete) so sites can be associated with a CRM client without breaking the existing `site_groups` structure.
+- Never rename the existing `client` `UserRole` value — it is stored in the DB enum and renaming requires an Alembic `op.execute("ALTER TYPE userrole RENAME VALUE ...")` which is PostgreSQL 10+ only and must be tested.
 
 **Warning signs:**
-- Quick Wins returns 0 results for a site with 50+ keywords in positions 4–20.
-- Dead Content returns 0 results for a site with Metrika data older than 30 days.
-- Manual `SELECT` comparing `pages.url` and `metrika_traffic_pages.page_url` shows format differences for the same logical page.
+- Service code that queries "all sites for a client" that must join `users`, `project_users`, `projects`, and `sites` — this means the CRM client concept was grafted onto the existing user model rather than being a first-class entity.
+- A migration that modifies the `users` table to add CRM-style contact fields (phone, company, address) — signals that `User` and `Client` are being merged incorrectly.
+- Template code where `client.username` and `client.contact_name` are used interchangeably for the same object.
 
 **Phase to address:**
-Phase 1 (Quick Wins / Dead Content) — the normalization utility must be built first, before any JOIN queries are written.
+Phase 1 (Client CRM data model) — the `Client` entity and its relationship to `User` and `Site` must be the first schema decision. Write an ADR (architecture decision record) in the PLAN.md context before any migration is written.
 
 ---
 
-### Pitfall 2: DISTINCT ON on Partitioned `keyword_positions` Is Slow Without Partition Pruning
+### Pitfall 2: Alembic Migration Conflict With 44 Existing Migrations
 
 **What goes wrong:**
-Quick Wins requires "latest position per keyword". The existing pattern `SELECT DISTINCT ON (kp.keyword_id, kp.engine) ... ORDER BY kp.keyword_id, kp.engine, kp.checked_at DESC` works correctly but scans all monthly partitions to find the latest row. With 100K keywords × 12 months of data, this is a full scan of millions of rows. The query goes from 200ms with 2 months of data to 8+ seconds with 12 months. The page times out.
+The existing chain has 44 migrations with the most recent being `9c65e7d94183_add_report_schedules_table.py` (non-sequential naming). If a new migration is created with `alembic revision --autogenerate` and the developer has any pending local model changes that were not part of a previous migration, `autogenerate` silently includes those diffs in the new migration. This creates a migration that "secretly" alters existing tables as a side effect of the intended change. In production, `alembic upgrade head` applies the new migration and makes unintended schema changes.
 
 **Why it happens:**
-`DISTINCT ON` requires a sort, and PostgreSQL cannot prune partitions when the `WHERE` clause does not filter on `checked_at` (the partition key). The planner must scan all partitions and merge-sort them. The existing code in `report_service.py` and `overview_service.py` uses the same pattern and works because those queries are already filtered by `site_id` and are called once per site, not across all sites simultaneously.
+`autogenerate` diffs the ORM metadata against the DB state. Any model that has been edited (even whitespace changes that trigger re-detection of column types) will appear in the diff. The developer sees the `CREATE TABLE clients` statement, skims the migration, misses the spurious `ALTER COLUMN` for an unrelated table, and applies it.
 
 **How to avoid:**
-- Add a `WHERE checked_at >= now() - interval '90 days'` filter to all "latest position" queries. This prunes to at most 3 partitions. For Quick Wins, 90 days is appropriate — positions older than that are stale anyway.
-- Use a materialized "latest positions" view maintained by the existing position check task: after each position check run, upsert into a `keyword_latest_positions` table (one row per keyword+engine). Quick Wins reads from this flat table, not from the partitioned one. This is the most sustainable approach given the scale.
-- Index `keyword_latest_positions` on `(site_id, position, engine)` so the "positions 4–20" filter is instant.
+- Before any `alembic revision --autogenerate`, run `alembic check` to verify that the current DB state matches the ORM. If it reports differences, investigate them before generating the new migration.
+- After generating each migration, read the entire file — not just the new table/column that was intended. Any `op.alter_column()` or `op.drop_*` for tables that are not part of the current feature is a red flag.
+- Run `alembic upgrade --sql head` (dry run to stdout) and inspect the SQL before applying to production.
+- Name migrations sequentially: `0043_add_clients_table.py`, `0044_add_audit_intake_table.py` etc. The existing `9c65e7d94183_` naming divergence was fine for one migration but mixing naming styles creates confusion in the sort order.
 
 **Warning signs:**
-- `EXPLAIN ANALYZE` on Quick Wins query shows "Append" node with 12+ "Seq Scan on keyword_positions_YYYYMM" children.
-- Quick Wins endpoint exceeds 3s for a site with 1000+ keywords.
-- `pg_stat_statements` shows the DISTINCT ON query consuming >50% of total query time.
+- `alembic heads` returns more than 1 head (two developers working on migrations simultaneously, or a branch that was rebased improperly).
+- A migration file's `upgrade()` function contains `op.alter_column()` for `sites`, `users`, or `projects` tables when the developer intended to only add a new table.
+- `alembic history` shows a gap in the chain (a migration file that has `down_revision` pointing to a non-existent revision hash).
 
 **Phase to address:**
-Phase 1 (Quick Wins) — design the `keyword_latest_positions` materialized table before writing the first query. Retrofit it in position_tasks.py during the same phase.
+Every phase — verify `alembic heads` returns exactly 1 head as a first step in each phase's execution. Include this check in the PLAN.md acceptance criteria.
 
 ---
 
-### Pitfall 3: Impact Scoring Computed on Every Request Becomes Expensive at Scale
+### Pitfall 3: PDF Document Generation Ignores the Existing Subprocess Isolation Pattern
 
 **What goes wrong:**
-Error Impact Scoring requires aggregating errors (from audit results) weighted by traffic (from Metrika). If this is computed live on each page load, it involves: JOIN `audit_results` × `metrika_traffic_pages` × `pages`, group by error type, order by weighted score. On a site with 500 pages × 20 audit checks = 10K audit rows, joined with Metrika page data, this query takes 1–3 seconds. With 50 sites, the dashboard aggregation becomes unusable.
+The existing `subprocess_pdf.py` implements subprocess-isolated WeasyPrint rendering to prevent memory leaks (documented in Phase 14 CONTEXT.md, referencing GitHub issues #2130 and #1977). A developer implementing the Document Generator (proposal PDFs) writes a new PDF service that calls `weasyprint.HTML(string=html).write_pdf()` directly in the Celery task, bypassing the subprocess isolation. The memory leak is invisible in development (10 test PDFs) but causes the Celery worker container to exhaust RAM in production (100+ proposals per week), triggering OOM kills mid-task.
 
 **Why it happens:**
-Scoring feels like a "simple query" during development with 5 test sites. The JOIN fan-out is not visible until real data exists.
+The `subprocess_pdf.py` module is not well-advertised as "the only way to call WeasyPrint." A developer implementing a new feature scans `services/` for a PDF example, finds `client_report_service.py`, sees it imports `render_pdf_in_subprocess` — but assumes that complexity was only needed for the specific case there, and uses the simpler direct API for the new feature.
 
 **How to avoid:**
-- Compute and store scores as a Celery task, not inline in the request. Create an `error_impact_scores` table: `(site_id, check_code, score, computed_at)`. The task runs after each crawl completion and after each Metrika sync.
-- Invalidate scores by writing a `score_valid_until` timestamp. The API reads the cached score if `computed_at > (now() - interval '24 hours')`. If stale, it serves the old score and enqueues a background recomputation — never blocks the request.
-- The Celery trigger points: hook into the existing `crawl_tasks.py` finalization step and `metrika_tasks.py` sync completion. Both already exist and just need an `enqueue_impact_score_recompute(site_id)` call appended.
+- Document `render_pdf_in_subprocess` as the mandatory PDF rendering API in a docstring at the top of `subprocess_pdf.py`. Add a comment: "# WARNING: Never call weasyprint.HTML().write_pdf() directly in a long-running process. Use this function instead."
+- For the Document Generator, extend `subprocess_pdf.py` with a `render_template_pdf(template_name, context)` helper that handles Jinja2 template rendering + subprocess isolation in one call. This makes the correct pattern the easy pattern.
+- Proposal PDFs and audit PDFs should use the same Celery task scaffolding as `ClientReport`: `status = pending -> generating -> ready | failed`, with `celery_task_id` stored, so the UI can poll for completion without blocking.
 
 **Warning signs:**
-- Dashboard endpoint exceeds 3s for any site.
-- Database CPU spikes every time the Insights page loads.
-- Adding a 6th site causes a 50% response time increase (linear scale = live computation).
+- A new `*_pdf_service.py` that imports `weasyprint` directly rather than `from app.services.subprocess_pdf import render_pdf_in_subprocess`.
+- `docker stats` shows the `celery-default` container memory growing monotonically during document generation and not returning to baseline after tasks complete.
+- WeasyPrint-related calls appearing in the call stack of the main Celery worker (vs. a subprocess).
 
 **Phase to address:**
-Phase 2 (Impact Scoring) — scores must be pre-computed from the start. No live aggregation path should exist in production.
+Phase 3 (Document Generator / PDF) — the first task in that phase must be extending `subprocess_pdf.py` to support template-based rendering, before any document-generation service code is written.
 
 ---
 
-### Pitfall 4: WeasyPrint Memory Does Not Release Between Client PDF Calls
+### Pitfall 4: RBAC for CRM Features Collides With the Existing Admin-Only Site Model
 
 **What goes wrong:**
-WeasyPrint is confirmed to have a memory leak when called in a loop inside a long-running process (GitHub issue #2130, #1977). Each `HTML(string=html_str).write_pdf()` call in a Celery worker increases RSS by 20–40 MB and this memory is not released until the worker process dies. The existing `report_service.py` already calls WeasyPrint for weekly summary PDFs. Client Instruction PDFs add more calls — potentially 20–100 PDFs per report run. On a 2 GB VPS, the Celery worker hits the OOM killer after 30–50 PDFs.
+The existing `sites.py` router applies `require_admin` to almost every site management endpoint. The new Client CRM introduces a use case where `manager`-role users need to view and edit client cards, attach sites to clients, and generate proposals — but they should not have the same admin site-management powers (creating sites, editing WP credentials, etc.). If the new CRM routes reuse `require_admin` (the easy, copy-paste choice), managers cannot use the CRM. If a developer uses `require_any_authenticated` to allow all roles including `client`, client-role users can see other clients' data — a data isolation violation.
 
 **Why it happens:**
-WeasyPrint uses Pango/Cairo C libraries. Python's garbage collector cannot reclaim memory held by native C extensions. The `write_pdf()` function allocates layout structures in C heap that are not freed until the process exits.
+The existing `require_role` factory in `dependencies.py` provides `require_admin`, `require_manager_or_above`, and `require_any_authenticated` — but no `require_manager_or_above` + "only your own data" guard. The CRM needs a new access pattern: "manager can see all clients, client-role user can only see their own client record."
 
 **How to avoid:**
-- Run PDF generation in a subprocess per report: `subprocess.run(["python", "-m", "app.pdf_worker", report_id])`. The subprocess exits after the PDF is written, releasing all C memory. Use `asyncio.to_thread()` to call this without blocking the Celery event loop.
-- Alternative: use `--max-tasks-per-child=10` on the PDF worker process specifically. After 10 PDFs, the worker process recycles, cleaning all memory. This is already the right pattern for Playwright — apply the same reasoning here.
-- Do not generate all 20–100 client PDFs in one task. Use a Celery `group` where each task generates one PDF, so each task in the group benefits from the recycling policy.
-- Set `soft_time_limit=120, time_limit=150` per PDF task. A stuck WeasyPrint call (e.g., infinite table pagination) should be killed rather than filling RAM.
+- Use `require_manager_or_above` for all CRM write operations (create client, edit client, attach sites, generate proposals).
+- For client-role read access (e.g., a client viewing their own proposal), add a row-level ownership check in the service layer: `if current_user.role == UserRole.client: assert record.client_id == current_user.client_id`.
+- Never use `require_any_authenticated` on any CRM endpoint that returns data about multiple clients. The client role must be scoped to "their own" records only.
+- Add a `client_id` FK on `users` (nullable) to formally link a `client`-role User to a `Client` CRM record. Without this FK, the ownership check requires a join through `sites` → `client_id`, which is fragile.
 
 **Warning signs:**
-- `docker stats` shows the celery-default container's MEM growing during report runs and not recovering.
-- Report tasks succeed but subsequent tasks are slower (memory pressure causing swap).
-- OOM kill in `dmesg` correlated with a report task completion.
+- A CRM router where all endpoints use `require_admin` (managers cannot use the CRM at all).
+- A CRM router where all endpoints use `require_any_authenticated` without a row-level check (any client-role user can read all client cards).
+- The `Client` service layer contains no `assert` or `raise HTTPException(403)` path for role-based record ownership.
 
 **Phase to address:**
-Phase 3 (Client PDF) — subprocess isolation must be the first design decision before any WeasyPrint code is written.
+Phase 1 (Client CRM) — RBAC must be specified in the PLAN.md before any route is written. The rule "client-role can read their own record only" must appear as an explicit acceptance criterion.
 
 ---
 
-### Pitfall 5: Keyword Suggest Triggers IP Bans from Google/Yandex Within Hours
+### Pitfall 5: Audit Intake Checklist Stored as JSON Becomes Unqueryable Over Time
 
 **What goes wrong:**
-Google Autocomplete and Yandex Suggest APIs are undocumented and rate-limited aggressively. Direct HTTP calls to `https://suggestqueries.google.com/complete/search` or `https://wordstat.yandex.ru` from a single VPS IP will result in CAPTCHA challenges within minutes of usage and IP bans within hours. The XMLProxy integration (already in the codebase) works because it uses proxy rotation — the same caution applies here.
+A site audit intake form captures structured answers: technical checks (robots.txt, sitemap), content checks (word count thresholds, schema types found), business context (client goals, target audience). The tempting data model is `audit_intake` with a `responses_json JSONB` column that stores all answers as a freeform dict. This works for rendering the form on screen, but makes reporting impossible: "show me all sites where the client said their goal is 'brand awareness'" or "show me all intakes where robots.txt was missing" requires a PostgreSQL JSON path query (`WHERE responses_json->>'goal' = 'brand_awareness'`). JSON path queries cannot use standard B-tree indexes; the GIN index required for JSONB containment queries is easy to forget, and adding it later requires a full table scan rewrite.
 
 **Why it happens:**
-Developers treat Google Autocomplete as a "free API" because there is no API key required. This is a misread — Google serves it for browser consumption and treats server-to-server calls as scraping.
+Intake forms feel dynamic and schema-less ("every client has different requirements"). JSONB feels like the right fit. The mistake is treating "flexible input" as equivalent to "unstructured storage." The intake categories (technical, content, business) are well-defined; only the answers vary.
 
 **How to avoid:**
-- Use the XMLProxy API for Yandex Wordstat suggestions if XMLProxy supports it (check their endpoint list). XMLProxy already handles proxy rotation for Yandex — this is the path of least resistance.
-- For Google Suggest, use DataForSEO's keyword suggestions API (already integrated in `dataforseo_service.py`) which handles Google's restrictions.
-- Cache all suggestions aggressively: Redis with TTL of 7 days minimum. Keyword suggest data does not change meaningfully within a week. Key: `suggest:{engine}:{phrase_hash}`.
-- Rate limit the user-facing endpoint in the UI: `slowapi` is already installed. Add a `@limiter.limit("10/minute")` decorator to the suggest endpoint.
-- Log every outbound request to Google/Yandex in the audit log with the source IP visible — makes it easy to detect if the VPS IP gets blocked.
+- Store the intake as a typed structure: a `section` column (`technical`, `content`, `business`) and a separate row per checklist item, with `check_key` (string identifier), `check_value` (string or boolean), and `passed` (boolean nullable). This makes queries trivial: `SELECT check_key FROM audit_intake_items WHERE site_id = ? AND passed = FALSE`.
+- If full JSONB is used for flexibility, add a GIN index immediately: `CREATE INDEX ix_audit_intake_gin ON audit_intake USING GIN(responses_json)`. Do not defer this index.
+- Add a `version` column to the intake table to track which checklist template was used, so that the schema of `responses_json` can evolve without breaking old records.
+- Define a Pydantic schema for each section's responses, and serialize to/from JSONB using that schema. This prevents freeform key drift.
 
 **Warning signs:**
-- HTTP 429 or CAPTCHA HTML returned from suggest endpoint.
-- Suggest results stop updating despite new queries.
-- XMLProxy logs show unusually high failure rates for a new endpoint.
+- `audit_intake.responses_json` grows to contain keys that are not in the original checklist specification (freeform text added ad-hoc).
+- A service function that does `intake.responses_json.get('goal')` instead of a typed attribute — no IDE completion, no type safety.
+- `EXPLAIN ANALYZE` on a reporting query shows `Seq Scan on audit_intake` even though an index exists (wrong index type for the query pattern).
 
 **Phase to address:**
-Phase 4 (Keyword Suggest) — cache-first design and proxy routing must be decided before any external call is written.
+Phase 2 (Site Audit Intake) — decide the data model before the migration. Typed rows with `check_key`/`check_value` are recommended. If JSONB is chosen, the GIN index must be in the same migration.
 
 ---
 
-### Pitfall 6: LLM API Failures Block Brief Generation with No Fallback
+### Pitfall 6: Proposal Templates With Variable Substitution Break on Missing Platform Data
 
 **What goes wrong:**
-If the LLM API (OpenAI or Anthropic) is down or returns a 429, the brief generation Celery task fails with an unhandled exception. The user sees a spinner that never resolves, or an opaque "Task failed" error. Since LLM APIs are external dependencies, they can be unavailable at arbitrary times. The existing `retry=3` policy on Celery tasks delays failure by minutes but does not degrade gracefully.
+Proposal templates reference platform data variables: `{{ site.keyword_count }}`, `{{ site.avg_position }}`, `{{ top_opportunities | first }}`. These variables are resolved at proposal-generation time. If Metrika is not connected for a site, `site.avg_position` is None. If no position tracking exists, `top_opportunities` is an empty list. Jinja2's default behavior with undefined variables raises `UndefinedError`, which causes the entire proposal generation to fail with a 500 error rather than gracefully substituting a placeholder.
 
 **Why it happens:**
-LLM integration feels like a service call but has unique failure modes: rate limits, token limits, content policy blocks, and network timeouts that are more frequent than typical REST APIs. Developers port the existing "retry 3 times" pattern from DataForSEO/GSC calls without accounting for the specific failure scenarios.
+Developers test with the "golden path" site that has all data connected. The template works. Production sites with incomplete data break on generation. The Jinja2 `Environment` by default uses `Undefined` which raises on access — the developer doesn't notice because their test site is complete.
 
 **How to avoid:**
-- Always return a partial result rather than failing. If the LLM API is unavailable, return the template-based brief (which `brief_service.py` already generates) with a flag `"ai_enhanced": false`. Never block the user's workflow.
-- Set `httpx.AsyncClient(timeout=30.0)` for LLM calls — not the default (no timeout). A hung LLM call with no timeout blocks the Celery worker thread indefinitely.
-- Implement a circuit breaker: after 3 consecutive LLM failures for a site, set a `redis.setex("llm_circuit_open", 3600, "1")` flag. All subsequent requests return the template brief immediately for 1 hour without attempting the API call.
-- Store the raw LLM prompt and response in the DB (`llm_brief_log` table). This enables: debugging hallucinations, cost auditing, and replay without re-billing.
-- Cap token usage per brief: max 2000 input tokens (keyword list + page context), max 800 output tokens. Enforce with `max_tokens=800` in the API call. Prevents runaway cost from accidentally sending the full crawl HTML.
+- Use Jinja2's `ChainableUndefined` or `Undefined(silent=True)` mode for proposal template rendering. This renders missing variables as empty strings rather than raising.
+- Better: build a `ProposalContext` Pydantic model that represents all template variables with safe defaults. Populate it from platform data where available, defaulting to `"—"` or `0` for missing values. Pass the model to Jinja2 rather than raw ORM objects.
+- For critical metrics (position, traffic), add an explicit "data not available" block: `{% if site.avg_position %}{{ site.avg_position | round(1) }}{% else %}Данные позиций не подключены{% endif %}`.
+- Add a pre-generation validation step: before rendering, check which data sources are available for the site and warn the user about missing sections in a preview UI ("This proposal will not include position data — position tracking not configured for this site").
 
 **Warning signs:**
-- Brief generation tasks in Celery Flower show "RETRY" status for > 5 minutes.
-- Monthly LLM API bill increases suddenly (usually means unbounded token usage).
-- Users report briefs "hanging" on specific pages — often because those pages have large content being passed to the LLM.
+- Proposal generation tasks fail with `jinja2.exceptions.UndefinedError` in Celery logs.
+- Template development only tested against the developer's own fully-configured site.
+- A proposal template that uses `{{ value }}` without any `| default('')` filter or `{% if value %}` guard.
 
 **Phase to address:**
-Phase 5 (LLM Briefs) — graceful degradation to template brief must be the default path, with LLM enhancement as opt-in overlay.
+Phase 3 (Proposal Templates) — the `ProposalContext` Pydantic model with safe defaults must be built before the first template is written. The Jinja2 environment for proposals must be configured separately from the UI Jinja2 environment (which uses strict undefined for security reasons).
 
 ---
 
-### Pitfall 7: 2FA Migration Locks Out Existing Users and Has No Recovery Path
+### Pitfall 7: Document Generation Stores PDF Blobs in PostgreSQL and Causes Table Bloat
 
 **What goes wrong:**
-Adding TOTP to the `users` table requires: a new `totp_secret` column (nullable), new `totp_recovery_codes` table, and a modified login flow. If 2FA is made mandatory without a user communication plan, existing users hit the 2FA prompt on their next login and have no way to enroll their authenticator app (they were never shown a QR code). If `totp_secret IS NULL` is not handled as "2FA not yet configured" (instead of "2FA failed"), users are permanently locked out.
+The existing `client_reports.pdf_data` column uses `LargeBinary` to store PDF bytes directly in PostgreSQL. This was acceptable for a single `client_reports` table (infrequent generation, one PDF per site per run). For the Document Generator producing proposals on demand, the volume increases: 20 sites × 5 proposal versions × 200 KB per PDF = 20 MB in the first week, growing to hundreds of MB. PostgreSQL is not optimized for large binary blobs — every autovacuum on a table with large TOAST-stored values is expensive, and `pg_dump` for backups grows proportionally.
 
 **Why it happens:**
-The login route is the most-visited endpoint in the app. Any conditional logic change in `auth.py` has a high surface area for regression. Adding `totp_secret` nullable with `if totp_secret IS NOT NULL: verify_totp()` seems correct but the enrollment flow is often not built in the same phase as the verification flow, leaving a gap.
+The developer sees `LargeBinary` working in `ClientReport` and copies the pattern. The difference in generation frequency is not considered.
 
 **How to avoid:**
-- Add `totp_secret` as `nullable=True` to the `users` table with default NULL. Never make 2FA mandatory in the same migration that adds the column.
-- Two-phase rollout: Phase A = users can opt-in (enroll via settings page, generates QR, saves secret); Phase B = (optional, later) admin can force 2FA for specific roles.
-- Generate recovery codes during enrollment (8 codes, bcrypt-hashed, stored in `user_recovery_codes` table). Show codes once, immediately after QR scan confirmation. Test the recovery flow in isolation before deploying.
-- Test matrix: user with `totp_secret=NULL` + 2FA optional → login works unchanged. User with `totp_secret` set + correct TOTP → login works. User with `totp_secret` set + wrong TOTP → 401. User with `totp_secret` set + recovery code → login works + code invalidated.
-- Add `/auth/2fa/disable` endpoint (admin-only) so that if a user loses their device, an admin can set `totp_secret=NULL` and regenerate recovery codes.
+- For documents generated on demand and potentially in multiple versions, store PDFs on disk (mounted Docker volume) or in object storage, and store only the file path in the DB column: `pdf_path VARCHAR(500)`. Retrieval is a file read, not a DB query.
+- If remaining in PostgreSQL for simplicity (acceptable for this scale), add a hard retention policy: `DELETE FROM proposal_documents WHERE created_at < now() - interval '90 days'`. Also implement a "download and delete" pattern — after the user downloads, the binary can be removed from the DB (store `downloaded_at`, delete binary after download).
+- Monitor table size monthly: `SELECT pg_size_pretty(pg_total_relation_size('proposal_documents'))`.
+- Cap stored versions per proposal to 3 (keep latest 3 generations, delete older ones automatically).
 
 **Warning signs:**
-- Existing users report "stuck on 2FA screen" after a deploy.
-- Test coverage for `auth.py` drops below 70% after adding 2FA conditionals.
-- No test exists for the `totp_secret=NULL` path in the login flow.
+- `proposal_documents` table size growing > 500 MB.
+- `pg_dump` duration increasing week-over-week.
+- Autovacuum running frequently on `proposal_documents` table (`pg_stat_user_tables.last_autovacuum` multiple times per day).
 
 **Phase to address:**
-Phase 6 (2FA) — write the test matrix before writing any auth code changes. The migration must be reviewed by running `alembic upgrade --sql` and inspecting the output before applying to production.
+Phase 3 (Document Generator) — storage strategy must be decided upfront. For this project's scale (20–100 sites, proposals generated on-demand), filesystem storage with path reference in DB is recommended. The Docker Compose volume configuration for document storage must be in the same phase.
 
 ---
 
-### Pitfall 8: Notifications Table Bloat Without Deletion Strategy
+### Pitfall 8: Interaction History Timeline Becomes an Audit Log Duplicate
 
 **What goes wrong:**
-In-app notifications generate 1 row per event per user. With 5 active users × 50 position check completions/week × 20 sites = 5,000 rows/week. After 6 months: ~130,000 rows. PostgreSQL `autovacuum` handles this poorly for high-churn tables because frequent INSERT + soft-deletes (marking `read=True`) generate dead tuple bloat faster than vacuum can clean. The table grows to hundreds of MB, the index bloats, and `SELECT unread notifications WHERE user_id = ?` degrades from microseconds to milliseconds — visible as a slow first-page-load issue.
+Client CRM interaction history ("called client 2026-04-09, discussed Q2 SEO plan") is tempting to store in the existing `audit_log` table (it's already there, already indexed). A developer adds entries for CRM interactions with `action="client.interaction"` and `entity_type="client"`. This works but the `audit_log` table is designed for system events (site.create, bulk.import) — it has no `interaction_type`, `notes`, or `follow_up_date` fields. Storing CRM interactions there requires overloading `detail_json` with CRM-specific fields. The audit log becomes a dual-purpose table that serves two semantically distinct functions, making both harder to query and maintain.
 
 **Why it happens:**
-Notification tables feel like simple tables during development. The churn rate (many inserts, many "soft read" updates) is the worst pattern for PostgreSQL MVCC — every UPDATE writes a new tuple version, leaving the old one as a dead tuple until vacuum runs.
+The `audit_log` table is already available and "works." Adding to it is faster than creating a new table and writing a new service. The divergence only becomes apparent months later when querying "all interactions with ClientX" returns system events mixed with CRM notes.
 
 **How to avoid:**
-- Implement hard deletion on read: when a user opens notifications, DELETE the displayed rows (or DELETE WHERE created_at < now() - interval '30 days'). Do not use soft delete (`is_read=TRUE`) for notifications — it maximizes bloat.
-- Add a Celery Beat task `cleanup_old_notifications` that runs nightly: `DELETE FROM notifications WHERE created_at < now() - interval '30 days'`. This one task prevents bloat indefinitely.
-- Set `autovacuum_vacuum_scale_factor = 0.01` on the notifications table specifically (via `ALTER TABLE notifications SET (autovacuum_vacuum_scale_factor = 0.01)`) — this triggers vacuum at 1% dead tuples instead of the default 20%, keeping the table clean on high-churn tables.
-- Index only `(user_id, created_at DESC)` — not `(user_id, is_read, created_at)`. Adding `is_read` to the index means every read-mark update invalidates the index entry, doubling write amplification.
-- Cap at 100 unread notifications per user in the application layer. Beyond 100 unread, new ones replace the oldest unread. Users with 1000 unread notifications are not reading them — drop them.
+- Create a separate `client_interactions` table: `(id, client_id, user_id, interaction_type ENUM, notes TEXT, follow_up_date DATE, created_at)`. This is the correct domain model for CRM interaction history.
+- The `audit_log` table may still receive a `client.interaction.created` event (one row: "a new interaction was logged") but the interaction content lives in `client_interactions`.
+- Keep `audit_log` semantically pure: system-level events, not business notes.
 
 **Warning signs:**
-- `SELECT pg_size_pretty(pg_total_relation_size('notifications'))` shows >50 MB after a few weeks.
-- `pg_stat_user_tables` shows `n_dead_tup` > 10% of `n_live_tup` for the notifications table.
-- First-page-load time increases by 50–100ms week over week.
+- `audit_log.detail_json` contains keys like `interaction_type`, `follow_up_date`, `notes` — CRM business data in a system event log.
+- Queries for "all interactions with client X" require filtering `audit_log` by `entity_type='client'` rather than querying a dedicated CRM table.
+- A `detail_json` value that is a freeform note written by a human rather than a machine-generated event description.
 
 **Phase to address:**
-Phase 6 (In-app Notifications) — cleanup strategy must be implemented in the same migration that creates the table.
+Phase 1 (Client CRM) — `client_interactions` table in its own migration, separate from `audit_log`. The service must call `log_action()` for the system event AND insert into `client_interactions` for the CRM record.
+
+---
+
+### Pitfall 9: Sidebar Navigation Grows Unmanageably Without a Section Strategy
+
+**What goes wrong:**
+The sidebar has 6 sections with collapsible children, rendered from a `nav_sections` list injected by each router's `get_context()` function (or equivalent). Adding CRM, audit intake, proposal templates, and document generator as new top-level children without a plan fills the sidebar with 4–8 new items, pushing the existing content below the fold. On a laptop screen, the sidebar requires scrolling to reach frequently-used items like Positions and Keywords.
+
+**Why it happens:**
+Each new feature adds 1–2 sidebar entries. No single developer "owns" the global sidebar information architecture. Each phase adds its entries without auditing what is already there.
+
+**How to avoid:**
+- Before writing any router, decide which sidebar section the new features belong to. Recommendation: add a new section "Клиенты" (Clients) grouping CRM, audit intake, proposals, and documents under one collapsible section with 4 children.
+- Audit the existing 6 sections for items that can be collapsed or deprioritized. If the sidebar has items that are rarely used (e.g., Competitors, Architecture — less than 5% of pageviews), consider hiding them behind an "advanced" toggle.
+- The sidebar component reads from `nav_sections` — ensure any new section follows the exact same data structure (id, label, icon, children). Look at how the icon name maps to SVG in `sidebar.html` — a new section with an icon not in the existing `{% elif section.icon == '...' %}` chain will render no icon.
+- Add the new icon branch to `sidebar.html` in the same commit that adds the new nav section.
+
+**Warning signs:**
+- `sidebar.html` has more than 10 top-level sections.
+- A new sidebar item appears without an icon (blank space where icon should be) — the icon name was not added to the `{% elif %}` chain.
+- Users report needing to scroll the sidebar to find Keywords or Positions after the new features were added.
+
+**Phase to address:**
+Phase 1 (Client CRM) — sidebar section design for all v3.0 features should be decided at the start of the first phase, not added feature-by-feature.
 
 ---
 
 ## Technical Debt Patterns
 
-Shortcuts that seem reasonable but create long-term problems specific to this v2.0 milestone.
+Shortcuts that seem reasonable for v3.0 but create long-term problems.
 
 | Shortcut | Immediate Benefit | Long-term Cost | When Acceptable |
 |----------|-------------------|----------------|-----------------|
-| Live JOIN for Quick Wins instead of `keyword_latest_positions` table | No extra table/migration needed | Degrades to 10s+ queries at 100K keywords; requires rewrite | Never — 100K keywords is known scale from day 1 |
-| Computing Impact Scores inline per request | No Celery task needed | Linear slowdown with sites × errors × metrika rows | Never for production use |
-| Single WeasyPrint call generating all client PDFs | Simpler task code | OOM kill on report runs for 20+ sites | Never — subprocess per PDF from the start |
-| Making 2FA mandatory in the same deploy that adds the feature | Clean code, no "nullable" logic | Locks out all existing users | Never — always two-phase |
-| Passing full page HTML to LLM for brief generation | More context = better output | 50–100K token bills; context window errors | Never — always truncate to title + H2s + meta |
-| Caching LLM responses with no TTL | Avoids repeated billing | Stale briefs served months later; confused users | Only for briefs explicitly marked "frozen" by user |
-| Storing notification `is_read` flag and using soft-delete | Preserves history | Table bloat, index thrash | Never — hard delete on dismiss + nightly cleanup |
-| Using the same Celery `default` queue for LLM tasks | No new queue configuration | LLM tasks (slow, expensive) block position checks (fast, time-sensitive) | Never — LLM tasks need their own queue |
-| Skipping URL normalization on Metrika join | Faster initial query | Silent zero-result JOIN failures; no error, no warning | Never — normalization must be on write |
+| Storing proposal/audit data in `detail_json` on `audit_log` | No new table needed | Unqueryable business data mixed with system events; two semantically different things in one table | Never |
+| Calling `weasyprint.HTML().write_pdf()` directly in Celery task for proposals | Simpler code | Memory leak; OOM kills after 50+ PDFs; copied from wrong pattern | Never — always use `render_pdf_in_subprocess` |
+| Using `require_any_authenticated` on CRM list endpoints | Easier to code | Client-role users can see all clients' data — data isolation violation | Never |
+| Storing PDF blobs in `LargeBinary` for proposal documents | Consistent with existing `client_reports` pattern | DB bloat; slow backups; autovacuum overhead at scale | Acceptable for proposals with strict 3-version retention + auto-delete policy |
+| JSONB for all audit intake responses without GIN index | Flexible schema, fast to build | Seq scans on reporting queries; unindexed containment checks | Acceptable only with GIN index in the same migration |
+| Adding CRM navigation items to existing sections rather than a new "Clients" section | Avoids sidebar restructuring work | 8+ ungrouped items; sidebar requires scrolling | Never — new section needed |
+| Sharing `client_user_id` on `Project` as the CRM client link | No new FK column | Conflates authentication principal (User) with business entity (Client); blocks future CRM features that don't involve system access | Never for new CRM work; leave existing FK untouched |
+| Generating proposal PDFs synchronously in the request handler | Simpler endpoint code | Blocks HTTP worker for 5–30 seconds; violates < 3s page response constraint | Never — Celery task from the start |
 
 ---
 
 ## Integration Gotchas
 
-Common mistakes when connecting the new v2.0 features to the existing system.
+Common mistakes when connecting the new v3.0 features to the existing system.
 
 | Integration | Common Mistake | Correct Approach |
 |-------------|----------------|------------------|
-| Quick Wins + `keyword_positions` (partitioned) | `DISTINCT ON` without partition key filter scans all 12+ partitions | Add `checked_at >= now() - interval '90 days'` to prune; prefer `keyword_latest_positions` flat table |
-| Quick Wins + `metrika_traffic_pages` | JOIN on raw `page_url` strings (trailing slash mismatch, http vs https) | Normalize URLs on write; add `normalized_url` computed column and join on that |
-| Impact Scoring + Celery triggers | Computing scores in no trigger — stale forever | Hook score recomputation into crawl finalize task and Metrika sync task |
-| Impact Scoring + existing `audit_results` | `audit_results` has no `traffic_weight` — JOIN to Metrika requires intermediate aggregation | Aggregate Metrika visits per URL first, then join with audit results as a CTE |
-| LLM Briefs + existing `brief_service.py` | Building LLM briefs as a separate service that duplicates template logic | Extend `brief_service.py` with an optional `ai_enhance(brief_dict)` step — template brief is always the base |
-| LLM Briefs + Celery queue | Using `default` queue for LLM tasks | Create `llm` queue with `concurrency=2`; LLM calls are I/O-bound but slow (5–30s each) |
-| Keyword Suggest + XMLProxy | Creating a new HTTP client for suggest when XMLProxy already handles Yandex proxying | Check XMLProxy suggest endpoint support first; if available, reuse `xmlproxy_service.py` |
-| 2FA + existing JWT tokens | Adding 2FA check after JWT issuance means tokens issued before 2FA is enabled are valid without 2FA | Store `totp_verified: bool` in the JWT payload; any token issued without totp_verified=True is rejected if the user has TOTP enabled |
-| In-app Notifications + Celery task results | Generating a notification inside every Celery task callback | Create a `notification_service.emit(event_type, site_id, payload)` function; all tasks call this single function — prevents scattered notification logic across 14 task files |
-| AI/GEO Readiness + content audit | Building a separate content analysis pipeline when `content_audit_service.py` already parses HTML | Re-use existing `detect_author_block()`, `detect_cta_block()` etc.; add GEO-specific checks to the same detection layer |
+| Client CRM + existing `User` (role=client) | Treating a `User` record as the CRM `Client` record | `Client` is a company entity; `User` is an auth principal; link them via `users.client_id FK` but keep separate tables |
+| Client CRM + `Site` | Adding a `client_id` column to `sites` and forgetting `SET NULL` on delete | Always use `ForeignKey("clients.id", ondelete="SET NULL")` — a deleted client should not cascade-delete all their sites |
+| Proposal Templates + Jinja2 environment | Reusing the same `Jinja2Templates` instance used for UI rendering | Proposals need `Undefined(silent=True)`; the UI needs strict undefined for security. Use a separate `jinja2.Environment` for document rendering |
+| Document Generator + WeasyPrint | Importing `weasyprint` directly in the new service | Always call `render_pdf_in_subprocess()` from `subprocess_pdf.py` |
+| Audit Intake + existing `audit_service.py` | Naming the new intake model `Audit` (conflicts with existing `audit.py` / `audit_service.py`) | Name it `IntakeForm` or `AuditIntake` to avoid import collisions |
+| Audit Intake + `audit_log` | Recording intake submission as a long-form `audit_log` entry | Log the event minimally in `audit_log` (action="intake.submitted"); full intake data goes in `audit_intake_items` |
+| HTMX forms for CRM + existing toast pattern | Not returning `HX-Trigger: {"showToast": ...}` header from CRM endpoints | All form POST handlers in this codebase return HTMX response headers for toast notifications; follow the same pattern |
+| Alembic + new tables | `alembic revision --autogenerate` picking up stale diffs from older model edits | Always run `alembic check` before generating a new revision; fix any pre-existing diffs first |
 
 ---
 
 ## Performance Traps
 
-Patterns that work at small scale but fail at real data volumes.
+Patterns that work in development but fail at production data volumes.
 
 | Trap | Symptoms | Prevention | When It Breaks |
 |------|----------|------------|----------------|
-| `DISTINCT ON keyword_positions` without time window | 8–15s query for latest position per keyword | Filter on `checked_at >= now() - interval '90 days'`; use `keyword_latest_positions` table | At ~3 months of data for 100K keywords (i.e., now) |
-| Live Impact Score aggregation per request | Dashboard exceeds 3s for any site | Pre-compute in Celery, store in `error_impact_scores` table | At 50+ audit checks × 200+ pages per site |
-| WeasyPrint in long-running Celery worker without subprocess isolation | Worker OOM after 30–50 PDFs | Subprocess-per-PDF or `--max-tasks-per-child=10` for PDF worker | After ~20 PDFs in one worker process lifetime |
-| In-app notification soft-delete (mark read, keep row) | Page load slows 10ms/week as table bloats | Hard delete on dismiss + nightly cleanup | After ~3 months of active use with 5+ users |
-| LLM API call without token cap | Runaway cost; context window errors | `max_tokens=800` output; truncate input to 2000 tokens | When any page's content is >8K tokens (common for content-heavy pages) |
-| Suggesting keywords by calling Google/Yandex directly from VPS | IP banned within hours | Cache 7 days in Redis; route via DataForSEO or XMLProxy | First day of production use |
-| Passing `site_id` as string vs UUID in new JOIN queries | `TypeError: invalid input for query argument $1` at runtime | Use `uuid.UUID(str(site_id))` cast at service boundary; add UUID type test | Immediately in dev if not caught by type checker |
+| Fetching all sites for a client with eager-loaded keyword counts | Page load > 3s for a client with 20+ sites | Use a subquery or CTE to count keywords per site; do not load all keyword rows | At 5+ sites with 1000+ keywords each |
+| Interaction history query without `LIMIT` | Client timeline page takes 10+ seconds for clients active for 2+ years | Always `ORDER BY created_at DESC LIMIT 50` with cursor pagination | After ~500 interaction records per client |
+| WeasyPrint called inline in HTTP request for "preview" | HTTP timeout for large templates | Preview mode renders only page 1 of the document (add `?preview=1` param that truncates data) or returns HTML without PDF conversion | Immediately for proposals > 3 pages |
+| Generating proposals for all sites in a batch without Celery `group` | Single task holds worker for 10+ minutes; other tasks queue | Use `celery.group()` — one task per document, results joined | At 10+ documents in one batch |
+| Storing `client.notes` as unlimited `Text` with full-text search via `ILIKE '%query%'` | Notes search slows as CRM grows | Add PostgreSQL full-text search index (`tsvector`) if notes search is needed, or use `ILIKE` only with a `LIMIT 100` | After ~1000 client notes |
 
 ---
 
 ## Security Mistakes
 
-Domain-specific security issues beyond general web security.
+Domain-specific security issues for v3.0 features.
 
 | Mistake | Risk | Prevention |
 |---------|------|------------|
-| Storing raw TOTP secret unencrypted in `users.totp_secret` | DB dump exposes all TOTP secrets; attacker can generate valid codes | Encrypt with Fernet (already used for WP credentials in `crypto_service.py`) before storing |
-| Recovery codes stored as plaintext | Same as above — one DB read = full account takeover | bcrypt-hash recovery codes before storage; verify with `bcrypt.verify()` at login |
-| LLM prompt includes full WP page HTML with client data | Client PII (names, emails from contact forms) sent to third-party LLM API | Strip all user-submitted content from pages before building prompts; send only SEO metadata (title, H1–H3, meta description) |
-| Keyword Suggest endpoint without rate limiting | A single user can exhaust the daily XMLProxy/DataForSEO API quota in minutes | `@limiter.limit("10/minute")` on the suggest endpoint (slowapi already installed) |
-| Client PDF accessible via predictable URL | Client A can access Client B's PDF by guessing the filename | Store PDFs in a path with UUID filename; check `site_id` ownership on every PDF download request |
-| 2FA bypass via password reset flow | If password reset does not require 2FA, it becomes a bypass vector | After password reset, invalidate `totp_secret` and require re-enrollment; or require current TOTP code to initiate password reset |
-| LLM API key in environment variable without rotation strategy | Leaked key = unlimited billing | Store in `service_credential` table (already Fernet-encrypted); rotate monthly; set billing limits in OpenAI/Anthropic dashboard |
+| Client-role user can access another client's CRM card via direct URL (IDOR) | Client A reads Client B's proposal, contacts, interaction history | Row-level ownership check in every CRM service function: `if user.role == client: assert record.client_id == user.client_id` |
+| Proposal PDF accessible via a predictable or unauthenticated URL | Anyone with the link can download proposals (contain pricing, SEO strategy) | Serve PDFs via an authenticated endpoint: `GET /proposals/{id}/download` with `require_manager_or_above` check; never serve from static files |
+| Audit intake form accepts arbitrary file uploads for "site screenshots" without validation | Remote code execution via malicious file, or disk exhaustion | If file upload is added to intake forms, reuse the existing `upload_service.py` with file type validation and size limits; store in a dedicated path |
+| CRM contacts stored with phone/email as plaintext | PII in DB plaintext — GDPR concern for EU clients | Acceptable for an internal tool at this scale, but add a note in the model docstring: "PII stored plaintext — do not replicate to logs or external services" |
+| Proposal template variables can be set by managers to inject HTML into generated PDFs | XSS in the PDF (low severity, but messy) | Auto-escape all template variables in the proposal Jinja2 environment: `autoescape=True` |
 
 ---
 
@@ -279,12 +292,11 @@ Common user experience mistakes for these specific features.
 
 | Pitfall | User Impact | Better Approach |
 |---------|-------------|-----------------|
-| Quick Wins shows pages in positions 4–20 without filtering out pages already in the WP pipeline | Users see pages already being optimized as "Quick Wins" — redundant work | Cross-reference with active `wp_content_job` records; exclude pages with pending pipeline jobs |
-| Dead Content shows pages with 0 visits but only because Metrika isn't connected for that site | "Dead content" alert for a site with no Metrika — confusing | Show "Metrika not connected" banner instead of Dead Content tab when `metrika_traffic_pages` is empty for the site |
-| Impact Score shown without "last computed" timestamp | User doesn't know if score reflects today's crawl or last week's | Always show `score_computed_at` next to every score |
-| 2FA QR code shown but no "test code before saving" step | User scans QR, saves secret to DB, but their phone's clock is wrong — they can never log in | Require user to enter a valid TOTP code before the secret is saved; only then mark 2FA as enabled |
-| LLM Brief button active for pages that haven't been crawled | LLM has no content to work with; returns generic brief | Disable LLM Brief button if `pages.last_crawled_at IS NULL` for the target page |
-| Notification bell shows total count including notifications from 30+ days ago | "47 notifications" looks alarming; user dismisses all without reading | Show unread count capped at last 7 days; "and X older" link for the rest |
+| Audit intake form has 50+ fields with no section grouping | Users abandon the form halfway through | Group into 4–5 collapsible sections (Technical, Content, Business Goals, Competitors, Notes); show a completion progress indicator |
+| Proposal generation has no "generating..." feedback | User clicks "Generate PDF" and sees nothing for 30 seconds | Return HTMX response immediately with a spinner + Celery task ID; poll status with `hx-get` every 3 seconds; show "Ready — Download" when complete |
+| Proposal template editor has no preview | Template editor produces broken PDFs due to Jinja2 syntax errors | Add a "Preview HTML" button that renders the template with sample data in-browser (HTML only, no PDF) before committing |
+| Client CRM shows all sites for a client without SEO health summary | Manager must navigate to each site individually to get context | Show inline health badges (position trend arrow, last crawl date, issue count) next to each site in the client card |
+| Audit intake does not pre-fill known data from the platform | User manually types information the platform already has (sitemap URL, crawl issue count, top keywords) | Pre-populate intake form fields from existing site data wherever possible: `site.url`, `audit_results`, `keyword_count` |
 
 ---
 
@@ -292,21 +304,19 @@ Common user experience mistakes for these specific features.
 
 Things that appear complete but are missing critical pieces.
 
-- [ ] **Quick Wins:** URL normalization applied — verify by comparing `pages.url` with `metrika_traffic_pages.page_url` for a site with known data. Missing normalization = silent zero results.
-- [ ] **Quick Wins:** Excludes pages already in active WP pipeline (`wp_content_job.status IN ('pending', 'in_progress')`) — verify with test that has an active job.
-- [ ] **Impact Scoring:** Score is pre-computed (check `error_impact_scores` table exists and has rows after crawl finalization) — not live-computed per request.
-- [ ] **Impact Scoring:** Recomputation is triggered by *both* crawl finalize AND Metrika sync — verify by running each independently and checking `score_computed_at` updates.
-- [ ] **Client PDF:** Generated in subprocess or isolated worker — verify with `docker stats` that the PDF worker container memory returns to baseline after a 10-site report run.
-- [ ] **Keyword Suggest:** Results are cached in Redis — verify by calling the endpoint twice for the same keyword and checking Redis key exists with TTL > 0.
-- [ ] **Keyword Suggest:** Rate limit header returned in response — verify with `curl -I` that `X-RateLimit-*` headers appear.
-- [ ] **LLM Briefs:** Graceful fallback to template brief on API failure — verify by temporarily setting an invalid API key and checking the brief endpoint still returns a result.
-- [ ] **LLM Briefs:** Token cap enforced — verify by passing a 20K-character page and checking that the API call uses < 2500 total tokens.
-- [ ] **2FA:** `totp_secret=NULL` path (not enrolled) still lets user log in — verify with a test user that has no 2FA set up.
-- [ ] **2FA:** Recovery code is invalidated after single use — verify by using a recovery code twice; second use should return 401.
-- [ ] **2FA:** Admin can reset 2FA for a user — verify via admin UI or admin API endpoint.
-- [ ] **Notifications:** Nightly cleanup task is registered in Celery Beat — verify in Flower that the task appears in the schedule.
-- [ ] **Notifications:** Table size does not grow unboundedly — verify after 1 week that row count stays below 10K.
-- [ ] **AI/GEO Readiness:** Reuses existing `content_audit_service.py` detection functions — no duplicate regex patterns for the same checks.
+- [ ] **Client CRM:** `Client` entity is distinct from `User` (role=client) — verify that creating a client does not touch the `users` table and that `users.client_id FK` is nullable.
+- [ ] **Client CRM:** Row-level access for client-role users implemented — verify that a client-role user cannot fetch another client's card via direct API call (`GET /clients/{other_id}` returns 403, not 200).
+- [ ] **Client CRM:** `clients.id` is referenced in `sites` with `SET NULL` cascade — verify by deleting a test client and confirming that associated sites still exist with `client_id = NULL`.
+- [ ] **Audit Intake:** JSONB responses have a GIN index (if JSONB approach chosen) — verify with `\d audit_intake` in psql that the index appears.
+- [ ] **Audit Intake:** Form pre-populates known site data — verify by opening intake for a fully-configured site and confirming that auto-populated fields appear.
+- [ ] **Proposal Templates:** Jinja2 environment for templates uses `Undefined(silent=True)` — verify by rendering a proposal with a variable that has no data and confirming it outputs `""` not a 500 error.
+- [ ] **Proposal Templates:** `ProposalContext` Pydantic model has safe defaults for all fields — verify by passing an empty `Site` object and confirming every template variable renders without error.
+- [ ] **Document Generator:** Calls `render_pdf_in_subprocess()` — verify that no `import weasyprint` appears in the new document service file.
+- [ ] **Document Generator:** PDF generation is Celery-async — verify that the generate endpoint returns immediately with a task ID, not after 30 seconds.
+- [ ] **Document Generator:** Retention policy implemented — verify that old document blobs are deleted after 90 days (check Celery Beat schedule in Flower).
+- [ ] **Sidebar:** New "Clients" section has a working icon — verify that the sidebar renders the icon correctly (no blank space) after adding the new nav section.
+- [ ] **Alembic:** `alembic heads` returns exactly 1 head after all v3.0 migrations — verify in CI.
+- [ ] **RBAC:** All CRM write endpoints use `require_manager_or_above` — verify with a test that sends a request authenticated as a `client`-role user and expects 403.
 
 ---
 
@@ -316,14 +326,13 @@ When pitfalls occur despite prevention, how to recover.
 
 | Pitfall | Recovery Cost | Recovery Steps |
 |---------|---------------|----------------|
-| URL mismatch causing zero JOIN results | MEDIUM | Run one-time normalization UPDATE across `pages`, `metrika_traffic_pages`, `audit_results`; add normalized_url column; rebuild indexes |
-| DISTINCT ON query causing timeouts | LOW | Add `checked_at` filter immediately; schedule backfill of `keyword_latest_positions` table as Celery task |
-| WeasyPrint OOM killing Celery worker | LOW | Restart the celery-default container; add `--max-tasks-per-child=10` to the worker command in `docker-compose.yml` |
-| IP ban from Google/Yandex suggest | LOW-MEDIUM | Switch to DataForSEO/XMLProxy routing; wait 24–48h for IP ban to lift; add Redis cache immediately |
-| LLM API cost spike | LOW | Set billing alert in provider dashboard; cap `max_tokens` in code; enable circuit breaker |
-| 2FA lockout of users | HIGH | Admin runs `UPDATE users SET totp_secret = NULL WHERE id = ?`; user re-enrolls on next login; add admin recovery endpoint proactively |
-| Notifications table bloat | MEDIUM | Run `DELETE FROM notifications WHERE created_at < now() - interval '30 days'`; expect VACUUM to run after; set autovacuum tuning |
-| Alembic multiple heads from adding 9 migrations | LOW | `alembic merge heads -m "merge_v2_heads"`; review generated migration; apply |
+| Client/User entity conflation discovered after migration | HIGH | Requires a new migration to create `Client` table, backfill from `users` where `role=client`, add FKs, update service layer; data is not lost but schema migration is complex |
+| Alembic multiple heads | LOW | `alembic merge heads -m "0045_merge_v3_heads"`; review and apply; takes < 30 minutes |
+| WeasyPrint OOM (wrong pattern used for document generation) | LOW-MEDIUM | Restart Celery worker container; refactor document service to use `render_pdf_in_subprocess`; redeploy; all in-flight documents must be regenerated |
+| JSONB without GIN index (reporting queries are slow) | LOW | `CREATE INDEX CONCURRENTLY ix_audit_intake_gin ON audit_intake USING GIN(responses_json)` — runs online without locking the table |
+| PDF blobs causing DB bloat | MEDIUM | One-time cleanup: export blobs to filesystem, update `pdf_path` column, `UPDATE` to set `pdf_data = NULL`, `VACUUM FULL`; takes 1–2 hours |
+| Proposal template Undefined errors in production | LOW | Set `undefined=ChainableUndefined` in the Jinja2 environment and redeploy; 5-minute fix |
+| Client-role IDOR vulnerability discovered | HIGH | Immediate hotfix: add ownership check to all CRM service functions; audit logs to determine if any data was accessed improperly; notify affected users |
 
 ---
 
@@ -333,32 +342,33 @@ How roadmap phases should address these pitfalls.
 
 | Pitfall | Prevention Phase | Verification |
 |---------|------------------|--------------|
-| URL mismatch on JOIN | Phase 1 (Quick Wins) — build `normalize_url()` first | Test: 5 URL variants of same page all JOIN correctly |
-| DISTINCT ON partition scan | Phase 1 (Quick Wins) — create `keyword_latest_positions` table | EXPLAIN ANALYZE shows max 3 partition scans |
-| Impact Score staleness | Phase 2 (Impact Scoring) — pre-compute in Celery from day 1 | `error_impact_scores` has rows; `score_computed_at` updates on crawl finalize |
-| WeasyPrint OOM | Phase 3 (Client PDF) — subprocess isolation before first PDF call | docker stats stable after 20-site report run |
-| Keyword Suggest IP ban | Phase 4 (Keyword Suggest) — cache + proxy routing from first call | Redis key present after first suggest call |
-| LLM fallback missing | Phase 5 (LLM Briefs) — template fallback is the default path | Invalid API key → template brief returned, no 500 error |
-| 2FA lockout | Phase 6 (2FA) — migration adds nullable column; 2FA optional by default | Existing user with NULL totp_secret can still login |
-| Notification bloat | Phase 6 (Notifications) — cleanup task in same PR as table creation | Nightly cleanup appears in Flower schedule |
-| Alembic multiple heads | Every phase — single head verified in CI | `alembic heads` returns exactly 1 head in CI |
-| Test coverage regression | Every phase — new service code requires tests before merge | `pytest --cov-fail-under=60` passes in CI |
+| Client/User entity conflation | Phase 1 (Client CRM) | `Client` table exists; `users` table unchanged except for nullable `client_id` FK |
+| Alembic migration drift | Every phase | `alembic check` passes before each `revision --autogenerate`; `alembic heads` returns 1 |
+| WeasyPrint direct import in document service | Phase 3 (Document Generator) | `grep -r "import weasyprint" app/services/` returns only `subprocess_pdf.py` |
+| RBAC collision (manager vs admin vs client scope) | Phase 1 (Client CRM) | Test: client-role user cannot access other client's data |
+| Audit intake unqueryable JSONB | Phase 2 (Audit Intake) | GIN index present OR typed rows used; reporting query uses index (EXPLAIN ANALYZE) |
+| Proposal template Undefined errors | Phase 3 (Proposal Templates) | Template renders without error for a site with zero connected data sources |
+| PDF blob table bloat | Phase 3 (Document Generator) | Retention Celery task appears in Flower schedule on day 1 |
+| CRM interaction history in audit_log | Phase 1 (Client CRM) | `client_interactions` table exists; `audit_log` only contains event summary |
+| Sidebar overflow | Phase 1 (Client CRM) | "Clients" section added with icon; sidebar items per section ≤ 6 |
 
 ---
 
 ## Sources
 
-- WeasyPrint memory leak issues: [GitHub #2130](https://github.com/Kozea/WeasyPrint/issues/2130), [GitHub #1977](https://github.com/Kozea/WeasyPrint/issues/1977), [GitHub #1104](https://github.com/Kozea/WeasyPrint/issues/1104)
-- PostgreSQL DISTINCT ON performance: [CYBERTEC: Killing performance with partitioning](https://www.cybertec-postgresql.com/en/killing-performance-with-postgresql-partitioning/), [Tiger Data: DISTINCT 8000x faster](https://www.tigerdata.com/blog/how-we-made-distinct-queries-up-to-8000x-faster-on-postgresql)
-- PostgreSQL table bloat and partitioning as TTL: [Simple Thread: Drop Partitions Not Performance](https://www.simplethread.com/beyond-delete/), [Medium: Partitioning to avoid bloat](https://medium.com/@achakrab01/using-partitioning-in-postgresql-to-avoid-table-bloat-and-implement-ttl-like-feature-b217572e9f0a)
-- OpenAI rate limiting and cost control: [OpenAI Cookbook: Handle rate limits](https://cookbook.openai.com/examples/how_to_handle_rate_limits), [Skywork: AI API cost management 2025](https://skywork.ai/blog/ai-api-cost-throughput-pricing-token-math-budgets-2025/)
-- Alembic multiple heads: [GitHub Discussion #1543](https://github.com/sqlalchemy/alembic/discussions/1543), [Jerry Codes: Multiple heads in Alembic](https://blog.jerrycodes.com/multiple-heads-in-alembic-migrations/)
-- TOTP/2FA implementation: [PyOTP docs](https://pyauth.github.io/pyotp/), [FastAPI 2FA guide](https://codevoweb.com/two-factor-authentication-2fa-in-fastapi-and-python/)
-- Prompt injection risks in LLM tools: [OWASP LLM01:2025](https://genai.owasp.org/llmrisk/llm01-prompt-injection/), [LLM Safety for SEOs](https://t-ranks.com/aeo/llm-safety-prompt-injection-seo/)
-- Yandex Wordstat API and IP protection: [Yandex Wordstat API docs](https://yandex.com/support2/wordstat/en/content/api-structure), [Yandex Autocomplete scraping](https://brightdata.com/products/serp-api/yandex-search/autocomplete)
-- Redis materialized view tradeoffs: [Leapcell: Postgres Materialized Views vs Redis](https://leapcell.io/blog/choosing-between-postgres-materialized-views-and-redis-application-caching)
-- Codebase: existing `content_audit_service.py` regex patterns, `position.py` partition model, `metrika.py` page_url storage, `report_service.py` WeasyPrint usage, `user.py` auth model, `xmlproxy_service.py` proxy patterns
+- WeasyPrint memory leak: project history Phase 14 CONTEXT.md (D-12), `subprocess_pdf.py` module docstring, WeasyPrint GitHub issues #2130 and #1977
+- Existing auth model: `app/auth/dependencies.py` — `require_role()`, `require_admin`, `require_manager_or_above`, `require_any_authenticated`
+- Existing RBAC pattern: `app/routers/sites.py` — `require_admin` applied to all site management endpoints
+- Existing PDF pattern: `app/services/client_report_service.py` + `app/services/subprocess_pdf.py`
+- Existing Alembic chain: 44 migrations, most recent `9c65e7d94183_add_report_schedules_table.py`
+- Existing User model: `app/models/user.py` — `UserRole` enum with `admin`, `manager`, `client` values
+- Existing Project model: `app/models/project.py` — `client_user_id` FK on `users.id`
+- Existing Site model: `app/models/site.py` — no `client_id` column currently
+- Existing sidebar: `app/templates/components/sidebar.html` — icon name mapped to SVG via `{% elif %}` chain; new icons require adding a new branch
+- Jinja2 `Undefined` behavior: Jinja2 3.1 documentation — `Environment(undefined=Undefined)` raises on access; `ChainableUndefined` or `DebugUndefined` silently returns empty string
+- PostgreSQL JSONB GIN indexing: PostgreSQL 16 documentation — `CREATE INDEX ... USING GIN(jsonb_col)` required for `@>` containment queries; B-tree index on JSONB does not help
+- HTMX toast pattern: existing `base.html` — `htmx:responseError` event handler + `showToast()` JS function; all POST handlers should return `HX-Trigger: {"showToast": {...}}` header
 
 ---
-*Pitfalls research for: SEO Management Platform v2.0 (adding to 35K LOC existing system)*
-*Researched: 2026-04-06*
+*Pitfalls research for: SEO Management Platform v3.0 (Client CRM, Audit Intake, Proposal Templates, Document Generator)*
+*Researched: 2026-04-09*

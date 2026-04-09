@@ -1,230 +1,191 @@
 # Project Research Summary
 
-**Project:** SEO Management Platform v2.0 — SEO Insights & AI
-**Domain:** Self-hosted SEO management for WordPress agencies (20–100 sites)
-**Researched:** 2026-04-06
+**Project:** SEO Management Platform — v3.0 Client & Proposal Milestone
+**Domain:** SEO Agency Internal Platform — Client CRM, Audit Intake, Proposal Templates, Document Generator
+**Researched:** 2026-04-09
 **Confidence:** HIGH
 
 ## Executive Summary
 
-v2.0 is a data-activation milestone, not a data-collection one. The platform already holds positions, crawl snapshots, Metrika traffic, content audit results, gap analysis, and cannibalization data from v1.0. The entire v2.0 feature set converts that existing data into actionable surfaces: Quick Wins, Dead Content, Error Impact Scoring, Growth Opportunities, AI/GEO Readiness, Client PDFs, Keyword Suggest, LLM Briefs, 2FA, and In-App Notifications. Seven of nine feature groups require no new data sources — only new queries and new presentation layers over existing tables.
+This milestone adds the sales and client management layer to an existing 117K LOC FastAPI + Celery + PostgreSQL platform. The platform already handles site monitoring, position tracking, content optimization, and PDF report generation — v3.0 turns it into a tool that can also sell SEO work: managing client companies, onboarding new sites through structured intake forms, and generating commercial proposals (КП) as branded PDFs. The core finding across all four research areas is that no new libraries are needed — every v3.0 capability maps directly to existing stack components, and every new architectural pattern has an established precedent in the current codebase.
 
-The recommended approach is additive extension of the existing 35K LOC FastAPI + Celery + PostgreSQL codebase. Four stack additions are needed (anthropic SDK, pyotp, qrcode, sse-starlette); the remaining capabilities are covered by the existing stack. Architecture changes are low-risk: mostly new service files and new router files, with a handful of nullable column additions to existing models. The three highest-risk changes are the `keyword_positions` DISTINCT ON query pattern (requires a `keyword_latest_positions` materialized table from day one), WeasyPrint memory management for PDF generation (requires subprocess-per-PDF isolation), and 2FA login flow changes (must be opt-in with nullable columns, never mandatory in the rollout migration).
+The recommended approach is an additive, three-phase build driven by FK dependency order: Client CRM first (anchors all other entities), Site Audit Intake second (can run in parallel with CRM), Proposals and Document Generator third (requires client_id FK from Phase 1). The Document Generator is explicitly not a new subsystem — it is a generalisation of the existing ClientReport / subprocess_pdf.py / Celery lifecycle pattern. The total schema surface is six new tables and four additive changes to existing files.
 
-The core risk in this milestone is performance, not correctness. All five analytical features (Quick Wins, Dead Content, Impact Scoring, Growth Opportunities, GEO Readiness) query across large, partitioned, or multi-joined tables. Each must be designed with caching or pre-computation from the start — retrofitting later at 100K keywords and 50 sites is a rewrite, not an optimization. If these patterns are established correctly in Phases 1 and 2, the remaining phases are straightforward extensions.
+The highest-risk area is the semantic boundary between Client (a business entity, new table) and User (role=client, existing table). If this distinction is not enforced from the first migration, queries that span client data and user permissions become tangled and future CRM features require expensive refactors. The second critical risk is RBAC scope for CRM endpoints — managers need full CRM access, client-role users need row-level isolation to their own record only. Both risks must be resolved in Phase 1 planning before any code is written.
+
+---
 
 ## Key Findings
 
 ### Recommended Stack
 
-The v1.0 stack (Python 3.12, FastAPI 0.115, SQLAlchemy 2.0 async, PostgreSQL 16, Redis 7, Celery 5.4, Playwright 1.47, HTMX 2.0, WeasyPrint 62) is fully validated and unchanged. v2.0 requires four additions:
+The existing stack fully covers all v3.0 requirements. No new packages should be added. The key mappings: Jinja2 SandboxedEnvironment handles proposal template rendering from DB-stored templates (security-critical — user-authored templates must not use the main Jinja2Templates singleton); WeasyPrint via subprocess_pdf.py handles all PDF generation (memory leak mitigation, Decision D-12); HTMX section-by-section submission handles multi-step intake forms; SQLAlchemy JSONB columns handle flexible contact metadata on the clients table; Celery default queue handles async PDF generation with the existing pending -> generating -> ready | failed lifecycle.
 
-**New libraries (v2.0 only):**
-- `anthropic >= 0.89.0`: Official Anthropic SDK — use sync `Anthropic` client in Celery tasks, `AsyncAnthropic` + `EventSourceResponse` for streaming in FastAPI endpoints; never use `AsyncAnthropic` inside a standard Celery task without `asyncio.run()`
-- `pyotp >= 2.9.0`: RFC 6238 TOTP for 2FA — de-facto Python standard, pure Python, no system deps
-- `qrcode[pil] >= 8.2`: QR code generation for 2FA setup — `[pil]` extra required for PNG output; Pillow is already a transitive WeasyPrint dep
-- `sse-starlette >= 3.3.3`: Production SSE for FastAPI — required only if real-time notification push is chosen over HTMX polling (architecture decision deferred to Phase 6)
-
-**Not needed:** spaCy/NLP (GEO readiness is rule-based DOM inspection), openai SDK (Anthropic covers LLM), WebSockets (SSE or polling is sufficient), serpapi (free autocomplete endpoints work for internal tooling at this scale).
+**Core technologies (v3.0 relevant):**
+- **Jinja2 3.1 SandboxedEnvironment**: render DB-stored proposal templates — prevents config.SECRET_KEY injection from user-authored templates; ships with Jinja2, no install needed
+- **WeasyPrint 62 via subprocess_pdf.py**: all PDF generation — subprocess isolation prevents memory leaks; call render_pdf_in_subprocess(), never weasyprint.HTML().write_pdf() directly
+- **SQLAlchemy 2.0 JSONB columns**: clients.contacts flexible metadata, proposals.resolved_vars snapshot — use JSONB not JSON for GIN indexability
+- **Celery 5.4 default queue**: async PDF generation — clone client_report_tasks.py pattern exactly; no new queue needed
+- **HTMX 2.0 hx-swap="outerHTML"**: section-by-section intake form saves — pattern already used in pipeline approval flow
+- **python-multipart 0.0.9**: all form bodies — already the platform pattern, no change needed
+- **Alembic 1.13**: three sequential migrations (0043 clients, 0044 intake, 0045 proposals) — always run alembic check before --autogenerate
 
 ### Expected Features
 
-**Must have (table stakes for v2.0):**
-- Quick Wins page — positions 4–20 + missing optimizations, ranked by traffic impact
-- Dead Content detection — zero traffic + no ranking for 90+ days + published 180+ days ago
-- Error Impact Scoring — audit errors weighted by Metrika traffic percentile of affected pages
-- Growth Opportunities — unified aggregation of gap keywords, lost positions, cannibalization
-- AI/GEO Readiness checklist — schema, structure, E-E-A-T checks against existing crawl data
-- Client Instructions PDF — non-technical, plain-language report for site owners
-- Keyword Suggest — Google/Yandex autocomplete with Redis caching and rate limiting
-- LLM Briefs (opt-in) — Anthropic-generated content briefs extending existing `ContentBrief` model
-- 2FA (TOTP) — opt-in per user; no mandatory rollout
-- In-App Notifications — bell icon with per-event notifications from Celery tasks
+The v3.0 milestone delivers the "sales layer" on top of existing SEO monitoring. Feature research confirms all P1 (launch) features are achievable with existing infrastructure.
 
-**Differentiators over competitors:**
-- Traffic-weighted opportunity scoring (no competitor natively combines position + Metrika + audit data)
-- Inline batch-fix actions that dispatch directly to existing WP content pipeline
-- LLM brief generation from structured brief data (not raw HTML) — controlled cost, auditable prompts
+**Must have (table stakes / v3.0 MVP):**
+- Client cards (name, company, INN/KPP, contacts, manager assignment) — Russian agency context requires INN/KPP for invoicing
+- Sites attached to clients via nullable FK — one client owns 1-N sites
+- Interaction log (text notes + date + author) — minimum CRM capability
+- Site audit intake form (fixed schema, save draft, completion status, pre-populated from existing platform data)
+- Proposal template CRUD (admin manages Jinja2-HTML templates with variable placeholders)
+- Core variable resolver (client name, site URL, position metrics, audit error count)
+- Async PDF generation from template + site data (Celery task, stored bytes, downloadable)
+- Document list per client with download links
 
-**Defer to v3+:**
-- White-label theming beyond logo field
-- Real-time SERP feature detection (Perplexity/ChatGPT citation monitoring)
-- Yandex Wordstat per-user OAuth setup (medium complexity, low priority)
-- Backlink opportunity analysis (no backlink data in current stack)
-- Auto-send reports without manager review (too risky)
+**Should have (differentiators, v3.x after validation):**
+- Intake to proposal pre-fill (intake answers auto-populate proposal variables)
+- Platform data variables (live position/traffic queries at render time)
+- Send generated document via Telegram / SMTP
+- Client health score (aggregate site health widget data)
+- Variable overrides at generation time (per-generation override dict)
+
+**Defer to v4+:**
+- Client portal (CRM data visible to client-role users)
+- E-signature integration
+- LLM-assisted proposal copy (opt-in)
+- Multi-language template variants
+- Public intake form (client-filled, requires auth-free route)
 
 ### Architecture Approach
 
-All nine features integrate as additive extensions to the existing architecture. No existing services are refactored; no existing models have destructive changes. The pattern is: new `routers/`, new `services/`, new `tasks/`, and nullable column additions via Alembic migrations. The most architecturally significant decision is whether in-app notifications use HTMX polling (30s interval, simpler) or SSE push via Redis pub/sub (real-time, requires `sse-starlette`). Architecture research recommends polling for this user scale (< 20 users), deferring SSE unless real-time delivery is explicitly required.
+All v3.0 features integrate additively into the existing FastAPI app — no new services, no microservices, no new queues. Three new router/service/model families (clients, intake, proposals) follow the identical async service layer pattern used across 50+ existing services. The Document Generator reuses subprocess_pdf.py and client_report_tasks.py unchanged. The only existing files modified are app/main.py (three include_router() calls), app/navigation.py (new "Клиенты" section), app/celery_app.py (register proposal_tasks), and app/models/site.py (add nullable client_id column). All changes to existing files are append-only.
 
-**Major components and responsibilities:**
-1. `app/services/insights_service.py` (new) — cross-cutting Quick Wins / Dead Content / Opportunities queries joining positions + audit + Metrika
-2. `app/services/impact_scoring_service.py` (new) — audit error prioritization; pre-computes to `error_impact_scores` table via Celery, never live per request
-3. `app/services/suggest_service.py` (new) — keyword autocomplete fetching + Redis caching; external calls isolated in Celery tasks
-4. `app/services/notification_service.py` (new) — single `emit()` entrypoint called from all Celery tasks; prevents scattered notification logic across 14 task files
-5. `app/models/notification.py` (new) — notification storage with 30-day cleanup via Celery Beat
-6. `app/routers/insights.py` (new) — `/insights/{site_id}/quick-wins`, `/dead-content`, `/impact-scores`, `/opportunities`
-7. `AuditCheckDefinition` extension — `geo_*` check codes seeded via Alembic data migration; no schema change
-8. `ContentBrief` model extension — nullable `llm_brief_text`, `llm_generated_at`, `llm_*_tokens` columns
-9. `User` model extension — nullable `totp_secret` (Fernet-encrypted), `totp_enabled`, `totp_backup_codes`
+**Major components (new):**
+1. **Client CRM** (app/models/client.py, routers/clients.py, services/client_service.py) — Client + ClientInteraction models; clients and client_interactions tables; migration 0043 also adds sites.client_id nullable FK
+2. **Site Audit Intake** (app/models/intake.py, routers/intake.py, services/intake_service.py) — IntakeForm + IntakeResponse models; key-value row storage (not JSONB blob); migration 0044
+3. **Proposal Templates + Document Generator** (app/models/proposal.py, routers/proposals.py, services/proposal_service.py, services/proposal_variable_service.py, tasks/proposal_tasks.py) — ProposalTemplate + Proposal models; Celery PDF generation cloned from client_report_tasks.py; migration 0045
 
-**Critical architectural invariant:** `keyword_latest_positions` materialized table must be built in Phase 1. The existing `DISTINCT ON (keyword_id, engine) ORDER BY checked_at DESC` pattern degrades to 8–15 second full partition scans at 100K keywords x 12 months. This table is the foundation for Quick Wins, Dead Content, and Growth Opportunities.
+**Patterns to replicate exactly:**
+- Router -> service -> AsyncSession (no DB logic in routers)
+- Celery task: asyncio.run(_run()) wrapper around async code
+- PDF: render_pdf_in_subprocess() only — never direct WeasyPrint
+- HTMX status polling: hx-trigger="every 3s" until status="ready" or "failed"
+- Toast notifications: all POST handlers return HX-Trigger: {"showToast": {...}} header
 
 ### Critical Pitfalls
 
-1. **URL mismatch ruins JOIN queries (Phase 1)** — `pages.url`, `metrika_traffic_pages.page_url`, and `keyword_positions.url` use different normalization (trailing slashes, http vs https, UTM params). JOINs silently return zero rows. Build `normalize_url()` utility and apply on write before any JOIN query is written. Test with 5 URL variants of the same page.
+1. **Client/User entity conflation** — Client (company, CRM) and User (role=client, auth) are different concepts sharing one word. Resolve this in Phase 1 schema design before any migration: Client is a new table; users gains a nullable client_id FK; existing Project.client_user_id is left untouched. Never modify the UserRole enum value "client" — it is stored in the DB.
 
-2. **DISTINCT ON on partitioned `keyword_positions` causes timeout at scale (Phase 1)** — Full partition scans at 100K keywords take 8–15 seconds. Create `keyword_latest_positions` flat table (one row per keyword+engine, updated after each position check) and query that instead. Add `WHERE checked_at >= now() - interval '90 days'` as minimum mitigation.
+2. **WeasyPrint direct import in document service** — copying the wrong pattern creates an OOM-killing memory leak. The existing subprocess_pdf.py is the only sanctioned PDF API. Add a "WARNING: Never call weasyprint.HTML().write_pdf() directly" docstring to subprocess_pdf.py as the first task in Phase 3, before any document service code is written.
 
-3. **WeasyPrint memory leak kills Celery workers (Phase 3)** — Each `write_pdf()` call adds 20–40 MB RSS that is never released (GitHub issues #2130, #1977). Run PDF generation in a subprocess per report, or set `--max-tasks-per-child=10` on the PDF worker. Never generate all client PDFs in a single long-running task.
+3. **Proposal template Undefined errors on incomplete site data** — Jinja2's default Undefined raises on missing variables; production sites often lack Metrika, positions, or GSC data. Use a ProposalContext Pydantic model with safe defaults ("" or 0) for all variables, and configure the proposal jinja2.Environment with undefined=ChainableUndefined (separate from the UI environment which uses strict undefined for security).
 
-4. **Keyword Suggest triggers IP ban within hours (Phase 4)** — Google and Yandex treat server-to-server autocomplete calls as scraping. Route through DataForSEO or XMLProxy (already in stack); cache all suggest results in Redis with 7-day TTL; apply `@limiter.limit("10/minute")` on the endpoint.
+4. **RBAC collision for CRM endpoints** — require_admin locks out managers; require_any_authenticated allows client-role users to see all client data (IDOR). Use require_manager_or_above for all CRM writes; add row-level ownership check in service layer for client-role reads: if user.role == UserRole.client: assert record.client_id == user.client_id.
 
-5. **LLM API failures must degrade gracefully (Phase 5)** — The template-based brief (already generated by `brief_service.py`) must always be returned, with LLM enhancement as an optional overlay. Implement a circuit breaker after 3 consecutive failures. Cap input at 2000 tokens and output at 800 tokens to prevent runaway cost.
+5. **Alembic migration drift** — 44 existing migrations; alembic revision --autogenerate silently includes stale diffs from unrelated model edits. Run alembic check before every --autogenerate. Review the full generated migration file. Verify alembic heads returns exactly 1 head as acceptance criterion for each phase.
 
-6. **2FA migration locks out existing users (Phase 6)** — Add `totp_secret` as nullable with default NULL. Never make 2FA mandatory in the same migration that adds the column. Two-phase rollout: opt-in first, then optional forced enforcement later.
-
-7. **Notifications table bloat (Phase 6)** — Soft-delete (mark-as-read) generates dead tuple churn that defeats PostgreSQL autovacuum. Use hard DELETE on dismiss, nightly cleanup task, and set `autovacuum_vacuum_scale_factor = 0.01` on the notifications table in the same migration that creates it.
+---
 
 ## Implications for Roadmap
 
-Based on research, features split into dependency tiers that suggest a natural phase order.
+The FK dependency chain is the primary constraint on phase order: clients table must exist before proposals or documents can reference client_id. Audit intake has no FK dependency on clients (site-scoped) and can be built in parallel, but practical development on a solo stack favors sequential delivery.
 
-### Phase 1: Analytical Foundations (Quick Wins + Dead Content)
+### Phase 1: Client CRM Foundation
 
-**Rationale:** Both features depend on the same infrastructure prerequisite — URL normalization and `keyword_latest_positions` materialized table. Building both together amortizes the setup cost. These are the highest-value, lowest-complexity features (pure SQL over existing data). They demonstrate v2.0 value immediately.
+**Rationale:** All other v3.0 features require a clients table. The Client vs User semantic boundary must be established as a schema decision before any subsequent migration. RBAC patterns for CRM scope must be defined here and reused in Phases 2-3. Navigation restructuring for all v3.0 features belongs here to avoid four separate sidebar commits.
 
-**Delivers:** Quick Wins page, Dead Content page, `normalize_url()` utility, `keyword_latest_positions` table, `insights_service.py` foundation, `routers/insights.py`
+**Delivers:** clients table + client_interactions table + sites.client_id FK (migration 0043); client list page, client detail page, site-to-client attachment UI, interaction log; navigation "Клиенты" section with icon for all v3.0 children
 
-**Addresses:** Feature Groups 1 and 2 from FEATURES.md
+**Addresses:** Client card CRUD (P1), sites attached to clients (P1), interaction log (P1)
 
-**Avoids:** URL mismatch pitfall and DISTINCT ON partition scan pitfall — both must be addressed before any JOIN query is written
+**Avoids:** Client/User entity conflation (Pitfall 1), RBAC collision (Pitfall 4), audit_log semantic pollution (Pitfall 8), sidebar overflow (Pitfall 9)
 
-**Research flag:** Standard patterns — skip phase research. Pure SQL analytics, well-understood PostgreSQL optimization.
+**Must resolve in planning:** ADR covering Client vs User boundary; explicit RBAC rules per endpoint; SET NULL cascade on sites.client_id; sidebar icon for new "Клиенты" section added to sidebar.html
 
-### Phase 2: Impact Scoring + Growth Opportunities
+### Phase 2: Site Audit Intake
 
-**Rationale:** Depends on Phase 1 infrastructure (`normalize_url`, `keyword_latest_positions`, `insights_service.py`). Both features add aggregation layers over existing data. Impact Scoring requires the `error_impact_scores` pre-computation table and Celery trigger hooks. Growth Opportunities reuses Phase 1's `insights_service.py`.
+**Rationale:** Intake is site-scoped (no client_id FK dependency), making it buildable immediately after Phase 1. Intake data drives proposal pre-fill in Phase 3 — the intake_responses table's question_key schema must be designed with Phase 3's variable resolver in mind to enable intake -> proposal pre-fill without a schema rewrite.
 
-**Delivers:** Error Impact Scoring (pre-computed, Celery-triggered), Growth Opportunities page, `impact_scoring_service.py`, `opportunities_service.py`
+**Delivers:** intake_forms + intake_responses tables (migration 0044); HTMX multi-section intake form per site; auto-population of known platform data (WP connected, GSC linked, crawl status); completion status flag; section-by-section save with HTMX outerHTML swap
 
-**Addresses:** Feature Groups 3 and 4 from FEATURES.md
+**Addresses:** Site audit intake form (P1), pre-populated checklist items (P1), save draft and resume (P1), intake completeness score (P2)
 
-**Avoids:** Live aggregation performance trap — `error_impact_scores` must be pre-computed from day one
+**Avoids:** JSONB blob anti-pattern (Pitfall 5) — use typed key-value rows with UNIQUE(form_id, question_key); audit_log semantic pollution (Pitfall 8)
 
-**Research flag:** Standard patterns — skip phase research.
+**Must resolve in planning:** question_key naming schema that aligns with Phase 3 variable resolver; JSONB vs typed rows decision (typed rows recommended); GIN index if JSONB is chosen
 
-### Phase 3: Client PDF Reports
+### Phase 3: Proposal Templates + Document Generator
 
-**Rationale:** Depends on existing `report_service.py` and WeasyPrint (already working for internal reports). Largely self-contained — new Jinja2 template + one new aggregation function. Isolated early because it has its own critical pitfall (WeasyPrint OOM) that must be solved in isolation before it contaminates the PDF worker shared with existing reports.
+**Rationale:** Requires clients table from Phase 1 (for proposals.client_id FK). Reuses the complete ClientReport infrastructure — the Document Generator is a generalisation of existing patterns, not a new subsystem. Variable resolver scope must be fixed upfront: static variables in v3.0, live complex aggregation queries deferred to v3.x.
 
-**Delivers:** Client Instructions PDF template, `client_report_data()` aggregator, `GET /reports/{site_id}/client-instructions/pdf`, subprocess-isolated PDF generation
+**Delivers:** proposal_templates + proposals tables (migration 0045); admin template CRUD with Jinja2-HTML body and variable syntax; ProposalVariableResolver service (reads report_service, site_service, client_service); Celery async PDF generation task (cloned from client_report_tasks.py); HTMX status polling UI; document download endpoint; document list per client
 
-**Addresses:** Feature Group 6 from FEATURES.md
+**Addresses:** Proposal template CRUD (P1), core variable resolver (P1), PDF generation from template (P1), document storage + download (P1), document list per client (P1)
 
-**Avoids:** WeasyPrint OOM by establishing subprocess-per-PDF pattern before any PDF code is written
+**Avoids:** Direct WeasyPrint import (Pitfall 3), Jinja2 Undefined errors on missing data (Pitfall 6), PDF blob table bloat (Pitfall 7 — add retention Celery Beat task on day 1)
 
-**Research flag:** Standard patterns — skip phase research.
-
-### Phase 4: Keyword Suggest
-
-**Rationale:** Externally-dependent feature with its own risk profile (IP bans, rate limits). Isolated in its own phase so its failure modes do not block other work. Requires new `suggest_service.py` and `suggest_tasks.py` but no changes to existing services.
-
-**Delivers:** Keyword suggest UI (inline in keyword add flow), `suggest_service.py`, `suggest_tasks.py`, Redis suggest cache, rate limiting on suggest endpoint
-
-**Addresses:** Feature Group 7 from FEATURES.md
-
-**Avoids:** IP ban pitfall — cache-first + proxy routing must be the first design decision
-
-**Research flag:** May benefit from research into XMLProxy suggest endpoint availability before implementation begins.
-
-### Phase 5: LLM Briefs + AI/GEO Readiness
-
-**Rationale:** These two features share the same dependency (existing crawl + content audit data) and the same architectural pattern (extend existing services, add new detection functions). LLM Briefs extend `ContentBrief` + `brief_service.py`. GEO Readiness extends `AuditCheckDefinition` + `content_audit_service.py`. Grouped together as the "AI features" phase with `anthropic` SDK introduction.
-
-**Delivers:** LLM-generated brief enhancement (opt-in), `generate_llm_brief` Celery task, GEO Readiness checklist (6 new `geo_*` audit check codes), `anthropic` SDK integration, graceful fallback to template brief
-
-**Addresses:** Feature Groups 5 and 8 from FEATURES.md
-
-**Avoids:** LLM failure blocking brief delivery — template brief is always the base; LLM is enhancement only. Token cap enforced at 2000 input / 800 output.
-
-**Research flag:** Standard patterns for GEO checks. LLM integration patterns documented in STACK.md. No additional research needed.
-
-### Phase 6: Security Hardening (2FA + Notifications)
-
-**Rationale:** Both features touch the auth layer and global UI chrome (header). Grouped together as they share Alembic migrations on the `users` table and require careful regression testing of the login flow. Notifications are prerequisite for 2FA (users need a channel to confirm setup completion).
-
-**Delivers:** TOTP 2FA (opt-in enrollment, backup codes, admin reset endpoint), In-App Notification bell (HTMX polling, 30s interval), nightly notification cleanup task, `notification_service.py`, `routers/security.py`, user model columns for TOTP
-
-**Addresses:** Feature Groups 9 and 10 from FEATURES.md
-
-**Avoids:** 2FA lockout (nullable columns, opt-in only); notification table bloat (hard delete + nightly cleanup + autovacuum tuning in same migration)
-
-**Research flag:** 2FA auth flow changes are the highest-risk code changes in this milestone. Write the 4-path test matrix (no 2FA / 2FA correct / 2FA wrong / recovery code) before any auth code changes. Run `alembic upgrade --sql` and review output before applying migration.
+**Must resolve in planning:** Variable resolver scope (static list in v3.0 — confirm with product owner); ProposalContext Pydantic model with safe defaults before first template; SandboxedEnvironment for DB templates; storage strategy for PDF blobs (DB with 3-version retention cap recommended at this scale); resolved_vars JSONB snapshot on every generation (audit trail)
 
 ### Phase Ordering Rationale
 
-- Phases 1–2 establish the URL normalization and `keyword_latest_positions` infrastructure that all other analytical queries depend on
-- Phase 3 (PDF) isolated early because its OOM pitfall is self-contained and the subprocess pattern established here protects all future PDF work
-- Phase 4 (Suggest) isolated because IP ban risk is entirely separate from other work and should not block analytical features
-- Phase 5 (AI) after core analytics because LLM briefs extend `ContentBrief` (existing) and GEO checks extend `AuditCheckDefinition` (existing) — these integrations are cleaner after the analytical layer is stable
-- Phase 6 (Security) last because it touches the most sensitive existing code (auth) and benefits from having all feature surfaces finalized before adding security controls to them
+- FK dependency drives the order: clients before proposals (hard FK dependency); intake before proposals optional but aligns question_key schema with variable resolver
+- RBAC patterns established in Phase 1 are reused in Phases 2-3 — consistent require_manager_or_above + row-level client ownership check across all three feature families
+- Navigation restructuring in Phase 1 avoids four separate sidebar commits — "Клиенты" section with all four feature children is designed once, icon added to sidebar.html once
+- Variable resolver scope decision in Phase 3 planning prevents over-engineering — static variables only in v3.0; deferred live queries keep the migration surface manageable
 
 ### Research Flags
 
-**Needs `/gsd:research-phase` before planning:**
-- Phase 4: XMLProxy suggest endpoint availability — determine before designing the routing strategy
-- Phase 6: Write test matrix for 2FA auth flow changes before any implementation
+All three phases have standard patterns well-documented in the codebase. No phase requires /gsd:research-phase.
 
-**Standard patterns (skip research-phase):**
-- Phase 1: PostgreSQL window functions, HTMX partial tables — well-documented
-- Phase 2: Celery task triggers and Redis caching — established project patterns
-- Phase 3: WeasyPrint subprocess isolation — solution documented in PITFALLS.md
-- Phase 5: Anthropic SDK sync/async patterns — fully documented in STACK.md
+Phases with standard patterns (skip research-phase):
+- **Phase 1 (Client CRM):** CRUD patterns and RBAC patterns are established. Use /gsd:discuss-phase for Client vs User schema ADR.
+- **Phase 2 (Audit Intake):** HTMX multi-section forms and key-value row storage are documented patterns already in the codebase. Use /gsd:discuss-phase for question_key schema alignment with Phase 3.
+- **Phase 3 (Proposals + Doc Generator):** Jinja2 sandbox and Celery PDF cloning are fully documented. Use /gsd:discuss-phase to confirm variable resolver scope boundary before planning.
+
+---
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | Existing stack is production-validated; 4 new additions confirmed with version compatibility matrix |
-| Features | HIGH | Based on competitor analysis of Sitebulb, Ahrefs, SE Ranking, SEMrush + direct knowledge of v1.0 feature set |
-| Architecture | HIGH | Based on direct codebase inspection (35,402 LOC); all integration points identified with specific file paths and model field names |
-| Pitfalls | HIGH | All critical pitfalls grounded in specific existing codebase patterns; WeasyPrint pitfall backed by confirmed GitHub issue numbers |
+| Stack | HIGH | Based on direct codebase inspection of requirements.txt and all service files; no new libraries required means no compatibility unknowns |
+| Features | HIGH (domain) / MEDIUM (competitor UI) | Russian SEO agency KP structure and INN/KPP requirements are well-established; competitor platform features are training-data knowledge without live verification |
+| Architecture | HIGH | Based on direct inspection of 35+ routers, 50+ services, Alembic migration history (0042 head), and existing model relationships; all integration points verified against actual code |
+| Pitfalls | HIGH | Derived from existing codebase decisions (D-12 WeasyPrint subprocess, RBAC in dependencies.py, migration naming in alembic/versions/) — not generic warnings |
 
 **Overall confidence:** HIGH
 
 ### Gaps to Address
 
-- **XMLProxy suggest endpoint:** PITFALLS.md flags that XMLProxy may support Yandex suggest (reducing IP ban risk) but this is unconfirmed. Verify `xmlproxy_service.py` endpoint list before finalizing Phase 4 design. If unavailable, fallback is DataForSEO keyword suggestions (already integrated).
+- **Variable resolver scope boundary:** Research recommends static variables for v3.0 and deferred live queries for v3.x, but the exact variable list should be confirmed with the product owner during Phase 3 planning. This boundary affects the ProposalContext Pydantic model design.
+- **PDF retention strategy:** Research recommends DB storage with 3-version cap and 90-day retention for this scale. If proposal generation volume is expected to exceed 20 sites x 10 versions/year, filesystem storage with path reference in DB should be adopted instead. Confirm expected volume before migration 0045.
+- **Rich text editor for proposal templates:** Research explicitly deferred this in favor of a textarea with documented Jinja2 placeholder syntax. If managers require WYSIWYG editing, this becomes a P2 task requiring a JS library decision outside v3.0 scope.
+- **Client health score aggregation:** Deferred to v3.x pending stable site health widget data from Phase 18. No schema changes needed now.
 
-- **Notifications polling vs SSE decision:** Architecture research recommends HTMX polling (30s) over Redis pub/sub SSE for this user scale. Validate with user before Phase 6 planning — if real-time delivery is required, `sse-starlette` is already in the stack additions and the SSE pattern is documented in STACK.md.
-
-- **LLM model selection:** STACK.md uses `claude-3-5-haiku-20241022` as the default brief model; ARCHITECTURE.md references `claude-opus-4-6`. Confirm before Phase 5 — Haiku is 10-20x cheaper and appropriate for structured brief generation; Opus is higher quality but cost-prohibitive for batch runs across 50 sites.
-
-- **Alembic head management:** With 9 features across 6 phases, each adding at least one migration, there is risk of multiple heads if phases are executed with parallel tasks. Enforce single-head constraint in CI (`alembic heads` must return exactly 1) from Phase 1 onwards.
+---
 
 ## Sources
 
 ### Primary (HIGH confidence)
 
-- Existing codebase direct inspection — `app/models/`, `app/services/`, `app/tasks/`, `app/routers/` (35,402 LOC)
-- Anthropic Python SDK GitHub (anthropics/anthropic-sdk-python) v0.89.0, April 3, 2026
-- pyotp PyPI v2.9.0 documentation
-- sse-starlette v3.3.3 (March 2026)
-- WeasyPrint GitHub issues #2130, #1977 (confirmed memory leak, native C heap not freed)
-- PostgreSQL DISTINCT ON partition performance: CYBERTEC blog, TigerData blog
+- Direct codebase inspection (2026-04-09): app/models/, app/services/, app/tasks/, app/routers/, app/navigation.py, alembic/versions/, requirements.txt
+- app/services/subprocess_pdf.py — WeasyPrint subprocess isolation pattern (D-12, Phase 14)
+- app/tasks/client_report_tasks.py — canonical Celery PDF task pattern
+- app/models/client_report.py — PDF lifecycle model (pending/generating/ready/failed)
+- app/models/site_group.py — RBAC primitive (confirmed: not suitable for CRM extension)
+- app/auth/dependencies.py — require_role() factory and existing role guards
+- alembic/versions/ — migration 0042 is current head; naming conventions verified
+- Jinja2 3.1 SandboxedEnvironment documentation — ships with Jinja2 >=2.0
+- PostgreSQL 16 JSONB GIN index documentation
 
 ### Secondary (MEDIUM confidence)
 
-- Competitor analysis: Sitebulb, Screaming Frog, SE Ranking, Ahrefs, SEMrush feature sets (knowledge base through Aug 2025)
-- GEO/AI readiness signals: Onely, Frase, SearchEngineLand 2025–2026 (FAQPage 3.2x citation lift is industry data, not Google-confirmed)
-- Google Autocomplete undocumented endpoint stability — confirmed stable for internal tooling at low volume; IP ban threshold undefined
-
-### Tertiary (LOW confidence)
-
-- Yandex Wordstat OAuth token setup complexity — described as MEDIUM but not directly tested in this codebase
-- Chart rendering strategy for WeasyPrint client PDFs — SVG vs Chart.js server-side both viable; final approach depends on implementation testing
+- SE Ranking, Agency Analytics, Semrush Agency Hub — SEO agency CRM feature conventions (training knowledge, no live verification)
+- Russian SEO agency KP structure and INN/KPP invoicing requirements — established practice
+- WeasyPrint GitHub issues #2130 and #1977 — memory leak basis for D-12 decision (referenced in project history, not re-verified)
 
 ---
-*Research completed: 2026-04-06*
+*Research completed: 2026-04-09*
 *Ready for roadmap: yes*
