@@ -1,0 +1,19 @@
+{% macro empty_state(reason, cta_label, cta_url, secondary_label=none, secondary_url=none, docs_url=none) %}
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 my-4">
+  <p class="text-gray-700 font-medium mb-3">{{ reason }}</p>
+  {% if caller is defined %}
+  <details class="mb-3">
+    <summary class="cursor-pointer text-sm font-medium text-indigo-600 select-none">Как использовать</summary>
+    <div class="mt-2 text-sm text-gray-600 space-y-1 pl-2">
+      {{ caller() }}
+    </div>
+  </details>
+  {% endif %}
+  <div class="flex items-center gap-3 flex-wrap">
+    <a href="{{ cta_url }}" class="inline-flex items-center px-4 py-2 rounded text-sm font-medium bg-blue-600 text-white hover:bg-blue-700">{{ cta_label }}</a>
+    {% if secondary_label and secondary_url %}
+    <a href="{{ secondary_url }}" class="text-sm text-indigo-600 hover:underline">{{ secondary_label }}</a>
+    {% endif %}
+  </div>
+</div>
+{% endmacro %}
