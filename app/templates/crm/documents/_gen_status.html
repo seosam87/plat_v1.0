@@ -1,0 +1,49 @@
+{% if doc.status in ['pending', 'processing'] %}
+{# Generating state - with HTMX polling #}
+<div id="gen-status-{{ doc.id }}"
+     hx-get="/ui/crm/clients/{{ client_id }}/documents/{{ doc.id }}/status"
+     hx-trigger="load delay:3s"
+     hx-swap="outerHTML"
+     style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:1rem;display:flex;align-items:center;gap:0.75rem;margin-bottom:0.5rem;">
+  <svg style="width:1.25rem;height:1.25rem;color:#2563eb;animation:spin 1s linear infinite;" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182"/>
+  </svg>
+  <div>
+    <div style="font-size:0.875rem;font-weight:500;color:#1e40af;">Генерируется...</div>
+    <div style="font-size:0.75rem;color:#3b82f6;">Обычно занимает менее минуты</div>
+  </div>
+</div>
+
+{% elif doc.status == 'ready' %}
+{# Ready state - terminal, NO hx-trigger #}
+<div id="gen-status-{{ doc.id }}"
+     style="background:#d1fae5;border:1px solid #a7f3d0;border-radius:8px;padding:1rem;display:flex;align-items:center;gap:0.75rem;margin-bottom:0.5rem;">
+  <svg style="width:1.25rem;height:1.25rem;color:#10b981;" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
+  </svg>
+  <div style="font-size:0.875rem;font-weight:600;color:#065f46;">PDF готов</div>
+</div>
+
+{% elif doc.status == 'failed' %}
+{# Failed state - terminal, NO hx-trigger #}
+<div id="gen-status-{{ doc.id }}"
+     style="background:#fee2e2;border:1px solid #fecaca;border-radius:8px;padding:1rem;margin-bottom:0.5rem;">
+  <div style="display:flex;align-items:center;gap:0.75rem;">
+    <svg style="width:1.25rem;height:1.25rem;color:#991b1b;" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z"/>
+    </svg>
+    <div style="font-size:0.875rem;font-weight:600;color:#991b1b;">Не удалось сформировать PDF</div>
+  </div>
+  <div style="font-size:0.875rem;color:#b91c1c;margin-top:0.25rem;">Проверьте подключение к данным или повторите через минуту.</div>
+  {% if doc.error_message %}
+  <div style="font-size:0.75rem;color:#ef4444;margin-top:0.25rem;">{{ doc.error_message }}</div>
+  {% endif %}
+</div>
+{% endif %}
+
+<style>
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+</style>

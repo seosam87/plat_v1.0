@@ -34,16 +34,17 @@
 
 {# Tab bar #}
 <div style="display:flex;gap:0;border-bottom:1px solid #e5e7eb;margin-bottom:1.5rem;">
-  <button class="crm-tab active" data-tab="sites" onclick="switchTab('sites')" style="padding:0.75rem 1.25rem;font-size:0.875rem;font-weight:500;border:none;background:none;cursor:pointer;border-bottom:2px solid #4f46e5;color:#4f46e5;">Сайты</button>
+  <button class="crm-tab{% if not active_tab or active_tab == 'sites' %} active{% endif %}" data-tab="sites" onclick="switchTab('sites')" style="padding:0.75rem 1.25rem;font-size:0.875rem;font-weight:500;border:none;background:none;cursor:pointer;border-bottom:2px solid {% if not active_tab or active_tab == 'sites' %}#4f46e5{% else %}transparent{% endif %};color:{% if not active_tab or active_tab == 'sites' %}#4f46e5{% else %}#6b7280{% endif %};">Сайты</button>
   <button class="crm-tab" data-tab="contacts" onclick="switchTab('contacts')" style="padding:0.75rem 1.25rem;font-size:0.875rem;font-weight:500;border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;color:#6b7280;">Контакты</button>
   <button class="crm-tab" data-tab="interactions" onclick="switchTab('interactions')" style="padding:0.75rem 1.25rem;font-size:0.875rem;font-weight:500;border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;color:#6b7280;">Взаимодействия</button>
   <button class="crm-tab" data-tab="info" onclick="switchTab('info')" style="padding:0.75rem 1.25rem;font-size:0.875rem;font-weight:500;border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;color:#6b7280;">Информация</button>
+  <button class="crm-tab{% if active_tab == 'documents' %} active{% endif %}" data-tab="documents" onclick="switchTab('documents')" style="padding:0.75rem 1.25rem;font-size:0.875rem;font-weight:500;border:none;background:none;cursor:pointer;border-bottom:2px solid {% if active_tab == 'documents' %}#4f46e5{% else %}transparent{% endif %};color:{% if active_tab == 'documents' %}#4f46e5{% else %}#6b7280{% endif %};">Документы</button>
 </div>
 
 {# Tab panels #}
 
 {# Sites tab #}
-<div id="tab-sites" class="crm-tab-panel" style="display:block;">
+<div id="tab-sites" class="crm-tab-panel" style="display:{% if not active_tab or active_tab == 'sites' %}block{% else %}none{% endif %};">
   <div id="sites-tab-content">
     {% include "crm/_sites_tab.html" %}
   </div>
@@ -158,6 +159,15 @@
     </div>
   </div>
 </div>
+
+{# Documents tab #}
+<div id="tab-documents" class="crm-tab-panel" style="display:{% if active_tab == 'documents' %}block{% else %}none{% endif %};">
+  <div class="card" style="padding:1.5rem;">
+    {% include "crm/_documents_tab.html" %}
+  </div>
+</div>
+
+<div id="toast-container" style="position:fixed;top:1rem;right:1rem;z-index:9999;"></div>
 
 <script>
 function switchTab(tabName) {
