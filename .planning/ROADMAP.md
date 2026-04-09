@@ -123,7 +123,7 @@ Plans:
   3. User can open a preview of any template rendered with real data from a selected client and site — unresolved variables are visibly highlighted; preview renders in under 5 seconds
 **Plans**: 3 plans
 Plans:
-- [ ] 22-01-PLAN.md — ProposalTemplate model, migration, service layer, variable resolver, tests
+- [x] 22-01-PLAN.md — ProposalTemplate model, migration, service layer, variable resolver, tests
 - [ ] 22-02-PLAN.md — Templates router, list page, edit page with CodeMirror and preview, navigation
 - [ ] 22-03-PLAN.md — Human verification of full feature
 **UI hint**: yes
@@ -185,7 +185,7 @@ Plans:
 | 19.2. Interactive Tour Player | v2.1 | 4/4 | Complete | 2026-04-09 |
 | 20. Client CRM | v3.0 | 4/4 | Complete    | 2026-04-09 |
 | 21. Site Audit Intake | v3.0 | 3/3 | Complete    | 2026-04-09 |
-| 22. Proposal Templates | v3.0 | 0/? | Not started | - |
+| 22. Proposal Templates | v3.0 | 1/3 | In Progress|  |
 | 23. Document Generator | v3.0 | 0/? | Not started | - |
 | 24. Tools Infrastructure & Fast Tools | v3.1 | 0/? | Not started | - |
 | 25. SERP Aggregation Tools | v3.1 | 0/? | Not started | - |
@@ -196,7 +196,7 @@ Plans:
 
 **Goal:** Extend `tests/_smoke_helpers.py::discover_routes` to auto-filter routes by `response_class=HTMLResponse` (or return-type annotation), skipping JSON/CSV endpoints automatically instead of requiring explicit `SMOKE_SKIP` entries. Eliminates the need for the 5 manual skips added during phase-15.1-deferred-routes debug session.
 **Requirements:** TBD
-**Plans:** 3/3 plans complete
+**Plans:** 1/3 plans executed
 
 Plans:
 - [ ] TBD (promote with /gsd:review-backlog when ready)

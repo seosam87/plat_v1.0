@@ -27,8 +27,8 @@ Requirements for v3.0 Client & Proposal milestone. Each maps to roadmap phases.
 
 ### Proposal Templates
 
-- [ ] **TPL-01**: Admin can create, edit, and delete proposal templates with Jinja2 variable syntax
-- [ ] **TPL-02**: System resolves a fixed set of ~15 template variables from DB (client name, site URL, positions, audit errors, etc.)
+- [x] **TPL-01**: Admin can create, edit, and delete proposal templates with Jinja2 variable syntax
+- [x] **TPL-02**: System resolves a fixed set of ~15 template variables from DB (client name, site URL, positions, audit errors, etc.)
 - [ ] **TPL-03**: User can preview a rendered template with real site/client data before generating PDF
 - [ ] **TPL-04**: User can clone an existing template
 
@@ -106,8 +106,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | INTAKE-03 | Phase 21 | Complete |
 | INTAKE-04 | Phase 21 | Complete |
 | INTAKE-05 | Phase 21 | Complete |
-| TPL-01 | Phase 22 | Pending |
-| TPL-02 | Phase 22 | Pending |
+| TPL-01 | Phase 22 | Complete |
+| TPL-02 | Phase 22 | Complete |
 | TPL-03 | Phase 22 | Pending |
 | TPL-04 | Phase 22 | Pending |
 | DOC-01 | Phase 23 | Pending |
