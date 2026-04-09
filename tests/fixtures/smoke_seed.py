@@ -49,6 +49,7 @@ from app.models.competitor import Competitor
 from app.models.client import Client, ClientContact
 from app.models.generated_document import GeneratedDocument
 from app.models.proposal_template import ProposalTemplate, TemplateType
+from app.models.commerce_check_job import CommerceCheckJob, CommerceCheckResult
 
 # Deterministic UUID strings for URL parameter substitution.
 # NOTE: "job_id" is a generic alias for suggest_job_id so routes using the
@@ -75,6 +76,8 @@ SMOKE_IDS: dict[str, str] = {
     "contact_id":     "c2c2c2c2-c2c2-c2c2-c2c2-c2c2c2c2c2c2",
     "doc_id":         "d0d0d0d0-d0d0-d0d0-d0d0-d0d0d0d0d0d0",
     "template_id":    "e1e1e1e1-e1e1-e1e1-e1e1-e1e1e1e1e1e1",
+    "tool_job_id":    "f1f1f1f1-f1f1-f1f1-f1f1-f1f1f1f1f1f1",
+    "tool_slug":      "commercialization",
 }
 
 
@@ -390,6 +393,34 @@ async def seed_extended(session: AsyncSession) -> None:
             document_type=TemplateType.proposal,
             status="ready",
             file_name="smoke-doc.pdf",
+        )
+    )
+    await session.flush()
+
+    # CommerceCheckJob (tool_job_id) — Phase 24 tools smoke seed
+    session.add(
+        CommerceCheckJob(
+            id=_u("tool_job_id"),
+            status="complete",
+            input_phrases=["test phrase"],
+            phrase_count=1,
+            result_count=1,
+            user_id=_u("user_id"),
+            created_at=_NOW,
+            completed_at=_NOW,
+        )
+    )
+    await session.flush()
+
+    # CommerceCheckResult linked to tool_job_id
+    session.add(
+        CommerceCheckResult(
+            job_id=_u("tool_job_id"),
+            phrase="test phrase",
+            commercialization=50,
+            intent="mixed",
+            geo_dependent=False,
+            localized=False,
         )
     )
     await session.flush()

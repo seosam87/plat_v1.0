@@ -82,6 +82,9 @@ SMOKE_SKIP: dict[str, str] = {
     # PARAM_MAP entry. Defer to scenario runner (backlog 999.1).
     "/ui/content-publish/{site_id}/preview/{job_id}":
         "job_id collision (SuggestJob vs WpContentJob) — covered by backlog 999.1",
+    # Tool export returns StreamingResponse (binary file download) — not HTML.
+    "/ui/tools/{slug}/{job_id}/export":
+        "StreamingResponse file download — not HTML",
 }
 
 
@@ -186,6 +189,8 @@ def build_param_map(smoke_ids: dict[str, str]) -> dict[str, str]:
     pm: dict[str, str] = {k: str(v) for k, v in smoke_ids.items()}
     # "module": "general" — /ui/help/{module} is a string path param, not a UUID.
     pm.setdefault("module", "general")
+    # "slug": tool slug for /ui/tools/{slug}/ routes — not a UUID.
+    pm.setdefault("slug", smoke_ids.get("tool_slug", "commercialization"))
     return pm
 
 
@@ -261,4 +266,5 @@ def is_partial(path: str) -> bool:
         or "/quick-wins/table" in path
         or path == "/notifications/bell"
         or path == "/notifications/dropdown"
+        or path.endswith("/status")
     )
