@@ -6,6 +6,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI, File, Form, Request, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates  # still needed for type hints
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -102,6 +103,8 @@ class UIAuthMiddleware(BaseHTTPMiddleware):
 
 
 app.add_middleware(UIAuthMiddleware)
+
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 app.include_router(health_router)
 app.include_router(auth_router)
