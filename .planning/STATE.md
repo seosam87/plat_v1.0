@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v3.0
 milestone_name: Client & Proposal
-status: planning
-stopped_at: "Defining requirements for v3.0 Client & Proposal"
+status: ready_to_plan
+stopped_at: "Roadmap created for v3.0 — 4 phases, 21 requirements mapped"
 last_updated: "2026-04-09T12:00:00.000Z"
 last_activity: 2026-04-09
 progress:
-  total_phases: 39
-  completed_phases: 35
-  total_plans: 113
-  completed_plans: 105
+  total_phases: 4
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
   percent: 0
 ---
 
@@ -21,95 +21,52 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-09)
 
 **Core value:** A team member or client can open the platform and immediately see the SEO health of any site — positions, recent changes, pending tasks — without switching between GSC, spreadsheets, and WP admin.
-**Current focus:** Defining requirements for v3.0 Client & Proposal
+**Current focus:** Phase 20 — Client CRM (ready to plan)
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-04-09 — Milestone v3.0 started
+Phase: 20 of 23 (Client CRM)
+Plan: — (not yet planned)
+Status: Ready to plan
+Last activity: 2026-04-09 — v3.0 roadmap created, 21 requirements mapped across 4 phases
+
+Progress: [░░░░░░░░░░] 0%
 
 ## Performance Metrics
 
-### v2.0 Velocity
+**Velocity (v2.1 reference):**
+- Total plans completed (v2.1): 13
+- Average duration: ~6 min/plan
+- Recent trend: Stable
 
-| Metric | Value |
-|--------|-------|
-| Phases total | 6 |
-| Phases complete | 0 |
-| Plans complete | 0 |
-| Milestone start | 2026-04-06 |
-| Phase 12-analytical-foundations P01 | 524064min | 2 tasks | 8 files |
-| Phase 12-analytical-foundations P03 | 10 | 2 tasks | 7 files |
-| Phase 12-analytical-foundations P02 | 5 | 2 tasks | 8 files |
-| Phase 13-impact-scoring-growth-opportunities P01 | 15 | 2 tasks | 8 files |
-| Phase 13 P02 | 15 | 2 tasks | 10 files |
-| Phase 13-impact-scoring-growth-opportunities P03 | 15 | 2 tasks | 11 files |
-| Phase 14-client-instructions-pdf P01 | 4 | 2 tasks | 5 files |
-| Phase 14-client-instructions-pdf P03 | 8 | 2 tasks | 2 files |
-| Phase 14-client-instructions-pdf P02 | 12 | 2 tasks | 8 files |
-| Phase 15-keyword-suggest P01 | 9 | 2 tasks | 8 files |
-| Phase 15-keyword-suggest P03 | 5 | 2 tasks | 6 files |
-| Phase 15-keyword-suggest P02 | 12 | 2 tasks | 9 files |
-| Phase 15.1-ui-smoke-crawler P02 | 8 | 1 tasks | 2 files |
-| Phase 15.1 P01 | 15 | 3 tasks | 5 files |
-| Phase 15.1-ui-smoke-crawler P03 | 10 | 2 tasks | 3 files |
-| Phase 15.1-ui-smoke-crawler P05 | 3 | 2 tasks | 2 files |
-| Phase 15.1-ui-smoke-crawler P04 | 6 | 1 tasks | 1 files |
-| Phase 999.3 P01 | 6 | 4 tasks | 3 files |
-| Phase 16-ai-geo-readiness-llm-briefs P01 | 6 | 2 tasks | 6 files |
-| Phase 16-ai-geo-readiness-llm-briefs P02 | 5 | 2 tasks | 3 files |
-| Phase 16-ai-geo-readiness-llm-briefs P03 | 10 | 2 tasks | 12 files |
-| Phase 17-in-app-notifications P01 | 4 | 2 tasks | 8 files |
-| Phase 17-in-app-notifications P02 | 12 | 3 tasks | 10 files |
-| Phase 17-in-app-notifications P03 | 12 | 2 tasks | 8 files |
-| Phase 18-project-health-widget P01 | 8 | 5 tasks | 5 files |
-| Phase 19.1-ui-scenario-runner-playwright P01 | 3 | 2 tasks | 5 files |
-| Phase 19.1 P02 | 3 min | 3 tasks | 9 files |
-| Phase 19.1 P03 | 9 min | 3 tasks | 9 files |
-| Phase 19.1-ui-scenario-runner-playwright P04 | 3 | 2 tasks | 2 files |
-| Phase 19.1-ui-scenario-runner-playwright P05 | 18 | 3 tasks | 11 files |
-| Phase 19.2-interactive-tour-player P02 | 2 | 2 tasks | 3 files |
-| Phase 19.2-interactive-tour-player P01 | 3 | 2 tasks | 4 files |
-| Phase 19.2-interactive-tour-player P04 | 8 | 2 tasks | 3 files |
-| Phase 19.2-interactive-tour-player P03 | 5 | 2 tasks | 3 files |
-| Phase 19-empty-states-everywhere P01 | 2 | 2 tasks | 8 files |
-| Phase 19-empty-states-everywhere P03 | 3 | 2 tasks | 3 files |
-| Phase 19-empty-states-everywhere P02 | 4 | 2 tasks | 8 files |
+*Updated after each plan completion*
 
 ## Accumulated Context
 
-### Roadmap Evolution
-
-- Phase 15.1 inserted after Phase 15: UI Smoke Crawler — pytest+httpx runner hitting every GET route with seeds, asserts 200 + no Jinja errors. Motivated by repeated 500s on new UI (today: `data.items` dict collision on opportunities page). (URGENT / INSERTED)
-
-### Key Decisions (v2.0)
+### Key Decisions (v3.0)
 
 | Decision | Rationale |
 |----------|-----------|
-| `normalize_url()` + `keyword_latest_positions` in Phase 12 | All analytical JOINs fail silently without URL normalization; DISTINCT ON on partitioned table causes 8–15s scans at 100K keywords |
-| WeasyPrint subprocess isolation in Phase 14 | WeasyPrint memory leak (GitHub #2130, #1977) cannot be deferred — established before any new PDF code is written |
-| Keyword Suggest in isolated Phase 15 | IP ban risk from autocomplete scraping is entirely separate from analytical features and must not block Phase 13 work |
-| LLM Briefs + GEO Readiness co-located in Phase 16 | Both depend on existing crawl + content audit data; both are additive extensions to existing services; anthropic SDK introduced once |
-| In-app Notifications last (Phase 17) | Touches global sidebar chrome; cleanest to add after all feature surfaces are finalized |
-| HTMX polling (30s) over SSE for notifications | Under 20 users; polling is simpler and sufficient; SSE deferred unless real-time delivery required |
-| Template brief always generated first; LLM is enhancement only | Prevents LLM API failures from blocking brief delivery |
-| Yandex Suggest primary, Google secondary (opt-in), Wordstat opt-in | User note: focus on Yandex, no complex Google services |
+| Client CRM first (Phase 20) | All other v3.0 features require clients table + client_id FK — hard dependency |
+| Separate Client entity from User | Client = company (CRM); User role=client = auth; different tables; never conflate |
+| SandboxedEnvironment for proposal templates | User-authored Jinja2 must not access config.SECRET_KEY or app globals |
+| WeasyPrint via subprocess_pdf.py only | Direct weasyprint.HTML().write_pdf() causes OOM kills (D-12 decision) |
+| require_manager_or_above for CRM writes | require_admin locks out managers; require_any_authenticated causes IDOR on client data |
+| Three sequential Alembic migrations | 0043 clients, 0044 intake, 0045 proposals — run alembic check before each --autogenerate |
 
 ### Pending Todos
 
-- Phase 15: Verify XMLProxy suggest endpoint availability before designing routing strategy
-- Phase 16: Confirm LLM model — claude-3-5-haiku-20241022 (10–20x cheaper, appropriate for batch) vs claude-opus-4-6
+- Phase 20 planning: confirm Client vs User schema ADR before first migration
+- Phase 20 planning: define RBAC rules per endpoint (manager_or_above + row-level client_id check for client-role reads)
+- Phase 22 planning: confirm variable resolver scope (static ~15 vars for v3.0; live aggregate queries deferred)
+- Phase 23 planning: confirm PDF storage strategy (DB bytes with 3-version cap vs filesystem path reference)
 
-### Quick Tasks Completed
+### Blockers/Concerns
 
-| # | Description | Date | Commit | Directory |
-|---|-------------|------|--------|-----------|
-| 260402-v3j | Fix position check engine bug | 2026-04-02 | 23e77f6 | [260402-v3j-fix-position-check-engine-bug](./quick/260402-v3j-fix-position-check-engine-bug/) |
+None. Research confidence HIGH. All patterns have established codebase precedents.
 
 ## Session Continuity
 
 Last session: 2026-04-09
-Stopped at: Defining requirements for v3.0 Client & Proposal
+Stopped at: Roadmap created — Phase 20 ready to plan
 Resume file: None

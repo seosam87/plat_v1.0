@@ -94,33 +94,33 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| CRM-01 | — | Pending |
-| CRM-02 | — | Pending |
-| CRM-03 | — | Pending |
-| CRM-04 | — | Pending |
-| CRM-05 | — | Pending |
-| CRM-06 | — | Pending |
-| CRM-07 | — | Pending |
-| INTAKE-01 | — | Pending |
-| INTAKE-02 | — | Pending |
-| INTAKE-03 | — | Pending |
-| INTAKE-04 | — | Pending |
-| INTAKE-05 | — | Pending |
-| TPL-01 | — | Pending |
-| TPL-02 | — | Pending |
-| TPL-03 | — | Pending |
-| TPL-04 | — | Pending |
-| DOC-01 | — | Pending |
-| DOC-02 | — | Pending |
-| DOC-03 | — | Pending |
-| DOC-04 | — | Pending |
-| DOC-05 | — | Pending |
+| CRM-01 | Phase 20 | Pending |
+| CRM-02 | Phase 20 | Pending |
+| CRM-03 | Phase 20 | Pending |
+| CRM-04 | Phase 20 | Pending |
+| CRM-05 | Phase 20 | Pending |
+| CRM-06 | Phase 20 | Pending |
+| CRM-07 | Phase 20 | Pending |
+| INTAKE-01 | Phase 21 | Pending |
+| INTAKE-02 | Phase 21 | Pending |
+| INTAKE-03 | Phase 21 | Pending |
+| INTAKE-04 | Phase 21 | Pending |
+| INTAKE-05 | Phase 21 | Pending |
+| TPL-01 | Phase 22 | Pending |
+| TPL-02 | Phase 22 | Pending |
+| TPL-03 | Phase 22 | Pending |
+| TPL-04 | Phase 22 | Pending |
+| DOC-01 | Phase 23 | Pending |
+| DOC-02 | Phase 23 | Pending |
+| DOC-03 | Phase 23 | Pending |
+| DOC-04 | Phase 23 | Pending |
+| DOC-05 | Phase 23 | Pending |
 
 **Coverage:**
 - v3.0 requirements: 21 total
-- Mapped to phases: 0
-- Unmapped: 21
+- Mapped to phases: 21
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-04-09*
-*Last updated: 2026-04-09 after initial definition*
+*Last updated: 2026-04-09 after roadmap creation*
