@@ -10,6 +10,12 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/themes/airbnb.css">
   <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/l10n/ru.js"></script>
+  {% if is_admin %}
+  <!-- Shepherd.js tour player (Phase 19.2) — admin only -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/shepherd.js@14.5.1/dist/css/shepherd.css">
+  <script src="https://cdn.jsdelivr.net/npm/shepherd.js@14.5.1/dist/js/shepherd.min.js"></script>
+  <script src="/static/js/tour.js" defer></script>
+  {% endif %}
   <style>
     /* --- Reset & Base --- */
     body { font-family: system-ui, sans-serif; margin: 0; padding: 0; background: #f5f5f5; }
