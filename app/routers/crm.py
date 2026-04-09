@@ -308,6 +308,7 @@ async def client_detail(
         "crm/detail.html",
         {
             "client": client,
+            "client_id": client_id,
             "contacts": contacts,
             "interactions": interactions,
             "authors_map": authors_map,

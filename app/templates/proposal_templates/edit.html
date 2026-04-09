@@ -53,15 +53,14 @@
         </div>
         <div style="flex:1;min-width:200px;">
           <label style="display:block;font-size:0.75rem;font-weight:600;color:#374151;margin-bottom:4px;">Описание</label>
-          <input
-            type="text"
+          <textarea
             id="field-description"
             name="description"
             form="save-form"
-            value="{{ template.description if template and template.description else '' }}"
+            rows="2"
             placeholder="Краткое описание (необязательно)"
-            style="width:100%;padding:0.4rem 0.5rem;border:1px solid #d1d5db;border-radius:6px;font-size:0.875rem;box-sizing:border-box;"
-          >
+            style="width:100%;padding:0.4rem 0.5rem;border:1px solid #d1d5db;border-radius:6px;font-size:0.875rem;box-sizing:border-box;resize:vertical;"
+          >{{ template.description if template and template.description else '' }}</textarea>
         </div>
       </div>
     </div>
