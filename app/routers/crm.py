@@ -156,7 +156,7 @@ async def create_client(
     current_user: User = Depends(require_manager_or_above),
 ) -> HTMLResponse:
     data = _parse_form_data(company_name, legal_name, inn, kpp, phone, email, manager_id, notes)
-    client = await client_service.create_client(db, data)
+    client = await client_service.create_client(db, **data)
     await log_action(
         db,
         action="create",
@@ -188,7 +188,7 @@ async def update_client(
     current_user: User = Depends(require_manager_or_above),
 ) -> HTMLResponse:
     data = _parse_form_data(company_name, legal_name, inn, kpp, phone, email, manager_id, notes)
-    client = await client_service.update_client(db, client_id, data)
+    client = await client_service.update_client(db, client_id, **data)
     await log_action(
         db,
         action="update",
