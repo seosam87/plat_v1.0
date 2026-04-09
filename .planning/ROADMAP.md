@@ -64,10 +64,10 @@ Full details: [milestones/v2.0-ROADMAP.md](milestones/v2.0-ROADMAP.md)
 
 **Milestone Goal:** Превратить платформу из инструмента мониторинга в инструмент продаж — карточки клиентов, аудит-анкеты, шаблоны КП и генератор документов. SEO-специалист получает полный цикл от первого контакта до отправки КП без выхода из системы.
 
-- [ ] **Phase 20: Client CRM** — карточка клиента, история взаимодействий, статусы лид/активный/завершён
-- [ ] **Phase 21: Site Audit Intake** — аудит-анкета сайта, импорт данных из XLSX/CSV (Топвизор, PageSpeed, Вебмастер), парсинг SEO-полей через краулер
-- [ ] **Phase 22: Proposal Templates & Tariffs** — тарифная сетка, библиотека блоков КП, адаптация под клиента
-- [ ] **Phase 23: Document Generator** — генерация DOCX/PDF с версионированием, экспорт КП
+- [x] **Phase 20: Client CRM** — карточка клиента, история взаимодействий, статусы лид/активный/завершён (completed 2026-04-09)
+- [x] **Phase 21: Site Audit Intake** — аудит-анкета сайта, импорт данных из XLSX/CSV (Топвизор, PageSpeed, Вебмастер), парсинг SEO-полей через краулер (completed 2026-04-09)
+- [x] **Phase 22: Proposal Templates & Tariffs** — тарифная сетка, библиотека блоков КП, адаптация под клиента (completed 2026-04-09)
+- [x] **Phase 23: Document Generator** — генерация DOCX/PDF с версионированием, экспорт КП (completed 2026-04-09)
 
 ### Phase 18: Project Health Widget
 **Goal**: A user returning to any site after weeks of inactivity immediately sees a 7-step setup checklist on the Site Overview page showing what's done, what's next, and a one-click link to the next required action — derived from existing DB state with zero new queries or Celery tasks
@@ -310,10 +310,10 @@ Phase 20 (Client CRM)
 | 17. In-app Notifications | v2.0 | 3/3 | Complete   | 2026-04-08 |
 | 18. Project Health Widget | v2.1 | 1/1 | Complete    | 2026-04-08 |
 | 19. Empty States Everywhere | v2.1 | 0/3 | Complete    | 2026-04-09 |
-| 20. Client CRM | v3.0 | 0/3 | Not started | - |
-| 21. Site Audit Intake | v3.0 | 0/4 | Not started | - |
-| 22. Proposal Templates & Tariffs | v3.0 | 0/4 | Not started | - |
-| 23. Document Generator | v3.0 | 0/3 | Not started | - |
+| 20. Client CRM | v3.0 | 0/3 | Complete    | 2026-04-09 |
+| 21. Site Audit Intake | v3.0 | 0/4 | Complete    | 2026-04-09 |
+| 22. Proposal Templates & Tariffs | v3.0 | 0/4 | Complete    | 2026-04-09 |
+| 23. Document Generator | v3.0 | 0/3 | Complete    | 2026-04-09 |
 | 24. Tools Infrastructure & Fast Tools | v3.1 | 0/5 | Not started | - |
 | 25. SERP Aggregation Tools | v3.1 | 0/5 | Not started | - |
 
@@ -323,7 +323,7 @@ Phase 20 (Client CRM)
 
 **Goal:** Extend `tests/_smoke_helpers.py::discover_routes` to auto-filter routes by `response_class=HTMLResponse` (or return-type annotation), skipping JSON/CSV endpoints automatically instead of requiring explicit `SMOKE_SKIP` entries. Eliminates the need for the 5 manual skips added during phase-15.1-deferred-routes debug session (`/metrika/{id}/pages`, `/metrika/{id}/compare`, `/analytics/sessions/{id}/export`, `/traffic-analysis/sessions/{id}`, `/traffic-analysis/sessions/{id}/anomalies`). Rationale: surfaced as tech debt in `.planning/phases/15.1-ui-smoke-crawler/deferred-items.md`.
 **Requirements:** TBD
-**Plans:** 4/4 plans complete
+**Plans:** 2/3 plans complete
 
 Plans:
 - [ ] TBD (promote with /gsd:review-backlog when ready)
