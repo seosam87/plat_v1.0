@@ -54,7 +54,7 @@ Full details: [milestones/v2.0-ROADMAP.md](milestones/v2.0-ROADMAP.md)
 **Milestone Goal:** Сделать платформу самодокументируемой для возвращающегося пользователя — каждая страница объясняет, почему нет данных и как получить результат; Site Overview показывает 7-шаговый чек-лист настройки проекта с прогрессом и следующим действием.
 
 - [x] **Phase 18: Project Health Widget** — 7-шаговый setup чек-лист на Overview, status signals в site_service, ссылки на следующий шаг (completed 2026-04-08)
-- [ ] **Phase 19: Empty States Everywhere** — reusable Jinja2-макрос + contextual empty states на всех основных страницах (core workflow, analytics, content, tools)
+- [x] **Phase 19: Empty States Everywhere** — reusable Jinja2-макрос + contextual empty states на всех основных страницах (core workflow, analytics, content, tools) (completed 2026-04-09)
 - [x] **Phase 19.1: UI Scenario Runner (Playwright)** — YAML-based scenario runner (pytest plugin), full docker-compose stack in CI, reuses Phase 15.1 seed fixtures, P0 covers suggest→results + form submit; YAML schema reserves 999.2 tour step types (promoted from backlog 2026-04-08) (completed 2026-04-08)
 - [ ] **Phase 19.2: Interactive Tour Player** — frontend overlay (`app/static/js/tour.js`) consuming the same `scenarios/*.yaml` files from Phase 19.1 to auto-generate user onboarding tours; admin-only "Show tour" button per page (promoted from backlog 2026-04-08)
 
@@ -309,7 +309,7 @@ Phase 20 (Client CRM)
 | 16. AI/GEO Readiness & LLM Briefs | v2.0 | 4/4 | Complete (LLM e2e deferred) | 2026-04-08 |
 | 17. In-app Notifications | v2.0 | 3/3 | Complete   | 2026-04-08 |
 | 18. Project Health Widget | v2.1 | 1/1 | Complete    | 2026-04-08 |
-| 19. Empty States Everywhere | v2.1 | 0/3 | Not started | - |
+| 19. Empty States Everywhere | v2.1 | 0/3 | Complete    | 2026-04-09 |
 | 20. Client CRM | v3.0 | 0/3 | Not started | - |
 | 21. Site Audit Intake | v3.0 | 0/4 | Not started | - |
 | 22. Proposal Templates & Tariffs | v3.0 | 0/4 | Not started | - |
@@ -323,7 +323,7 @@ Phase 20 (Client CRM)
 
 **Goal:** Extend `tests/_smoke_helpers.py::discover_routes` to auto-filter routes by `response_class=HTMLResponse` (or return-type annotation), skipping JSON/CSV endpoints automatically instead of requiring explicit `SMOKE_SKIP` entries. Eliminates the need for the 5 manual skips added during phase-15.1-deferred-routes debug session (`/metrika/{id}/pages`, `/metrika/{id}/compare`, `/analytics/sessions/{id}/export`, `/traffic-analysis/sessions/{id}`, `/traffic-analysis/sessions/{id}/anomalies`). Rationale: surfaced as tech debt in `.planning/phases/15.1-ui-smoke-crawler/deferred-items.md`.
 **Requirements:** TBD
-**Plans:** 2/2 plans complete
+**Plans:** 3/3 plans complete
 
 Plans:
 - [ ] TBD (promote with /gsd:review-backlog when ready)
