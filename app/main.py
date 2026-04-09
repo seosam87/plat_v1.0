@@ -2245,6 +2245,13 @@ async def ui_site_overview(
     )
     all_clients = list(all_clients_result.scalars().all())
 
+    # Fetch intake for site (SELECT-only; do not auto-create on detail view)
+    from app.models.site_intake import SiteIntake
+    intake_result = await db.execute(
+        sa_select(SiteIntake).where(SiteIntake.site_id == sid)
+    )
+    intake = intake_result.scalar_one_or_none()
+
     return templates.TemplateResponse(
         request,
         "sites/detail.html",
@@ -2260,6 +2267,7 @@ async def ui_site_overview(
             "position_schedule": position_schedule,
             "client": client,
             "all_clients": all_clients,
+            "intake": intake,
         },
     )
 
