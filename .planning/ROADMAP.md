@@ -91,7 +91,7 @@ Full details: [milestones/v2.1-ROADMAP.md](milestones/v2.1-ROADMAP.md)
   5. User can open a client detail page showing attached sites, open tasks across those sites, and the most recent interaction notes in chronological order
 **Plans**: 4 plans
 Plans:
-- [ ] 20-01-PLAN.md — CRM models, migration, service layer, tests
+- [x] 20-01-PLAN.md — CRM models, migration, service layer, tests
 - [ ] 20-02-PLAN.md — Router, navigation, client list page, create/edit modal
 - [ ] 20-03-PLAN.md — Client detail page, contacts tab, interactions tab
 - [ ] 20-04-PLAN.md — Sites tab, site linking, client badge on site pages
@@ -175,7 +175,7 @@ Plans:
 | 19. Empty States Everywhere | v2.1 | 3/3 | Complete | 2026-04-09 |
 | 19.1. UI Scenario Runner | v2.1 | 5/5 | Complete | 2026-04-08 |
 | 19.2. Interactive Tour Player | v2.1 | 4/4 | Complete | 2026-04-09 |
-| 20. Client CRM | v3.0 | 0/4 | In Progress | - |
+| 20. Client CRM | v3.0 | 1/4 | In Progress|  |
 | 21. Site Audit Intake | v3.0 | 0/? | Not started | - |
 | 22. Proposal Templates | v3.0 | 0/? | Not started | - |
 | 23. Document Generator | v3.0 | 0/? | Not started | - |
@@ -188,7 +188,7 @@ Plans:
 
 **Goal:** Extend `tests/_smoke_helpers.py::discover_routes` to auto-filter routes by `response_class=HTMLResponse` (or return-type annotation), skipping JSON/CSV endpoints automatically instead of requiring explicit `SMOKE_SKIP` entries. Eliminates the need for the 5 manual skips added during phase-15.1-deferred-routes debug session.
 **Requirements:** TBD
-**Plans:** 3/3 plans complete
+**Plans:** 1/4 plans executed
 
 Plans:
 - [ ] TBD (promote with /gsd:review-backlog when ready)
