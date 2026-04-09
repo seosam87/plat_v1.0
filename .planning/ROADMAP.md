@@ -56,7 +56,7 @@ Full details: [milestones/v2.0-ROADMAP.md](milestones/v2.0-ROADMAP.md)
 - [x] **Phase 18: Project Health Widget** — 7-шаговый setup чек-лист на Overview, status signals в site_service, ссылки на следующий шаг (completed 2026-04-08)
 - [x] **Phase 19: Empty States Everywhere** — reusable Jinja2-макрос + contextual empty states на всех основных страницах (core workflow, analytics, content, tools) (completed 2026-04-09)
 - [x] **Phase 19.1: UI Scenario Runner (Playwright)** — YAML-based scenario runner (pytest plugin), full docker-compose stack in CI, reuses Phase 15.1 seed fixtures, P0 covers suggest→results + form submit; YAML schema reserves 999.2 tour step types (promoted from backlog 2026-04-08) (completed 2026-04-08)
-- [ ] **Phase 19.2: Interactive Tour Player** — frontend overlay (`app/static/js/tour.js`) consuming the same `scenarios/*.yaml` files from Phase 19.1 to auto-generate user onboarding tours; admin-only "Show tour" button per page (promoted from backlog 2026-04-08)
+- [x] **Phase 19.2: Interactive Tour Player** — frontend overlay (`app/static/js/tour.js`) consuming the same `scenarios/*.yaml` files from Phase 19.1 to auto-generate user onboarding tours; admin-only "Show tour" button per page (promoted from backlog 2026-04-08) (completed 2026-04-09)
 
 ## Phase Details
 
@@ -323,7 +323,7 @@ Phase 20 (Client CRM)
 
 **Goal:** Extend `tests/_smoke_helpers.py::discover_routes` to auto-filter routes by `response_class=HTMLResponse` (or return-type annotation), skipping JSON/CSV endpoints automatically instead of requiring explicit `SMOKE_SKIP` entries. Eliminates the need for the 5 manual skips added during phase-15.1-deferred-routes debug session (`/metrika/{id}/pages`, `/metrika/{id}/compare`, `/analytics/sessions/{id}/export`, `/traffic-analysis/sessions/{id}`, `/traffic-analysis/sessions/{id}/anomalies`). Rationale: surfaced as tech debt in `.planning/phases/15.1-ui-smoke-crawler/deferred-items.md`.
 **Requirements:** TBD
-**Plans:** 3/3 plans complete
+**Plans:** 4/4 plans complete
 
 Plans:
 - [ ] TBD (promote with /gsd:review-backlog when ready)
