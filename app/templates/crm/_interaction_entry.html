@@ -1,0 +1,57 @@
+<div id="interaction-{{ interaction.id }}" class="interaction-entry" style="padding:1rem 0;border-bottom:1px solid #e5e7eb;position:relative;">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+    <div style="flex:1;">
+      <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.35rem;">
+        <span style="font-size:0.8rem;color:#9ca3af;">{{ interaction.interaction_date.strftime('%d.%m.%Y %H:%M') }}</span>
+        <span style="font-size:0.8rem;color:#4f46e5;font-weight:500;">{{ author.username if author else 'Неизвестно' }}</span>
+        {% if interaction.updated_at and interaction.created_at and (interaction.updated_at - interaction.created_at).total_seconds() > 60 %}
+        <span style="font-size:0.75rem;color:#9ca3af;">(изм.)</span>
+        {% endif %}
+      </div>
+      <div class="interaction-note" style="font-size:0.875rem;color:#374151;white-space:pre-wrap;">{{ interaction.note }}</div>
+    </div>
+    {% if current_user and (current_user.id == interaction.author_id or current_user.role.value == 'admin') %}
+    <div class="interaction-actions" style="opacity:0;transition:opacity 0.2s;display:flex;gap:0.5rem;margin-left:1rem;flex-shrink:0;">
+      <button
+        onclick="toggleInteractionEdit('{{ interaction.id }}', '{{ client_id }}')"
+        style="background:none;border:none;color:#4f46e5;font-size:0.8rem;cursor:pointer;padding:0;"
+      >Изменить</button>
+      <button
+        hx-delete="/ui/crm/clients/{{ client_id }}/interactions/{{ interaction.id }}"
+        hx-target="#interaction-{{ interaction.id }}"
+        hx-swap="outerHTML"
+        hx-confirm="Удалить эту заметку?"
+        style="background:none;border:none;color:#dc2626;font-size:0.8rem;cursor:pointer;padding:0;"
+      >Удалить</button>
+    </div>
+    {% endif %}
+  </div>
+  {# Inline edit form (hidden by default) #}
+  <div id="interaction-edit-{{ interaction.id }}" style="display:none;margin-top:0.5rem;">
+    <form hx-put="/ui/crm/clients/{{ client_id }}/interactions/{{ interaction.id }}"
+          hx-target="#interaction-{{ interaction.id }}"
+          hx-swap="outerHTML">
+      <textarea name="note" rows="3" style="width:100%;padding:0.5rem;border:1px solid #d1d5db;border-radius:4px;font-size:0.875rem;resize:vertical;box-sizing:border-box;margin-bottom:0.5rem;">{{ interaction.note }}</textarea>
+      <div style="display:flex;gap:0.5rem;">
+        <button type="submit" style="background:#4f46e5;color:white;border:none;padding:0.25rem 0.6rem;border-radius:4px;font-size:0.8rem;cursor:pointer;">Сохранить</button>
+        <button type="button" onclick="toggleInteractionEdit('{{ interaction.id }}')" style="background:none;border:1px solid #d1d5db;color:#374151;padding:0.25rem 0.6rem;border-radius:4px;font-size:0.8rem;cursor:pointer;">Отмена</button>
+      </div>
+    </form>
+  </div>
+</div>
+<style>
+  .interaction-entry:hover .interaction-actions { opacity: 1 !important; }
+</style>
+<script>
+function toggleInteractionEdit(interactionId) {
+  var editForm = document.getElementById('interaction-edit-' + interactionId);
+  var noteDiv = editForm.parentElement.querySelector('.interaction-note');
+  if (editForm.style.display === 'none') {
+    editForm.style.display = 'block';
+    if (noteDiv) noteDiv.style.display = 'none';
+  } else {
+    editForm.style.display = 'none';
+    if (noteDiv) noteDiv.style.display = 'block';
+  }
+}
+</script>
