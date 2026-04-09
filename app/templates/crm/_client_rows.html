@@ -1,0 +1,47 @@
+{# Partial: client table rows — swapped by HTMX on search/filter/pagination #}
+{% for client in clients %}
+<tr>
+  <td style="padding:0.75rem 1rem;">
+    <a href="/ui/crm/clients/{{ client.id }}" style="font-weight:500;color:#4f46e5;text-decoration:none;">{{ client.company_name }}</a>
+  </td>
+  <td style="padding:0.75rem 1rem;color:#6b7280;font-size:0.875rem;">
+    {% if client.manager_id %}
+      {% for m in managers %}
+        {% if m.id == client.manager_id %}{{ m.username }}{% endif %}
+      {% endfor %}
+    {% else %}
+      &mdash;
+    {% endif %}
+  </td>
+  <td style="padding:0.75rem 1rem;color:#6b7280;font-size:0.875rem;">{{ client.site_count | default(0) }}</td>
+  <td style="padding:0.75rem 1rem;color:#6b7280;font-size:0.875rem;">
+    {% if client.last_interaction_date %}
+      {{ client.last_interaction_date.strftime('%d.%m.%Y') }}
+    {% else %}
+      &mdash;
+    {% endif %}
+  </td>
+  <td style="padding:0.75rem 1rem;text-align:right;">
+    <div style="display:flex;gap:0.5rem;justify-content:flex-end;">
+      <button
+        style="padding:0.3rem 0.6rem;border:1px solid #d1d5db;border-radius:5px;font-size:0.8rem;background:white;cursor:pointer;color:#4f46e5;"
+        hx-get="/ui/crm/clients/{{ client.id }}/edit"
+        hx-target="#modal-container"
+        hx-swap="innerHTML"
+      >Изменить</button>
+      <button
+        style="padding:0.3rem 0.6rem;border:1px solid #fca5a5;border-radius:5px;font-size:0.8rem;background:white;cursor:pointer;color:#dc2626;"
+        hx-delete="/ui/crm/clients/{{ client.id }}"
+        hx-confirm="Удалить клиента {{ client.company_name }}? Это действие нельзя отменить."
+        hx-target="#client-table-body"
+        hx-swap="innerHTML"
+      >Удалить</button>
+    </div>
+  </td>
+</tr>
+{% endfor %}
+{% if not clients %}
+<tr>
+  <td colspan="5" style="padding:2rem 1rem;text-align:center;color:#9ca3af;font-size:0.875rem;">Ничего не найдено</td>
+</tr>
+{% endif %}
