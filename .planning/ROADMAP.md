@@ -180,7 +180,7 @@ Plans:
 | 19.1. UI Scenario Runner | v2.1 | 5/5 | Complete | 2026-04-08 |
 | 19.2. Interactive Tour Player | v2.1 | 4/4 | Complete | 2026-04-09 |
 | 20. Client CRM | v3.0 | 4/4 | Complete    | 2026-04-09 |
-| 21. Site Audit Intake | v3.0 | 3/3 | Complete   | 2026-04-09 |
+| 21. Site Audit Intake | v3.0 | 3/3 | Complete    | 2026-04-09 |
 | 22. Proposal Templates | v3.0 | 0/? | Not started | - |
 | 23. Document Generator | v3.0 | 0/? | Not started | - |
 | 24. Tools Infrastructure & Fast Tools | v3.1 | 0/? | Not started | - |
