@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "macros/empty_state.html" import empty_state %}
 {% block title %}Keyword Suggest — SEO Platform{% endblock %}
 
 {% block breadcrumbs %}
@@ -93,7 +94,17 @@
   </div>
 
   <div id="suggest-status"></div>
-  <div id="suggest-results"></div>
+  <div id="suggest-results">
+    {% call empty_state(
+        reason="Подсказки ещё не собирались.",
+        cta_label="Запустить сбор подсказок",
+        cta_url="/ui/keyword-suggest"
+    ) %}
+      <p>1. Введите базовые ключевые слова в форму выше.</p>
+      <p>2. Система соберёт поисковые подсказки из Яндекс (и опционально Google).</p>
+      <p>3. Результаты можно экспортировать или добавить в проект.</p>
+    {% endcall %}
+  </div>
 
 </div>
 {% endblock %}
