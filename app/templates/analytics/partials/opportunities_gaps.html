@@ -1,3 +1,4 @@
+{% from "macros/empty_state.html" import empty_state %}
 <!-- Gaps tab partial — gap keywords from competitor analysis -->
 <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-4">
   <!-- Stats strip -->
@@ -60,7 +61,12 @@
   </table>
 </div>
 {% else %}
-<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center text-gray-500">
-  Нет данных по gap-ключам. Запустите gap-анализ.
-</div>
+{% call empty_state(
+    reason="Нет данных по gap-ключам для анализа возможностей.",
+    cta_label="Перейти к Gap Analysis",
+    cta_url="/gap/" ~ site.id
+) %}
+  <p>1. Загрузите gap-ключи в разделе Gap Analysis.</p>
+  <p>2. После загрузки здесь появятся возможности роста по ключам конкурентов.</p>
+{% endcall %}
 {% endif %}

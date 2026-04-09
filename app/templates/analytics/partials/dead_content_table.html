@@ -1,3 +1,4 @@
+{% from "macros/empty_state.html" import empty_state %}
 {% if pages %}
 <table class="w-full text-sm">
   <thead>
@@ -80,8 +81,15 @@
   </tbody>
 </table>
 {% else %}
-<div class="text-center py-16">
-  <p class="text-gray-500 font-medium mb-2">Мёртвых страниц не найдено</p>
-  <p class="text-sm text-gray-400">Страниц с нулевым трафиком или падением позиций&nbsp;&gt;&nbsp;10 нет.<br>Данные Метрики и проверка позиций должны быть актуальны.</p>
-</div>
+{% call empty_state(
+    reason="Мёртвые страницы не обнаружены.",
+    cta_label="Запустить краул",
+    cta_url="/ui/sites/" ~ site.id ~ "/crawls",
+    secondary_label="Проверить позиции",
+    secondary_url="/ui/positions/" ~ site.id
+) %}
+  <p><strong>Предусловия:</strong> нужны данные краула и проверки позиций.</p>
+  <p>Мёртвый контент — страницы без трафика и с плохими позициями.</p>
+  <p>Если краул и позиции собраны, а этот раздел пуст — значит мёртвых страниц нет (это хорошо!).</p>
+{% endcall %}
 {% endif %}
