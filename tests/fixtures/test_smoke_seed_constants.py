@@ -24,6 +24,10 @@ REQUIRED_KEYS = {
     "brief_id",
     "competitor_id",
     "group_id",
+    "client_id",
+    "contact_id",
+    "doc_id",
+    "template_id",
 }
 
 
@@ -33,7 +37,7 @@ def test_site_id_deterministic():
 
 def test_all_required_keys_present():
     assert set(SMOKE_IDS.keys()) == REQUIRED_KEYS
-    assert len(SMOKE_IDS) == 17
+    assert len(SMOKE_IDS) == 21
 
 
 def test_all_values_are_valid_uuids():

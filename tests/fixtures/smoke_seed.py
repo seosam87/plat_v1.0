@@ -46,6 +46,9 @@ from app.models.task import SeoTask, TaskType, TaskStatus, TaskPriority
 from app.models.analytics import AnalysisSession, SessionStatus, ContentBrief
 from app.models.cluster import KeywordCluster, ClusterIntent
 from app.models.competitor import Competitor
+from app.models.client import Client, ClientContact
+from app.models.generated_document import GeneratedDocument
+from app.models.proposal_template import ProposalTemplate, TemplateType
 
 # Deterministic UUID strings for URL parameter substitution.
 # NOTE: "job_id" is a generic alias for suggest_job_id so routes using the
@@ -68,6 +71,10 @@ SMOKE_IDS: dict[str, str] = {
     "brief_id":       "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
     "competitor_id":  "ffffffff-ffff-ffff-ffff-ffffffffffff",
     "group_id":       "12121212-1212-1212-1212-121212121212",
+    "client_id":      "c1c1c1c1-c1c1-c1c1-c1c1-c1c1c1c1c1c1",
+    "contact_id":     "c2c2c2c2-c2c2-c2c2-c2c2-c2c2c2c2c2c2",
+    "doc_id":         "d0d0d0d0-d0d0-d0d0-d0d0-d0d0d0d0d0d0",
+    "template_id":    "e1e1e1e1-e1e1-e1e1-e1e1-e1e1e1e1e1e1",
 }
 
 
@@ -338,6 +345,51 @@ async def seed_extended(session: AsyncSession) -> None:
             site_id=_u("site_id"),
             domain="competitor.example",
             name="Smoke Competitor",
+        )
+    )
+
+    # Client (CRM)
+    session.add(
+        Client(
+            id=_u("client_id"),
+            company_name="Smoke Client LLC",
+            manager_id=_u("user_id"),
+        )
+    )
+    await session.flush()
+
+    # ClientContact
+    session.add(
+        ClientContact(
+            id=_u("contact_id"),
+            client_id=_u("client_id"),
+            name="Smoke Contact",
+            email="contact@smoke.example.com",
+        )
+    )
+
+    # ProposalTemplate (needed for GeneratedDocument FK)
+    session.add(
+        ProposalTemplate(
+            id=_u("template_id"),
+            name="Smoke Template",
+            template_type=TemplateType.proposal,
+            body="<h1>Smoke</h1>",
+            created_by_id=_u("user_id"),
+        )
+    )
+    await session.flush()
+
+    # GeneratedDocument (doc_id)
+    session.add(
+        GeneratedDocument(
+            id=_u("doc_id"),
+            client_id=_u("client_id"),
+            site_id=_u("site_id"),
+            template_id=_u("template_id"),
+            document_type=TemplateType.proposal,
+            status="ready",
+            file_name="smoke-doc.pdf",
         )
     )
     await session.flush()
