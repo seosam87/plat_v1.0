@@ -44,7 +44,7 @@ All values are multiples of 4. Follows the 8-point scale already used throughout
 Exceptions:
 - Table cell padding: `0.75rem 1rem` (12px vertical, 16px horizontal) — matches existing `th, td` rule in base.html; do not deviate
 - Interaction log textarea: `0.75rem` inner padding — inherits from form pattern
-- Contact row inline-edit fields: `0.4rem 0.6rem` padding — matches `.btn` compact sizing
+- Contact row inline-edit fields: `0.25rem 0.5rem` padding (4px × 8px) — compact sizing on multiples of 4
 
 ---
 
@@ -57,11 +57,11 @@ Matches the existing type system in base.html. Four roles used across the CRM se
 | Body | 14px (0.875rem) | 400 (regular) | 1.5 |
 | Label / Meta | 13px (0.8rem) | 600 (semibold) | 1.4 |
 | Heading (page, card) | 18px (1.125rem / `text-lg`) | 600 (semibold) | 1.2 |
-| Display (client name) | 20px (1.25rem / `text-xl`) | 700 (bold) | 1.2 |
+| Display (client name) | 20px (1.25rem / `text-xl`) | 600 (semibold) | 1.2 |
 
 Source: base.html `th { font-size: .875rem; font-weight: 600 }`, profile/index.html `text-lg font-semibold`, badge `font-size: .8rem; font-weight: 600`
 
-Do NOT introduce a 5th size tier. The client name in the detail page header is the only Display usage.
+Do NOT introduce a 5th size tier. The client name in the detail page header is visually distinct via size alone (20px vs 18px heading). Two weights only: 400 + 600.
 
 ---
 
@@ -82,7 +82,7 @@ Accent (`#4f46e5`) reserved for:
 2. Active sidebar child item (`#4338ca` — existing active state)
 3. Tab underline indicator (active tab border-bottom)
 4. "Прикрепить сайт" button on Sites tab
-5. "Сохранить" button inside create/edit client modal
+5. "Сохранить контакт" button inside create/edit client modal
 6. Links in breadcrumb trail (`.breadcrumbs a { color: #4f46e5 }`)
 7. Client badge link on site detail page (`"Клиент: …"` badge text color)
 
@@ -121,8 +121,8 @@ All copy is in Russian — project language is Russian (base.html `lang="ru"`, a
 | Delete client confirmation | Удалить клиента «{name}»? Это действие нельзя отменить. |
 | Delete contact confirmation | Удалить контакт «{name}»? |
 | Delete interaction confirmation | Удалить эту заметку? |
-| Contact inline edit save | Сохранить |
-| Contact inline edit cancel | Отмена |
+| Contact inline edit save | Сохранить контакт |
+| Contact inline edit cancel | Отменить изменения |
 | Client badge on site page | Клиент: {company_name} |
 | Search placeholder (client list) | Поиск по названию, ИНН или email… |
 | Manager filter default option | Все менеджеры |
@@ -147,7 +147,7 @@ Defined from CONTEXT.md decisions. These are binding for the executor.
 
 ### Client Detail Page (`/crm/clients/{id}`)
 
-- Header card: company name (Display 20px bold) + legal name (Body 14px gray-500), INN/KPP row, phone + email row, manager badge, site count chip + open tasks chip
+- Header card: company name (Display 20px semibold) + legal name (Body 14px gray-500), INN/KPP row, phone + email row, manager badge, site count chip + open tasks chip
 - Tab bar: four tabs with border-bottom active indicator (`border-b-2 border-indigo-600`)
 - Tab switching: JavaScript `classList` toggle (no full page reload, no HTMX needed — tabs are rendered server-side and shown/hidden via JS `display` toggle)
 - Default active tab: Sites
