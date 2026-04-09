@@ -138,7 +138,11 @@ Plans:
   3. User can view a filtered list of all generated documents for a client, filterable by document type and date range
   4. System distinguishes between document types (proposal, audit_report, brief) and stores the type on each generated document record
   5. User can send any generated document via Telegram or SMTP from the document list view
-**Plans**: TBD
+**Plans**: 3 plans
+Plans:
+- [ ] 23-01-PLAN.md — GeneratedDocument model, migration, document service, Celery tasks, SMTP extension, tests
+- [ ] 23-02-PLAN.md — Documents router, Jinja2 templates, client detail tab integration
+- [ ] 23-03-PLAN.md — Human verification of complete feature
 **UI hint**: yes
 
 ### Phase 24: Tools Infrastructure & Fast Tools
@@ -186,7 +190,7 @@ Plans:
 | 20. Client CRM | v3.0 | 4/4 | Complete    | 2026-04-09 |
 | 21. Site Audit Intake | v3.0 | 3/3 | Complete    | 2026-04-09 |
 | 22. Proposal Templates | v3.0 | 3/3 | Complete    | 2026-04-09 |
-| 23. Document Generator | v3.0 | 0/? | Not started | - |
+| 23. Document Generator | v3.0 | 0/3 | Not started | - |
 | 24. Tools Infrastructure & Fast Tools | v3.1 | 0/? | Not started | - |
 | 25. SERP Aggregation Tools | v3.1 | 0/? | Not started | - |
 
