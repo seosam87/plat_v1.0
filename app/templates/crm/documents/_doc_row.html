@@ -1,0 +1,97 @@
+<tr style="border-bottom:1px solid #e5e7eb;">
+  {# Document name #}
+  <td style="padding:0.75rem 1rem;font-size:0.875rem;font-weight:500;color:#1f2937;">
+    {{ doc.file_name[:40] }}{% if doc.file_name|length > 40 %}...{% endif %}
+  </td>
+
+  {# Type badge #}
+  <td style="padding:0.75rem 1rem;">
+    {% if doc.document_type.value == 'proposal' %}
+    <span style="display:inline-block;padding:0.2rem 0.6rem;border-radius:4px;font-size:0.8rem;font-weight:600;background:#ede9fe;color:#5b21b6;">Предложение</span>
+    {% elif doc.document_type.value == 'audit_report' %}
+    <span style="display:inline-block;padding:0.2rem 0.6rem;border-radius:4px;font-size:0.8rem;font-weight:600;background:#dbeafe;color:#1e40af;">Аудит</span>
+    {% elif doc.document_type.value == 'brief' %}
+    <span style="display:inline-block;padding:0.2rem 0.6rem;border-radius:4px;font-size:0.8rem;font-weight:600;background:#dcfce7;color:#166534;">Бриф</span>
+    {% else %}
+    <span style="display:inline-block;padding:0.2rem 0.6rem;border-radius:4px;font-size:0.8rem;font-weight:600;background:#f3f4f6;color:#6b7280;">{{ doc.document_type.value }}</span>
+    {% endif %}
+  </td>
+
+  {# Site #}
+  <td style="padding:0.75rem 1rem;font-size:0.875rem;color:#6b7280;">
+    {% if doc.site_id %}{{ doc.site_id }}{% else %}&mdash;{% endif %}
+  </td>
+
+  {# Date #}
+  <td style="padding:0.75rem 1rem;font-size:0.875rem;color:#6b7280;">
+    {{ doc.created_at.strftime('%d.%m.%Y') }}
+  </td>
+
+  {# Status #}
+  <td style="padding:0.75rem 1rem;">
+    {% if doc.status == 'pending' %}
+    <span class="badge" style="background:#f3f4f6;color:#6b7280;padding:0.2rem 0.6rem;border-radius:4px;font-size:0.8rem;">В очереди</span>
+    {% elif doc.status == 'processing' %}
+    <span hx-get="/ui/crm/clients/{{ client.id }}/documents/{{ doc.id }}/status"
+          hx-trigger="every 3s" hx-swap="outerHTML">
+      <span class="badge" style="background:#dbeafe;color:#1e40af;padding:0.2rem 0.6rem;border-radius:4px;font-size:0.8rem;">Генерация...</span>
+    </span>
+    {% elif doc.status == 'ready' %}
+    <span class="badge" style="background:#d1fae5;color:#065f46;padding:0.2rem 0.6rem;border-radius:4px;font-size:0.8rem;">Готов</span>
+    {% elif doc.status == 'failed' %}
+    <span class="badge" style="background:#fee2e2;color:#991b1b;padding:0.2rem 0.6rem;border-radius:4px;font-size:0.8rem;">Ошибка</span>
+    {% endif %}
+  </td>
+
+  {# Actions #}
+  <td style="padding:0.75rem 1rem;">
+    <div style="display:flex;gap:0.5rem;justify-content:flex-end;">
+      {# Download - only when ready #}
+      {% if doc.status == 'ready' %}
+      <a href="/ui/crm/clients/{{ client.id }}/documents/{{ doc.id }}/download"
+         style="background:#4f46e5;color:white;padding:0.25rem 0.6rem;border-radius:4px;font-size:0.8rem;text-decoration:none;display:inline-block;">
+        Скачать
+      </a>
+      {% endif %}
+
+      {# Send dropdown - only when ready #}
+      {% if doc.status == 'ready' %}
+      <div style="position:relative;display:inline-block;">
+        <button onclick="toggleSendMenu('{{ doc.id }}')"
+                style="background:#f3f4f6;color:#374151;border:none;padding:0.25rem 0.6rem;border-radius:4px;font-size:0.8rem;cursor:pointer;">
+          Отправить &#9660;
+        </button>
+        <div id="send-menu-{{ doc.id }}" style="display:none;position:absolute;right:0;top:100%;background:white;border:1px solid #e5e7eb;border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,0.1);min-width:200px;z-index:10;padding:0.25rem 0;">
+          {% if client.email %}
+          <button onclick="confirmSend('{{ doc.id }}','email','{{ client.email }}')"
+                  style="display:block;width:100%;text-align:left;padding:0.5rem 0.75rem;background:none;border:none;font-size:0.875rem;color:#374151;cursor:pointer;">
+            Email: {{ client.email }}
+          </button>
+          {% endif %}
+          <button onclick="confirmSend('{{ doc.id }}','telegram','')"
+                  style="display:block;width:100%;text-align:left;padding:0.5rem 0.75rem;background:none;border:none;font-size:0.875rem;color:#374151;cursor:pointer;">
+            Telegram
+          </button>
+        </div>
+      </div>
+      {% endif %}
+
+      {# Regenerate - always shown, disabled when active #}
+      <button onclick="confirmRegenerate('{{ doc.id }}')"
+              {% if doc.status in ['pending', 'processing'] %}disabled{% endif %}
+              style="background:#f3f4f6;color:#374151;border:none;padding:0.25rem 0.6rem;border-radius:4px;font-size:0.8rem;cursor:pointer;{% if doc.status in ['pending', 'processing'] %}opacity:0.5;cursor:not-allowed;{% endif %}">
+        Перегенерировать
+      </button>
+
+      {# Delete - always shown #}
+      <form style="display:inline;" method="post"
+            action="/ui/crm/clients/{{ client.id }}/documents/{{ doc.id }}/delete"
+            onsubmit="return confirm('Удалить документ? Это действие необратимо.')">
+        <button type="submit"
+                style="background:#fee2e2;color:#991b1b;border:none;padding:0.25rem 0.6rem;border-radius:4px;font-size:0.8rem;cursor:pointer;">
+          Удалить
+        </button>
+      </form>
+    </div>
+  </td>
+</tr>
