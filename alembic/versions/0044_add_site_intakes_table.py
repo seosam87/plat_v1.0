@@ -8,18 +8,27 @@ from __future__ import annotations
 
 import sqlalchemy as sa
 from alembic import op
-from sqlalchemy.dialects.postgresql import JSON, UUID
+from sqlalchemy.dialects.postgresql import ENUM as PGENUM, JSON, UUID
 
 revision = "0044"
 down_revision = "0043"
 branch_labels = None
 depends_on = None
 
+# Pre-existing enum — created with checkfirst, so safe to run multiple times
+intakestatus_enum = PGENUM("draft", "complete", name="intakestatus", create_type=False)
+
 
 def upgrade() -> None:
-    # Create IntakeStatus enum type
-    intakestatus = sa.Enum("draft", "complete", name="intakestatus")
-    intakestatus.create(op.get_bind(), checkfirst=True)
+    # Create IntakeStatus enum type safely
+    op.execute(
+        """
+        DO $$ BEGIN
+            CREATE TYPE intakestatus AS ENUM ('draft', 'complete');
+        EXCEPTION WHEN duplicate_object THEN NULL;
+        END $$
+        """
+    )
 
     op.create_table(
         "site_intakes",
@@ -33,7 +42,7 @@ def upgrade() -> None:
         ),
         sa.Column(
             "status",
-            sa.Enum("draft", "complete", name="intakestatus"),
+            intakestatus_enum,
             nullable=False,
             server_default="draft",
         ),
@@ -92,4 +101,4 @@ def downgrade() -> None:
     op.drop_index("ix_site_intakes_site_id", table_name="site_intakes")
     op.drop_table("site_intakes")
 
-    sa.Enum(name="intakestatus").drop(op.get_bind(), checkfirst=True)
+    op.execute("DROP TYPE IF EXISTS intakestatus")
