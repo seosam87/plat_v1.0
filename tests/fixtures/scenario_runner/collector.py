@@ -31,6 +31,9 @@ class ScenarioFile(pytest.File):
     def collect(self):
         raw = yaml.safe_load(self.path.read_text())
         scenario = Scenario.model_validate(raw)
+        if scenario.tour is not None:
+            # Tour-only YAML: owned by the 19.2 tour player, invisible to pytest.
+            return
         yield ScenarioItem.from_parent(
             self, name=scenario.name, scenario=scenario
         )
