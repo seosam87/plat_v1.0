@@ -298,3 +298,5 @@ async def update_schedule(
             f'<span class="badge {css}">{label}</span>'
         )
     return result
+
+

@@ -2220,6 +2220,20 @@ async def ui_site_overview(
     crawl_schedule = cs_row.schedule_type.value if cs_row else "manual"
     position_schedule = ps_row.schedule_type.value if ps_row else "manual"
 
+    # Fetch client for site (CRM bidirectional linking)
+    from app.models.client import Client
+    client = None
+    if site.client_id:
+        client_result = await db.execute(
+            sa_select(Client).where(Client.id == site.client_id, Client.is_deleted == False)  # noqa: E712
+        )
+        client = client_result.scalar_one_or_none()
+    # All non-deleted clients for assign dropdown (D-19)
+    all_clients_result = await db.execute(
+        sa_select(Client).where(Client.is_deleted == False).order_by(Client.company_name.asc())  # noqa: E712
+    )
+    all_clients = list(all_clients_result.scalars().all())
+
     return templates.TemplateResponse(
         request,
         "sites/detail.html",
@@ -2233,6 +2247,8 @@ async def ui_site_overview(
             "recent_crawls": [],
             "crawl_schedule": crawl_schedule,
             "position_schedule": position_schedule,
+            "client": client,
+            "all_clients": all_clients,
         },
     )
 
@@ -2241,6 +2257,55 @@ async def ui_site_overview(
 async def ui_site_detail(site_id: str, request: Request, db: AsyncSession = Depends(get_db)):
     """Redirects to /ui/sites — legacy detail page removed in v4 (D-06, D-08)."""
     return RedirectResponse(url="/ui/sites", status_code=301)
+
+
+@app.post("/ui/sites/{site_id}/client", response_class=HTMLResponse)
+async def assign_client_to_site(
+    site_id: str,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    """Assign or unassign a client to/from a site (D-19 bidirectional linking)."""
+    import uuid as _uuid
+    import json as _json
+    from app.services import client_service
+    from app.services.audit_service import log_action
+    from app.models.user import UserRole
+
+    current_user = await _get_current_user_from_cookie(request, db)
+    if not current_user or current_user.role not in (UserRole.admin, UserRole.manager):
+        return HTMLResponse("Unauthorized", status_code=403)
+
+    form_data = await request.form()
+    client_id_str = form_data.get("client_id", "")
+    sid = _uuid.UUID(site_id)
+
+    try:
+        if not client_id_str or str(client_id_str).strip() == "none":
+            await client_service.detach_site(db, sid)
+        else:
+            cid = _uuid.UUID(str(client_id_str).strip())
+            await client_service.attach_site(db, sid, cid)
+        await log_action(
+            db,
+            action="assign_client",
+            user_id=current_user.id,
+            entity_type="site",
+            entity_id=site_id,
+            detail={"client_id": str(client_id_str) or None},
+        )
+        await db.commit()
+    except ValueError:
+        resp = HTMLResponse("")
+        resp.headers["HX-Trigger"] = _json.dumps(
+            {"showToast": "\u0421\u0430\u0439\u0442 \u0443\u0436\u0435 \u043f\u0440\u0438\u0432\u044f\u0437\u0430\u043d \u043a \u0434\u0440\u0443\u0433\u043e\u043c\u0443 \u043a\u043b\u0438\u0435\u043d\u0442\u0443. \u0421\u043d\u0430\u0447\u0430\u043b\u0430 \u043e\u0442\u043a\u0440\u0435\u043f\u0438\u0442\u0435 \u0435\u0433\u043e."}
+        )
+        return resp
+
+    resp = HTMLResponse("")
+    resp.headers["HX-Trigger"] = _json.dumps({"showToast": "\u041a\u043b\u0438\u0435\u043d\u0442 \u043e\u0431\u043d\u043e\u0432\u043b\u0451\u043d"})
+    resp.headers["HX-Redirect"] = f"/ui/sites/{site_id}"
+    return resp
 
 
 # ---- Keywords UI ----
