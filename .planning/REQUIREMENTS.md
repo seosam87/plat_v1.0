@@ -19,10 +19,10 @@ Requirements for v3.0 Client & Proposal milestone. Each maps to roadmap phases.
 
 ### Site Audit Intake
 
-- [ ] **INTAKE-01**: User can fill a structured intake form per site (access, goals, competitors, GSC/Metrika status, SEO setup)
-- [ ] **INTAKE-02**: User can see a verification checklist (WP verified, GSC connected, Metrika linked, sitemap found, crawl done)
-- [ ] **INTAKE-03**: Checklist items auto-populate from existing platform data
-- [ ] **INTAKE-04**: User can save intake form as draft and resume later (section-by-section HTMX save)
+- [x] **INTAKE-01**: User can fill a structured intake form per site (access, goals, competitors, GSC/Metrika status, SEO setup)
+- [x] **INTAKE-02**: User can see a verification checklist (WP verified, GSC connected, Metrika linked, sitemap found, crawl done)
+- [x] **INTAKE-03**: Checklist items auto-populate from existing platform data
+- [x] **INTAKE-04**: User can save intake form as draft and resume later (section-by-section HTMX save)
 - [ ] **INTAKE-05**: Site shows "intake complete" status after form is finished
 
 ### Proposal Templates
@@ -101,10 +101,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CRM-05 | Phase 20 | Pending |
 | CRM-06 | Phase 20 | Pending |
 | CRM-07 | Phase 20 | Pending |
-| INTAKE-01 | Phase 21 | Pending |
-| INTAKE-02 | Phase 21 | Pending |
-| INTAKE-03 | Phase 21 | Pending |
-| INTAKE-04 | Phase 21 | Pending |
+| INTAKE-01 | Phase 21 | Complete |
+| INTAKE-02 | Phase 21 | Complete |
+| INTAKE-03 | Phase 21 | Complete |
+| INTAKE-04 | Phase 21 | Complete |
 | INTAKE-05 | Phase 21 | Pending |
 | TPL-01 | Phase 22 | Pending |
 | TPL-02 | Phase 22 | Pending |

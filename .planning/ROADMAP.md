@@ -108,7 +108,7 @@ Plans:
   4. After completing all required sections, user can mark the intake as complete; the site then shows an "intake complete" badge visible from the site list
 **Plans**: 3 plans
 Plans:
-- [ ] 21-01-PLAN.md — SiteIntake model, migration, service layer, tests
+- [x] 21-01-PLAN.md — SiteIntake model, migration, service layer, tests
 - [ ] 21-02-PLAN.md — Intake router, form page with 5-tab layout, HTMX section saves
 - [ ] 21-03-PLAN.md — Intake badge integration in site list and detail pages
 **UI hint**: yes
@@ -180,7 +180,7 @@ Plans:
 | 19.1. UI Scenario Runner | v2.1 | 5/5 | Complete | 2026-04-08 |
 | 19.2. Interactive Tour Player | v2.1 | 4/4 | Complete | 2026-04-09 |
 | 20. Client CRM | v3.0 | 4/4 | Complete    | 2026-04-09 |
-| 21. Site Audit Intake | v3.0 | 0/? | Not started | - |
+| 21. Site Audit Intake | v3.0 | 1/3 | In Progress|  |
 | 22. Proposal Templates | v3.0 | 0/? | Not started | - |
 | 23. Document Generator | v3.0 | 0/? | Not started | - |
 | 24. Tools Infrastructure & Fast Tools | v3.1 | 0/? | Not started | - |
@@ -192,7 +192,7 @@ Plans:
 
 **Goal:** Extend `tests/_smoke_helpers.py::discover_routes` to auto-filter routes by `response_class=HTMLResponse` (or return-type annotation), skipping JSON/CSV endpoints automatically instead of requiring explicit `SMOKE_SKIP` entries. Eliminates the need for the 5 manual skips added during phase-15.1-deferred-routes debug session.
 **Requirements:** TBD
-**Plans:** 4/4 plans complete
+**Plans:** 1/3 plans executed
 
 Plans:
 - [ ] TBD (promote with /gsd:review-backlog when ready)

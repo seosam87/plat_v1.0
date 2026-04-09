@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v3.0
 milestone_name: Client & Proposal
 status: executing
-stopped_at: Phase 21 UI-SPEC approved
-last_updated: "2026-04-09T13:16:48.578Z"
+stopped_at: Completed 21-01-PLAN.md (SiteIntake model, migration, service layer, 19 tests)
+last_updated: "2026-04-09T13:48:41.394Z"
 last_activity: 2026-04-09
 progress:
   total_phases: 41
   completed_phases: 36
-  total_plans: 117
-  completed_plans: 109
+  total_plans: 120
+  completed_plans: 110
   percent: 0
 ---
 
@@ -21,13 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-09)
 
 **Core value:** A team member or client can open the platform and immediately see the SEO health of any site — positions, recent changes, pending tasks — without switching between GSC, spreadsheets, and WP admin.
-**Current focus:** Phase 20 — client-crm
+**Current focus:** Phase 21 — site-audit-intake
 
 ## Current Position
 
-Phase: 999.3
-Plan: Not started
-Status: Executing Phase 20
+Phase: 21 (site-audit-intake) — EXECUTING
+Plan: 2 of 3
+Status: Ready to execute
 Last activity: 2026-04-09
 
 Progress: [░░░░░░░░░░] 0%
@@ -54,6 +54,7 @@ Progress: [░░░░░░░░░░] 0%
 | WeasyPrint via subprocess_pdf.py only | Direct weasyprint.HTML().write_pdf() causes OOM kills (D-12 decision) |
 | require_manager_or_above for CRM writes | require_admin locks out managers; require_any_authenticated causes IDOR on client data |
 | Three sequential Alembic migrations | 0043 clients, 0044 intake, 0045 proposals — run alembic check before each --autogenerate |
+| Phase 21-site-audit-intake P01 | 4 | 2 tasks | 5 files |
 
 ### Pending Todos
 
@@ -68,6 +69,6 @@ None. Research confidence HIGH. All patterns have established codebase precedent
 
 ## Session Continuity
 
-Last session: 2026-04-09T13:16:48.573Z
-Stopped at: Phase 21 UI-SPEC approved
-Resume file: .planning/phases/21-site-audit-intake/21-UI-SPEC.md
+Last session: 2026-04-09T13:48:41.388Z
+Stopped at: Completed 21-01-PLAN.md (SiteIntake model, migration, service layer, 19 tests)
+Resume file: None
