@@ -106,7 +106,11 @@ Plans:
   2. User can see a verification checklist (WP connected, GSC linked, Metrika linked, sitemap found, crawl done) where each item shows the real-time status pulled from platform data
   3. User can save the form section by section without losing prior answers (HTMX partial save); returning to the form resumes from saved state
   4. After completing all required sections, user can mark the intake as complete; the site then shows an "intake complete" badge visible from the site list
-**Plans**: TBD
+**Plans**: 3 plans
+Plans:
+- [ ] 21-01-PLAN.md — SiteIntake model, migration, service layer, tests
+- [ ] 21-02-PLAN.md — Intake router, form page with 5-tab layout, HTMX section saves
+- [ ] 21-03-PLAN.md — Intake badge integration in site list and detail pages
 **UI hint**: yes
 
 ### Phase 22: Proposal Templates
