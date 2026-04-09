@@ -8,7 +8,13 @@ An internal SEO management platform for a team managing 20–100 WordPress sites
 
 A team member or client can open the platform and immediately see the SEO health of any site — positions, recent changes, pending tasks — without switching between GSC, spreadsheets, and WP admin.
 
-## Current State (v2.1 in progress — 2026-04-09)
+## Current State (v2.1 shipped — 2026-04-09)
+
+**v2.1 Onboarding & Project Health — shipped:** 4 phases, 13 plans, 143 commits, +25,090 LOC
+- Phase 18: Project Health Widget — 7-step setup checklist on Site Overview, status signals from DB
+- Phase 19: Empty States Everywhere — reusable Jinja2 macro across 17+ pages (core, analytics, content, tools)
+- Phase 19.1 (INSERTED): UI Scenario Runner — YAML-based Playwright pytest plugin, CI docker-compose, 2 P0 scenarios
+- Phase 19.2 (INSERTED): Interactive Tour Player — Shepherd.js IIFE overlay consuming scenario YAMLs, admin-only
 
 **v2.0 SEO Insights & AI — shipped:** 7 phases, 24 plans, 147 commits, +92,913 LOC
 - Phase 12: `normalize_url()` + `keyword_latest_positions` + Quick Wins + Dead Content
@@ -38,6 +44,7 @@ A team member or client can open the platform and immediately see the SEO health
 - Dark mode (VIS-02) not implemented
 - Formal migration audit (MIG-01/02/03) deferred
 - Duplicate breadcrumbs in some templates (auto + custom)
+- LLM API live verification deferred (backlog 999.6)
 
 ## Requirements
 
@@ -58,6 +65,13 @@ A team member or client can open the platform and immediately see the SEO health
 - Sidebar UI overhaul (6 sections), Tailwind CSS migration
 - Yandex Metrika, content audit, change monitoring, analytics workspace
 - Gap analysis, site architecture, bulk operations, intent detection, traffic analysis
+
+### Validated (v2.1)
+
+- Project health widget with 7-step setup checklist, status signals from existing DB state
+- Reusable empty_state Jinja2 macro across all core, analytics, content, and tools pages
+- YAML-based Playwright scenario runner (pytest plugin) with CI docker-compose overlay
+- Shepherd.js interactive tour player consuming scenario YAMLs with admin-only trigger
 
 ### Active
 
@@ -111,17 +125,15 @@ A team member or client can open the platform and immediately see the SEO health
 | Ad traffic = CSV upload only | API integrations deferred; covers 90% of needs | Good |
 | Celery timezone Europe/Moscow | Server in Spain, team in Moscow | Good |
 
-## Current Milestone: v2.1 Onboarding & Project Health
+## Next Milestone: v3.0 Client & Proposal
 
-**Goal:** Сделать платформу самодокументируемой для возвращающегося пользователя — каждая страница объясняет, почему нет данных и как получить результат; Site Overview показывает 7-шаговый чек-лист настройки проекта с прогрессом и следующим действием.
+**Goal:** Превратить платформу из инструмента мониторинга в инструмент продаж — карточки клиентов, аудит-анкеты, шаблоны КП и генератор документов.
 
-**Target features:**
-- Phase 18: Project Health Widget — 7-шаговый setup чек-лист на Overview, status signals в site_service, ссылки на следующий шаг
-- Phase 19: Empty States Everywhere — reusable Jinja2 макрос + contextual empty states на всех основных страницах
+**Planned phases:** 20 (Client CRM) → 21 (Site Audit Intake) → 22 (Proposal Templates) → 23 (Document Generator)
 
 ## Evolution
 
 This document evolves at phase transitions and milestone boundaries.
 
 ---
-*Last updated: 2026-04-09 — Phase 19.2 (Interactive Tour Player) complete*
+*Last updated: 2026-04-09 after v2.1 milestone*
