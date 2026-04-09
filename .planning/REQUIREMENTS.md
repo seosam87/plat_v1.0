@@ -22,8 +22,8 @@
 - [ ] **EMP-03**: Макрос применён на **analytics** страницах: Metrika, Traffic Analysis, Growth Opportunities, Dead Content, Quick Wins
 - [ ] **EMP-04**: Макрос применён на **content** страницах: WP Pipeline, Content Plan, Briefs, Client Reports
 - [x] **EMP-05**: Каждое empty state объясняет **почему пусто** ("нет данных потому что...") и даёт минимум одну прямую кнопку-действие ("Запустить краул", "Импортировать ключи" и т.д.)
-- [ ] **EMP-06**: Empty state применён на **tools** страницах (если Phase 24–25 не готов на момент выполнения Phase 19 — tools-половину отложить на after Phase 25 per roadmap)
-- [ ] **EMP-07**: Smoke-тесты Phase 15.1 не ломаются — все страницы с empty state корректно рендерятся на seed-данных (и пустых, и с данными)
+- [x] **EMP-06**: Empty state применён на **tools** страницах (если Phase 24–25 не готов на момент выполнения Phase 19 — tools-половину отложить на after Phase 25 per roadmap)
+- [x] **EMP-07**: Smoke-тесты Phase 15.1 не ломаются — все страницы с empty state корректно рендерятся на seed-данных (и пустых, и с данными)
 
 ## Future Requirements (deferred)
 
@@ -71,8 +71,8 @@
 | EMP-03 | Phase 19-02 | Pending |
 | EMP-04 | Phase 19-02 | Pending |
 | EMP-05 | Phase 19-01, 19-02 | Complete |
-| EMP-06 | Phase 19-03 (deferred after Phase 25 if tools not ready) | Pending |
-| EMP-07 | Phase 19-03 | Pending |
+| EMP-06 | Phase 19-03 (deferred after Phase 25 if tools not ready) | Complete |
+| EMP-07 | Phase 19-03 | Complete |
 | SCN-01 | Phase 19.1-02 | Complete |
 | SCN-02 | Phase 19.1-02 | Complete |
 | SCN-03 | Phase 19.1-03 | Complete |

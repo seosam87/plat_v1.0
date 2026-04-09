@@ -111,7 +111,7 @@ Plans:
 Plans:
 - [x] 19-01-PLAN.md — Empty state macro + core workflow pages: Crawls, Crawl Schedule, Positions, Keywords, Competitors (reason + how-to + CTA for each)
 - [ ] 19-02-PLAN.md — Empty state Analytics/Content pages: Traffic, Quick Wins, Dead Content, Gap Analysis, Cannibalization, Content Pipeline, Client Reports, Keyword Suggest
-- [ ] 19-03-PLAN.md — Empty state Tools section (Phase 24–25 tool pages) + smoke crawler registration for all new empty state routes + router tests
+- [x] 19-03-PLAN.md — Empty state Tools section (Phase 24–25 tool pages) + smoke crawler registration for all new empty state routes + router tests
 **UI hint**: yes
 
 ### Phase 19.1: UI Scenario Runner (Playwright)
@@ -309,7 +309,7 @@ Phase 20 (Client CRM)
 | 16. AI/GEO Readiness & LLM Briefs | v2.0 | 4/4 | Complete (LLM e2e deferred) | 2026-04-08 |
 | 17. In-app Notifications | v2.0 | 3/3 | Complete   | 2026-04-08 |
 | 18. Project Health Widget | v2.1 | 1/1 | Complete    | 2026-04-08 |
-| 19. Empty States Everywhere | v2.1 | 1/3 | In Progress|  |
+| 19. Empty States Everywhere | v2.1 | 2/3 | In Progress|  |
 | 20. Client CRM | v3.0 | 0/3 | Not started | - |
 | 21. Site Audit Intake | v3.0 | 0/4 | Not started | - |
 | 22. Proposal Templates & Tariffs | v3.0 | 0/4 | Not started | - |
@@ -323,7 +323,7 @@ Phase 20 (Client CRM)
 
 **Goal:** Extend `tests/_smoke_helpers.py::discover_routes` to auto-filter routes by `response_class=HTMLResponse` (or return-type annotation), skipping JSON/CSV endpoints automatically instead of requiring explicit `SMOKE_SKIP` entries. Eliminates the need for the 5 manual skips added during phase-15.1-deferred-routes debug session (`/metrika/{id}/pages`, `/metrika/{id}/compare`, `/analytics/sessions/{id}/export`, `/traffic-analysis/sessions/{id}`, `/traffic-analysis/sessions/{id}/anomalies`). Rationale: surfaced as tech debt in `.planning/phases/15.1-ui-smoke-crawler/deferred-items.md`.
 **Requirements:** TBD
-**Plans:** 1/3 plans executed
+**Plans:** 2/3 plans executed
 
 Plans:
 - [ ] TBD (promote with /gsd:review-backlog when ready)
