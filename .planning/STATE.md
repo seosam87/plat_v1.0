@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v3.0
 milestone_name: Client & Proposal
 status: planning
-stopped_at: "v2.1 archived. Next → /gsd:new-milestone for v3.0 Client & Proposal."
-last_updated: "2026-04-09T10:00:00.000Z"
+stopped_at: "Defining requirements for v3.0 Client & Proposal"
+last_updated: "2026-04-09T12:00:00.000Z"
 last_activity: 2026-04-09
 progress:
   total_phases: 39
@@ -21,17 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-09)
 
 **Core value:** A team member or client can open the platform and immediately see the SEO health of any site — positions, recent changes, pending tasks — without switching between GSC, spreadsheets, and WP admin.
-**Current focus:** Planning v3.0 Client & Proposal milestone
+**Current focus:** Defining requirements for v3.0 Client & Proposal
 
 ## Current Position
 
-Milestone: v3.0 Client & Proposal
-Phase: 20 (not started)
-Plan: Not started
-Status: Ready to execute
-Last activity: 2026-04-09
-
-Progress: v2.1 [__________] 0%
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-04-09 — Milestone v3.0 started
 
 ## Performance Metrics
 
@@ -114,5 +111,5 @@ Progress: v2.1 [__________] 0%
 ## Session Continuity
 
 Last session: 2026-04-09
-Stopped at: v2.1 milestone archived. Next → /gsd:new-milestone for v3.0 Client & Proposal.
+Stopped at: Defining requirements for v3.0 Client & Proposal
 Resume file: None

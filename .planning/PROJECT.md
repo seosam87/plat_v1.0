@@ -75,7 +75,7 @@ A team member or client can open the platform and immediately see the SEO health
 
 ### Active
 
-(No active requirements — start next milestone with `/gsd:new-milestone`)
+(Defining requirements for v3.0 — see REQUIREMENTS.md)
 
 ### Out of Scope
 
@@ -125,15 +125,19 @@ A team member or client can open the platform and immediately see the SEO health
 | Ad traffic = CSV upload only | API integrations deferred; covers 90% of needs | Good |
 | Celery timezone Europe/Moscow | Server in Spain, team in Moscow | Good |
 
-## Next Milestone: v3.0 Client & Proposal
+## Current Milestone: v3.0 Client & Proposal
 
 **Goal:** Превратить платформу из инструмента мониторинга в инструмент продаж — карточки клиентов, аудит-анкеты, шаблоны КП и генератор документов.
 
-**Planned phases:** 20 (Client CRM) → 21 (Site Audit Intake) → 22 (Proposal Templates) → 23 (Document Generator)
+**Target features:**
+- Client CRM — карточки клиентов с контактами, привязанными сайтами, историей взаимодействий
+- Site Audit Intake — аудит-анкеты для новых сайтов, структурированные чеклисты проверок
+- Proposal Templates — шаблоны коммерческих предложений с переменными из данных платформы
+- Document Generator — генерация КП/аудитов в PDF из шаблонов и агрегированных данных
 
 ## Evolution
 
 This document evolves at phase transitions and milestone boundaries.
 
 ---
-*Last updated: 2026-04-09 after v2.1 milestone*
+*Last updated: 2026-04-09 after v3.0 milestone start*
