@@ -50,6 +50,8 @@ Three new pages in this phase. All extend `base.html`.
 
 ### Template List Page (`/ui/templates`)
 
+**Focal point:** The template card grid is the primary focal element. On first visit with no templates, the empty-state CTA ("Создать шаблон") is the sole focal point, centered in the content area.
+
 - Full-width `.main-content` area, single `.card` container
 - Page header row: `h2` "Шаблоны КП" left-aligned + "Создать шаблон" button right-aligned (admin only — hidden for non-admins)
 - Template grid: `display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 24px;` — matches `grid-cols-[repeat(auto-fit,minmax(...,1fr))]` pattern already used in `gap/index.html`
@@ -60,6 +62,8 @@ Three new pages in this phase. All extend `base.html`.
 
 ### Template Edit Page (`/ui/templates/{id}/edit`)
 
+**Focal point:** The CodeMirror editor (left column) is the primary focal element — it occupies the largest flex proportion and is where the user performs the core action of authoring the template.
+
 Three-column layout inside `.main-content`:
 
 ```
@@ -69,7 +73,7 @@ Three-column layout inside `.main-content`:
 - Outer wrapper: `display: flex; gap: 16px; height: calc(100vh - 140px);` — fills viewport minus breadcrumb + header
 - **Left column (CodeMirror):** `.card` wrapper, no inner padding on editor area; `height: 100%; overflow: hidden;` — CodeMirror fills the card
   - Above editor: metadata form row (name input, type select, description input) in a 24px-padded header within the card
-  - Below editor: action bar — "Сохранить" (primary) + "Сохранить как черновик" (secondary) + "Отмена" (ghost)
+  - Below editor: action bar — "Сохранить шаблон" (primary) + "Сохранить как черновик" (secondary) + "Отмена" (ghost)
 - **Center column (iframe preview):** `.card` wrapper; above iframe: two dependent selects — "Клиент" then "Сайт" (HTMX-driven dependent select, same pattern as CRM); "Обновить превью" button; below selects: `<iframe>` fills remaining height with `border: none; width: 100%;`
 - **Right column (variable panel):** `.card` wrapper, `overflow-y: auto; height: 100%;`; grouped list of ~15 variables (see Variable Panel contract below)
 
@@ -104,7 +108,7 @@ Touch targets (action buttons): minimum 36px height — consistent with `.btn` `
 | Role | Size | Weight | Line Height | Usage |
 |------|------|--------|-------------|-------|
 | Body | 14px (0.875rem) | 400 (regular) | 1.5 | Card descriptions, variable panel text, form labels |
-| Label | 12px (0.75rem) | 600 (semibold) | 1.4 | Table column headers, metadata date/author, badge text, variable category headers |
+| Label | 12px (0.75rem) | 600 (semibold) | 1.4 | Table column headers, metadata date/author, badge text, variable category headers, variable name monospace text |
 | Heading | 18px (1.125rem) | 600 (semibold) | 1.2 | Page title `h2`, template card name `h3` |
 | Display | 20px (1.25rem) | 600 (semibold) | 1.2 | Page-level `h1` on edit page ("Редактировать шаблон") |
 
@@ -126,7 +130,7 @@ Max 2 weights across all type: **400 (regular)** and **600 (semibold)**.
 
 **Accent (`#4f46e5`) reserved for:**
 1. "Создать шаблон" primary button on list page
-2. "Сохранить" primary save button on edit page
+2. "Сохранить шаблон" primary save button on edit page
 3. "Обновить превью" button on edit page
 4. Active sidebar nav item highlight (inherited from base.html `#3730a3`/`#4338ca` — do not override)
 5. Breadcrumb links (`color: #4f46e5` — inherited from base.html)
@@ -150,16 +154,16 @@ Max 2 weights across all type: **400 (regular)** and **600 (semibold)**.
 
 ```html
 <!-- Skeleton only — executor fills real data bindings -->
-<div class="card" style="display:flex;flex-direction:column;gap:12px;position:relative;">
+<div class="card" style="display:flex;flex-direction:column;gap:8px;position:relative;">
   <!-- type badge top-right -->
-  <span class="badge badge-proposal" style="position:absolute;top:12px;right:12px;">Предложение</span>
+  <span class="badge badge-proposal" style="position:absolute;top:16px;right:16px;">Предложение</span>
   <h3 style="font-size:1.125rem;font-weight:600;color:#1f2937;margin:0;padding-right:80px;">{{ template.name }}</h3>
   <p style="font-size:0.875rem;color:#6b7280;margin:0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">{{ template.description }}</p>
   <div style="font-size:0.75rem;color:#9ca3af;">{{ template.created_at|datetimeformat }}</div>
   <!-- admin-only actions -->
   <div style="display:flex;gap:8px;margin-top:auto;">
     <a href="/ui/templates/{{ template.id }}/edit" class="btn btn-sm btn-primary">Редактировать</a>
-    <button class="btn btn-sm" style="background:#f3f4f6;color:#374151;" hx-post="...">Клонировать</button>
+    <button class="btn btn-sm" style="background:#f3f4f6;color:#374151;" hx-post="...">Клонировать шаблон</button>
     <button class="btn btn-sm" style="background:#fee2e2;color:#991b1b;" hx-delete="...">Удалить</button>
   </div>
 </div>
@@ -167,12 +171,12 @@ Max 2 weights across all type: **400 (regular)** and **600 (semibold)**.
 
 ### Variable Panel Item
 
-Each variable item: `cursor: pointer; padding: 8px 12px; border-radius: 4px; hover: background #f3f4f6`
-- Variable name: `font-size: 0.8rem; font-weight: 600; font-family: monospace; color: #1e1b4b;` — e.g. `{{ client.name }}`
+Each variable item: `cursor: pointer; padding: 8px 16px; border-radius: 4px; hover: background #f3f4f6`
+- Variable name: `font-size: 0.75rem; font-weight: 600; font-family: monospace; color: #1e1b4b;` — e.g. `{{ client.name }}`
 - Description: `font-size: 0.75rem; color: #6b7280;`
 - Click action: inserts `{{ variable_name }}` at CodeMirror cursor position (JS bridge via CodeMirror dispatch)
 
-Category headers: `font-size: 0.75rem; font-weight: 600; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.05em; padding: 12px 12px 4px;`
+Category headers: `font-size: 0.75rem; font-weight: 600; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.05em; padding: 8px 16px 4px;`
 
 Variable groups (from CONTEXT.md D-08):
 - **Клиент**: `client.name`, `client.legal_name`, `client.inn`, `client.email`, `client.phone`, `client.manager`
@@ -200,9 +204,9 @@ Inline confirmation pattern (no modal): on clicking "Удалить", the button
 | Element | Copy |
 |---------|------|
 | Primary CTA (list page) | "Создать шаблон" |
-| Primary CTA (edit page — save) | "Сохранить" |
+| Primary CTA (edit page — save) | "Сохранить шаблон" |
 | Secondary CTA (edit page) | "Обновить превью" |
-| Clone action | "Клонировать" |
+| Clone action | "Клонировать шаблон" |
 | Empty state heading | "Шаблонов пока нет" |
 | Empty state body | "Создайте первый шаблон КП, чтобы начать генерацию документов для клиентов." |
 | Empty state CTA | "Создать шаблон" (links to `/ui/templates/new`, admin only; non-admins see heading + body only, no CTA) |
@@ -233,9 +237,9 @@ Inline confirmation pattern (no modal): on clicking "Удалить", the button
 |---------|--------|--------|------|
 | "Обновить превью" button | `#preview-frame` (custom JS sets iframe src) | POST `/ui/templates/{id}/preview` | iframe srcdoc update via JS — NOT direct hx-swap (iframe isolation requirement from CONTEXT.md D-14) |
 | Клиент select change | `#site-select` | GET `/ui/templates/sites?client_id=X` | `outerHTML` — dependent select pattern from CRM |
-| "Клонировать" button | `#toast-container` + redirect | POST `/ui/templates/{id}/clone` | HX-Redirect header → `/ui/templates/{clone_id}/edit` |
+| "Клонировать шаблон" button | `#toast-container` + redirect | POST `/ui/templates/{id}/clone` | HX-Redirect header → `/ui/templates/{clone_id}/edit` |
 | "Удалить" button | `#template-card-{id}` | DELETE `/ui/templates/{id}` | `outerHTML` (removes card from grid) |
-| "Сохранить" button (edit page) | `#save-status` | POST/PUT `/ui/templates/{id}` | `innerHTML` — shows save confirmation inline |
+| "Сохранить шаблон" button (edit page) | `#save-status` | POST/PUT `/ui/templates/{id}` | `innerHTML` — shows save confirmation inline |
 
 Preview POST body: `{ body: codemirror_value, client_id: selected, site_id: selected }`. Server returns rendered HTML. JS sets `iframe.srcdoc = response` for style isolation (CONTEXT.md D-14).
 
