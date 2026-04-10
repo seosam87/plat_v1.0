@@ -51,6 +51,7 @@ class Settings(BaseSettings):
     TELEGRAM_BOT_TOKEN: str = ""
     TELEGRAM_CHAT_ID: str = ""
     TELEGRAM_BOT_USERNAME: str = ""
+    TELEGRAM_CHANNEL_ID: str = ""  # e.g. @mychannel or -100123456789
     POSITION_DROP_THRESHOLD: int = 5  # alert if keyword drops by this many positions
 
     # Proxy & anticaptcha for SERP parsing
