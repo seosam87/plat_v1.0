@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+
+{% block title %}{% if post %}Редактировать: {{ post.title }}{% else %}Новый пост{% endif %} — SEO Platform{% endblock %}
+
+{% block content %}
+<div class="main-content">
+  <div style="max-width:72rem;margin:0 auto;">
+
+    {# Header #}
+    <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1.5rem;">
+      <a href="/ui/channel/" style="color:#6b7280;text-decoration:none;font-size:0.85rem;">← Все посты</a>
+      <h1 style="font-size:1.25rem;font-weight:700;color:#111827;margin:0;">
+        {% if post %}Редактировать: {{ post.title }}{% else %}Новый пост{% endif %}
+      </h1>
+      {% if post and post.status.value == 'published' %}
+      <span style="padding:0.25rem 0.6rem;font-size:0.75rem;font-weight:600;background:#d1fae5;color:#065f46;border-radius:9999px;">
+        Опубликовано
+      </span>
+      {% endif %}
+    </div>
+
+    {# Two-column layout: form (left) + preview (right) #}
+    <div style="display:grid;grid-template-columns:60% 40%;gap:1.5rem;align-items:start;">
+
+      {# Left: form #}
+      <div style="background:white;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.08);padding:1.5rem;">
+        <form method="POST" action="{% if post %}/ui/channel/{{ post.id }}{% else %}/ui/channel/{% endif %}">
+
+          {# Title field #}
+          <div style="margin-bottom:1rem;">
+            <label style="display:block;font-size:0.8rem;font-weight:600;color:#374151;margin-bottom:0.35rem;">Заголовок (внутренний)</label>
+            <input
+              type="text"
+              name="title"
+              value="{{ post.title if post else '' }}"
+              placeholder="Внутреннее название поста"
+              required
+              style="width:100%;padding:0.5rem 0.75rem;font-size:0.875rem;border:1px solid #d1d5db;border-radius:6px;color:#111827;box-sizing:border-box;"
+            >
+          </div>
+
+          {# Content field with live preview #}
+          <div style="margin-bottom:1.25rem;">
+            <label style="display:block;font-size:0.8rem;font-weight:600;color:#374151;margin-bottom:0.35rem;">Текст поста (HTML/Markdown для Telegram)</label>
+            <textarea
+              name="content"
+              rows="12"
+              placeholder="Введите текст поста..."
+              required
+              {% if post %}
+              hx-get="/ui/channel/{{ post.id }}/preview"
+              hx-trigger="keyup changed delay:500ms"
+              hx-target="#preview-panel"
+              hx-include="this"
+              {% endif %}
+              style="width:100%;padding:0.5rem 0.75rem;font-size:0.875rem;font-family:monospace;border:1px solid #d1d5db;border-radius:6px;color:#111827;resize:vertical;box-sizing:border-box;"
+            >{{ post.content if post else '' }}</textarea>
+            <p style="font-size:0.75rem;color:#9ca3af;margin-top:0.35rem;">Поддерживается HTML-разметка Telegram: &lt;b&gt;, &lt;i&gt;, &lt;a&gt;, &lt;code&gt;, &lt;pre&gt;</p>
+          </div>
+
+          {# Action buttons #}
+          <div style="display:flex;gap:0.75rem;flex-wrap:wrap;align-items:center;">
+            <button
+              type="submit"
+              style="padding:0.5rem 1.25rem;font-size:0.85rem;font-weight:600;background:#6366f1;color:white;border:none;border-radius:6px;cursor:pointer;"
+              onmouseover="this.style.background='#4f46e5'"
+              onmouseout="this.style.background='#6366f1'"
+            >
+              {% if post %}Сохранить{% else %}Создать черновик{% endif %}
+            </button>
+
+            {% if post and post.status.value != 'published' %}
+            {# Publish now button #}
+            <button
+              type="button"
+              hx-post="/ui/channel/{{ post.id }}/publish"
+              hx-confirm="Опубликовать пост в Telegram-канале?"
+              style="padding:0.5rem 1.25rem;font-size:0.85rem;font-weight:600;background:#10b981;color:white;border:none;border-radius:6px;cursor:pointer;"
+              onmouseover="this.style.background='#059669'"
+              onmouseout="this.style.background='#10b981'"
+            >Опубликовать сейчас</button>
+
+            {# Schedule section #}
+            <div style="display:flex;align-items:center;gap:0.5rem;">
+              <input
+                type="datetime-local"
+                id="schedule-datetime"
+                name="scheduled_at"
+                style="padding:0.4rem 0.6rem;font-size:0.8rem;border:1px solid #d1d5db;border-radius:6px;"
+              >
+              <button
+                type="button"
+                hx-post="/ui/channel/{{ post.id }}/schedule"
+                hx-include="#schedule-datetime"
+                hx-confirm="Запланировать публикацию?"
+                style="padding:0.5rem 1rem;font-size:0.8rem;font-weight:600;background:#f59e0b;color:white;border:none;border-radius:6px;cursor:pointer;"
+                onmouseover="this.style.background='#d97706'"
+                onmouseout="this.style.background='#f59e0b'"
+              >Запланировать</button>
+            </div>
+            {% endif %}
+
+            {% if post %}
+            {# Delete button #}
+            <button
+              type="button"
+              hx-delete="/ui/channel/{{ post.id }}"
+              hx-confirm="Удалить этот пост? Это действие нельзя отменить."
+              style="padding:0.5rem 1rem;font-size:0.8rem;font-weight:600;background:white;color:#ef4444;border:1px solid #ef4444;border-radius:6px;cursor:pointer;margin-left:auto;"
+              onmouseover="this.style.background='#fef2f2'"
+              onmouseout="this.style.background='white'"
+            >Удалить</button>
+            {% endif %}
+          </div>
+
+        </form>
+
+        {# Published post info #}
+        {% if post and post.status.value == 'published' %}
+        <div style="margin-top:1.25rem;padding:0.75rem 1rem;background:#f0fdf4;border-radius:6px;border:1px solid #bbf7d0;">
+          <p style="font-size:0.8rem;color:#065f46;margin:0;">
+            Опубликован: {{ post.published_at.strftime('%d.%m.%Y %H:%M') if post.published_at else '—' }}
+            {% if post.telegram_message_id %}
+            · ID сообщения: {{ post.telegram_message_id }}
+            {% endif %}
+          </p>
+          <div style="margin-top:0.5rem;display:flex;gap:0.5rem;">
+            <button
+              type="button"
+              hx-post="/ui/channel/{{ post.id }}/pin"
+              hx-confirm="{% if post.pinned %}Открепить сообщение?{% else %}Закрепить сообщение в канале?{% endif %}"
+              style="padding:0.35rem 0.75rem;font-size:0.75rem;font-weight:600;background:white;color:#374151;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;"
+            >
+              {% if post.pinned %}Открепить{% else %}Закрепить{% endif %}
+            </button>
+          </div>
+        </div>
+        {% endif %}
+
+      </div>
+
+      {# Right: preview panel #}
+      <div>
+        <div style="background:white;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.08);padding:1.5rem;">
+          <h3 style="font-size:0.875rem;font-weight:600;color:#374151;margin:0 0 0.75rem 0;">Предпросмотр</h3>
+          <div id="preview-panel"
+               style="min-height:10rem;padding:0.75rem;background:#f9fafb;border-radius:6px;font-size:0.9rem;line-height:1.6;color:#111827;word-break:break-word;">
+            {% if post and post.content %}
+            {{ post.content | replace('\n', '<br>') | safe }}
+            {% else %}
+            <span style="color:#9ca3af;font-style:italic;">Начните вводить текст для предпросмотра...</span>
+            {% endif %}
+          </div>
+        </div>
+
+        {% if not post %}
+        <div style="margin-top:1rem;padding:0.75rem 1rem;background:#fffbeb;border-radius:6px;border:1px solid #fde68a;">
+          <p style="font-size:0.8rem;color:#92400e;margin:0;">Предпросмотр и дополнительные действия (публикация, планирование) появятся после сохранения черновика.</p>
+        </div>
+        {% endif %}
+      </div>
+
+    </div>
+
+  </div>
+</div>
+{% endblock %}

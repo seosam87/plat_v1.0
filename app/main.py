@@ -189,6 +189,9 @@ app.include_router(documents_router)
 from app.routers.mobile import router as mobile_router
 app.include_router(mobile_router)
 
+from app.routers.channel import router as channel_router
+app.include_router(channel_router)
+
 
 # ---- Site selector API endpoints for nav sidebar ----
 

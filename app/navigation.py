@@ -102,6 +102,14 @@ NAV_SECTIONS = [
         "children": [],
     },
     {
+        "id": "channel",
+        "label": "Telegram-канал",
+        "icon": "chat-bubble-left-right",
+        "url": "/ui/channel/",
+        "admin_only": False,
+        "children": [],
+    },
+    {
         "id": "crm",
         "label": "CRM",
         "icon": "user-group",

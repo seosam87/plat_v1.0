@@ -1,0 +1,72 @@
+<tr id="post-row-{{ post.id }}" style="border-bottom:1px solid #f3f4f6;">
+  <td style="padding:0.75rem 1rem;font-size:0.875rem;color:#111827;">
+    <a href="/ui/channel/{{ post.id }}" style="color:#6366f1;text-decoration:none;font-weight:500;"
+       onmouseover="this.style.textDecoration='underline'"
+       onmouseout="this.style.textDecoration='none'">
+      {{ post.title }}
+    </a>
+    {% if post.pinned %}
+    <span style="margin-left:0.4rem;font-size:0.7rem;color:#6b7280;">📌</span>
+    {% endif %}
+  </td>
+  <td style="padding:0.75rem 1rem;">
+    {% if post.status.value == 'draft' %}
+    <span style="padding:0.2rem 0.55rem;font-size:0.75rem;font-weight:600;background:#f3f4f6;color:#374151;border-radius:9999px;">Черновик</span>
+    {% elif post.status.value == 'scheduled' %}
+    <span style="padding:0.2rem 0.55rem;font-size:0.75rem;font-weight:600;background:#fef3c7;color:#92400e;border-radius:9999px;">Запланировано</span>
+    {% elif post.status.value == 'published' %}
+    <span style="padding:0.2rem 0.55rem;font-size:0.75rem;font-weight:600;background:#d1fae5;color:#065f46;border-radius:9999px;">Опубликовано</span>
+    {% endif %}
+  </td>
+  <td style="padding:0.75rem 1rem;font-size:0.8rem;color:#6b7280;">
+    {% if post.status.value == 'published' and post.published_at %}
+    {{ post.published_at.strftime('%d.%m.%Y %H:%M') }}
+    {% elif post.status.value == 'scheduled' and post.scheduled_at %}
+    {{ post.scheduled_at.strftime('%d.%m.%Y %H:%M') }}
+    {% else %}
+    {{ post.created_at.strftime('%d.%m.%Y') }}
+    {% endif %}
+  </td>
+  <td style="padding:0.75rem 1rem;">
+    <div style="display:flex;gap:0.4rem;align-items:center;flex-wrap:wrap;">
+
+      {% if post.status.value != 'published' %}
+      {# Publish button #}
+      <button
+        hx-post="/ui/channel/{{ post.id }}/publish"
+        hx-target="#post-row-{{ post.id }}"
+        hx-swap="outerHTML"
+        hx-confirm="Опубликовать в Telegram?"
+        style="padding:0.25rem 0.6rem;font-size:0.75rem;font-weight:600;background:#10b981;color:white;border:none;border-radius:4px;cursor:pointer;"
+        onmouseover="this.style.background='#059669'"
+        onmouseout="this.style.background='#10b981'"
+      >Опубликовать</button>
+      {% endif %}
+
+      {% if post.status.value == 'published' %}
+      {# Pin/Unpin button #}
+      <button
+        hx-post="/ui/channel/{{ post.id }}/pin"
+        hx-target="#post-row-{{ post.id }}"
+        hx-swap="outerHTML"
+        hx-confirm="{% if post.pinned %}Открепить сообщение?{% else %}Закрепить в канале?{% endif %}"
+        style="padding:0.25rem 0.6rem;font-size:0.75rem;font-weight:500;background:#f3f4f6;color:#374151;border:none;border-radius:4px;cursor:pointer;"
+        onmouseover="this.style.background='#e5e7eb'"
+        onmouseout="this.style.background='#f3f4f6'"
+      >{% if post.pinned %}Открепить{% else %}Закрепить{% endif %}</button>
+      {% endif %}
+
+      {# Delete button #}
+      <button
+        hx-delete="/ui/channel/{{ post.id }}"
+        hx-target="#post-row-{{ post.id }}"
+        hx-swap="delete"
+        hx-confirm="Удалить этот пост?"
+        style="padding:0.25rem 0.6rem;font-size:0.75rem;font-weight:500;background:white;color:#ef4444;border:1px solid #fca5a5;border-radius:4px;cursor:pointer;"
+        onmouseover="this.style.background='#fef2f2'"
+        onmouseout="this.style.background='white'"
+      >Удалить</button>
+
+    </div>
+  </td>
+</tr>

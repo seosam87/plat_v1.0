@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block title %}Telegram-канал — SEO Platform{% endblock %}
+
+{% block content %}
+<div class="main-content">
+  <div style="max-width:72rem;margin:0 auto;">
+
+    {# Header #}
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
+      <h1 style="font-size:1.375rem;font-weight:700;color:#111827;margin:0;">Telegram-канал</h1>
+      <a href="/ui/channel/new"
+         style="display:inline-flex;align-items:center;gap:0.4rem;padding:0.5rem 1rem;font-size:0.85rem;font-weight:600;background:#6366f1;color:white;border-radius:6px;text-decoration:none;"
+         onmouseover="this.style.background='#4f46e5'"
+         onmouseout="this.style.background='#6366f1'">
+        + Новый пост
+      </a>
+    </div>
+
+    {# Filter row #}
+    <div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;margin-bottom:1.25rem;padding:0.75rem 1rem;background:white;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.08);">
+      <div>
+        <label style="font-size:0.75rem;color:#6b7280;display:block;margin-bottom:0.2rem;">Статус</label>
+        <select
+          hx-get="/ui/channel/"
+          hx-push-url="true"
+          hx-target="#post-list"
+          hx-include="[name='sort']"
+          name="status"
+          style="font-size:0.8rem;padding:0.35rem 0.6rem;border:1px solid #d1d5db;border-radius:4px;background:white;color:#374151;min-width:9rem;"
+        >
+          <option value="" {% if not current_status %}selected{% endif %}>Все статусы</option>
+          <option value="draft" {% if current_status == 'draft' %}selected{% endif %}>Черновики</option>
+          <option value="scheduled" {% if current_status == 'scheduled' %}selected{% endif %}>Запланировано</option>
+          <option value="published" {% if current_status == 'published' %}selected{% endif %}>Опубликовано</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size:0.75rem;color:#6b7280;display:block;margin-bottom:0.2rem;">Сортировка</label>
+        <select
+          hx-get="/ui/channel/"
+          hx-push-url="true"
+          hx-target="#post-list"
+          hx-include="[name='status']"
+          name="sort"
+          style="font-size:0.8rem;padding:0.35rem 0.6rem;border:1px solid #d1d5db;border-radius:4px;background:white;color:#374151;min-width:10rem;"
+        >
+          <option value="created_at_desc" {% if current_sort == 'created_at_desc' %}selected{% endif %}>Новые сначала</option>
+          <option value="scheduled_at_asc" {% if current_sort == 'scheduled_at_asc' %}selected{% endif %}>По дате публикации</option>
+        </select>
+      </div>
+    </div>
+
+    {# Post table #}
+    <div id="post-list">
+      {% if posts %}
+      <table style="width:100%;border-collapse:collapse;background:white;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.08);overflow:hidden;">
+        <thead>
+          <tr style="background:#f9fafb;border-bottom:1px solid #e5e7eb;">
+            <th style="padding:0.75rem 1rem;text-align:left;font-size:0.8rem;font-weight:600;color:#374151;">Заголовок</th>
+            <th style="padding:0.75rem 1rem;text-align:left;font-size:0.8rem;font-weight:600;color:#374151;">Статус</th>
+            <th style="padding:0.75rem 1rem;text-align:left;font-size:0.8rem;font-weight:600;color:#374151;">Дата</th>
+            <th style="padding:0.75rem 1rem;text-align:left;font-size:0.8rem;font-weight:600;color:#374151;">Действия</th>
+          </tr>
+        </thead>
+        <tbody id="post-table-body">
+          {% for post in posts %}
+          {% include "channel/_post_row.html" %}
+          {% endfor %}
+        </tbody>
+      </table>
+
+      {# Pagination #}
+      {% if pages > 1 %}
+      <div style="display:flex;gap:0.5rem;justify-content:center;margin-top:1.25rem;">
+        {% for p in range(1, pages + 1) %}
+        <a href="/ui/channel/?status={{ current_status }}&sort={{ current_sort }}&page={{ p }}"
+           style="padding:0.35rem 0.65rem;font-size:0.8rem;border-radius:4px;text-decoration:none;{% if p == page %}background:#6366f1;color:white;font-weight:600;{% else %}background:#f3f4f6;color:#374151;{% endif %}">
+          {{ p }}
+        </a>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      {% else %}
+      {# Empty state #}
+      <div style="text-align:center;padding:3rem 1rem;background:white;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.08);">
+        <p style="font-size:1rem;color:#6b7280;margin-bottom:1rem;">Постов пока нет</p>
+        <a href="/ui/channel/new"
+           style="display:inline-flex;padding:0.5rem 1.25rem;font-size:0.85rem;font-weight:600;background:#6366f1;color:white;border-radius:6px;text-decoration:none;"
+           onmouseover="this.style.background='#4f46e5'"
+           onmouseout="this.style.background='#6366f1'">
+          Создать первый пост
+        </a>
+      </div>
+      {% endif %}
+    </div>
+
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,7 @@
+{% if rendered_content %}
+<div style="font-size:0.9rem;line-height:1.6;color:#111827;word-break:break-word;">
+  {{ rendered_content | safe }}
+</div>
+{% else %}
+<span style="color:#9ca3af;font-style:italic;font-size:0.875rem;">Начните вводить текст для предпросмотра...</span>
+{% endif %}
