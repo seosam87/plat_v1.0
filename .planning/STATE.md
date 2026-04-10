@@ -2,12 +2,12 @@
 gsd_state_version: 1.0
 milestone: v4.0
 milestone_name: Mobile & Telegram
-status: defining_requirements
-stopped_at: "Milestone v4.0 started — defining requirements"
-last_updated: "2026-04-10T14:00:00.000Z"
+status: ready_to_plan
+stopped_at: "Roadmap created — Phase 26 ready to plan"
+last_updated: "2026-04-10T14:30:00.000Z"
 last_activity: 2026-04-10
 progress:
-  total_phases: 0
+  total_phases: 8
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -18,104 +18,51 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-04-06)
+See: .planning/PROJECT.md (updated 2026-04-10)
 
 **Core value:** A team member or client can open the platform and immediately see the SEO health of any site — positions, recent changes, pending tasks — without switching between GSC, spreadsheets, and WP admin.
-**Current focus:** Phase 25 — serp-aggregation-tools
+**Current focus:** Phase 26 — mobile-foundation
 
 ## Current Position
 
-Milestone: v2.1 Onboarding & Project Health
-Phase: 999.3
+Milestone: v4.0 Mobile & Telegram
+Phase: 26 of 33 (Mobile Foundation)
 Plan: Not started
-Status: Phase complete — ready for verification
-Last activity: 2026-04-10
+Status: Ready to plan
+Last activity: 2026-04-10 — Roadmap created, 8 phases defined
 
-Progress: v2.1 [__________] 0%
+Progress: v4.0 [__________] 0%
 
 ## Performance Metrics
 
-### v2.0 Velocity
-
-| Metric | Value |
-|--------|-------|
-| Phases total | 6 |
-| Phases complete | 0 |
-| Plans complete | 0 |
-| Milestone start | 2026-04-06 |
-| Phase 12-analytical-foundations P01 | 524064min | 2 tasks | 8 files |
-| Phase 12-analytical-foundations P03 | 10 | 2 tasks | 7 files |
-| Phase 12-analytical-foundations P02 | 5 | 2 tasks | 8 files |
-| Phase 13-impact-scoring-growth-opportunities P01 | 15 | 2 tasks | 8 files |
-| Phase 13 P02 | 15 | 2 tasks | 10 files |
-| Phase 13-impact-scoring-growth-opportunities P03 | 15 | 2 tasks | 11 files |
-| Phase 14-client-instructions-pdf P01 | 4 | 2 tasks | 5 files |
-| Phase 14-client-instructions-pdf P03 | 8 | 2 tasks | 2 files |
-| Phase 14-client-instructions-pdf P02 | 12 | 2 tasks | 8 files |
-| Phase 15-keyword-suggest P01 | 9 | 2 tasks | 8 files |
-| Phase 15-keyword-suggest P03 | 5 | 2 tasks | 6 files |
-| Phase 15-keyword-suggest P02 | 12 | 2 tasks | 9 files |
-| Phase 15.1-ui-smoke-crawler P02 | 8 | 1 tasks | 2 files |
-| Phase 15.1 P01 | 15 | 3 tasks | 5 files |
-| Phase 15.1-ui-smoke-crawler P03 | 10 | 2 tasks | 3 files |
-| Phase 15.1-ui-smoke-crawler P05 | 3 | 2 tasks | 2 files |
-| Phase 15.1-ui-smoke-crawler P04 | 6 | 1 tasks | 1 files |
-| Phase 999.3 P01 | 6 | 4 tasks | 3 files |
-| Phase 16-ai-geo-readiness-llm-briefs P01 | 6 | 2 tasks | 6 files |
-| Phase 16-ai-geo-readiness-llm-briefs P02 | 5 | 2 tasks | 3 files |
-| Phase 16-ai-geo-readiness-llm-briefs P03 | 10 | 2 tasks | 12 files |
-| Phase 17-in-app-notifications P01 | 4 | 2 tasks | 8 files |
-| Phase 17-in-app-notifications P02 | 12 | 3 tasks | 10 files |
-| Phase 17-in-app-notifications P03 | 12 | 2 tasks | 8 files |
-| Phase 18-project-health-widget P01 | 8 | 5 tasks | 5 files |
-| Phase 19.1-ui-scenario-runner-playwright P01 | 3 | 2 tasks | 5 files |
-| Phase 19.1 P02 | 3 min | 3 tasks | 9 files |
-| Phase 19.1 P03 | 9 min | 3 tasks | 9 files |
-| Phase 19.1-ui-scenario-runner-playwright P04 | 3 | 2 tasks | 2 files |
-| Phase 19.1-ui-scenario-runner-playwright P05 | 18 | 3 tasks | 11 files |
-| Phase 23-document-generator P01 | 4 | 2 tasks | 8 files |
-| Phase 23-document-generator P02 | 4 | 2 tasks | 6 files |
-| Phase 24-tools-infrastructure-fast-tools P01 | 15 | 2 tasks | 7 files |
-| Phase 24-tools-infrastructure-fast-tools P03 | 5 | 2 tasks | 9 files |
-| Phase 24-tools-infrastructure-fast-tools P05 | 10 | 2 tasks | 9 files |
-| Phase 25-serp-aggregation-tools P01 | 7 | 2 tasks | 9 files |
-| Phase 25-serp-aggregation-tools P02 | 8 | 2 tasks | 4 files |
-| Phase 25-serp-aggregation-tools P04 | 8 | 2 tasks | 10 files |
-| Phase 25-serp-aggregation-tools P03 | 10 | 2 tasks | 9 files |
-| Phase 25-serp-aggregation-tools P05 | 4 | 2 tasks | 3 files |
+**Velocity (v3.1 reference):**
+- Plans completed: 10 (phases 24–25)
+- Average duration: ~8 min/plan
+- Trend: Stable
 
 ## Accumulated Context
 
-### Roadmap Evolution
-
-- Phase 15.1 inserted after Phase 15: UI Smoke Crawler — pytest+httpx runner hitting every GET route with seeds, asserts 200 + no Jinja errors. Motivated by repeated 500s on new UI (today: `data.items` dict collision on opportunities page). (URGENT / INSERTED)
-
-### Key Decisions (v2.0)
+### Key Decisions (v4.0)
 
 | Decision | Rationale |
 |----------|-----------|
-| `normalize_url()` + `keyword_latest_positions` in Phase 12 | All analytical JOINs fail silently without URL normalization; DISTINCT ON on partitioned table causes 8–15s scans at 100K keywords |
-| WeasyPrint subprocess isolation in Phase 14 | WeasyPrint memory leak (GitHub #2130, #1977) cannot be deferred — established before any new PDF code is written |
-| Keyword Suggest in isolated Phase 15 | IP ban risk from autocomplete scraping is entirely separate from analytical features and must not block Phase 13 work |
-| LLM Briefs + GEO Readiness co-located in Phase 16 | Both depend on existing crawl + content audit data; both are additive extensions to existing services; anthropic SDK introduced once |
-| In-app Notifications last (Phase 17) | Touches global sidebar chrome; cleanest to add after all feature surfaces are finalized |
-| HTMX polling (30s) over SSE for notifications | Under 20 users; polling is simpler and sufficient; SSE deferred unless real-time delivery required |
-| Template brief always generated first; LLM is enhancement only | Prevents LLM API failures from blocking brief delivery |
-| Yandex Suggest primary, Google secondary (opt-in), Wordstat opt-in | User note: focus on Yandex, no complex Google services |
+| Phase 26 is foundation — all mobile phases depend on it | base_mobile.html + /m/ routing + TG auth must exist before any app can be built |
+| Read-only mobile apps (27–28) before action apps (29–31) | Lower risk, validates foundation; Pages app (31) is most complex — placed last |
+| Telegram Bot (32) as separate Docker service | Independent from FastAPI; failure of bot must not affect main app |
+| Claude Code Agent (33) is a spike | Highest risk; last phase; production decision based on experiment outcome |
+| ERR phase (30) needs Yandex Webmaster API integration | New data source not yet in platform; requires API research during discuss/plan |
 
 ### Pending Todos
 
-- Phase 15: Verify XMLProxy suggest endpoint availability before designing routing strategy
-- Phase 16: Confirm LLM model — claude-3-5-haiku-20241022 (10–20x cheaper, appropriate for batch) vs claude-opus-4-6
+None yet.
 
-### Quick Tasks Completed
+### Blockers/Concerns
 
-| # | Description | Date | Commit | Directory |
-|---|-------------|------|--------|-----------|
-| 260402-v3j | Fix position check engine bug | 2026-04-02 | 23e77f6 | [260402-v3j-fix-position-check-engine-bug](./quick/260402-v3j-fix-position-check-engine-bug/) |
+- Phase 30 (ERR-01): Yandex Webmaster API integration is new — no existing pattern in codebase. Use /gsd:research-phase or /gsd:discuss-phase before planning.
+- Phase 33 (AGT): Claude Code agent architecture is experimental — spike only, not committed to production.
 
 ## Session Continuity
 
-Last session: 2026-04-10T12:48:08.495Z
-Stopped at: Completed 25-05-PLAN.md — Tools section: unified job history, rerun endpoint, 41 tests passing
+Last session: 2026-04-10T14:30:00Z
+Stopped at: Roadmap v4.0 created — 8 phases, 29 requirements mapped, ready to plan Phase 26
 Resume file: None

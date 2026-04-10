@@ -93,32 +93,32 @@
 
 | REQ-ID | Phase | Plan | Status |
 |--------|-------|------|--------|
-| MOB-01 | — | — | Pending |
-| MOB-02 | — | — | Pending |
-| MOB-03 | — | — | Pending |
-| DIG-01 | — | — | Pending |
-| DIG-02 | — | — | Pending |
-| POS-01 | — | — | Pending |
-| POS-02 | — | — | Pending |
-| POS-03 | — | — | Pending |
-| REP-01 | — | — | Pending |
-| REP-02 | — | — | Pending |
-| HLT-01 | — | — | Pending |
-| HLT-02 | — | — | Pending |
-| TRF-01 | — | — | Pending |
-| TRF-02 | — | — | Pending |
-| PAG-01 | — | — | Pending |
-| PAG-02 | — | — | Pending |
-| PAG-03 | — | — | Pending |
-| PAG-04 | — | — | Pending |
-| TSK-01 | — | — | Pending |
-| TSK-02 | — | — | Pending |
-| TLS-01 | — | — | Pending |
-| TLS-02 | — | — | Pending |
-| ERR-01 | — | — | Pending |
-| ERR-02 | — | — | Pending |
-| BOT-01 | — | — | Pending |
-| BOT-02 | — | — | Pending |
-| BOT-03 | — | — | Pending |
-| AGT-01 | — | — | Pending |
-| AGT-02 | — | — | Pending |
+| MOB-01 | Phase 26 | — | Pending |
+| MOB-02 | Phase 26 | — | Pending |
+| MOB-03 | Phase 26 | — | Pending |
+| DIG-01 | Phase 27 | — | Pending |
+| DIG-02 | Phase 27 | — | Pending |
+| HLT-01 | Phase 27 | — | Pending |
+| HLT-02 | Phase 27 | — | Pending |
+| POS-01 | Phase 28 | — | Pending |
+| POS-02 | Phase 28 | — | Pending |
+| POS-03 | Phase 28 | — | Pending |
+| TRF-01 | Phase 28 | — | Pending |
+| TRF-02 | Phase 28 | — | Pending |
+| REP-01 | Phase 29 | — | Pending |
+| REP-02 | Phase 29 | — | Pending |
+| TLS-01 | Phase 29 | — | Pending |
+| TLS-02 | Phase 29 | — | Pending |
+| ERR-01 | Phase 30 | — | Pending |
+| ERR-02 | Phase 30 | — | Pending |
+| TSK-01 | Phase 30 | — | Pending |
+| TSK-02 | Phase 30 | — | Pending |
+| PAG-01 | Phase 31 | — | Pending |
+| PAG-02 | Phase 31 | — | Pending |
+| PAG-03 | Phase 31 | — | Pending |
+| PAG-04 | Phase 31 | — | Pending |
+| BOT-01 | Phase 32 | — | Pending |
+| BOT-02 | Phase 32 | — | Pending |
+| BOT-03 | Phase 32 | — | Pending |
+| AGT-01 | Phase 33 | — | Pending |
+| AGT-02 | Phase 33 | — | Pending |
