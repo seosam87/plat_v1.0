@@ -120,11 +120,12 @@ def _result_to_row(result, slug: str) -> list:
             getattr(result, "canonical", ""),
         ]
     elif slug == "relevant-url":
+        competitors = getattr(result, "top_competitors", None) or []
         return [
             getattr(result, "phrase", ""),
-            getattr(result, "relevant_url", ""),
-            getattr(result, "position", ""),
-            getattr(result, "top3_competitors", ""),
+            getattr(result, "url", "") or "Не найден",
+            getattr(result, "position", "") or "",
+            ", ".join(competitors) if competitors else "",
         ]
     return []
 
@@ -215,7 +216,7 @@ async def tool_submit(
 
     if registry.get("has_domain_field"):
         domain = form_data.get("domain", "") or ""
-        job_kwargs["domain"] = domain.strip()
+        job_kwargs["target_domain"] = domain.strip()
 
     job = JobModel(**job_kwargs)
     db.add(job)
