@@ -80,7 +80,7 @@ v3.x analytics phases and v4.x UI overhaul phases also completed within v1.0.
 
 - [x] **Phase 26: Mobile Foundation** - base_mobile.html, /m/ routing, Telegram WebApp auth, PWA (completed 2026-04-10)
 - [x] **Phase 27: Digest & Site Health** - утренняя сводка + карточка здоровья сайта (completed 2026-04-10)
-- [ ] **Phase 28: Positions & Traffic** - мобильные приложения позиций и трафика
+- [x] **Phase 28: Positions & Traffic** - мобильные приложения позиций и трафика (completed 2026-04-10)
 - [ ] **Phase 29: Reports & Tools** - генерация отчётов и запуск инструментов с телефона
 - [ ] **Phase 30: Errors & Quick Task** - ошибки Яндекса + быстрое создание задач и ТЗ
 - [ ] **Phase 31: Pages App** - approve queue, quick fix, массовые операции над контентом
@@ -130,10 +130,10 @@ Plans:
   3. Пользователь видит просевшие ключи и создаёт задачу в проект прямо из списка результатов
   4. Пользователь открывает `/m/traffic` и видит сравнение трафика за два периода с выделением просевших и выросших страниц
   5. На просевшую страницу пользователь создаёт ТЗ одной кнопкой
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans complete
 Plans:
 - [x] 28-01-PLAN.md — Positions: service, Celery progress, router, templates (POS-01, POS-02, POS-03)
-- [ ] 28-02-PLAN.md — Traffic: service, router, templates (TRF-01, TRF-02)
+- [x] 28-02-PLAN.md — Traffic: service, router, templates (TRF-01, TRF-02)
 **UI hint**: yes
 
 ### Phase 29: Reports & Tools
@@ -204,7 +204,7 @@ Plans:
 | 24–25 | v3.1 | 10/10 | Complete | 2026-04-10 |
 | 26 | v4.0 | 3/3 | Complete    | 2026-04-10 |
 | 27 | v4.0 | 1/2 | Complete    | 2026-04-10 |
-| 28 | v4.0 | 1/2 | In Progress|  |
+| 28 | v4.0 | 2/2 | Complete   | 2026-04-10 |
 | 29 | v4.0 | 0/? | Not started | - |
 | 30 | v4.0 | 0/? | Not started | - |
 | 31 | v4.0 | 0/? | Not started | - |
