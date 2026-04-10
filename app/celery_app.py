@@ -29,6 +29,7 @@ celery_app = Celery(
         "app.tasks.meta_parse_tasks",
         "app.tasks.relevant_url_tasks",
         "app.tasks.brief_tasks",
+        "app.tasks.paa_tasks",
         "app.tasks.wordstat_batch_tasks",
     ],
 )

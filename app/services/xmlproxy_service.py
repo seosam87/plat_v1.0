@@ -78,6 +78,69 @@ def search_yandex_sync(
     return {"results": all_results, "error_code": None}
 
 
+def fetch_yandex_html_sync(
+    user: str,
+    key: str,
+    query: str,
+    lr: int = 213,
+) -> str:
+    """Fetch Yandex SERP page HTML via XMLProxy for PAA block extraction.
+
+    Uses XMLProxy's passthrough parameter ``&html=1`` to get the raw Yandex
+    SERP HTML body instead of the structured XML position feed.  The returned
+    HTML can be parsed with BeautifulSoup to extract PAA ("Частые вопросы"
+    and "Похожие запросы") blocks.
+
+    Args:
+        user: XMLProxy account login.
+        key: XMLProxy API key.
+        query: Search query string.
+        lr: Yandex region code (default 213 = Moscow).
+
+    Returns:
+        Raw HTML string of the Yandex SERP page (may be an empty string if
+        XMLProxy does not support ``&html=1`` for this account tier — caller
+        should log a warning in that case).
+
+    Raises:
+        XMLProxyError: If the response contains an XML error element.
+        httpx.HTTPError: On network/HTTP failures.
+    """
+    params = {
+        "user": user,
+        "key": key,
+        "query": query,
+        "lr": str(lr),
+        "groupby": "attr=d.mode=deep.groups-on-page=10",
+        "page": "0",
+        "ydomain": "ru",
+        "html": "1",  # request raw Yandex SERP HTML instead of XML positions
+    }
+    with httpx.Client(timeout=30) as client:
+        resp = client.get(XMLPROXY_SEARCH, params=params)
+        resp.raise_for_status()
+
+    # If the response looks like XML (starts with <), check for error element
+    text = resp.text
+    if text.lstrip().startswith("<"):
+        try:
+            root = ET.fromstring(text)
+            error_el = root.find(".//error")
+            if error_el is not None:
+                code_attr = error_el.get("code", "0")
+                raise XMLProxyError(int(code_attr), error_el.text or "")
+            # Response is XML without error — extract any HTML passage content
+            passages = []
+            for passage in root.findall(".//passage"):
+                passages.append(passage.text or "")
+            if passages:
+                return " ".join(passages)
+        except (ET.ParseError, ValueError):
+            pass  # Not valid XML — treat as raw HTML
+
+    return text
+
+
 def fetch_balance_sync(user: str, key: str) -> dict | None:
     """Fetch XMLProxy account balance.
 
