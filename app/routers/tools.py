@@ -69,10 +69,12 @@ TOOL_REGISTRY: dict[str, dict] = {
         "form_field": "phrases",
         "input_col": "input_phrases",
         "count_col": "phrase_count",
-        "limit": 50,
-        "cta": "Создать ТЗ",
+        "limit": 30,
+        "cta": "Составить ТЗ",
         "slug": "brief",
         "has_domain_field": False,
+        "has_region_field": True,
+        "export_only_xlsx": True,
     },
 }
 
@@ -270,6 +272,13 @@ async def tool_submit(
         domain = form_data.get("domain", "") or ""
         job_kwargs["target_domain"] = domain.strip()
 
+    if registry.get("has_region_field"):
+        region = form_data.get("region", "213") or "213"
+        try:
+            job_kwargs["input_region"] = int(region)
+        except (ValueError, TypeError):
+            job_kwargs["input_region"] = 213
+
     job = JobModel(**job_kwargs)
     db.add(job)
     await db.commit()
@@ -354,43 +363,48 @@ async def tool_export(
 
     headers_row = _EXPORT_HEADERS.get(slug, [])
 
-    # Brief uses a special multi-section XLSX export
+    # Brief uses a special multi-sheet XLSX export
     if slug == "brief":
         if format != "xlsx":
             raise HTTPException(status_code=400, detail="Brief экспортируется только в формате XLSX")
         brief_result = rows[0] if rows else None
         wb = openpyxl.Workbook()
-        ws = wb.active
-        ws.title = "Brief"
+        # Remove default sheet
+        default_sheet = wb.active
+        # Sheet 1: Title / H1 suggestions
+        ws_title = wb.active
+        ws_title.title = "Title-H1"
+        ws_title.append(["Вариант title / H1"])
+        for title in (brief_result.title_suggestions or [] if brief_result else []):
+            ws_title.append([title])
+        # Sheet 2: H2 cloud
+        ws_h2 = wb.create_sheet("H2")
+        ws_h2.append(["Заголовок", "Частота"])
+        for item in (brief_result.h2_cloud or [] if brief_result else []):
+            ws_h2.append([item.get("text", ""), item.get("count", 0)])
+        # Sheet 3: Highlights
+        ws_hl = wb.create_sheet("Подсветки")
+        ws_hl.append(["Подсветка Яндекса"])
+        for hl in (brief_result.highlights or [] if brief_result else []):
+            ws_hl.append([hl])
+        # Sheet 4: Thematic words
+        ws_tw = wb.create_sheet("Тематические слова")
+        ws_tw.append(["Слово", "Частота"])
+        for item in (brief_result.thematic_words or [] if brief_result else []):
+            ws_tw.append([item.get("word", ""), item.get("freq", 0)])
+        # Sheet 5: Volume stats
+        ws_vol = wb.create_sheet("Объём")
+        ws_vol.append(["Показатель", "Значение"])
         if brief_result:
-            ws.append(["Показатель", "Значение"])
-            ws.append(["Страниц собрано", brief_result.pages_crawled or 0])
-            ws.append(["Страниц попыток", brief_result.pages_attempted or 0])
-            ws.append(["Средняя длина текста", brief_result.avg_text_length or 0])
-            ws.append(["Среднее число H2", float(brief_result.avg_h2_count or 0)])
-            ws.append(["Коммерциализация %", brief_result.commercialization_pct or 0])
-            ws.append([])
-            ws.append(["Заголовки H2 (облако)"])
-            ws.append(["Текст", "Частота"])
-            for item in (brief_result.h2_cloud or []):
-                ws.append([item.get("text", ""), item.get("count", 0)])
-            ws.append([])
-            ws.append(["Тематические слова"])
-            ws.append(["Слово", "Частота"])
-            for item in (brief_result.thematic_words or []):
-                ws.append([item.get("word", ""), item.get("freq", 0)])
-            ws.append([])
-            ws.append(["Варианты заголовков страниц"])
-            for title in (brief_result.title_suggestions or []):
-                ws.append([title])
-            ws.append([])
-            ws.append(["Сниппеты (хайлайты)"])
-            for hl in (brief_result.highlights or []):
-                ws.append([hl])
+            ws_vol.append(["Средняя длина текста (симв.)", brief_result.avg_text_length or 0])
+            ws_vol.append(["Среднее число H2", float(brief_result.avg_h2_count or 0)])
+            ws_vol.append(["Коммерциализация (%)", brief_result.commercialization_pct or 0])
+            ws_vol.append(["Страниц проанализировано", brief_result.pages_crawled or 0])
+            ws_vol.append(["Страниц попыток", brief_result.pages_attempted or 0])
         buf = io.BytesIO()
         wb.save(buf)
         buf.seek(0)
-        filename = f"brief-{job_id}.xlsx"
+        filename = f"brief_{job_id}.xlsx"
         return StreamingResponse(
             buf,
             media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -486,10 +500,13 @@ async def tool_results(
         raise HTTPException(status_code=404, detail="Job not found")
 
     results_rows = []
+    brief_result = None
     if job.status in ("complete", "partial"):
         stmt_results = select(ResultModel).where(ResultModel.job_id == job_id)
         res = await db.execute(stmt_results)
         results_rows = res.scalars().all()
+        if slug == "brief" and results_rows:
+            brief_result = results_rows[0]
 
     return templates.TemplateResponse(
         request,
@@ -498,6 +515,7 @@ async def tool_results(
             "tool": registry,
             "job": job,
             "results": results_rows,
+            "result": brief_result,
             "slug": slug,
             "export_headers": _EXPORT_HEADERS.get(slug, []),
         },
