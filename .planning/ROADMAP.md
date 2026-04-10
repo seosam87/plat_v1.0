@@ -130,7 +130,10 @@ Plans:
   3. Пользователь видит просевшие ключи и создаёт задачу в проект прямо из списка результатов
   4. Пользователь открывает `/m/traffic` и видит сравнение трафика за два периода с выделением просевших и выросших страниц
   5. На просевшую страницу пользователь создаёт ТЗ одной кнопкой
-**Plans**: TBD
+**Plans:** 2 plans
+Plans:
+- [ ] 28-01-PLAN.md — Positions: service, Celery progress, router, templates (POS-01, POS-02, POS-03)
+- [ ] 28-02-PLAN.md — Traffic: service, router, templates (TRF-01, TRF-02)
 **UI hint**: yes
 
 ### Phase 29: Reports & Tools
@@ -201,7 +204,7 @@ Plans:
 | 24–25 | v3.1 | 10/10 | Complete | 2026-04-10 |
 | 26 | v4.0 | 3/3 | Complete    | 2026-04-10 |
 | 27 | v4.0 | 1/2 | Complete    | 2026-04-10 |
-| 28 | v4.0 | 0/? | Not started | - |
+| 28 | v4.0 | 0/2 | Planned | - |
 | 29 | v4.0 | 0/? | Not started | - |
 | 30 | v4.0 | 0/? | Not started | - |
 | 31 | v4.0 | 0/? | Not started | - |
