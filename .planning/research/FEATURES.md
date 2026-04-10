@@ -1,246 +1,364 @@
-# Feature Research — v3.0 Client & Proposal
+# Feature Research — v4.0 Mobile & Telegram
 
-**Domain:** SEO Agency Internal Platform — Client CRM, Audit Intake, Proposal Templates, Document Generator
-**Researched:** 2026-04-09
-**Confidence:** HIGH (domain knowledge) / MEDIUM (competitor UI patterns — no live WebSearch available)
-
----
-
-## Context: What Exists vs What's New
-
-The platform already has: sites, site_groups, users (3 roles), projects linked to sites, client_user_id on Project, PDF generation via WeasyPrint (subprocess), ClientReport model (PDF bytes in DB), Kanban, content plan, PDF briefs, scheduled delivery.
-
-v3.0 adds the **sales and client management layer** — the bridge between "we monitor SEO" and "we sell SEO work and document it." The four feature groups are:
-
-1. **Client CRM** — company/contact cards, interaction history, sites attached to clients
-2. **Site Audit Intake** — structured questionnaire/checklist for onboarding new sites
-3. **Proposal Templates** — variable-driven КП (commercial proposal) templates
-4. **Document Generator** — render any template + live platform data → PDF
+**Domain:** Mobile focus apps + Telegram bot for internal SEO management platform
+**Researched:** 2026-04-10
+**Confidence:** HIGH (platform internals — direct code inspection) / MEDIUM (mobile UX patterns — official docs + community sources) / MEDIUM (Telegram WebApp — official API docs)
 
 ---
 
-## Feature Group 1: Client CRM
+## Context: What Already Exists
 
-### What SEO Agencies Expect (Industry Norms)
+The platform (v3.1) ships a complete backend for all data these mobile apps consume. Mobile apps are **thin UI wrappers over existing APIs** — no new backend data models are required for most apps. The primary build is: mobile-optimized Jinja2 templates, `/m/` routing, `base_mobile.html`, and the Telegram bot/WebApp layers.
 
-SEO agencies managing 20–100 sites need client records separate from User accounts. The existing `users` table has a `client` role, but a client organisation may have multiple contacts, multiple sites, and a history of communications — none of which fits the User model. Tools like SE Ranking, Agency Analytics, and Semrush Agency Hub all distinguish between "client as user" and "client as account."
+| Existing Service / Router | What Mobile Can Call |
+|--------------------------|---------------------|
+| `morning_digest_service.py` | `build_morning_digest()` — pre-built digest text |
+| `positions.py` router | `trigger_position_check`, `latest_positions`, `compare_dates`, `get_active_task` |
+| `reports.py` router | `export_pdf`, `site_overview` |
+| `audit.py` router | `list_checks`, `fix_apply_and_approve`, `fix_preview` |
+| `tasks.py` router | `list_tasks`, `update_task_status` |
+| `tools.py` router | `tool_submit`, `tool_job_status`, `tool_results` |
+| `monitoring.py` router | `list_alerts`, `send_digest_now` |
+| `telegram_service.py` | `send_message`, formatters for change alerts, digests, position drops |
+| `traffic_analysis_service.py` | `detect_anomalies`, `analyze_traffic_sources` |
+| `client_report_service.py` | existing PDF generation pipeline |
 
-### Table Stakes
+---
+
+## Feature Landscape
+
+### Table Stakes (Users Expect These)
+
+Features that every mobile companion to a web platform is expected to have. Missing any = product feels incomplete.
 
 | Feature | Why Expected | Complexity | Notes |
 |---------|--------------|------------|-------|
-| Client card (company name, legal name, INN/KPP, phone, email, notes) | Every agency CRM has this; Russian market requires INN/KPP for invoicing | LOW | New `clients` table; separate from `users` |
-| Attach sites to client | A client owns 1–N sites; managers need to see all sites for one client | LOW | FK from `sites` to `clients`; sites already exist |
-| Attach user accounts to client | Client portal users belong to a client org | LOW | `client_user_id` on Project is a start; need `clients` → `users` mapping |
-| Interaction log (notes + date + author) | Agencies log calls, emails, decisions per client | MEDIUM | Simple `client_interactions` table: text, timestamp, user_id |
-| Client list page with search/filter | Without this the CRM is unusable at 20+ clients | LOW | Jinja2 table + HTMX filter |
-| Client detail page | Summary of all attached sites, open tasks, recent interactions | MEDIUM | Aggregation query across sites, tasks, interactions |
-| Assign manager to client | Each client has a primary responsible manager | LOW | FK `clients.manager_id` → `users` |
+| `base_mobile.html` with bottom navigation | Mobile apps need a container; without it every screen is stranded with no way back | LOW | Tailwind flex-row bottom bar; 4-5 icons; 48px tap targets |
+| `/m/` route prefix with auth middleware | Mobile apps must be auth-gated; separate namespace keeps desktop routes clean | LOW | FastAPI `APIRouter(prefix="/m")` with existing JWT dependency |
+| Pull-to-refresh on all data screens | Mobile UX convention since iOS 6; users tug down expecting fresh data | LOW | HTMX `hx-trigger="load"` on pull gesture; spinner via `hx-indicator` |
+| "Last updated" timestamp on every data card | Without it users cannot tell if they're looking at stale data | LOW | Stored in Celery task result; render in template footer |
+| Touch-friendly tap targets (minimum 48px) | Standard mobile accessibility; fat-finger errors on small buttons destroy trust | LOW | Tailwind `min-h-12 min-w-12` applied consistently across all mobile templates |
+| Loading skeleton screens | Blank screens feel like crashes; skeleton gives perceived speed | LOW | Tailwind `animate-pulse` gray blocks while HTMX loads content |
+| Error states with retry button | Network errors happen on mobile; dead screen with no recovery = abandonment | LOW | HTMX `hx-swap-oob` error target + retry trigger button |
+| Site selector (global context switcher) | Managing 20–100 sites requires "which site am I on" to always be visible | MEDIUM | Sticky header dropdown; selection persists in session cookie |
+| Digest app — morning summary card | Entry point for the workday; mirrors `morning_digest_service` | LOW | Single GET to existing service; render as mobile cards |
+| Positions app — current rankings list | Core SEO metric; first thing every manager checks | LOW | Calls `latest_positions`; sortable by delta |
+| Positions app — trigger check button | Can't just read positions; must be able to launch a check from phone | MEDIUM | POST to `trigger_position_check`; poll `get_active_task` for status |
+| Site health card — crawl errors + alert count | Single "traffic light" status per site is expected | LOW | Aggregate from `list_alerts` + crawl summary endpoint |
+| Pages app — audit list with quick approve | Content pipeline has approve queue; mobile must support it | MEDIUM | Calls `fix_apply_and_approve`; existing service handles WP write |
+| Quick task — create task from phone | Managers note issues in the field; must capture immediately | LOW | POST to task router; title + site + priority; no rich editor |
+| Telegram bot — /status command | Any DevOps bot answers /status; this is table stakes for ops tooling | LOW | Aggregate: DB ping, Redis ping, Celery worker count, last crawl time |
+| Telegram bot — /logs command | Solo dev operating a self-hosted system needs log access from anywhere | MEDIUM | Tail last 50 lines from loguru JSON log; split into chunks if >4096 chars |
 
-### Differentiators
+### Differentiators (Competitive Advantage)
 
-| Feature | Value Proposition | Complexity | Notes |
-|---------|-------------------|------------|-------|
-| Client health score | Aggregate site health widget data (from Phase 18) into a client-level score | MEDIUM | Requires joining site health checklist states across all client sites |
-| "Sites needing attention" widget on client card | Surfaces sites where crawl failed, positions dropped, or audit errors spiked | MEDIUM | SQL aggregation across `crawl_pages`, `positions`, `platform_issues` |
-| Interaction log linked to generated documents | "Sent proposal on 2026-04-01" as a linked entry | LOW | Add `document_id` FK to `client_interactions` |
-| Client-scoped report delivery settings | Override global Telegram/SMTP delivery settings per client | HIGH | Separate delivery config per client; complex but valuable for white-label agencies |
-
-### Anti-Features
-
-| Feature | Why Requested | Why Problematic | Alternative |
-|---------|---------------|-----------------|-------------|
-| Full CRM pipeline (deal stages, sales funnel, probability) | Looks useful on paper | Scope creep; this platform is SEO monitoring, not Salesforce. A 5-stage sales pipeline requires 2–3 weeks of UI alone and won't be used | Keep interaction log as simple notes; integration with external CRM is a future bridge |
-| Email composer inside the platform | "Send proposal from here" is appealing | Adds SMTP auth, threading, reply tracking complexity that derails the milestone | Generate the PDF; the team sends it from their own email client |
-| Contact deduplication / merge | Real CRM problem | Not relevant at 20–100 clients scale | Just add a "duplicate?" warning if email matches |
-| Client portal login scoped to CRM data | Client users see "their" CRM card | Client role already exists and is scoped by site access; extending RBAC to CRM entities is a high-complexity second-order change | Defer; in v3.0 CRM is admin/manager-only |
-
----
-
-## Feature Group 2: Site Audit Intake
-
-### What SEO Agencies Expect
-
-When onboarding a new site, agencies run through a structured checklist: access verification, existing analytics setup, competitive context, client goals, technical baseline. This is typically a Google Form or Notion template filled out by the manager. Platforms like SE Ranking have "Site Audit" as a technical crawler report, but intake questionnaires are usually handled externally. An internal intake form tied to the site record is a genuine workflow improvement.
-
-### Table Stakes
-
-| Feature | Why Expected | Complexity | Notes |
-|---------|--------------|------------|-------|
-| Intake form per site | Structured capture of: site access, goals, competitors, GSC status, Metrika status, existing SEO setup | MEDIUM | `site_intake` table with JSONB answers + structured fields |
-| Checklist of verification steps | Manager works through: WP credentials verified, GSC connected, Metrika connected, sitemap found, crawl completed | LOW | Reuse the empty_state / health widget pattern from Phase 18/19 |
-| Pre-populated fields from existing platform data | If WP is already connected and GSC is linked, those checklist items auto-check | LOW | Join against `sites`, `oauth_tokens`, `service_credentials` |
-| "Intake complete" status on site | Other features (briefs, proposals) can gate on intake completion | LOW | Boolean flag + completion timestamp on `sites` or `site_intake` |
-| Save draft and resume | Long checklist; manager may not fill it in one session | LOW | JSONB partial state; standard form save pattern |
-
-### Differentiators
+Features that go beyond generic mobile SEO tools and match the platform's specific strengths.
 
 | Feature | Value Proposition | Complexity | Notes |
 |---------|-------------------|------------|-------|
-| Auto-generate baseline crawl on intake completion | "Complete intake → trigger first crawl" one-click | LOW | Celery task trigger; crawl infrastructure already exists |
-| Intake → proposal pre-fill | Answers from intake (competitors, goals, current traffic) pre-populate proposal template variables | MEDIUM | Requires intake data model to align with proposal variable schema |
-| Intake completeness score | Show % of fields filled; surfaces when a site was hastily onboarded | LOW | Count non-null fields / total fields |
-| Section-by-section HTMX save | Each section saves independently; no full-page reload | LOW | Pattern already used in existing forms |
+| Telegram WebApp wrapper for all focus apps | Zero install; opens inside Telegram; team already uses Telegram — no context switch | MEDIUM | `telegram-web-app.js` in `base_mobile.html`; `themeParams` sync; `MainButton` replaces custom CTAs |
+| Pages app — swipe-to-approve gesture | Swipe right/left is 3x faster than tap-menu for reviewing a queue of 20 pages | MEDIUM | Touchstart/touchend delta in ~10 lines vanilla JS; HTMX swap on approval; backend endpoint exists |
+| Digest app — overdue task count with deep link | Surfaces accountability; one tap from "3 overdue" to filtered task list | LOW | `task_service` counts overdue; deep link via HTMX `hx-push-url` |
+| Positions app — delta badges (▲3 / ▼5) | Visual delta since yesterday is the number managers actually care about | LOW | `compare_dates` returns delta; colored badge render (green up, red down, gray unchanged) |
+| Client report app — one-tap send via Telegram | Manager generates and sends to client from phone without opening desktop | MEDIUM | Calls `export_pdf` + `telegram_service.send_message`; orchestrated in a mobile-specific endpoint |
+| Traffic comparison app — anomaly highlight | Auto-highlight the period with the biggest drop so user does not have to find it | MEDIUM | `detect_anomalies` from `traffic_analysis_service` exists; highlight anomaly rows in template |
+| Telegram bot — Claude Code agent channel | Developer queries Claude to explain errors, suggest fixes, check code — from Telegram | HIGH | `claude-code-telegram` pattern (RichardAtCT/claude-code-telegram); Claude Code channels API; two-way MCP channel; separate subprocess from main bot |
+| Telegram bot — /deploy command with confirmation | Trigger git pull + Docker Compose rebuild from phone; critical for solo dev on VPS | HIGH | Shell exec via `subprocess`; MUST be allowlist-gated to admin chat_id; inline keyboard confirm before execution |
+| Tools app — one-tap tool launch | 6 SEO tools already built; phone access means zero desktop context switch for quick runs | MEDIUM | Calls `tool_submit`; polls `tool_job_status`; renders results as mobile-optimized card |
+| Site health card — 30-second auto-refresh | Real-time feel mirrors existing in-app notification pattern; already proven at scale | LOW | Reuse `hx-trigger="every 30s"` pattern from notifications router |
+| Quick task — copywriter brief shortcut | Pre-fills brief template from site context; saves 5 minutes per brief initiation | MEDIUM | Calls `brief_service`; pre-populates task description from site; existing LLM brief pipeline |
 
-### Anti-Features
-
-| Feature | Why Requested | Why Problematic | Alternative |
-|---------|---------------|-----------------|-------------|
-| Public intake form (client fills it) | "Client submits their own info" | Requires auth-free form route with CSRF, email delivery, and spam protection — 3 separate concerns | Manager fills it in based on a discovery call; the platform is internal |
-| Dynamic form builder (custom fields) | Feels flexible | The SEO intake domain is fixed enough that a well-designed fixed schema covers 95% of cases; a form builder is a product in itself | Ship a well-structured fixed form with a "notes" overflow field |
-| Version history of intake answers | "Track how requirements changed" | Audit log already captures changes; full version history requires event-sourcing complexity | Rely on audit_log for change tracking |
-
----
-
-## Feature Group 3: Proposal Templates
-
-### What SEO Agencies Expect
-
-A "commercial proposal" (КП, коммерческое предложение) in Russian SEO agency context is a 5–15 page PDF that includes: agency branding, client-specific stats from the audit, scope of work (list of services), pricing table, timeline, and contact details. Currently this is done in Google Docs or Notion with manual copy-paste of platform data. The workflow pain is exactly this copy-paste step.
-
-Tools like SE Ranking and Semrush have "reports" but not proposal templates. Proposify and PandaDoc are dedicated proposal tools (overkill for an internal platform). The gap is clear: a template system that knows about the platform's data.
-
-### Table Stakes
-
-| Feature | Why Expected | Complexity | Notes |
-|---------|--------------|------------|-------|
-| Template library (admin manages, managers use) | Multiple proposal types: initial audit КП, monthly retainer КП, one-time project КП | MEDIUM | `proposal_templates` table with Jinja2 template body as TEXT; admin CRUD |
-| Variable system (merge fields) | `{{client_name}}`, `{{site_url}}`, `{{top_position}}`, `{{audit_errors_count}}` | MEDIUM | Define variable schema; resolver pulls from DB at render time |
-| Preview mode (render with sample data) | Manager needs to see what the template looks like before sending | MEDIUM | Render with dummy data or real site data; WeasyPrint already works |
-| Template versioning (active / draft) | Avoid breaking live proposals when editing templates | LOW | `is_active` boolean + `version` integer on template |
-| Rich text editing for template body | Marketing copy needs formatting: bold, lists, headings | HIGH | Inline rich text editor (Quill.js or similar) OR Jinja2 HTML with a textarea fallback |
-
-### Differentiators
-
-| Feature | Value Proposition | Complexity | Notes |
-|---------|-------------------|------------|-------|
-| Platform data variables (live from DB) | `{{positions_improved_count}}`, `{{crawl_errors}}`, `{{metrika_sessions_30d}}` — real numbers from the site at proposal generation time | HIGH | Variable resolver service that maps template vars to SQL queries |
-| Intake-driven variables | `{{client_goal}}`, `{{main_competitors}}` sourced from site_intake answers | MEDIUM | Intake answers → variable resolver; requires Feature Group 2 first |
-| Service rate card integration | Pricing table variables pull from a configurable rate card (hourly rates, service bundles) | MEDIUM | `rate_cards` table; admin manages; `{{price_monthly_seo}}` resolves to rate |
-| Template cloning | "Duplicate and modify" is faster than starting from scratch | LOW | Standard copy row operation |
-
-### Anti-Features
+### Anti-Features (Commonly Requested, Often Problematic)
 
 | Feature | Why Requested | Why Problematic | Alternative |
 |---------|---------------|-----------------|-------------|
-| E-signature integration (DocuSign, etc.) | "Send and sign in one step" | OAuth flows, legal compliance, webhook handling — entire separate product area | Generate PDF; team sends via email for signing separately |
-| Real-time collaborative editing | "Multiple managers work on the same proposal" | Conflict resolution, WebSocket state — SPA-territory complexity | One editor at a time; last-write-wins is fine at this team size |
-| LLM-generated proposal copy | "AI writes the pitch text" | LLM output is non-deterministic; proposal text is legally significant; the platform already gates LLM features as opt-in | Keep copy as human-written template text; LLM opt-in can be added in v3.x |
-| Multi-language template variants | Russian + English version of same template | Doubles template management overhead | Ship Russian-first; add language field later if needed |
-
----
-
-## Feature Group 4: Document Generator
-
-### What SEO Agencies Expect
-
-"Generate PDF" is a two-step operation: (1) select a template, (2) bind it to a client + site + optional date range, then render to PDF. The platform already does this for `client_reports` and `briefs`. The v3.0 document generator extends this to proposals and audit intake outputs.
-
-The key expectation: a generated document is stored, downloadable later, and optionally deliverable via Telegram/SMTP.
-
-### Table Stakes
-
-| Feature | Why Expected | Complexity | Notes |
-|---------|--------------|------------|-------|
-| Generate PDF from proposal template + site data | Core value proposition of the milestone | MEDIUM | Reuse WeasyPrint subprocess pattern; new `generated_documents` table |
-| Document list per client / per site | Manager needs to find previously generated proposals | LOW | Table with filter by client, site, document type, date |
-| Download link (served from app, not stored on disk) | DB-stored PDF bytes pattern already established in `client_reports` | LOW | Existing `/client_reports/{id}/download` pattern to clone |
-| Async generation (Celery task) | Complex proposals may take 3–5 seconds to render; UI must not block | LOW | Pattern already established in `client_reports` (pending → ready) |
-| Document status (pending / ready / failed) | Users need feedback during generation | LOW | Reuse `ClientReport.status` lifecycle pattern |
-| Document type enum (proposal / audit_report / brief) | Different templates for different document types | LOW | `DocumentType` enum on `generated_documents` |
-
-### Differentiators
-
-| Feature | Value Proposition | Complexity | Notes |
-|---------|-------------------|------------|-------|
-| Send generated document via Telegram | "Generate and send to client" in one action | MEDIUM | Celery task; `telegram_service` already exists; need client-level bot token config |
-| Send via SMTP | Same as above but email attachment | MEDIUM | `aiosmtplib` already in stack; need document attachment support |
-| Document audit trail | Who generated what document, when, for which client | LOW | `audit_log` table already exists; add document generation events |
-| Auto-generate proposal after intake completion | Workflow trigger: intake complete → auto-draft first proposal | MEDIUM | Celery task trigger; requires Feature Groups 2 + 3 first |
-| Variable overrides at generation time | Manager can override `{{price_monthly_seo}}` at generate time without editing the template | MEDIUM | Override dict stored in `generated_documents.variable_overrides` JSONB |
-
-### Anti-Features
-
-| Feature | Why Requested | Why Problematic | Alternative |
-|---------|---------------|-----------------|-------------|
-| DOCX / Word export | Some clients want Word files | `python-docx` is out of scope per PROJECT.md; adds a maintenance dependency for a niche use case | PDF is universal; WeasyPrint output is clean and printable |
-| Online proposal viewer (HTML, not PDF) | "Looks more modern" | Requires a public-facing auth-free URL, link expiry, analytics tracking — significant security surface | Download PDF; share file via any channel |
-| Template-per-generated-document editing | "Edit this specific proposal before sending" | Turns the generator into a WYSIWYG editor; complex state management | Template has a rich text body; generate, download, edit in external tool if needed |
-| Bulk generation (all clients at once) | "Send monthly reports to all clients" | The scheduler + report delivery system already handles periodic reports; proposals are intentional, one-at-a-time acts | Use existing scheduled delivery for periodic reports; proposals are manual |
+| Full desktop feature parity on mobile | "Why can't I do X on mobile?" | Defeats the focus-app concept; 50+ desktop pages on a phone = cognitive overload; Jinja2 templates don't responsive-collapse cleanly at that scale | Explicit scope: 8 named apps only; every screen shows a "Full view →" link to desktop |
+| Real-time WebSocket position updates | Feels dynamic | Positions run as Celery tasks taking minutes, not seconds; WebSocket overhead for data that changes every 10+ minutes is wasteful; Telegram WebApp has 5MB client storage limit | Poll `get_task_status` every 5s while task is active; idle 30s poll otherwise |
+| Native push notifications from the web app | "Notify me when positions drop" | The stack has no native app; Telegram bot already handles push alerts via `format_position_drop_alert`; two notification paths double maintenance | Route all push to Telegram bot; mobile web app is pull-only |
+| Offline mode / PWA service worker | "Works without internet" | SEO data is live; stale cached positions mislead; service worker adds build complexity incompatible with the Jinja2+HTMX no-build philosophy | Show "Last updated X min ago" prominently; provide retry button on network error |
+| In-app chat with Claude on the mobile web | "Feels like a differentiator" | Claude Code Telegram channel serves this better (persistent session, file access, shell); two half-working AI interfaces is worse than one good one | Direct users to Telegram bot for Claude interaction; keep mobile apps data-focused |
+| Full keyword management on mobile | Power users want to add/edit keywords from phone | Keyword import requires XLSX upload; semantic clustering requires desktop review; mobile add-one-at-a-time creates data quality issues | Quick task creation only; bulk keyword ops stay desktop |
+| Custom dashboard widget reordering | "I want traffic first, not positions" | Personalization adds user_preferences schema, drag-and-drop JS, and maintenance burden; team is 2–3 people who can agree on a fixed layout | Fixed opinionated layout per app; revisit at v5.0 if team grows |
+| Telegram bot as full platform API | "Control everything from the bot" | Security surface grows unboundedly; each new command is a new auth-sensitive code path; solo dev cannot maintain 30+ bot commands at acceptable quality | 6–8 ops commands maximum; link to WebApp for data operations |
+| /deploy without confirmation dialog | "Saves one tap" | Accidental deploy during a chat scroll is a real risk; one misfire on production = downtime | Inline keyboard with [Deploy] / [Cancel] buttons; require explicit confirmation every time |
 
 ---
 
 ## Feature Dependencies
 
 ```
-Client CRM (clients table)
-    └──required by──> Site Audit Intake (intake.client_id)
-    └──required by──> Proposal Templates (proposal.client_id)
-    └──required by──> Document Generator (document.client_id)
+[base_mobile.html + /m/ routing]
+    └──required by──> ALL 8 focus apps
+    └──required by──> Telegram WebApp wrapper
 
-Site Audit Intake
-    └──enhances──> Proposal Templates (intake answers → template variables)
-    └──enhances──> Document Generator (intake completion → auto-draft trigger)
+[telegram-web-app.js in base_mobile.html]
+    └──required by──> Telegram WebApp themeParams sync
+    └──enables──> MainButton CTA replacement
+    └──enables──> HapticFeedback on approve actions
+    └──enables──> ClosingConfirmation on Pages approve queue
 
-Proposal Templates
-    └──required by──> Document Generator (template → rendered PDF)
+[Telegram bot Application (python-telegram-bot 21)]
+    └──required by──> /status, /logs, /digest, /test, /deploy, /report commands
+    └──required by──> Telegram WebApp button delivery (bot sends WebApp button)
+    └──webhook required for production (polling acceptable only for dev)
 
-Existing: WeasyPrint PDF infrastructure (client_reports pattern)
-    └──reused by──> Document Generator
+[Claude Code agent channel]
+    └──requires──> running Claude Code session on VPS (manual setup)
+    └──requires──> MCP channel server (claude-code-telegram pattern)
+    └──independent from──> main Telegram bot (separate process recommended)
 
-Existing: Celery async task pattern (client_reports generation)
-    └──reused by──> Document Generator
+[existing telegram_service.send_message()]
+    └──already used by──> reports, monitoring, document generator
+    └──reused by──> Client report app one-tap send
+    └──reused by──> Telegram bot /digest and /report commands
 
-Existing: sites, site_groups, users, projects, audit_log
-    └──extended by──> all four feature groups
+[Celery task polling pattern]
+    └──used by──> Positions app (trigger + poll active_task)
+    └──used by──> Tools app (tool_submit + tool_job_status)
+    └──pattern already established in──> desktop position check UI
 
-Existing: telegram_service, aiosmtplib
-    └──extended by──> Document Generator delivery
+[existing fix_apply_and_approve endpoint]
+    └──required by──> Pages app approve queue
+    └──no changes needed to backend
+
+[existing morning_digest_service.build_morning_digest()]
+    └──required by──> Digest app
+    └──no changes needed to backend
+
+[existing client_report_service + export_pdf]
+    └──required by──> Client report app
+    └──no changes needed to backend
 ```
 
 ### Dependency Notes
 
-- **Client CRM must come first:** Site Audit Intake, Proposals, and Documents all need a `clients` table with IDs to link to.
-- **Proposal Templates before Document Generator:** Can't generate a document without a template.
-- **Site Audit Intake is independent of Proposals** (can be built in parallel), but intake → proposal pre-fill requires both to exist.
-- **Document Generator reuses 80% of existing `client_reports` infrastructure.** The pattern (Celery task, PDF bytes in DB, status lifecycle, download endpoint) just needs to be generalised into a `generated_documents` table covering multiple document types.
+- **`base_mobile.html` is Phase 1.** Every app depends on it. Build it first with bottom nav, site switcher, pull-to-refresh skeleton, and Telegram WebApp script injection. All 8 apps inherit from it.
+- **Telegram bot is independent of mobile web apps.** Bot commands run server-side via python-telegram-bot 21 `Application`; they do not touch the Jinja2 stack. Can be built in parallel with focus apps, but integrate into the same Docker Compose stack.
+- **Claude Code agent channel requires an operational decision.** Running `claude` CLI as a subprocess from a bot handler is the simplest integration (per `claude-code-telegram` repo). Requires Claude Code installed on VPS with a valid Anthropic API key. This is the highest-risk feature — HIGH complexity, non-trivial security surface.
+- **/deploy is the highest-risk bot command.** Must verify caller chat_id against allowlist (`TELEGRAM_ALLOWED_CHAT_IDS` env var) AND require inline keyboard confirmation before executing any shell command. Log every execution to the `audit_log` table. Do not implement until all read-only commands (/status, /logs) are working and tested.
+- **Pages app swipe gesture.** HTMX natively handles click/focus events; swipe requires approximately 10 lines of vanilla JS (touchstart + touchend delta calculation). This does not conflict with the Jinja2+HTMX no-build philosophy — keep JS inline in the template.
+- **Telegram WebApp auth bridge.** When user opens a WebApp from a bot button, Telegram provides `initData` in the JS API. Validate this server-side with HMAC-SHA-256 against the bot token. Issue a short-lived JWT on successful validation. This is the only new auth flow required.
+
+---
+
+## Per-App Feature Breakdown
+
+### App 1: Digest
+
+**Table stakes:**
+- Summary cards: positions up/down counts, alert count, overdue task count
+- Last check timestamp per site
+- "Send to Telegram" button (reuse `telegram_service.send_message`)
+
+**Differentiators:**
+- Overdue task count is a deep link to tasks list pre-filtered for overdue
+- Color-coded status icons (green/yellow/red) matching `_status_icon()` from existing service
+
+**Anti-feature:** Do not add digest configuration on mobile — settings stay on desktop.
+
+**Backend reuse:** `morning_digest_service.build_morning_digest()` already exists. Mobile template consumes the same data.
+
+---
+
+### App 2: Positions
+
+**Table stakes:**
+- Keyword list with current position + delta badge (▲3 green / ▼5 red / unchanged gray)
+- Filter by site; search by keyword
+- "Run check now" button with Celery progress indicator
+- Last check timestamp
+
+**Differentiators:**
+- Progress bar while check runs (poll `get_active_task` every 5s; idle state falls back to 30s)
+- Top-10 keyword count badge in header
+
+**Anti-feature:** Do not show full position history chart on mobile — too small to be useful; provide "Full view →" link to desktop.
+
+**Backend reuse:** `latest_positions`, `compare_dates`, `trigger_position_check`, `get_active_task` all exist in `positions.py` router.
+
+---
+
+### App 3: Client Report
+
+**Table stakes:**
+- Site selector
+- "Generate PDF" button → spinner → download link or inline send
+- "Send via Telegram" button
+
+**Differentiators:**
+- Single-flow: generate → send without leaving the app
+- Status polling while PDF generates (existing Celery task pattern)
+
+**Anti-feature:** Do not add report template editing on mobile; use desktop.
+
+**Backend reuse:** `export_pdf` and `telegram_service.send_message` exist. Wire together in a thin mobile endpoint.
+
+---
+
+### App 4: Site Health Card
+
+**Table stakes:**
+- Traffic light indicator per site (green/yellow/red)
+- Crawl error count, last crawl time
+- Active alert count
+- 30-second auto-refresh
+
+**Differentiators:**
+- Inline sparkline of last 7 days positions average (single `<svg>`, no chart library dependency)
+- Tap to jump to desktop site detail
+
+**Anti-feature:** Do not replicate the full analytics dashboard; this is a status card only.
+
+**Backend reuse:** Aggregate from `list_alerts`, crawl status endpoint, `latest_positions` average.
+
+---
+
+### App 5: Traffic Comparison
+
+**Table stakes:**
+- Period A vs Period B selector (last 7d vs prior 7d as default)
+- Organic sessions delta, top/bottom pages
+- Anomaly flag when `detect_anomalies` returns a result
+
+**Differentiators:**
+- Auto-select the period containing the detected anomaly
+- Color-highlight on anomaly rows
+
+**Anti-feature:** Do not show full Metrika funnel charts on mobile; link to desktop analytics workspace.
+
+**Backend reuse:** `traffic_analysis_service.detect_anomalies`, `analyze_traffic_sources`, existing Metrika data endpoints.
+
+---
+
+### App 6: Pages (Audit + Approve Queue)
+
+**Table stakes:**
+- List of pages pending approval from audit fix queue
+- Per-page: title, URL, fix type (title/meta/schema/TOC), diff preview
+- Approve / Reject buttons
+- Batch approve selected
+
+**Differentiators:**
+- Swipe right = approve, swipe left = reject (~10 lines vanilla JS for touchstart/touchend)
+- Quick inline fix editor for title/meta (single input, POST, HTMX partial reload)
+
+**Anti-feature:** Do not support schema.org editing on mobile — too complex for a small screen; push to desktop.
+
+**Backend reuse:** `list_checks`, `fix_apply_and_approve`, `fix_preview` in `audit.py` router all exist.
+
+---
+
+### App 7: Quick Task
+
+**Table stakes:**
+- Title input + site selector + priority picker (High/Med/Low)
+- Optional description (collapsible textarea)
+- Submit with confirmation toast
+
+**Differentiators:**
+- "From this site" context pre-fill when opened from site health card
+- Copywriter brief shortcut: one-tap creates brief task with template pre-filled from site context
+
+**Anti-feature:** No task assignment, due date picker, or file attachment on mobile — desktop only.
+
+**Backend reuse:** `tasks.py` router for task creation + `brief_service` for brief shortcut.
+
+---
+
+### App 8: Tools
+
+**Table stakes:**
+- List of 6 tools from `TOOL_REGISTRY` with name, description, last run status
+- "Run" button per tool with minimal parameter form (1–2 inputs)
+- Job progress indicator while tool runs
+- Results preview (top 5 rows; "Full results →" link to desktop)
+
+**Differentiators:**
+- Recent runs list per tool (last 3 runs with timestamps)
+- "Copy result" button for single-value outputs (meta tags, URL suggestions)
+
+**Anti-feature:** Do not render full results tables on mobile — too wide; show summary only.
+
+**Backend reuse:** `tool_landing`, `tool_submit`, `tool_job_status`, `tool_results` in `tools.py` router all exist.
+
+---
+
+### App 9: Telegram Bot
+
+**Table stakes:**
+- /start — welcome message + command list
+- /status — system health (DB ping, Redis ping, Celery worker alive, last crawl timestamp)
+- /logs — last 50 lines of app.log formatted as code block (split into multiple messages if content exceeds 4096 chars)
+- /digest — call `morning_digest_service` and send result to chat
+- Authentication: restrict ALL commands to allowlist of chat_ids (`TELEGRAM_ALLOWED_CHAT_IDS` env var)
+
+**Differentiators:**
+- /test — run smoke test suite (`smoke_tasks.py`), return pass/fail summary
+- /deploy — git pull + `docker compose up -d --build` with inline keyboard confirmation; log to audit_log; admin chat_id only
+- /report [site_name] — generate and send PDF report for named site
+- Inline keyboard confirmation on every destructive command
+
+**Anti-feature:** Do not make the bot a full CRUD API. 6–8 commands maximum. Link to WebApp for data operations.
+
+**Implementation:**
+- python-telegram-bot 21 `Application` with webhook (not polling) in production
+- Webhook registered at `/telegram/webhook/{SECRET_TOKEN}`
+- `Application` started inside FastAPI lifespan (shared event loop)
+- Commands registered with `setMyCommands` on startup
+
+---
+
+### App 10: Telegram WebApp Wrapper
+
+**Table stakes:**
+- Each mobile app accessible as a Telegram WebApp button in the bot
+- `Telegram.WebApp.ready()` called on load; `expand()` for full height
+- `themeParams` sync: CSS custom properties set from `Telegram.WebApp.themeParams` object
+- JWT auth bridge: validate `initData` with HMAC-SHA-256 against bot token; issue short-lived JWT
+
+**Differentiators:**
+- `MainButton` replaces bottom CTA for primary actions (e.g., "Approve All", "Run Check", "Send Report")
+- `HapticFeedback.notificationOccurred('success')` on approve and send actions
+- `ClosingConfirmation` enabled on Pages app approve queue to guard against accidental close mid-review
+
+**Anti-feature:** Do not use Telegram Payments or Stars — internal tool with no monetization layer.
+
+**Technical constraint:** `sendData()` maximum 4096 bytes; use only for simple confirmations; use server-side endpoints for all data operations.
 
 ---
 
 ## MVP Definition
 
-### Launch With (v3.0)
+### Launch With (Phase 1 — Mobile Foundation)
 
-The minimum that delivers the milestone goal ("turn the platform into a sales tool"):
+Minimum required for any other app to function:
 
-- [ ] **Client cards** (name, contacts, INN/KPP, notes, manager assignment) — without this nothing else has an anchor
-- [ ] **Sites attached to clients** — the core data relationship
-- [ ] **Interaction log** (text notes + date) — bare minimum CRM capability
-- [ ] **Site audit intake form** (fixed schema, save draft, completion status) — structured onboarding
-- [ ] **Pre-populated checklist items** from existing platform data (WP connected, GSC linked, Metrika linked)
-- [ ] **Proposal template CRUD** (admin manages templates with Jinja2-style variable syntax)
-- [ ] **Core variable resolver** (client name, site URL, key position metrics, audit error count)
-- [ ] **Generate PDF from template + site** (async Celery, stored as bytes, downloadable)
-- [ ] **Document list per client** with download links
+- [ ] `base_mobile.html` with bottom navigation, site switcher, Telegram WebApp script — prerequisite for everything
+- [ ] `/m/` route prefix with auth middleware
+- [ ] Digest app — morning summary cards (zero new backend work)
+- [ ] Site health card — status aggregate (zero new backend work)
+- [ ] Positions app — rankings list with delta badges + trigger check button
 
-### Add After Validation (v3.x)
+### Add In Phase 2 — Action Apps
 
-Features to add once the core flow works:
+- [ ] Pages app — audit list + swipe-to-approve
+- [ ] Quick task — mobile task creation
+- [ ] Client report app — generate PDF + send via Telegram
+- [ ] Traffic comparison app — period comparison with anomaly highlight
+- [ ] Tools app — launch tools + poll results
 
-- [ ] **Intake → proposal pre-fill** — once intake data model is stable
-- [ ] **Platform data variables** (live position/traffic queries at render time) — once variable resolver pattern is established
-- [ ] **Send document via Telegram / SMTP** — once document model is stable
-- [ ] **Client health score** — aggregation query across site health widget data
-- [ ] **Rate card integration** — pricing variables in templates
-- [ ] **Variable overrides at generation time** — power user need
+### Add In Phase 3 — Telegram Layer
 
-### Defer to v4+
+- [ ] Telegram bot — /status, /logs, /digest, /test commands
+- [ ] Telegram WebApp — wrap mobile app URLs as WebApp buttons in bot
+- [ ] Telegram bot — /deploy with confirmation keyboard (implement after /status is stable)
+- [ ] Claude Code agent channel — after all other bot commands are stable and tested
 
-- Client portal (CRM data visible to client role users)
-- E-signature integration
-- LLM-assisted proposal copy (opt-in, same pattern as LLM briefs)
-- Multi-language template variants
-- Public intake form (client-filled)
+### Defer to v5.0
+
+- [ ] Personalized mobile dashboard layouts
+- [ ] Offline/PWA mode
+- [ ] Full keyword management on mobile
 
 ---
 
@@ -248,73 +366,56 @@ Features to add once the core flow works:
 
 | Feature | User Value | Implementation Cost | Priority |
 |---------|------------|---------------------|----------|
-| Client card CRUD | HIGH | LOW | P1 |
-| Site → client relationship | HIGH | LOW | P1 |
-| Interaction log | MEDIUM | LOW | P1 |
-| Site audit intake form | HIGH | MEDIUM | P1 |
-| Auto-populate intake from platform data | HIGH | LOW | P1 |
-| Proposal template CRUD (admin) | HIGH | MEDIUM | P1 |
-| Core variable resolver | HIGH | MEDIUM | P1 |
-| PDF generation from template | HIGH | LOW (reuse existing) | P1 |
-| Document storage + download | HIGH | LOW (reuse existing) | P1 |
-| Document list per client | HIGH | LOW | P1 |
-| Platform data variables (live queries) | HIGH | HIGH | P2 |
-| Intake → proposal pre-fill | MEDIUM | MEDIUM | P2 |
-| Rich text template editor | MEDIUM | HIGH | P2 |
-| Send via Telegram / SMTP | MEDIUM | MEDIUM | P2 |
-| Client health score widget | MEDIUM | MEDIUM | P2 |
-| Variable overrides at generation time | LOW | MEDIUM | P3 |
-| Rate card integration | MEDIUM | MEDIUM | P3 |
-| Template versioning | LOW | LOW | P3 |
-| Auto-generate proposal on intake completion | LOW | MEDIUM | P3 |
+| `base_mobile.html` + `/m/` routing | HIGH | LOW | P1 |
+| Telegram WebApp script in base template | HIGH | LOW | P1 |
+| Digest app | HIGH | LOW | P1 |
+| Site health card | HIGH | LOW | P1 |
+| Positions app (view + trigger) | HIGH | MEDIUM | P1 |
+| Pages app (approve queue + swipe) | HIGH | MEDIUM | P1 |
+| Quick task creation | MEDIUM | LOW | P1 |
+| Client report app (PDF + Telegram send) | HIGH | MEDIUM | P1 |
+| Traffic comparison app | MEDIUM | MEDIUM | P2 |
+| Tools app (mobile launch) | MEDIUM | MEDIUM | P2 |
+| Telegram bot /status + /logs | HIGH | MEDIUM | P1 |
+| Telegram bot /deploy (with confirm) | MEDIUM | HIGH | P2 |
+| Telegram WebApp wrapping | MEDIUM | MEDIUM | P2 |
+| Claude Code agent channel | MEDIUM | HIGH | P3 |
+
+**Priority key:** P1 = must have for milestone; P2 = strong value, include in same milestone; P3 = exploratory, separate phase or spike
 
 ---
 
-## Implementation Notes: Reuse vs New Build
+## Complexity Summary by App
 
-### Reuse Directly (No Changes Needed)
-- `WeasyPrint` subprocess isolation pattern — copy from `brief_service.py`
-- Celery task lifecycle (pending → generating → ready | failed) — copy from `client_reports` model
-- PDF download endpoint pattern — copy from `client_reports` router
-- `audit_log` for document generation events — existing table
-- `telegram_service.py` — already sends text/files
-- `crypto_service.py` — Fernet encryption for any sensitive intake fields
-
-### Extend (Minor Additions)
-- `sites` table — add `client_id` FK, `intake_completed_at`
-- `users` table — no change needed; `client` role already exists
-- `projects` table — add `client_id` FK (currently only `client_user_id`)
-
-### New Tables Required
-- `clients` — company card, manager FK, created_at
-- `client_contacts` — multiple contacts per client (name, phone, email, role)
-- `client_interactions` — interaction log (client_id, user_id, text, timestamp, optional document_id)
-- `site_intake` — JSONB answers + structured fields + completion status per site
-- `proposal_templates` — template body (HTML/Jinja2 text), name, variable_schema JSON, is_active
-- `generated_documents` — generalised document table (type enum, template_id, client_id, site_id, variable_overrides JSONB, pdf_data, status, celery_task_id)
-
----
-
-## Complexity Summary
-
-| Feature Group | Overall Complexity | Key Risk |
-|---------------|-------------------|----------|
-| Client CRM | LOW-MEDIUM | Schema design (clients vs users distinction) |
-| Site Audit Intake | MEDIUM | Variable schema alignment with proposals |
-| Proposal Templates | MEDIUM-HIGH | Rich text editor choice; variable resolver scope |
-| Document Generator | LOW-MEDIUM | Generalising existing client_reports pattern |
-
-The highest-risk decision is the **variable resolver for proposal templates**: scope it to static variables (client name, site URL, a handful of DB queries) in v3.0 and expand to live complex queries in v3.x. Trying to make it fully dynamic in one milestone risks over-engineering the schema.
+| App | Backend Work | Frontend Work | New Infrastructure | Overall |
+|-----|-------------|---------------|-------------------|---------|
+| Digest | None (service exists) | 1 mobile template | None | LOW |
+| Positions | None (endpoints exist) | 2 templates + 5s poll | None | LOW-MEDIUM |
+| Client Report | Thin orchestration endpoint | 1 template | None | LOW |
+| Site Health Card | Aggregate endpoint | 1 template + SVG sparkline | None | LOW |
+| Traffic Comparison | None (service exists) | 1 template | None | LOW-MEDIUM |
+| Pages (approve queue) | None (endpoint exists) | 2 templates + swipe JS | None | MEDIUM |
+| Quick Task | None (endpoint exists) | 1 template | None | LOW |
+| Tools | None (endpoints exist) | 2 templates | None | MEDIUM |
+| Telegram Bot | python-telegram-bot 21 App | N/A | Webhook route, startup registration | MEDIUM |
+| Telegram WebApp | initData auth bridge | CSS vars + WebApp.js | None | MEDIUM |
+| Claude Code channel | Subprocess management, MCP server | N/A | Claude Code on VPS, API key | HIGH |
 
 ---
 
 ## Sources
 
-- PROJECT.md — existing platform capabilities and v3.0 milestone goal
-- Existing codebase: `app/models/client_report.py`, `app/models/site.py`, `app/models/project.py`, `app/models/user.py` — established patterns
-- Domain knowledge: SE Ranking, Agency Analytics, Semrush Agency Hub, Proposify — SEO agency CRM conventions (training knowledge, no live verification)
-- Russian SEO agency context: КП structure, INN/KPP requirements — established practice (HIGH confidence)
+- Telegram Mini Apps official API docs: https://core.telegram.org/bots/webapps (HIGH confidence — official)
+- Telegram Mini App native UX guide: https://turumburum.com/blog/telegram-mini-app-beyond-the-standard-ui-designing-a-truly-native-experience (MEDIUM confidence — community)
+- claude-code-telegram integration: https://github.com/RichardAtCT/claude-code-telegram (MEDIUM confidence — open source project)
+- Claude Code channels docs: https://code.claude.com/docs/en/channels (HIGH confidence — official Anthropic)
+- python-telegram-bot v21 inline keyboard docs: https://docs.python-telegram-bot.org/en/v21.9/telegram.inlinekeyboardbutton.html (HIGH confidence — official)
+- Docker Telegram bot command patterns: https://medium.com/@satish.verma/managing-docker-containers-with-telegram-bot-a-devops-automation-tool-699c34d11a29 (LOW confidence — community)
+- Mobile UX patterns (swipe, pull-to-refresh, bottom nav): https://procreator.design/blog/mobile-app-design-patterns-boost-retention/ (MEDIUM confidence — community)
+- SEMrush mobile position tracking: https://www.semrush.com/news/271383-position-tracking-on-the-go/ (MEDIUM confidence — competitor)
+- Platform internals: `/opt/seo-platform/app/routers/` and `/opt/seo-platform/app/services/` — direct code inspection (HIGH confidence)
 
 ---
-*Feature research for: v3.0 Client & Proposal milestone*
-*Researched: 2026-04-09*
+
+*Feature research for: v4.0 Mobile focus apps + Telegram bot*
+*Researched: 2026-04-10*

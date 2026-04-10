@@ -1,8 +1,8 @@
 # Technology Stack
 
 **Project:** SEO Management Platform
-**Researched:** 2026-04-09 (v3.0 update — additive only)
-**Confidence:** HIGH (existing stack), HIGH (v3.0 additions — zero new libraries required)
+**Researched:** 2026-04-10 (v4.0 update — Mobile & Telegram additions)
+**Confidence:** HIGH (existing stack), HIGH (v4.0 additions — minimal new libraries required)
 
 ---
 
@@ -11,171 +11,355 @@
 Python 3.12, FastAPI 0.115, SQLAlchemy 2.0 async, PostgreSQL 16, Redis 7, Celery 5.4,
 Playwright 1.47+, Jinja2 3.1, HTMX 2.0, Tailwind CSS, WeasyPrint 62, authlib 1.3,
 httpx 0.27, beautifulsoup4 4.12 + lxml 5, loguru 0.7, redbeat 2.2, openpyxl 3.1,
-python-telegram-bot 21, aiosmtplib 3, slowapi 0.1.9, passlib[bcrypt], python-jose,
+python-telegram-bot 21.x, aiosmtplib 3, slowapi 0.1.9, passlib[bcrypt], python-jose,
 cryptography 42, pytest 8 + pytest-asyncio + respx, anthropic ≥0.89, pyotp 2.9,
 sse-starlette ≥3.3.3, mammoth 1.6.
 
-Full details in the v1.0 and v2.0 STACK.md sections below.
+Full details in the v1.0–v3.0 STACK.md sections below.
 
 ---
 
-## v3.0 New Additions
+## v4.0 New Additions
 
 ### New Libraries Required
 
-**None.** Every capability needed for Client CRM, audit intake forms, proposal templates, and document generation is already in the installed stack. The analysis below explains why.
+Three additions. Everything else uses the existing stack.
 
-### Capability-to-Existing-Library Mapping
+| Library | Version | Purpose | Why |
+|---------|---------|---------|-----|
+| python-telegram-bot | **22.x** (upgrade from 21.x) | Bot handlers + WebApp buttons | v22 adds full Bot API 9.x support; `InlineKeyboardButton(web_app=WebAppInfo(url=...))` was available in v21 but v22 stabilises the `WebAppData` handler and fixes timedelta typing. Upgrade is low-risk: only breaking change is `datetime.timedelta` return types (opt-in via `PTB_TIMEDELTA=true`). Use keyword arguments everywhere and the migration is non-breaking. |
+| tailwindcss-safe-area | **0.1.x** (CDN plugin or npm) | `env(safe-area-inset-*)` utilities for iOS notch/home-bar | Tailwind CSS does not ship `safe-area-inset` utilities by default. This tiny plugin adds `pb-safe`, `pt-safe`, `px-safe` utility classes. Required for correct PWA rendering on iPhone (notch, home indicator). If Tailwind is loaded via CDN Play (current pattern), add the env-based padding manually in `base_mobile.html` as CSS custom properties instead — see Integration Patterns below. |
+| claude-code-sdk | **≥0.0.13** (PyPI) | Programmatic Claude Code CLI invocation from Telegram bot | Official Anthropic Python SDK for spawning `claude -p` as subprocess with structured JSON output. Wraps `asyncio.create_subprocess_exec` with proper stdin/stdout/stderr handling and retry logic. Used only in the bot's `/agent` command handler — not imported by the main FastAPI app. |
 
-| v3.0 Capability | Library Already in Stack | How It Covers the Need |
+### No-Addition Rationale
+
+| v4.0 Capability | Library Already in Stack | How It Covers the Need |
 |-----------------|--------------------------|------------------------|
-| Client CRM data model (contacts, interaction history, linked sites) | SQLAlchemy 2.0 async + PostgreSQL 16 | New `Client`, `ClientContact`, `ClientInteraction` models follow the identical pattern as `Project`, `SeoTask`, `Site`. JSON columns (`JSONB`) handle flexible contact metadata. Foreign keys link clients to sites and users. UUID primary keys, Alembic migrations — no deviation from existing patterns. |
-| Audit intake forms (multi-section checklists, structured input) | python-multipart 0.0.9 + Jinja2 3.1 + HTMX 2.0 | `python-multipart` already handles form bodies. HTMX `hx-post` submits individual form sections without page reload. `hx-on::after-request` + CSS classes track completion state client-side. No JS framework needed. |
-| Dynamic form sections (conditional fields, section toggling) | HTMX 2.0 | `hx-swap="outerHTML"` on form section containers; server returns re-rendered partials with updated state. Already used in the pipeline approval flow — same pattern. |
-| Proposal template variable substitution (client name, site metrics, pricing) | Jinja2 3.1 | `Environment.from_string()` renders a stored template string with a context dict at generation time. This is the exact mechanism used in the 7 Russian instruction templates in `client_report_service.py`. Template bodies stored in DB as `Text` columns; rendered at generation time. No additional templating engine. |
-| Template editor UI (create/edit proposal templates with variable placeholders) | Jinja2 3.1 + Tailwind CSS | A `<textarea>` with syntax-hint overlay using CSS. Variable placeholders documented as `{{ variable_name }}`. Preview endpoint renders template against sample data and returns HTML fragment via HTMX. No rich text editor library needed for this scope. |
-| PDF generation (proposals, audit summaries) | WeasyPrint 62 (subprocess-isolated) | `subprocess_pdf.render_pdf_in_subprocess()` already handles all PDF rendering. Proposal PDF templates follow the `client_instructions.html` / `reports/detailed.html` pattern: standalone HTML with `@page` CSS, no external assets. No changes to the PDF pipeline. |
-| Async PDF generation (queue-based, status polling) | Celery 5.4 + Redis 7 | `ClientReport` model already demonstrates the `pending → generating → ready | failed` lifecycle. Same Celery task pattern, same status polling via HTMX, same `LargeBinary` PDF storage. Proposal documents are a second document type using the identical infrastructure. |
-| Excel export of audit checklists | openpyxl 3.1 | Already used for keyword export. Audit checklist export follows the same `openpyxl.Workbook()` pattern. |
-| Interaction history (notes, timestamps, user attribution) | SQLAlchemy 2.0 + PostgreSQL 16 | `project_comments.py` model already implements `(project_id, user_id, created_at, body)` pattern. Client interaction log is the same structure with `client_id` foreign key instead of `project_id`. |
-| File attachments on client cards (briefs, signed proposals) | FastAPI + python-multipart + PostgreSQL `LargeBinary` | Pattern already established by `ClientReport.pdf_data`. For larger files, store path reference to `artifacts/` directory (already used by the report system). |
+| Mobile-optimised Jinja2 templates (`base_mobile.html`) | Jinja2 3.1 + HTMX 2.0 + Tailwind CSS | New base template, new `/m/` router, mobile-specific CSS classes. No new library — pure HTML/CSS/HTMX patterns. |
+| Telegram WebApp initData validation (Mini App auth) | `hmac` + `hashlib` (Python stdlib) | HMAC-SHA256 validation of `initData` is 20 lines of stdlib code. No third-party library required; see Integration Patterns below. |
+| Telegram Bot `/deploy`, `/test`, `/logs`, `/status` commands | python-telegram-bot 22.x (existing, upgraded) | `CommandHandler` + async callbacks. Bot already in stack for push notifications — extend with command handlers in same Application instance. |
+| PWA manifest + service worker | Static files served by FastAPI | `manifest.json` and `sw.js` are static file assets served at well-known paths. No Python library. Registered via `<link rel="manifest">` in `base_mobile.html`. |
+| Push notifications (web push) | Celery 5.4 + Redis 7 (existing) | Web push via VAPID requires `pywebpush` if native browser push is needed. For this project, Telegram push is the notification channel — no separate web push library required. |
+| Bot command security (restrict to admin Telegram IDs) | python-telegram-bot 22.x + Redis 7 | Allowlist of Telegram user IDs stored in Redis (or `settings.py`). A `filters.User(user_id=[...])` filter on `CommandHandler` enforces it natively. |
 
 ---
 
-## Integration Points for v3.0
+## Integration Patterns for v4.0
 
-### CRM Data Model — Follow Existing Patterns Exactly
+### 1. Telegram WebApp — initData Validation (No Library)
 
-The `Client` table is a first-class entity, not a sub-entity of `Site`. Sites link to clients (one client, many sites — mirroring how `project_users` links users to projects).
-
-```python
-# Recommended relationship direction (HIGH confidence — matches existing FK patterns)
-class Client(Base):
-    __tablename__ = "clients"
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    name: Mapped[str] = mapped_column(String(255), nullable=False)
-    company: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    contacts: Mapped[dict] = mapped_column(JSONB, nullable=False, server_default=text("'{}'::jsonb"))
-    # ... created_at, updated_at with server_default=text("NOW()")
-
-# Sites get a nullable client_id FK (most sites may not be linked to a CRM client yet)
-# ALTER TABLE sites ADD COLUMN client_id UUID REFERENCES clients(id) ON DELETE SET NULL;
-```
-
-Use `JSONB` (not `JSON`) for `contacts` — PostgreSQL `JSONB` supports GIN indexing, which is needed if the team searches by phone/email across all clients.
-
-### Proposal Templates — Jinja2 Sandboxed Environment
-
-Proposal templates are stored in the DB and rendered on demand. Use `jinja2.sandbox.SandboxedEnvironment` instead of the main `Environment` to prevent template injection from stored user-authored templates:
+The `initData` query string is signed with HMAC-SHA256 using the bot token. Validate in a FastAPI dependency:
 
 ```python
-from jinja2.sandbox import SandboxedEnvironment
+import hashlib, hmac, urllib.parse
+from fastapi import Header, HTTPException
 
-_proposal_env = SandboxedEnvironment()
+TELEGRAM_BOT_TOKEN = settings.TELEGRAM_BOT_TOKEN
 
-def render_proposal(template_body: str, context: dict) -> str:
-    tmpl = _proposal_env.from_string(template_body)
-    return tmpl.render(**context)
+def _build_check_string(init_data: str) -> tuple[str, str]:
+    params = dict(urllib.parse.parse_qsl(init_data, strict_parsing=True))
+    received_hash = params.pop("hash", "")
+    data_check_string = "\n".join(
+        f"{k}={v}" for k, v in sorted(params.items())
+    )
+    return data_check_string, received_hash
+
+async def verify_telegram_webapp(
+    x_telegram_init_data: str = Header(...)
+) -> dict:
+    """FastAPI dependency — validates Telegram Mini App initData."""
+    data_check_string, received_hash = _build_check_string(x_telegram_init_data)
+    secret_key = hmac.new(b"WebAppData", TELEGRAM_BOT_TOKEN.encode(), hashlib.sha256).digest()
+    computed_hash = hmac.new(secret_key, data_check_string.encode(), hashlib.sha256).hexdigest()
+    if not hmac.compare_digest(computed_hash, received_hash):
+        raise HTTPException(status_code=403, detail="Invalid Telegram initData")
+    return dict(urllib.parse.parse_qsl(x_telegram_init_data))
 ```
 
-This is a **critical** security detail: the main `app/template_engine.py` `_jinja_templates` instance reads files from disk and is trusted. User-authored DB templates must use the sandboxed environment to prevent `{{ config.SECRET_KEY }}` style extraction attacks.
+Apply as `Depends(verify_telegram_webapp)` on all `/m/` endpoints that receive Telegram WebApp requests.
 
-### Audit Intake Forms — HTMX Multi-Step Pattern
+**Why no library:** `init-data-py` and `telegram_init_data` packages exist but add a dependency for 20 lines of stdlib code. The algorithm is stable (documented since Bot API 6.0). Use stdlib.
 
-Multi-section intake forms work with HTMX section-by-section submission without JS scaffolding:
+### 2. Telegram WebApp Button — Open Mini App from Bot
+
+```python
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
+
+def make_webapp_keyboard(url: str) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup([[
+        InlineKeyboardButton("Открыть дайджест", web_app=WebAppInfo(url=url))
+    ]])
+```
+
+`WebAppInfo(url=...)` requires HTTPS. In development, use ngrok or Cloudflare Tunnel. In production, the existing HTTPS VPS satisfies this.
+
+### 3. Telegram Bot — Single Application, Multiple Handler Types
+
+The existing `python-telegram-bot` push-notification code runs as a fire-and-forget sender. For v4.0, upgrade to a persistent `Application` that handles both push (outbound) and commands (inbound):
+
+```python
+# app/telegram_bot.py
+from telegram.ext import Application, CommandHandler, filters
+
+application = (
+    Application.builder()
+    .token(settings.TELEGRAM_BOT_TOKEN)
+    .build()
+)
+
+# DevOps commands — restricted to admin Telegram IDs
+ADMIN_IDS = settings.TELEGRAM_ADMIN_IDS  # List[int] from settings
+
+application.add_handler(CommandHandler(
+    "deploy", handle_deploy,
+    filters=filters.User(user_id=ADMIN_IDS)
+))
+application.add_handler(CommandHandler(
+    "status", handle_status,
+    filters=filters.User(user_id=ADMIN_IDS)
+))
+# ... /test, /logs, /agent
+```
+
+Start the Application via FastAPI lifespan (not a separate process):
+
+```python
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await application.initialize()
+    await application.start()
+    # Set webhook — do not use polling in production (blocks event loop)
+    await application.bot.set_webhook(url=f"{settings.BASE_URL}/telegram/webhook")
+    yield
+    await application.stop()
+    await application.shutdown()
+```
+
+**Webhook over polling:** Production runs on a VPS with HTTPS — webhook mode is mandatory. Polling blocks the async event loop and cannot coexist with FastAPI. Register a `/telegram/webhook` POST endpoint that calls `application.process_update()`.
+
+### 4. Claude Code CLI Agent — Subprocess via SDK
+
+```python
+# app/services/claude_agent.py
+import asyncio, json
+from claude_code_sdk import ClaudeCodeOptions, claude_code
+
+async def run_claude_task(prompt: str, work_dir: str) -> str:
+    """Run Claude Code headlessly and return text result."""
+    options = ClaudeCodeOptions(
+        cwd=work_dir,
+        allowed_tools=["Read", "Edit", "Bash"],
+        permission_mode="acceptEdits",
+    )
+    result_text = []
+    async with claude_code(prompt, options=options) as agent:
+        async for message in agent:
+            if message.type == "result":
+                result_text.append(message.result)
+    return "\n".join(result_text)
+```
+
+Invoke from a Celery task triggered by the `/agent` bot command. Never invoke directly in a FastAPI endpoint — Claude Code tasks can take minutes and will block the web worker.
+
+**Security boundary:** The `/agent` command must be restricted to `TELEGRAM_ADMIN_IDS` and must run with an explicit `--allowedTools` whitelist. Never pass `--dangerouslySkipPermissions` from a bot handler.
+
+### 5. PWA manifest.json + Service Worker — Pure Static Files
+
+Add to `app/static/`:
+
+```
+app/static/
+  manifest.json          # PWA manifest
+  sw.js                  # Service worker (offline shell cache)
+  icons/
+    icon-192.png
+    icon-512.png
+```
+
+`manifest.json` minimum required fields:
+
+```json
+{
+  "name": "SEO Platform",
+  "short_name": "SEO",
+  "start_url": "/m/digest",
+  "display": "standalone",
+  "theme_color": "#1e293b",
+  "background_color": "#0f172a",
+  "icons": [
+    { "src": "/static/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/static/icons/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
+```
+
+`sw.js` — app-shell caching strategy (cache `/m/*` HTML shells, network-first for data):
+
+```javascript
+const SHELL_CACHE = "seo-shell-v1";
+const SHELL_URLS = ["/m/digest", "/m/positions", "/static/css/mobile.css"];
+
+self.addEventListener("install", e => {
+  e.waitUntil(caches.open(SHELL_CACHE).then(c => c.addAll(SHELL_URLS)));
+});
+
+self.addEventListener("fetch", e => {
+  if (SHELL_URLS.includes(new URL(e.request.url).pathname)) {
+    e.respondWith(caches.match(e.request).then(r => r || fetch(e.request)));
+  }
+  // All other requests: network pass-through (no cache for API data)
+});
+```
+
+Register in `base_mobile.html`:
 
 ```html
-<!-- Each section is an independent HTMX form target -->
-<div id="section-technical" hx-post="/ui/clients/{id}/audit/section/technical"
-     hx-swap="outerHTML" hx-trigger="change delay:800ms">
-  <!-- form fields -->
-</div>
+<link rel="manifest" href="/static/manifest.json" />
+<script>
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("/static/sw.js");
+  }
+</script>
 ```
 
-Server returns the re-rendered section partial with updated completion state. Progress indicator counts completed sections. This pattern avoids full-page reloads and keeps the server as the single source of truth for form state — consistent with how the pipeline approval diffs work.
+### 6. Safe Area Insets — Without npm Build Step
 
-### Document Generator — Reuse subprocess_pdf Unchanged
+Since Tailwind is loaded via CDN Play (no build step), add safe-area padding as CSS custom properties in `base_mobile.html` rather than a Tailwind plugin:
 
-The `render_pdf_in_subprocess` function in `app/services/subprocess_pdf.py` needs zero changes. Proposal PDF generation follows this call sequence:
+```html
+<style>
+  :root {
+    --sat: env(safe-area-inset-top, 0px);
+    --sab: env(safe-area-inset-bottom, 0px);
+    --sal: env(safe-area-inset-left, 0px);
+    --sar: env(safe-area-inset-right, 0px);
+  }
+  .pb-safe  { padding-bottom: var(--sab); }
+  .pt-safe  { padding-top: var(--sat); }
+  .px-safe  { padding-left: var(--sal); padding-right: var(--sar); }
+</style>
+```
 
-1. `render_proposal(template_body, context_dict)` → HTML string
-2. Wrap in standalone HTML document with `@page` CSS (same as `client_instructions.html`)
-3. `render_pdf_in_subprocess(html_string)` → PDF bytes
-4. Store in `ProposalDocument.pdf_data` (LargeBinary) with `status="ready"`
+Viewport meta tag (required for `env()` to work on iOS):
 
-Run via Celery task to avoid blocking the web worker. Same `generate_client_report_task` structure.
+```html
+<meta name="viewport" content="width=device-width, initial-scale=1,
+      maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+```
+
+Apply `.pb-safe` to bottom navigation bars and `.pt-safe` to fixed headers.
+
+**If Tailwind is moved to a build step later:** Add `tailwindcss-safe-area` plugin (`npm i -D tailwindcss-safe-area`) and replace the manual CSS with `pb-safe`, `pt-safe` utility classes from the plugin.
+
+### 7. Mobile HTMX Patterns
+
+HTMX 2.0 works identically on mobile — no mobile-specific version or plugin. Key patterns for mobile focus apps:
+
+- **Pull-to-refresh:** `hx-trigger="revealed"` on a sentinel div at top of scroll container fires position/data refresh
+- **Infinite scroll:** `hx-trigger="intersect once"` on bottom sentinel loads next page chunk
+- **Touch-friendly targets:** Use Tailwind `min-h-[44px] min-w-[44px]` for all interactive elements (Apple HIG minimum)
+- **Swipe gestures:** HTMX does not handle swipe natively. Use `touchstart`/`touchend` listeners that call `htmx.trigger(el, 'swipeleft')` — keep in a 30-line `mobile-gestures.js` static file
+- **No `hx-boost` on `/m/` routes:** `hx-boost` intercepts navigation globally; mobile SPA-like routing works better with explicit `hx-push-url` on link clicks
 
 ---
 
-## What NOT to Add (v3.0 Scope)
+## Upgrade: python-telegram-bot 21.x → 22.x
 
-| Avoid | Why |
-|-------|-----|
-| django-crispy-forms / WTForms / Flask-WTF | Django/Flask form libraries; incompatible with FastAPI. Form handling is `python-multipart` + Pydantic validation — already the project pattern. |
-| TipTap / Quill / ProseMirror (rich text editor) | Heavy JS dependencies; proposal templates use `{{ variable }}` placeholders in plain text/HTML. A `<textarea>` with documented placeholder syntax is sufficient for a team of 2–5 power users. Re-evaluate if clients need WYSIWYG editing. |
-| SQLAlchemy-JSONField | Third-party wrapper for JSON columns; PostgreSQL `JSONB` via native `mapped_column(JSONB, ...)` is cleaner and already used in `audit.py` model. |
-| docx (python-docx) for proposal output | Out of scope per PROJECT.md. If editable DOCX output is needed later, `python-docx` is the correct addition — but not now. PDF via WeasyPrint covers all stated output needs. |
-| Jinja2 main Environment for DB templates | Security risk. User-authored templates stored in DB must use `SandboxedEnvironment`. The existing `templates` singleton in `template_engine.py` is for trusted file-based templates only. |
-| CKEditor / TinyMCE | Server-side CDN dependency; overkill for internal template authoring. Adds content security policy complexity. |
-| Separate CRM service / microservice | Single FastAPI app is the architecture constraint. Client CRM is a new SQLAlchemy model family + router + service, not a separate deployment. |
-| UUID7 / ULID for CRM primary keys | The platform uses `uuid4` throughout (22+ model files). Consistency matters more than sortability for this use case. |
+**Why upgrade now:** v21 is still maintained but v22 is the stable branch as of early 2026 (latest stable: v22.x). v21 is already in the installed stack so the upgrade happens in a single requirements change.
 
----
+**Breaking changes from v21 to v22:**
 
-## Installation (v3.0 Additions)
+| Change | Impact | Fix |
+|--------|--------|-----|
+| Duration attributes return `datetime.timedelta` (opt-in via `PTB_TIMEDELTA=true`) | Low — not used in current push-only integration | Use keyword args everywhere; set `PTB_TIMEDELTA=false` initially, migrate gradually |
+| `v22.4`: one parameter added non-backward-compatibly for positional args | Low | Already using keyword arguments per project convention |
+| Removed deprecated v20 functionality | Minimal — not using deprecated APIs | Check: `BotCommand`, `ChatAction`, `ParseMode` usages unchanged |
+
+**Migration steps:**
 
 ```bash
-# No new packages required.
-# All v3.0 features are implemented using the existing installed stack.
-# Run migrations only:
-alembic revision --autogenerate -m "add_clients_audit_intake_proposals"
-alembic upgrade head
+uv pip install "python-telegram-bot>=22.0,<23.0"
+# Verify: python -c "import telegram; print(telegram.__version__)"
+# Run existing notification tests
+```
+
+**If upgrade blocked:** v21.11+ (latest v21 release) works for all v4.0 features — `WebAppInfo`, `CommandHandler`, webhook mode all available. Upgrade is recommended but not blocking.
+
+---
+
+## What NOT to Add (v4.0 Scope)
+
+| Avoid | Why | Use Instead |
+|-------|-----|-------------|
+| aiogram 3.x | Better framework for complex bots with conversation state, but adds a second bot library alongside python-telegram-bot; split brain for telegram code | python-telegram-bot 22.x — already in stack, sufficient for command handling + webhook |
+| React / Vue / Svelte for Telegram Mini App frontend | SPA framework is explicitly out of scope per PROJECT.md; adds build toolchain; the Telegram WebApp wrapper around Jinja2 HTMX pages is the architecture | Jinja2 + HTMX 2.0 rendered pages, opened in Telegram via `WebAppInfo(url=...)` |
+| `pywebpush` / `web-push` (browser push notifications) | Browser VAPID push requires key management and service worker subscription flow; Telegram is the notification channel for this team | python-telegram-bot send_message from Celery tasks (already shipping) |
+| `init-data-py` / `telegram_init_data` (third-party initData validators) | 20 lines of stdlib `hmac` + `hashlib` cover the entire algorithm; extra dependency for no gain | stdlib `hmac.new(b"WebAppData", ...)` — see Integration Patterns |
+| ngrok / cloudflare-tunnel as a dependency | Tunnel tools are dev environment concerns, not application dependencies | Document in CONTRIBUTING.md; production uses native HTTPS VPS |
+| Separate bot process / separate Docker service | Adds IPC complexity; the bot Application integrates cleanly into FastAPI lifespan; webhook mode removes polling-vs-event-loop conflict | FastAPI lifespan-managed `Application` + webhook endpoint |
+| `flask-pwa` / `django-pwa` | Flask/Django libraries; incompatible with FastAPI | `manifest.json` + `sw.js` as static files — no library needed |
+| Starlette WebSocket for bot commands | Telegram uses webhooks (POST), not WebSocket; introducing WebSocket for this creates unnecessary complexity | FastAPI POST endpoint → `application.process_update()` |
+| `claude-code-headless` (npm package) | Node.js package; running Node.js inside the Python application is an unnecessary runtime dependency | `claude-code-sdk` (PyPI) — same capability, Python-native |
+
+---
+
+## Installation (v4.0 Additions)
+
+```bash
+# Upgrade python-telegram-bot
+uv pip install "python-telegram-bot>=22.0,<23.0"
+
+# Claude Code agent SDK (only if /agent bot command is in scope for this phase)
+uv pip install "claude-code-sdk>=0.0.13"
+
+# No other new packages.
+# Mobile templates, PWA files (manifest.json, sw.js, icons/) are static assets.
+# Telegram initData validation uses stdlib hmac + hashlib.
+# Safe-area CSS is inline in base_mobile.html.
 ```
 
 ---
 
-## Version Compatibility (v3.0 — No Changes)
+## Version Compatibility (v4.0)
 
-No new packages means no new compatibility surface. The existing compatibility matrix (v1.0 and v2.0 sections below) applies unchanged.
-
-The one implementation note: `jinja2.sandbox.SandboxedEnvironment` is part of `Jinja2 3.1.x` — no separate install. Confirm with:
-
-```python
-from jinja2.sandbox import SandboxedEnvironment  # ships with jinja2>=2.0
-```
+| Package | Compatible With | Notes |
+|---------|-----------------|-------|
+| python-telegram-bot 22.x | Python 3.12 | Fully compatible; v22 requires Python ≥3.9 |
+| python-telegram-bot 22.x | Bot API 9.x | v22 tracks current Bot API; `WebAppInfo`, `WebAppData` stable since Bot API 6.0 |
+| claude-code-sdk ≥0.0.13 | Python 3.12 | asyncio-based; spawns `claude` CLI as subprocess; requires `claude` CLI installed in container PATH |
+| telegram-web-app.js v62 | HTMX 2.0 | No conflict; telegram-web-app.js operates on `window.Telegram.WebApp` namespace; HTMX operates on DOM attributes; no overlap |
+| FastAPI 0.115 + webhook endpoint | python-telegram-bot 22.x Application | `application.process_update(Update.de_json(data, bot))` is the integration point; fully async-compatible |
 
 ---
 
-## Alternatives Considered (v3.0 Scope)
+## Alternatives Considered (v4.0 Scope)
 
 | Category | Decision | Alternative | Why Not |
 |----------|----------|-------------|---------|
-| Proposal template rendering | Jinja2 `SandboxedEnvironment` | Mustache / Handlebars (chevron) | Jinja2 is already the stack template engine; Mustache is less expressive (no filters, no conditionals); adding a second template engine creates confusion about which to use where |
-| Proposal template rendering | Jinja2 `SandboxedEnvironment` | String `.format()` / f-strings | Not safe for stored templates; no loops or conditionals; Jinja2 sandbox is the correct tool |
-| Audit form state storage | DB rows (per-section answers) | Redis session keys | DB rows are queryable, exportable to Excel, survive Redis flushes; Redis sessions are ephemeral — wrong for audit data that persists through the client relationship |
-| Client contacts storage | `JSONB` column | Separate `client_contacts` table | JSONB is appropriate when contact schema is flexible (phone, email, messenger handles vary); a separate table adds JOIN complexity with no query benefit at this scale (< 500 clients) |
-| PDF proposal output | WeasyPrint (existing) | Playwright `page.pdf()` | Playwright requires a browser launch per document; WeasyPrint subprocess isolation already solves the memory leak problem; no reason to change |
+| Bot framework | python-telegram-bot 22.x (upgrade) | aiogram 3.x | aiogram is architecturally superior for complex bots; this project needs command handling bolted onto an existing notification sender — upgrading the existing library is less churn |
+| Bot runtime | FastAPI lifespan + webhook | Standalone bot process (separate Docker service) | Webhook mode inside FastAPI eliminates polling, reduces Docker complexity (one fewer service), and shares the app's settings/DB session factory |
+| Telegram Mini App frontend | Jinja2 + HTMX pages opened via WebAppInfo URL | Full SPA (React) compiled to static files served as Mini App | SPA is out of scope per PROJECT.md decision record; Jinja2 pages render fine inside the Telegram WebView; the existing HTMX pattern works for all 8 focus apps |
+| initData validation | stdlib hmac + hashlib | `init-data-py` library | Zero-dependency stdlib implementation; algorithm is 20 lines; well-documented by Telegram since Bot API 6.0 |
+| PWA push | Telegram bot push (existing) | VAPID web push via `pywebpush` | The team uses Telegram; adding browser push would duplicate the channel; Telegram push is richer (inline keyboards, Mini App buttons) |
+| Safe-area CSS | Manual CSS custom properties in `base_mobile.html` | `tailwindcss-safe-area` npm plugin | Project uses Tailwind CDN Play (no build step); the plugin requires npm; manual CSS variables achieve identical result with no toolchain change |
+| Claude agent invocation | `claude-code-sdk` Python package | Raw `asyncio.create_subprocess_exec("claude", "-p", ...)` | SDK handles JSON output parsing, session management, retry on `api_retry` events, and structured result extraction; ~50 lines saved vs. raw subprocess |
+
+---
+
+## v3.0 New Additions (Preserved Reference)
+
+See previous STACK.md version — no new libraries added in v3.0.
 
 ---
 
 ## v2.0 New Additions (Preserved Reference)
 
-### New Libraries Required
-
 | Library | Version | Feature | Why |
 |---------|---------|---------|-----|
-| anthropic | ≥0.89.0 | LLM Briefs (opt-in AI content) | Official Anthropic Python SDK; `AsyncAnthropic` client for non-blocking calls inside Celery tasks and FastAPI endpoints; full streaming support via `async with client.messages.stream()` |
-| pyotp | 2.9.0 | 2FA TOTP | De-facto standard Python TOTP library; RFC 6238 compliant; works with Google Authenticator, Authy, any TOTP app; pure Python, no system deps |
-| qrcode[pil] | ≥8.2 | 2FA QR code display | Generates provisioning URI QR codes for authenticator app setup; `qrcode[pil]` extra required for PNG output; Pillow is already a transitive dep via WeasyPrint |
-| sse-starlette | ≥3.3.3 | In-app real-time notifications | Production-ready SSE for Starlette/FastAPI; `EventSourceResponse` wraps any async generator; auto-disconnect detection |
-
-### Integration Patterns (v2.0)
-
-**LLM Briefs — anthropic SDK in Celery + FastAPI:**
-Use sync `Anthropic` client inside Celery tasks (no event loop required). Use `AsyncAnthropic` in FastAPI streaming endpoints via `EventSourceResponse`.
-
-**In-App Notifications — sse-starlette + Redis Pub/Sub:**
-Redis pub/sub (already in stack) as notification bus. SSE endpoint subscribes to per-user channel; Celery tasks publish on completion. HTMX 2.0 `hx-ext="sse"` extension handles browser-side subscription.
+| anthropic | ≥0.89.0 | LLM Briefs (opt-in AI content) | Official Anthropic Python SDK; `AsyncAnthropic` client |
+| pyotp | 2.9.0 | 2FA TOTP | RFC 6238 compliant; works with Google Authenticator |
+| qrcode[pil] | ≥8.2 | 2FA QR code display | Provisioning URI QR codes for authenticator app setup |
+| sse-starlette | ≥3.3.3 | In-app real-time notifications | `EventSourceResponse` for HTMX `hx-ext="sse"` |
 
 ---
 
@@ -216,7 +400,7 @@ Redis pub/sub (already in stack) as notification bus. SSE endpoint subscribes to
 | weasyprint | 62.x | HTML→PDF (subprocess-isolated for memory leak mitigation) |
 | mammoth | 1.6.x | DOCX→HTML conversion (brief uploads) |
 | authlib | 1.3.x | OAuth 2.0 (GSC integration; `AsyncOAuth2Client` on httpx) |
-| python-telegram-bot | 21.x | Telegram push alerts (async-native v21) |
+| python-telegram-bot | 22.x | Bot commands + Mini App buttons + push alerts (async webhook mode) |
 | aiosmtplib | 3.x | Async SMTP email dispatch |
 | beautifulsoup4 | 4.12.x | HTML parsing (TOC, schema detection, GEO checks) |
 | lxml | 5.x | Fast XML/HTML parser (bs4 backend) |
@@ -231,13 +415,16 @@ Redis pub/sub (already in stack) as notification bus. SSE endpoint subscribes to
 
 ## Sources
 
-- Codebase inspection (2026-04-09): `app/services/subprocess_pdf.py`, `app/services/client_report_service.py`, `app/models/client_report.py`, `app/models/project.py`, `app/models/site.py`, `app/template_engine.py`, `requirements.txt` — HIGH confidence
-- Jinja2 3.1 sandbox documentation: `jinja2.sandbox.SandboxedEnvironment` ships with Jinja2 ≥2.0 — HIGH confidence (stdlib knowledge)
-- PostgreSQL 16 JSONB vs JSON: JSONB supports GIN indexes, JSON does not — HIGH confidence
-- WeasyPrint memory leak mitigation via subprocess: Decision D-12, documented in Phase 14 CONTEXT.md — HIGH confidence (in-codebase decision record)
-- mammoth 1.6.x already in requirements.txt for DOCX intake — HIGH confidence (requirements.txt inspection)
+- python-telegram-bot changelog (v22.0–v22.6): https://docs.python-telegram-bot.org/en/stable/changelog.html — HIGH confidence (official docs)
+- Telegram Mini Apps / WebApps official docs: https://core.telegram.org/bots/webapps — HIGH confidence (official); telegram-web-app.js current version: 62
+- Telegram initData validation algorithm: https://docs.telegram-mini-apps.com/platform/init-data — HIGH confidence (official Telegram Mini Apps docs)
+- Claude Code headless / Agent SDK: https://code.claude.com/docs/en/headless — HIGH confidence (official Anthropic docs); `--print` / `-p` flag, `--bare`, `--output-format json`
+- claude-code-sdk PyPI: https://pypi.org/project/claude-code-sdk/ — HIGH confidence (official package)
+- PWA manifest + service worker: https://almanac.httparchive.org/en/2025/pwa — MEDIUM confidence (2025 almanac data)
+- safe-area-inset CSS: https://medium.com/@developerr.ayush/understanding-env-safe-area-insets-in-css-from-basics-to-react-and-tailwind-a0b65811a8ab — MEDIUM confidence (verified against MDN env() spec)
+- HTMX 2.0 documentation: https://htmx.org/docs/ — HIGH confidence (official docs); no mobile-specific additions needed
 
 ---
 
-*Stack research updated for v3.0 milestone: Client CRM, Audit Intake, Proposal Templates, Document Generator*
-*Original research: 2026-03-31 | v2.0 update: 2026-04-06 | v3.0 update: 2026-04-09*
+*Stack research updated for v4.0 milestone: Mobile focus apps + Telegram WebApp + Telegram Bot commander + Claude Code agent*
+*Original research: 2026-03-31 | v2.0 update: 2026-04-06 | v3.0 update: 2026-04-09 | v4.0 update: 2026-04-10*
