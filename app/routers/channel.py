@@ -270,6 +270,68 @@ async def channel_preview(
     )
 
 
+@router.post("/preview-raw", response_class=HTMLResponse)
+async def channel_preview_raw(
+    request: Request,
+    content: str = Form(""),
+    current_user: User = Depends(get_current_user),
+) -> HTMLResponse:
+    """Render content preview without saving — for new/unsaved posts."""
+    rendered = _render_content(content)
+    return templates.TemplateResponse(
+        request,
+        "channel/_preview.html",
+        {"rendered_content": rendered},
+    )
+
+
+# ---------------------------------------------------------------------------
+# POST /import-file  — import posts from docs/telegram-channel-content.md
+# ---------------------------------------------------------------------------
+
+
+@router.post("/import-file", response_class=HTMLResponse)
+async def channel_import_file(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> Response:
+    """Parse docs/telegram-channel-content.md and create drafts."""
+    import os
+    import re
+
+    filepath = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+        "docs",
+        "telegram-channel-content.md",
+    )
+    if not os.path.exists(filepath):
+        raise HTTPException(status_code=404, detail="docs/telegram-channel-content.md not found")
+
+    with open(filepath, "r", encoding="utf-8") as f:
+        content = f.read()
+
+    parts = re.split(r"^## POST \d+: ", content, flags=re.MULTILINE)
+    headers = re.findall(r"^## POST \d+: (.+)$", content, flags=re.MULTILINE)
+
+    count = 0
+    for title, body in zip(headers, parts[1:]):
+        body = body.strip()
+        body = re.sub(r"\n---\s*$", "", body)
+        await channel_service.create_post(
+            db,
+            title=title.strip(),
+            content=body.strip(),
+            user_id=current_user.id,
+        )
+        count += 1
+
+    return Response(
+        status_code=302,
+        headers={"Location": f"/ui/channel/?imported={count}"},
+    )
+
+
 def _render_content(content: str) -> str:
     """Render post content to HTML for preview. Uses markdown if available."""
     if not content:

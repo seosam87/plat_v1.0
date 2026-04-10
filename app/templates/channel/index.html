@@ -9,12 +9,23 @@
     {# Header #}
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
       <h1 style="font-size:1.375rem;font-weight:700;color:#111827;margin:0;">Telegram-канал</h1>
-      <a href="/ui/channel/new"
-         style="display:inline-flex;align-items:center;gap:0.4rem;padding:0.5rem 1rem;font-size:0.85rem;font-weight:600;background:#6366f1;color:white;border-radius:6px;text-decoration:none;"
-         onmouseover="this.style.background='#4f46e5'"
-         onmouseout="this.style.background='#6366f1'">
-        + Новый пост
-      </a>
+      <div style="display:flex;gap:0.5rem;">
+        <form method="post" action="/ui/channel/import-file" style="margin:0;"
+              hx-confirm="Импортировать 13 постов из docs/telegram-channel-content.md?">
+          <button type="submit"
+                  style="display:inline-flex;align-items:center;gap:0.4rem;padding:0.5rem 1rem;font-size:0.85rem;font-weight:600;background:white;color:#374151;border:1px solid #d1d5db;border-radius:6px;cursor:pointer;"
+                  onmouseover="this.style.background='#f9fafb'"
+                  onmouseout="this.style.background='white'">
+            Импорт из файла
+          </button>
+        </form>
+        <a href="/ui/channel/new"
+           style="display:inline-flex;align-items:center;gap:0.4rem;padding:0.5rem 1rem;font-size:0.85rem;font-weight:600;background:#6366f1;color:white;border-radius:6px;text-decoration:none;"
+           onmouseover="this.style.background='#4f46e5'"
+           onmouseout="this.style.background='#6366f1'">
+          + Новый пост
+        </a>
+      </div>
     </div>
 
     {# Filter row #}
