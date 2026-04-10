@@ -279,3 +279,234 @@ async def mobile_create_task(
     await db.flush()
     await db.commit()
     return HTMLResponse(content="", status_code=201)
+
+
+# ---------------------------------------------------------------------------
+# Positions endpoints (/m/positions)
+# ---------------------------------------------------------------------------
+
+
+@router.get("/positions", response_class=HTMLResponse)
+async def mobile_positions(
+    request: Request,
+    site_id: uuid.UUID | None = None,
+    period: str = "all",
+    tab: str = "all",
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Positions page — keyword cards with position, delta, engine, date."""
+    import redis as redis_lib
+    from app.services.mobile_positions_service import get_mobile_positions
+
+    sites = await get_sites(db)
+
+    # Default to first site if none selected
+    if site_id is None and sites:
+        site_id = sites[0].id
+
+    # Map period string to period_days int
+    period_map = {"7d": 7, "30d": 30, "all": None}
+    period_days = period_map.get(period)
+
+    dropped_only = tab == "dropped"
+
+    positions: list[dict] = []
+    if site_id:
+        positions = await get_mobile_positions(
+            db, site_id, period_days=period_days, dropped_only=dropped_only
+        )
+
+    # Check for active position check task in Redis
+    active_task_id = None
+    try:
+        r = redis_lib.from_url(settings.REDIS_URL, decode_responses=True)
+        active_task_id = r.get(f"position_check:{site_id}")
+    except Exception:
+        pass
+
+    context = {
+        "request": request,
+        "user": user,
+        "sites": sites,
+        "selected_site_id": site_id,
+        "positions": positions,
+        "period": period,
+        "tab": tab,
+        "active_task_id": active_task_id,
+        "show_task_btn": tab == "dropped",
+        "site_id": site_id,
+        "status": "started" if active_task_id else None,
+        "task_id": active_task_id,
+        "checked": 0,
+        "total": 0,
+    }
+
+    # HTMX partial refresh — return only the positions list content
+    if request.headers.get("HX-Request"):
+        # Render the list portion only
+        list_html = _render_positions_list(positions, tab, site_id, request)
+        return HTMLResponse(content=list_html)
+
+    return mobile_templates.TemplateResponse("mobile/positions.html", context)
+
+
+def _render_positions_list(
+    positions: list[dict],
+    tab: str,
+    site_id: uuid.UUID | None,
+    request: Request,
+) -> str:
+    """Render the positions list fragment as plain HTML string."""
+    from jinja2 import Environment, FileSystemLoader
+    env = Environment(loader=FileSystemLoader("app/templates"))
+
+    card_tmpl = env.get_template("mobile/partials/position_card.html")
+    show_task_btn = tab == "dropped"
+
+    if not positions:
+        if tab == "dropped":
+            return (
+                '<div class="bg-white rounded-lg p-6 text-center mt-4">'
+                '<p class="text-sm font-semibold text-gray-700 mb-1">Просевших позиций нет</p>'
+                '<p class="text-xs text-gray-500">За выбранный период все позиции стабильны или выросли.</p>'
+                "</div>"
+            )
+        else:
+            return (
+                '<div class="bg-white rounded-lg p-6 text-center mt-4">'
+                '<p class="text-sm font-semibold text-gray-700 mb-1">Нет данных о позициях. Запустите первую проверку.</p>'
+                "</div>"
+            )
+
+    cards = "".join(
+        card_tmpl.render(kw=kw, show_task_btn=show_task_btn, site_id=site_id)
+        for kw in positions
+    )
+    return f'<div class="bg-white rounded-lg divide-y divide-gray-100">{cards}</div>'
+
+
+@router.post("/positions/check", status_code=202, response_class=HTMLResponse)
+async def mobile_trigger_position_check(
+    request: Request,
+    site_id: uuid.UUID = Form(...),
+    user: User = Depends(get_current_user),
+):
+    """Trigger position check Celery task, store task_id in Redis, return progress partial."""
+    import redis as redis_lib
+    from app.tasks.position_tasks import check_positions
+
+    task = check_positions.delay(str(site_id))
+
+    # Store task ID in Redis with 10 minute TTL
+    try:
+        r = redis_lib.from_url(settings.REDIS_URL, decode_responses=True)
+        r.setex(f"position_check:{site_id}", 600, task.id)
+    except Exception:
+        pass
+
+    return mobile_templates.TemplateResponse(
+        "mobile/partials/position_progress.html",
+        {
+            "request": request,
+            "site_id": site_id,
+            "task_id": task.id,
+            "status": "started",
+            "checked": 0,
+            "total": 0,
+            "positions_written": 0,
+        },
+        status_code=202,
+    )
+
+
+@router.get("/positions/check/status", response_class=HTMLResponse)
+async def mobile_position_check_status(
+    request: Request,
+    site_id: uuid.UUID,
+    task_id: str,
+    user: User = Depends(get_current_user),
+):
+    """HTMX polling endpoint — returns current progress or done state."""
+    from app.celery_app import celery_app
+
+    result = celery_app.AsyncResult(task_id)
+
+    if result.state == "PROGRESS":
+        checked = result.info.get("checked", 0) if result.info else 0
+        total = result.info.get("total", 0) if result.info else 0
+        status = "running"
+        positions_written = 0
+    elif result.ready() and result.successful():
+        checked = 0
+        total = 0
+        positions_written = result.result.get("positions_written", 0) if result.result else 0
+        status = "done"
+    elif result.failed():
+        checked = 0
+        total = 0
+        positions_written = 0
+        status = "error"
+    else:
+        # PENDING or STARTED
+        checked = 0
+        total = 0
+        positions_written = 0
+        status = "running"
+
+    return mobile_templates.TemplateResponse(
+        "mobile/partials/position_progress.html",
+        {
+            "request": request,
+            "site_id": site_id,
+            "task_id": task_id,
+            "status": status,
+            "checked": checked,
+            "total": total,
+            "positions_written": positions_written,
+        },
+    )
+
+
+@router.get("/positions/{site_id}/task-form", response_class=HTMLResponse)
+async def mobile_positions_task_form(
+    site_id: uuid.UUID,
+    request: Request,
+    prefilled_title: str = "",
+    user: User = Depends(get_current_user),
+):
+    """Return inline task creation form fragment for positions page (HTMX partial)."""
+    return mobile_templates.TemplateResponse(
+        "mobile/partials/task_form.html",
+        {
+            "request": request,
+            "site_id": site_id,
+            "prefilled_title": prefilled_title,
+            "post_url": f"/m/positions/{site_id}/tasks",
+        },
+    )
+
+
+@router.post("/positions/{site_id}/tasks", response_class=HTMLResponse)
+async def mobile_positions_create_task(
+    site_id: uuid.UUID,
+    request: Request,
+    title: str = Form(...),
+    priority: str = Form("p3"),
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Create a manual SEO task from the positions page. Returns empty 201."""
+    from app.models.task import SeoTask, TaskPriority, TaskType
+
+    task = SeoTask(
+        site_id=site_id,
+        task_type=TaskType.manual,
+        url="",
+        title=title,
+        priority=TaskPriority(priority),
+    )
+    db.add(task)
+    await db.flush()
+    await db.commit()
+    return HTMLResponse(content="", status_code=201)

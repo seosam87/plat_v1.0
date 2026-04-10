@@ -1,0 +1,20 @@
+<div class="flex items-center gap-3 p-3 min-h-[44px]" aria-label="{{ kw.phrase }}: позиция {{ kw.position or '—' }}, изменение {{ kw.delta or 0 }}">
+  <div class="flex-1 min-w-0">
+    <div class="text-sm truncate">{{ kw.phrase }}</div>
+    <div class="text-xs text-gray-500">{{ kw.engine }} &middot; {{ kw.checked_at.strftime('%d.%m') }}</div>
+  </div>
+  <span class="bg-gray-100 text-gray-800 rounded px-2 py-0.5 text-xs font-semibold">{{ kw.position or '—' }}</span>
+  {% if kw.delta and kw.delta > 0 %}
+    <span class="bg-green-100 text-green-700 rounded px-2 py-0.5 text-xs font-semibold">+{{ kw.delta }}</span>
+  {% elif kw.delta and kw.delta < 0 %}
+    <span class="bg-red-100 text-red-700 rounded px-2 py-0.5 text-xs font-semibold">{{ kw.delta }}</span>
+  {% else %}
+    <span class="bg-gray-100 text-gray-500 rounded px-2 py-0.5 text-xs">new</span>
+  {% endif %}
+  {% if show_task_btn %}
+  <button class="text-xs text-indigo-600 underline min-h-[44px] px-1"
+    hx-get="/m/positions/{{ site_id }}/task-form?prefilled_title={{ kw.phrase | urlencode }}"
+    hx-target="#task-form-slot"
+    hx-swap="innerHTML">Создать задачу</button>
+  {% endif %}
+</div>

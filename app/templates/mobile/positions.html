@@ -1,0 +1,108 @@
+{% extends "base_mobile.html" %}
+{% set active_tab = 'positions' %}
+{% block title %}Позиции{% endblock %}
+
+{% block content %}
+
+<h1 class="text-xl font-semibold mb-4">Позиции</h1>
+
+<!-- Filter bar: site + period selects -->
+<div class="flex gap-2 mb-4">
+  <select
+    name="site_id"
+    class="flex-1 min-h-[44px] border border-gray-300 rounded-lg px-3 text-sm bg-white"
+    hx-get="/m/positions"
+    hx-target="#positions-list"
+    hx-trigger="change"
+    hx-include="[name='period'],[name='tab']"
+  >
+    {% for site in sites %}
+    <option value="{{ site.id }}" {% if site.id == selected_site_id %}selected{% endif %}>{{ site.name }}</option>
+    {% endfor %}
+  </select>
+  <select
+    name="period"
+    class="min-h-[44px] border border-gray-300 rounded-lg px-3 text-sm bg-white"
+    hx-get="/m/positions"
+    hx-target="#positions-list"
+    hx-trigger="change"
+    hx-include="[name='site_id'],[name='tab']"
+  >
+    <option value="all" {% if period == 'all' %}selected{% endif %}>Все время</option>
+    <option value="7d" {% if period == '7d' %}selected{% endif %}>7 дней</option>
+    <option value="30d" {% if period == '30d' %}selected{% endif %}>30 дней</option>
+  </select>
+</div>
+
+<!-- Tab bar -->
+<div class="flex border-b border-gray-200 mb-4">
+  <button
+    name="tab"
+    value="all"
+    class="flex-1 py-2 text-sm min-h-[44px] {% if tab == 'all' %}font-semibold border-b-2 border-indigo-600 text-indigo-600{% else %}text-gray-500{% endif %}"
+    hx-get="/m/positions"
+    hx-target="#positions-list"
+    hx-swap="innerHTML"
+    hx-include="[name='site_id'],[name='period']"
+    hx-vals='{"tab": "all"}'
+  >Все</button>
+  <button
+    name="tab"
+    value="dropped"
+    class="flex-1 py-2 text-sm min-h-[44px] {% if tab == 'dropped' %}font-semibold border-b-2 border-indigo-600 text-indigo-600{% else %}text-gray-500{% endif %}"
+    hx-get="/m/positions"
+    hx-target="#positions-list"
+    hx-swap="innerHTML"
+    hx-include="[name='site_id'],[name='period']"
+    hx-vals='{"tab": "dropped"}'
+  >Просевшие</button>
+</div>
+
+<!-- Launch position check button -->
+<button
+  class="w-full min-h-[44px] rounded-lg text-white font-semibold text-sm mb-4"
+  style="background:#4f46e5;"
+  hx-post="/m/positions/check"
+  hx-target="#check-progress-slot"
+  hx-swap="innerHTML"
+  hx-disabled-elt="this"
+  hx-include="[name='site_id']"
+  hx-on::after-request="if(event.detail.successful) showToast('Проверка запущена', 'success'); else showToast('Ошибка запуска проверки. Попробуйте ещё раз.', 'error');"
+>Запустить проверку</button>
+
+<!-- Progress slot: initially empty or active task if one is running -->
+<div id="check-progress-slot">
+  {% if active_task_id %}
+  {% include "mobile/partials/position_progress.html" with context %}
+  {% endif %}
+</div>
+
+<!-- Positions list -->
+<div id="positions-list">
+  {% if positions %}
+    <div class="bg-white rounded-lg divide-y divide-gray-100">
+      {% for kw in positions %}
+      {% include "mobile/partials/position_card.html" with context %}
+      {% endfor %}
+    </div>
+  {% elif tab == 'dropped' %}
+    <div class="bg-white rounded-lg p-6 text-center mt-4">
+      <p class="text-sm font-semibold text-gray-700 mb-1">Просевших позиций нет</p>
+      <p class="text-xs text-gray-500">За выбранный период все позиции стабильны или выросли.</p>
+    </div>
+  {% else %}
+    <div class="bg-white rounded-lg p-6 text-center mt-4">
+      {% if selected_site_id %}
+        <p class="text-sm font-semibold text-gray-700 mb-1">Нет данных о позициях. Запустите первую проверку.</p>
+      {% else %}
+        <p class="text-sm font-semibold text-gray-700 mb-1">Ключевые слова не найдены</p>
+        <p class="text-xs text-gray-500">Добавьте ключевые слова для этого сайта в настройках.</p>
+      {% endif %}
+    </div>
+  {% endif %}
+</div>
+
+<!-- Task form slot (shared): loaded by "Создать задачу" buttons in dropped tab -->
+<div id="task-form-slot" class="mt-4"></div>
+
+{% endblock %}
