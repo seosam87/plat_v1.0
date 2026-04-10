@@ -1,6 +1,6 @@
 <form
   class="bg-white rounded-lg p-4 space-y-3"
-  hx-post="/m/health/{{ site_id }}/tasks"
+  hx-post="{{ post_url | default('/m/health/' ~ site_id ~ '/tasks') }}"
   hx-swap="outerHTML"
   hx-target="closest form"
   hx-on::after-request="if(event.detail.successful) { this.outerHTML=''; showToast('Задача создана', 'success'); }"

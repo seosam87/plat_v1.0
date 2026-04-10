@@ -78,7 +78,7 @@ def check_positions(self, site_id: str) -> dict:
         # Process Google keywords via DataForSEO or log as skipped (per D-17)
         if google_kws:
             if settings.DATAFORSEO_LOGIN and settings.DATAFORSEO_PASSWORD:
-                written += _check_via_dataforseo(site_id, google_kws, diagnostics)
+                written += _check_via_dataforseo(self, site_id, google_kws, diagnostics)
             else:
                 # Per D-17: Google parsing out of scope for this phase
                 diagnostics.append({"level": "warning", "message": f"{len(google_kws)} Google keyword(s) skipped — DataForSEO not configured. Go to Settings > Data Sources."})
@@ -224,7 +224,7 @@ def _check_via_xmlproxy(self_task, site_id: str, keywords, diagnostics: list | N
     lr = site.yandex_region or 213
     written = 0
 
-    for kw in keywords:
+    for i, kw in enumerate(keywords):
         try:
             result = search_yandex_sync(user, key, kw.phrase, lr=lr)
         except XMLProxyError as e:
@@ -271,10 +271,13 @@ def _check_via_xmlproxy(self_task, site_id: str, keywords, diagnostics: list | N
             write_position_sync(db, kw.id, uuid.UUID(site_id), engine_str, position, url=url)
             written += 1
 
+        # Emit granular PROGRESS state so the mobile UI can poll checked/total
+        self_task.update_state(state='PROGRESS', meta={'checked': i + 1, 'total': len(keywords)})
+
     return written
 
 
-def _check_via_dataforseo(site_id: str, keywords, diagnostics: list | None = None) -> int:
+def _check_via_dataforseo(self_task, site_id: str, keywords, diagnostics: list | None = None) -> int:
     """Batch check via DataForSEO SERP API (sync wrapper). Google keywords only."""
     if diagnostics is None:
         diagnostics = []
@@ -330,6 +333,9 @@ def _check_via_dataforseo(site_id: str, keywords, diagnostics: list | None = Non
                 db, kw.id, uuid.UUID(site_id), engine_str, position, url=url
             )
             written += 1
+
+    # Emit final PROGRESS state so the mobile UI knows the batch completed
+    self_task.update_state(state='PROGRESS', meta={'checked': len(keywords), 'total': len(keywords)})
 
     return written
 
