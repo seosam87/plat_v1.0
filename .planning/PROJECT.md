@@ -55,7 +55,7 @@ A team member or client can open the platform and immediately see the SEO health
 
 ### Active
 
-(Defining requirements for next milestone)
+(Defining requirements for v4.0 — see REQUIREMENTS.md)
 
 ### Out of Scope
 
@@ -101,9 +101,18 @@ A team member or client can open the platform and immediately see the SEO health
 | TOOL_REGISTRY dispatch pattern | Unified Job model → reusable router/templates | Good |
 | Per-tool template dirs (Phase 25) | Cleaner than slug-conditional shared templates | Good |
 
+## Current Milestone: v4.0 Mobile & Telegram
+
+**Goal:** Мобильные фокус-приложения + Telegram-бот — упрощённые точки входа в платформу с возможностью не только просматривать, но и действовать (quick fix, approve, ТЗ, отправка).
+
+**Target features:**
+- Mobile foundation: `base_mobile.html`, роутинг `/m/`, Telegram WebApp обёртка
+- 8 фокус-приложений: Дайджест, Позиции, Отчёт клиенту, Здоровье сайта, Трафик, Страницы (approve queue + quick fix), Быстрая задача, Инструменты
+- Telegram Bot: бот-командир (/deploy, /test, /logs, /status) + Claude Code агент
+
 ## Evolution
 
 This document evolves at phase transitions and milestone boundaries.
 
 ---
-*Last updated: 2026-04-10 after v3.1 milestone completion*
+*Last updated: 2026-04-10 after v4.0 milestone start*

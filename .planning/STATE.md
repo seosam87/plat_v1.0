@@ -1,16 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v2.1
-milestone_name: Onboarding & Project Health
-status: verifying
-stopped_at: "Completed 25-05-PLAN.md — Tools section: unified job history, rerun endpoint, 41 tests passing"
-last_updated: "2026-04-10T13:20:06.080Z"
+milestone: v4.0
+milestone_name: Mobile & Telegram
+status: defining_requirements
+stopped_at: "Milestone v4.0 started — defining requirements"
+last_updated: "2026-04-10T14:00:00.000Z"
 last_activity: 2026-04-10
 progress:
-  total_phases: 45
-  completed_phases: 40
-  total_plans: 137
-  completed_plans: 128
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
   percent: 0
 ---
 
