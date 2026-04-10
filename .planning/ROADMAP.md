@@ -261,7 +261,7 @@ Plans:
 - [x] 25-01-PLAN.md — Copywriting Brief backend: BriefJob + BriefResult models + migration + XMLProxy TOP-10 fetcher + Playwright page crawler + aggregation service + Celery chain + tests
 - [x] 25-02-PLAN.md — Copywriting Brief UI: input form (phrase group + region + PS selector) + Celery chain status polling + brief renderer (sections: title/H1, H2 cloud, highlights, thematic words, volume) + XLSX export
 - [ ] 25-03-PLAN.md — PAA Parser: PAAJob + PAAResult models + migration + Playwright SERP scenario + nested question extractor + Celery task + UI + CSV export + tests
-- [ ] 25-04-PLAN.md — Batch Wordstat: WordstatBatchJob + WordstatBatchResult models + migration + Wordstat API service (extends Phase 15.3) + Celery task + UI + XLSX export + OAuth token check + tests
+- [x] 25-04-PLAN.md — Batch Wordstat: WordstatBatchJob + WordstatBatchResult models + migration + Wordstat API service (extends Phase 15.3) + Celery task + UI + XLSX export + OAuth token check + tests
 - [ ] 25-05-PLAN.md — Tools section completion: unified job history page across all 6 tools + pagination + job deletion + re-run button + router tests
 **UI hint**: yes
 
@@ -315,7 +315,7 @@ Phase 20 (Client CRM)
 | 22. Proposal Templates & Tariffs | v3.0 | 0/4 | Complete    | 2026-04-09 |
 | 23. Document Generator | v3.0 | 0/3 | Complete    | 2026-04-09 |
 | 24. Tools Infrastructure & Fast Tools | v3.1 | 5/5 | Complete    | 2026-04-10 |
-| 25. SERP Aggregation Tools | v3.1 | 2/5 | In Progress|  |
+| 25. SERP Aggregation Tools | v3.1 | 3/5 | In Progress|  |
 
 ## Backlog
 
@@ -323,7 +323,7 @@ Phase 20 (Client CRM)
 
 **Goal:** Extend `tests/_smoke_helpers.py::discover_routes` to auto-filter routes by `response_class=HTMLResponse` (or return-type annotation), skipping JSON/CSV endpoints automatically instead of requiring explicit `SMOKE_SKIP` entries. Eliminates the need for the 5 manual skips added during phase-15.1-deferred-routes debug session (`/metrika/{id}/pages`, `/metrika/{id}/compare`, `/analytics/sessions/{id}/export`, `/traffic-analysis/sessions/{id}`, `/traffic-analysis/sessions/{id}/anomalies`). Rationale: surfaced as tech debt in `.planning/phases/15.1-ui-smoke-crawler/deferred-items.md`.
 **Requirements:** TBD
-**Plans:** 2/5 plans executed
+**Plans:** 3/5 plans executed
 
 Plans:
 - [ ] TBD (promote with /gsd:review-backlog when ready)
