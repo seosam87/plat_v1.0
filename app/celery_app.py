@@ -28,6 +28,7 @@ celery_app = Celery(
         "app.tasks.commerce_check_tasks",
         "app.tasks.meta_parse_tasks",
         "app.tasks.relevant_url_tasks",
+        "app.tasks.brief_tasks",
     ],
 )
 

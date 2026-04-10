@@ -1,4 +1,4 @@
-"""Tools router: TOOL_REGISTRY dispatch, 7 route handlers for 3 Phase 24 tools."""
+"""Tools router: TOOL_REGISTRY dispatch, 7 route handlers for Phase 24-25 tools."""
 from __future__ import annotations
 
 import csv
@@ -6,6 +6,7 @@ import io
 import uuid
 from datetime import datetime, timezone
 
+from celery import chain as celery_chain
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, Response, Query
 from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
 from sqlalchemy import select, func, delete
@@ -61,6 +62,18 @@ TOOL_REGISTRY: dict[str, dict] = {
         "slug": "relevant-url",
         "has_domain_field": True,
     },
+    "brief": {
+        "name": "Копирайтерское ТЗ",
+        "description": "Анализ ТОП-10 выдачи: сбор H2, тематических слов и статистики страниц",
+        "input_type": "phrases",
+        "form_field": "phrases",
+        "input_col": "input_phrases",
+        "count_col": "phrase_count",
+        "limit": 50,
+        "cta": "Создать ТЗ",
+        "slug": "brief",
+        "has_domain_field": False,
+    },
 }
 
 # Export column headers per tool
@@ -68,6 +81,7 @@ _EXPORT_HEADERS: dict[str, list[str]] = {
     "commercialization": ["Фраза", "Коммерциализация", "Интент", "Геозависимость", "Локализация"],
     "meta-parser": ["URL", "Статус", "Title", "Description", "H1", "Robots", "Canonical"],
     "relevant-url": ["Фраза", "URL", "Позиция", "Топ-3 конкурента"],
+    "brief": ["Показатель", "Значение"],  # Brief uses sectioned XLSX export
 }
 
 
@@ -82,6 +96,9 @@ def _get_tool_models(slug: str):
     elif slug == "relevant-url":
         from app.models.relevant_url_job import RelevantUrlJob, RelevantUrlResult
         return RelevantUrlJob, RelevantUrlResult
+    elif slug == "brief":
+        from app.models.brief_job import BriefJob, BriefResult
+        return BriefJob, BriefResult
     raise HTTPException(status_code=404, detail="Unknown tool")
 
 
@@ -96,11 +113,21 @@ def _get_tool_task(slug: str):
     elif slug == "relevant-url":
         from app.tasks.relevant_url_tasks import run_relevant_url
         return run_relevant_url
+    elif slug == "brief":
+        # Brief uses a 4-step chain — caller must handle this specially
+        # Returns None to signal chain dispatch in tool_submit
+        return None
     raise HTTPException(status_code=404, detail="Unknown tool")
 
 
 def _result_to_row(result, slug: str) -> list:
-    """Convert a result ORM row to a list of cell values for export."""
+    """Convert a result ORM row to a list of cell values for export.
+
+    Brief results use a sectioned XLSX export and should never reach this path.
+    """
+    if slug == "brief":
+        # Brief export uses a multi-section XLSX — this path should not be reached
+        return []
     if slug == "commercialization":
         return [
             getattr(result, "phrase", ""),
@@ -140,6 +167,7 @@ async def tools_index(
     user: User = Depends(get_current_user),
 ) -> HTMLResponse:
     """Tools index page with 3 tool cards and per-user job count badges."""
+    from app.models.brief_job import BriefJob
     from app.models.commerce_check_job import CommerceCheckJob
     from app.models.meta_parse_job import MetaParseJob
     from app.models.relevant_url_job import RelevantUrlJob
@@ -149,6 +177,7 @@ async def tools_index(
         ("commercialization", CommerceCheckJob),
         ("meta-parser", MetaParseJob),
         ("relevant-url", RelevantUrlJob),
+        ("brief", BriefJob),
     ]:
         result = await db.execute(
             select(func.count(model_cls.id)).where(model_cls.user_id == user.id)
@@ -246,8 +275,25 @@ async def tool_submit(
     await db.commit()
     await db.refresh(job)
 
-    task_fn = _get_tool_task(slug)
-    task_fn.delay(str(job.id))
+    job_id_str = str(job.id)
+
+    if slug == "brief":
+        # Brief tool uses a 4-step Celery chain — dispatch via .si() (immutable signatures)
+        from app.tasks.brief_tasks import (
+            run_brief_step1_serp,
+            run_brief_step2_crawl,
+            run_brief_step3_aggregate,
+            run_brief_step4_finalize,
+        )
+        celery_chain(
+            run_brief_step1_serp.si(job_id_str),
+            run_brief_step2_crawl.si(job_id_str),
+            run_brief_step3_aggregate.si(job_id_str),
+            run_brief_step4_finalize.si(job_id_str),
+        ).delay()
+    else:
+        task_fn = _get_tool_task(slug)
+        task_fn.delay(job_id_str)
 
     return RedirectResponse(f"/ui/tools/{slug}/{job.id}", status_code=303)
 
@@ -307,6 +353,49 @@ async def tool_export(
     rows = res.scalars().all()
 
     headers_row = _EXPORT_HEADERS.get(slug, [])
+
+    # Brief uses a special multi-section XLSX export
+    if slug == "brief":
+        if format != "xlsx":
+            raise HTTPException(status_code=400, detail="Brief экспортируется только в формате XLSX")
+        brief_result = rows[0] if rows else None
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "Brief"
+        if brief_result:
+            ws.append(["Показатель", "Значение"])
+            ws.append(["Страниц собрано", brief_result.pages_crawled or 0])
+            ws.append(["Страниц попыток", brief_result.pages_attempted or 0])
+            ws.append(["Средняя длина текста", brief_result.avg_text_length or 0])
+            ws.append(["Среднее число H2", float(brief_result.avg_h2_count or 0)])
+            ws.append(["Коммерциализация %", brief_result.commercialization_pct or 0])
+            ws.append([])
+            ws.append(["Заголовки H2 (облако)"])
+            ws.append(["Текст", "Частота"])
+            for item in (brief_result.h2_cloud or []):
+                ws.append([item.get("text", ""), item.get("count", 0)])
+            ws.append([])
+            ws.append(["Тематические слова"])
+            ws.append(["Слово", "Частота"])
+            for item in (brief_result.thematic_words or []):
+                ws.append([item.get("word", ""), item.get("freq", 0)])
+            ws.append([])
+            ws.append(["Варианты заголовков страниц"])
+            for title in (brief_result.title_suggestions or []):
+                ws.append([title])
+            ws.append([])
+            ws.append(["Сниппеты (хайлайты)"])
+            for hl in (brief_result.highlights or []):
+                ws.append([hl])
+        buf = io.BytesIO()
+        wb.save(buf)
+        buf.seek(0)
+        filename = f"brief-{job_id}.xlsx"
+        return StreamingResponse(
+            buf,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        )
 
     if format == "xlsx":
         wb = openpyxl.Workbook()
