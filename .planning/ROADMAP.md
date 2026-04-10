@@ -78,7 +78,7 @@ v3.x analytics phases and v4.x UI overhaul phases also completed within v1.0.
 
 ### v4.0 Mobile & Telegram (active)
 
-- [ ] **Phase 26: Mobile Foundation** - base_mobile.html, /m/ routing, Telegram WebApp auth, PWA
+- [x] **Phase 26: Mobile Foundation** - base_mobile.html, /m/ routing, Telegram WebApp auth, PWA (completed 2026-04-10)
 - [ ] **Phase 27: Digest & Site Health** - утренняя сводка + карточка здоровья сайта
 - [ ] **Phase 28: Positions & Traffic** - мобильные приложения позиций и трафика
 - [ ] **Phase 29: Reports & Tools** - генерация отчётов и запуск инструментов с телефона
@@ -98,10 +98,10 @@ v3.x analytics phases and v4.x UI overhaul phases also completed within v1.0.
   2. Пользователь открывает ссылку в Telegram (через WebApp кнопку) и автоматически авторизуется без ввода пароля
   3. Пользователь нажимает "Добавить на главный экран" в браузере и приложение устанавливается как PWA с иконкой и splash screen
   4. Все существующие /m/ страницы наследуют base_mobile.html и рендерятся без ошибок Jinja2
-**Plans:** 2/3 plans executed
+**Plans:** 3/3 plans complete
 Plans:
 - [x] 26-01-PLAN.md — Mobile foundation: DB migration, base_mobile.html, /m/ router
-- [ ] 26-02-PLAN.md — Telegram WebApp auth + profile Telegram linking
+- [x] 26-02-PLAN.md — Telegram WebApp auth + profile Telegram linking
 - [x] 26-03-PLAN.md — PWA manifest, service worker, icons
 **UI hint**: yes
 
@@ -196,7 +196,7 @@ Plans:
 | 18–19.2 | v2.1 | 13/13 | Complete | 2026-04-10 |
 | 20–23 | v3.0 | 13/13 | Complete | 2026-04-10 |
 | 24–25 | v3.1 | 10/10 | Complete | 2026-04-10 |
-| 26 | v4.0 | 2/3 | In Progress|  |
+| 26 | v4.0 | 3/3 | Complete   | 2026-04-10 |
 | 27 | v4.0 | 0/? | Not started | - |
 | 28 | v4.0 | 0/? | Not started | - |
 | 29 | v4.0 | 0/? | Not started | - |
