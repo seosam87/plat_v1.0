@@ -50,6 +50,7 @@ class Settings(BaseSettings):
     # Telegram alerts
     TELEGRAM_BOT_TOKEN: str = ""
     TELEGRAM_CHAT_ID: str = ""
+    TELEGRAM_BOT_USERNAME: str = ""
     POSITION_DROP_THRESHOLD: int = 5  # alert if keyword drops by this many positions
 
     # Proxy & anticaptcha for SERP parsing

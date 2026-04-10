@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from enum import Enum as PyEnum
 
-from sqlalchemy import Boolean, DateTime, Enum as SAEnum, String, Text
+from sqlalchemy import BigInteger, Boolean, DateTime, Enum as SAEnum, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -42,6 +42,10 @@ class User(Base):
     # Per-user Anthropic API key stored Fernet-encrypted (migration 0041, D-02)
     anthropic_api_key_encrypted: Mapped[str | None] = mapped_column(
         Text, nullable=True, default=None
+    )
+    # Telegram user ID — 64-bit integer, set when user links Telegram account (migration 0051)
+    telegram_id: Mapped[int | None] = mapped_column(
+        BigInteger, nullable=True, unique=True, index=True, default=None
     )
 
     @property
