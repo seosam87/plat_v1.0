@@ -8,9 +8,13 @@ An internal SEO management platform for a team managing 20–100 WordPress sites
 
 A team member or client can open the platform and immediately see the SEO health of any site — positions, recent changes, pending tasks — without switching between GSC, spreadsheets, and WP admin.
 
-## Current State (v3.1 shipped — 2026-04-10)
+## Current State (v4.0 in progress — 2026-04-10)
 
-**5 milestones shipped, 45 phases, 137 plans.**
+**5 milestones shipped, 46 phases, 139 plans.**
+
+**v4.0 Mobile & Telegram — in progress:**
+- Phase 26: Mobile Foundation — base_mobile.html, /m/ routing, Telegram WebApp auth, PWA manifest
+- Phase 27: Digest & Site Health — утренняя сводка (/m/digest) с 4 блоками + карточка здоровья (/m/health/{site_id}) с 6 метриками и 2 действиями
 
 **v3.1 SEO Tools — shipped 2026-04-10:**
 - Phase 24: Tools Infrastructure — shared TOOL_REGISTRY, Job-архитектура, 3 быстрых инструмента (коммерциализация, мета-теги, релевантный URL)
@@ -118,4 +122,4 @@ A team member or client can open the platform and immediately see the SEO health
 This document evolves at phase transitions and milestone boundaries.
 
 ---
-*Last updated: 2026-04-10 after Phase 26 (Mobile Foundation) complete*
+*Last updated: 2026-04-10 after Phase 27 (Digest & Site Health) complete*
