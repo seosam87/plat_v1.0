@@ -12,8 +12,8 @@ from sqlalchemy import select, func, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 import openpyxl
 
-from app.database import get_db
-from app.auth import get_current_user
+from app.dependencies import get_db
+from app.auth.dependencies import get_current_user
 from app.models.user import User
 from app.rate_limit import limiter
 from app.template_engine import templates
