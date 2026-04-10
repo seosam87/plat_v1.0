@@ -12,9 +12,8 @@ import os
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from sqlalchemy import select, text
+from sqlalchemy import text
 from app.database import AsyncSessionLocal
-from app.models.channel_post import TelegramChannelPost, PostStatus
 
 
 CONTENT_FILE = os.path.join(
@@ -162,8 +161,8 @@ async def seed():
     posts = parse_posts(CONTENT_FILE)
     print(f"Parsed {len(posts)} posts from {CONTENT_FILE}")
 
-    # Get the first admin user ID
     async with AsyncSessionLocal() as db:
+        # Get the first admin user ID
         row = await db.execute(
             text("SELECT id FROM users WHERE role = 'admin' LIMIT 1")
         )
@@ -176,20 +175,20 @@ async def seed():
 
         # Check if posts already exist
         existing = await db.execute(
-            select(TelegramChannelPost).limit(1)
+            text("SELECT id FROM telegram_channel_posts LIMIT 1")
         )
-        if existing.scalar_one_or_none():
+        if existing.first():
             print("Posts already exist. Delete them first or skip seeding.")
             return
 
+        # Insert via raw SQL to avoid model FK resolution issues
         for p in posts:
-            post = TelegramChannelPost(
-                title=p["title"],
-                content=p["content"],
-                status=PostStatus.draft,
-                created_by_id=user_id,
-            )
-            db.add(post)
+            content_escaped = p["content"].replace("'", "''")
+            title_escaped = p["title"].replace("'", "''")
+            await db.execute(text(
+                "INSERT INTO telegram_channel_posts (title, content, status, created_by_id) "
+                "VALUES (:title, :content, 'draft', :user_id)"
+            ), {"title": title_escaped, "content": content_escaped, "user_id": user_id})
             print(f"  + Post {p['order']}: {p['title']}")
 
         await db.commit()
