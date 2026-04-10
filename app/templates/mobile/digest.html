@@ -1,0 +1,115 @@
+{% extends "base_mobile.html" %}
+{% block title %}Дайджест — {{ today }}{% endblock %}
+{% block content %}
+
+<h1 class="text-xl font-semibold mb-4">Дайджест — {{ today }}</h1>
+
+{% if not position_changes and not crawl_errors and not alerts and not overdue_tasks %}
+{# Global empty state: no data at all #}
+<div class="flex flex-col items-center justify-center py-12 text-center">
+  <h2 class="text-lg font-semibold mb-2 text-gray-700">Дайджест пуст</h2>
+  <p class="text-sm text-gray-500 max-w-xs">Добавьте сайт и дождитесь первого краулинга, чтобы видеть дайджест.</p>
+</div>
+{% else %}
+
+{# Block 1: Позиции #}
+<section class="mb-6">
+  <h2 class="text-base font-semibold mb-2">Изменения позиций</h2>
+  {% if position_changes %}
+  <div class="bg-white rounded-lg divide-y divide-gray-100">
+    {% for item in position_changes %}
+    <a href="/ui/sites/{{ item.site_id }}/positions"
+       class="flex items-center gap-3 p-3 min-h-[44px]"
+       style="text-decoration:none;color:inherit;"
+       aria-label="{{ item.keyword }} на {{ item.site_name }}: {{ '%+d'|format(item.delta) }} позиций">
+      <span class="inline-block w-2 h-2 rounded-full flex-shrink-0 {% if item.delta > 0 %}bg-green-500{% else %}bg-red-500{% endif %}"></span>
+      <div class="flex-1 text-sm">
+        <span class="{% if item.delta > 0 %}text-green-700{% else %}text-red-700{% endif %} font-semibold">{{ '%+d'|format(item.delta) }}</span>
+        {{ item.keyword }} — <span class="text-gray-500">{{ item.site_name }}</span>
+      </div>
+      <svg class="w-5 h-5 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+      </svg>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="text-sm text-gray-500">Нет данных за последние 7 дней</p>
+  {% endif %}
+</section>
+
+{# Block 2: Ошибки краулера #}
+<section class="mb-6">
+  <h2 class="text-base font-semibold mb-2">Ошибки краулера</h2>
+  {% if crawl_errors %}
+  <div class="bg-white rounded-lg divide-y divide-gray-100">
+    {% for item in crawl_errors %}
+    <a href="/ui/crawls/{{ item.crawl_job_id }}"
+       class="flex items-center gap-3 p-3 min-h-[44px]"
+       style="text-decoration:none;color:inherit;">
+      <span class="inline-block w-2 h-2 rounded-full flex-shrink-0 {% if item.http_status == 404 %}bg-red-500{% else %}bg-yellow-500{% endif %}"></span>
+      <div class="flex-1 text-sm truncate">
+        {{ item.url|truncate(40) }} — <span class="font-medium">{{ item.http_status or 'noindex' }}</span> — <span class="text-gray-500">{{ item.site_name }}</span>
+      </div>
+      <svg class="w-5 h-5 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+      </svg>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="text-sm text-gray-500">Нет новых ошибок</p>
+  {% endif %}
+</section>
+
+{# Block 3: Алерты #}
+<section class="mb-6">
+  <h2 class="text-base font-semibold mb-2">Алерты</h2>
+  {% if alerts %}
+  <div class="bg-white rounded-lg divide-y divide-gray-100">
+    {% for item in alerts %}
+    <a href="/ui/sites/{{ item.site_id }}/monitoring"
+       class="flex items-center gap-3 p-3 min-h-[44px]"
+       style="text-decoration:none;color:inherit;">
+      <span class="inline-block w-2 h-2 rounded-full flex-shrink-0 {% if item.severity == 'error' %}bg-red-500{% elif item.severity == 'warning' %}bg-yellow-500{% else %}bg-blue-500{% endif %}"></span>
+      <div class="flex-1 text-sm">
+        {{ item.change_type }} — <span class="text-gray-500">{{ item.site_name }}</span>
+      </div>
+      <svg class="w-5 h-5 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+      </svg>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="text-sm text-gray-500">Нет активных алертов</p>
+  {% endif %}
+</section>
+
+{# Block 4: Просроченные задачи #}
+<section class="mb-6">
+  <h2 class="text-base font-semibold mb-2">Просроченные задачи</h2>
+  {% if overdue_tasks %}
+  <div class="bg-white rounded-lg divide-y divide-gray-100">
+    {% for item in overdue_tasks %}
+    <a href="/ui/tasks?site_id={{ item.site_id }}"
+       class="flex items-center gap-3 p-3 min-h-[44px]"
+       style="text-decoration:none;color:inherit;">
+      <span class="inline-block w-2 h-2 rounded-full flex-shrink-0 {% if item.overdue_days > 7 %}bg-red-500{% else %}bg-yellow-500{% endif %}"></span>
+      <div class="flex-1 text-sm">
+        {{ item.title }} <span class="text-gray-500">(просрочена {{ item.overdue_days }} дн.)</span> — <span class="text-gray-500">{{ item.site_name }}</span>
+      </div>
+      <svg class="w-5 h-5 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+      </svg>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="text-sm text-gray-500">Нет просроченных задач</p>
+  {% endif %}
+</section>
+
+{% endif %}
+
+{% endblock %}

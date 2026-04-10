@@ -110,14 +110,27 @@ async def mobile_index(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Mobile homepage — digest view with site selector."""
-    sites = await get_sites(db)
+    """Mobile homepage — renders the digest view."""
+    from app.services.mobile_digest_service import build_mobile_digest
+
+    data = await build_mobile_digest(db)
     return mobile_templates.TemplateResponse(
-        "mobile/index.html",
-        {
-            "request": request,
-            "user": user,
-            "sites": sites,
-            "active_tab": "digest",
-        },
+        "mobile/digest.html",
+        {"request": request, "user": user, "active_tab": "digest", **data},
+    )
+
+
+@router.get("/digest")
+async def mobile_digest(
+    request: Request,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Digest page alias — same content as /m/."""
+    from app.services.mobile_digest_service import build_mobile_digest
+
+    data = await build_mobile_digest(db)
+    return mobile_templates.TemplateResponse(
+        "mobile/digest.html",
+        {"request": request, "user": user, "active_tab": "digest", **data},
     )
