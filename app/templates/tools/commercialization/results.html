@@ -105,9 +105,9 @@
             </td>
 
             {% elif slug == 'meta-parser' %}
-            <td class="py-2 px-3"><a href="{{ r.url }}" target="_blank" class="text-indigo-600 hover:underline text-xs truncate" style="max-width:200px;display:inline-block;">{{ r.url | truncate(50) }}</a></td>
+            <td class="py-2 px-3"><a href="{{ r.input_url }}" target="_blank" class="text-indigo-600 hover:underline text-xs truncate" style="max-width:200px;display:inline-block;">{{ r.input_url | truncate(50) }}</a></td>
             <td class="py-2 px-3 text-gray-700">{{ (r.title or '') | truncate(60) }}</td>
-            <td class="py-2 px-3 text-gray-600 text-xs">{{ (r.description or '') | truncate(120) }}</td>
+            <td class="py-2 px-3 text-gray-600 text-xs">{{ (r.meta_description or '') | truncate(120) }}</td>
             <td class="py-2 px-3 text-gray-700">{{ (r.h1 or '') | truncate(50) }}</td>
             <td class="py-2 px-3">
               {% if r.robots and 'noindex' in r.robots %}

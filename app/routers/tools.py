@@ -397,7 +397,7 @@ async def tool_results(
         raise HTTPException(status_code=404, detail="Job not found")
 
     results_rows = []
-    if job.status == "complete":
+    if job.status in ("complete", "partial"):
         stmt_results = select(ResultModel).where(ResultModel.job_id == job_id)
         res = await db.execute(stmt_results)
         results_rows = res.scalars().all()
