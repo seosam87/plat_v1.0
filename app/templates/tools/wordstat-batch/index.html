@@ -15,7 +15,7 @@
 
   <h1 class="text-2xl font-semibold text-gray-900 mb-6">{{ tool.name }}</h1>
 
-  {# OAuth warning banner — shown when Яндекс Direct token is not configured #}
+  {# OAuth warning banner — shown when Yandex Direct token is not configured #}
   {% if oauth_warning %}
   <div class="bg-amber-50 border border-amber-200 rounded p-3 mb-4 text-sm text-amber-800">
     Для работы инструмента необходим Яндекс Direct OAuth-токен.
@@ -28,36 +28,22 @@
     <h2 class="text-lg font-semibold text-gray-800 mb-4">{{ tool.name }}</h2>
 
     <form method="post" action="/ui/tools/{{ slug }}/">
-      {% if tool.has_domain_field %}
-      <div class="mb-4">
-        <label class="block text-sm font-semibold text-gray-700 mb-1" for="domain-input">Домен</label>
-        <input
-          id="domain-input"
-          type="text"
-          name="domain"
-          placeholder="example.ru"
-          class="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:ring-indigo-500 focus:border-indigo-500"
-        />
-      </div>
-      {% endif %}
-
       <div class="mb-2">
         <label class="block text-sm font-semibold text-gray-700 mb-1" for="input-textarea">
-          {% if tool.input_type == 'urls' %}URL{% else %}Ключевые фразы{% endif %}
+          Ключевые фразы
         </label>
         <textarea
           id="input-textarea"
           name="{{ tool.form_field }}"
-          rows="{% if tool.input_type == 'urls' %}10{% else %}8{% endif %}"
-          placeholder="{% if tool.input_type == 'urls' %}Введите URL, по одному на строке{% else %}Введите ключевые фразы, по одной на строке{% endif %}"
+          rows="10"
+          placeholder="Введите ключевые фразы, по одной на строке"
           class="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:ring-indigo-500 focus:border-indigo-500 font-mono"
           oninput="(function(el){
             var count = el.value.split('\n').filter(function(l){return l.trim();}).length;
             var counter = document.getElementById('line-counter');
             var btn = document.getElementById('submit-btn');
             var limit = {{ tool.limit }};
-            var unit = '{% if tool.input_type == "urls" %}URL{% else %}фраз{% endif %}';
-            counter.textContent = count + ' / ' + limit + ' ' + unit;
+            counter.textContent = count + ' / ' + limit + ' фраз';
             if(count > limit){
               counter.style.color = '#dc2626';
               if(btn) btn.disabled = true;
@@ -70,12 +56,11 @@
       </div>
       <div class="mb-4 flex items-center justify-between">
         <span id="line-counter" class="text-xs text-gray-500">
-          0 / {{ tool.limit }} {% if tool.input_type == 'urls' %}URL{% else %}фраз{% endif %}
+          0 / {{ tool.limit }} фраз
         </span>
       </div>
 
       <div class="flex items-center gap-3">
-        {# CTA labels per tool: "Проверить коммерциализацию" | "Запустить парсинг" | "Найти релевантные URL" #}
         <button
           id="submit-btn"
           type="submit"
@@ -99,9 +84,7 @@
         <thead>
           <tr>
             <th class="text-left py-2 px-3 text-xs font-semibold text-gray-500 uppercase">Статус</th>
-            <th class="text-left py-2 px-3 text-xs font-semibold text-gray-500 uppercase">
-              {% if tool.input_type == 'urls' %}URL{% else %}Фраз{% endif %}
-            </th>
+            <th class="text-left py-2 px-3 text-xs font-semibold text-gray-500 uppercase">Фраз</th>
             <th class="text-left py-2 px-3 text-xs font-semibold text-gray-500 uppercase">Создано</th>
             <th class="text-left py-2 px-3 text-xs font-semibold text-gray-500 uppercase">Действия</th>
           </tr>
@@ -121,13 +104,7 @@
                 <span class="badge" style="background:#fef2f2;color:#991b1b;border:1px solid #fecaca;font-size:0.75rem;font-weight:600;padding:0.15rem 0.6rem;border-radius:9999px;">ошибка</span>
               {% endif %}
             </td>
-            <td class="py-2 px-3 text-gray-700">
-              {% if tool.input_type == 'urls' %}
-                {{ job.url_count }}
-              {% else %}
-                {{ job.phrase_count }}
-              {% endif %}
-            </td>
+            <td class="py-2 px-3 text-gray-700">{{ job.phrase_count }}</td>
             <td class="py-2 px-3 text-gray-500 text-xs">{{ job.created_at.strftime('%d.%m.%Y %H:%M') if job.created_at else '—' }}</td>
             <td class="py-2 px-3">
               <div class="flex items-center gap-2">
@@ -155,7 +132,7 @@
         cta_label="{{ tool.cta }}",
         cta_url=""
     ) %}
-      <p>Введите {% if tool.input_type == 'urls' %}URL{% else %}фразы{% endif %} в форму выше и нажмите кнопку запуска. Результаты появятся здесь.</p>
+      <p>Введите фразы в форму выше и нажмите кнопку запуска. Результаты появятся здесь.</p>
     {% endcall %}
     {% endif %}
   </div>

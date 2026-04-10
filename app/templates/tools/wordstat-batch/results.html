@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% block title %}{{ tool.name }} — Результаты — SEO Platform{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="/ui/dashboard">Dashboard</a><span>&rsaquo;</span>
+  <a href="/ui/tools/" style="color:#4f46e5;">Инструменты</a><span>&rsaquo;</span>
+  <a href="/ui/tools/{{ slug }}/" style="color:#4f46e5;">{{ tool.name }}</a><span>&rsaquo;</span>
+  <span>#{{ job.id | string | truncate(8, True, '') }}</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl">
+
+  <h1 class="text-2xl font-semibold text-gray-900 mb-6">{{ tool.name }}</h1>
+
+  {# HTMX status partial #}
+  <div class="mb-4">
+    {% include "tools/wordstat-batch/partials/job_status.html" %}
+  </div>
+
+  {# Results card — visible when complete or partial #}
+  {% if job.status in ('complete', 'partial') %}
+  <div class="card mt-4">
+    <div class="flex items-center justify-between mb-4">
+      <div class="flex items-center gap-3">
+        <h2 class="text-lg font-semibold text-gray-800">Результаты</h2>
+        <span style="background:#f3f4f6;color:#374151;font-size:0.75rem;font-weight:600;padding:0.15rem 0.6rem;border-radius:9999px;">
+          {{ job.result_count or 0 }}
+        </span>
+      </div>
+      <div class="flex items-center gap-2">
+        <a href="/ui/tools/{{ slug }}/{{ job.id }}/export?format=xlsx"
+           class="text-sm text-indigo-600 hover:text-indigo-800 font-medium border border-indigo-200 rounded px-3 py-1">
+          Скачать XLSX
+        </a>
+      </div>
+    </div>
+
+    {# Filter input #}
+    <div class="mb-3">
+      <input
+        type="text"
+        id="results-filter"
+        placeholder="Фильтр..."
+        class="px-3 py-1.5 border border-gray-300 rounded text-sm focus:ring-indigo-500 focus:border-indigo-500 w-full max-w-xs"
+        oninput="(function(val){
+          var rows = document.querySelectorAll('#results-table tbody tr');
+          rows.forEach(function(row){
+            row.style.display = row.textContent.toLowerCase().indexOf(val.toLowerCase()) >= 0 ? '' : 'none';
+          });
+        })(this.value)"
+      />
+    </div>
+
+    {% if results %}
+    <div class="overflow-x-auto">
+      <table id="results-table" class="w-full text-sm">
+        <thead>
+          <tr>
+            <th class="text-left py-2 px-3 text-xs font-semibold text-gray-500 uppercase border-b border-gray-200">Фраза</th>
+            <th class="text-left py-2 px-3 text-xs font-semibold text-gray-500 uppercase border-b border-gray-200">Точная частота</th>
+            <th class="text-left py-2 px-3 text-xs font-semibold text-gray-500 uppercase border-b border-gray-200">Широкая частота</th>
+            <th class="text-left py-2 px-3 text-xs font-semibold text-gray-500 uppercase border-b border-gray-200">Динамика</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in results %}
+          {% set monthly = wordstat_monthly_map.get(r.id, []) %}
+          <tr class="border-t border-gray-100 hover:bg-gray-50">
+            <td class="py-2 px-3 text-gray-800 font-medium">{{ r.phrase }}</td>
+            <td class="py-2 px-3 text-gray-700">
+              {% if r.freq_exact is not none %}
+                <span class="font-mono">{{ r.freq_exact | int }}</span>
+              {% else %}
+                <span class="text-gray-400">—</span>
+              {% endif %}
+            </td>
+            <td class="py-2 px-3 text-gray-700">
+              {% if r.freq_broad is not none %}
+                <span class="font-mono">{{ r.freq_broad | int }}</span>
+              {% else %}
+                <span class="text-gray-400">—</span>
+              {% endif %}
+            </td>
+            <td class="py-2 px-3 text-gray-600 text-xs">
+              {% if monthly %}
+                {# Show last 3 months as "месяц: N → месяц: N" #}
+                {% set last3 = monthly[-3:] %}
+                {% for m in last3 %}{{ m.year_month }}: {{ m.frequency }}{% if not loop.last %} → {% endif %}{% endfor %}
+              {% else %}
+                <span class="text-gray-400">—</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="text-sm text-gray-500 py-4 text-center">Результатов не найдено.</div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

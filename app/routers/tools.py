@@ -76,6 +76,32 @@ TOOL_REGISTRY: dict[str, dict] = {
         "has_region_field": True,
         "export_only_xlsx": True,
     },
+    "wordstat-batch": {
+        "name": "Частотность (пакет)",
+        "description": "Пакетная проверка частотности по Яндекс.Wordstat (до 1000 фраз)",
+        "input_type": "phrases",
+        "form_field": "phrases",
+        "input_col": "input_phrases",
+        "count_col": "phrase_count",
+        "limit": 1000,
+        "cta": "Проверить частотность",
+        "slug": "wordstat-batch",
+        "has_domain_field": False,
+        "export_only_xlsx": True,
+        "needs_oauth": "wordstat",
+    },
+    "paa": {
+        "name": "PAA-парсер",
+        "description": "Извлечение вопросов из блоков «Частые вопросы» и «Похожие запросы» Яндекса",
+        "input_type": "phrases",
+        "form_field": "phrases",
+        "input_col": "input_phrases",
+        "count_col": "phrase_count",
+        "limit": 50,
+        "cta": "Получить вопросы",
+        "slug": "paa",
+        "has_domain_field": False,
+    },
 }
 
 # Export column headers per tool
@@ -84,6 +110,8 @@ _EXPORT_HEADERS: dict[str, list[str]] = {
     "meta-parser": ["URL", "Статус", "Title", "Description", "H1", "Robots", "Canonical"],
     "relevant-url": ["Фраза", "URL", "Позиция", "Топ-3 конкурента"],
     "brief": ["Показатель", "Значение"],  # Brief uses sectioned XLSX export
+    "wordstat-batch": ["Фраза", "Точная частота", "Широкая частота"],  # Monthly in Sheet 2
+    "paa": ["Фраза", "Вопрос", "Блок"],
 }
 
 
@@ -101,6 +129,12 @@ def _get_tool_models(slug: str):
     elif slug == "brief":
         from app.models.brief_job import BriefJob, BriefResult
         return BriefJob, BriefResult
+    elif slug == "wordstat-batch":
+        from app.models.wordstat_batch_job import WordstatBatchJob, WordstatBatchResult
+        return WordstatBatchJob, WordstatBatchResult
+    elif slug == "paa":
+        from app.models.paa_job import PAAJob, PAAResult
+        return PAAJob, PAAResult
     raise HTTPException(status_code=404, detail="Unknown tool")
 
 
@@ -119,6 +153,12 @@ def _get_tool_task(slug: str):
         # Brief uses a 4-step chain — caller must handle this specially
         # Returns None to signal chain dispatch in tool_submit
         return None
+    elif slug == "wordstat-batch":
+        from app.tasks.wordstat_batch_tasks import run_wordstat_batch
+        return run_wordstat_batch
+    elif slug == "paa":
+        from app.tasks.paa_tasks import run_paa
+        return run_paa
     raise HTTPException(status_code=404, detail="Unknown tool")
 
 
@@ -156,7 +196,34 @@ def _result_to_row(result, slug: str) -> list:
             getattr(result, "position", "") or "",
             ", ".join(competitors) if competitors else "",
         ]
+    elif slug == "wordstat-batch":
+        return [
+            getattr(result, "phrase", ""),
+            getattr(result, "freq_exact", ""),
+            getattr(result, "freq_broad", ""),
+        ]
+    elif slug == "paa":
+        return [
+            getattr(result, "phrase", ""),
+            getattr(result, "question", ""),
+            getattr(result, "source_block", ""),
+        ]
     return []
+
+
+def _check_oauth_token_sync(needs_oauth: str) -> str | None:
+    """Synchronous helper: load OAuth token for the given service type.
+
+    Used by tool_landing to determine whether to show the OAuth warning banner.
+    Runs in a thread executor to avoid blocking the async event loop.
+    """
+    from app.database import get_sync_db
+    from app.services.batch_wordstat_service import check_wordstat_oauth_token
+
+    if needs_oauth == "wordstat":
+        with get_sync_db() as db:
+            return check_wordstat_oauth_token(db)
+    return None
 
 
 # ---------------------------------------------------------------------------
@@ -168,11 +235,13 @@ async def tools_index(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> HTMLResponse:
-    """Tools index page with 3 tool cards and per-user job count badges."""
+    """Tools index page with tool cards and per-user job count badges."""
     from app.models.brief_job import BriefJob
     from app.models.commerce_check_job import CommerceCheckJob
     from app.models.meta_parse_job import MetaParseJob
+    from app.models.paa_job import PAAJob
     from app.models.relevant_url_job import RelevantUrlJob
+    from app.models.wordstat_batch_job import WordstatBatchJob
 
     job_counts: dict[str, int] = {}
     for slug, model_cls in [
@@ -180,6 +249,8 @@ async def tools_index(
         ("meta-parser", MetaParseJob),
         ("relevant-url", RelevantUrlJob),
         ("brief", BriefJob),
+        ("wordstat-batch", WordstatBatchJob),
+        ("paa", PAAJob),
     ]:
         result = await db.execute(
             select(func.count(model_cls.id)).where(model_cls.user_id == user.id)
@@ -221,6 +292,22 @@ async def tool_landing(
     result = await db.execute(stmt)
     jobs = result.scalars().all()
 
+    # OAuth warning: check if required token is configured
+    oauth_warning = False
+    if registry.get("needs_oauth"):
+        from app.database import get_sync_db
+        from app.services.batch_wordstat_service import check_wordstat_oauth_token
+        import asyncio
+        loop = asyncio.get_event_loop()
+        try:
+            token = await loop.run_in_executor(
+                None,
+                lambda: _check_oauth_token_sync(registry["needs_oauth"]),
+            )
+            oauth_warning = token is None
+        except Exception:
+            oauth_warning = True
+
     return templates.TemplateResponse(
         request,
         f"tools/{slug}/index.html",
@@ -228,6 +315,7 @@ async def tool_landing(
             "tool": registry,
             "jobs": jobs,
             "slug": slug,
+            "oauth_warning": oauth_warning,
         },
     )
 
@@ -411,6 +499,51 @@ async def tool_export(
             headers={"Content-Disposition": f'attachment; filename="{filename}"'},
         )
 
+    # Wordstat-batch uses a multi-sheet XLSX: Sheet 1 = frequencies, Sheet 2 = monthly dynamics
+    if slug == "wordstat-batch":
+        if format not in ("xlsx",):
+            raise HTTPException(status_code=400, detail="Wordstat-batch экспортируется только в формате XLSX")
+        from app.models.wordstat_batch_job import WordstatMonthlyData
+        from sqlalchemy import select as sa_select
+        wb = openpyxl.Workbook()
+        # Sheet 1: Частотность
+        ws_freq = wb.active
+        ws_freq.title = "Частотность"
+        ws_freq.append(["Фраза", "Точная частота", "Широкая частота"])
+        for row in rows:
+            ws_freq.append([
+                getattr(row, "phrase", ""),
+                getattr(row, "freq_exact", ""),
+                getattr(row, "freq_broad", ""),
+            ])
+        # Sheet 2: Динамика — join WordstatBatchResult with WordstatMonthlyData
+        ws_dyn = wb.create_sheet("Динамика")
+        ws_dyn.append(["Фраза", "Месяц", "Частота"])
+        result_ids = [row.id for row in rows]
+        if result_ids:
+            stmt_monthly = sa_select(WordstatMonthlyData).where(
+                WordstatMonthlyData.result_id.in_(result_ids)
+            )
+            monthly_res = await db.execute(stmt_monthly)
+            monthly_rows = monthly_res.scalars().all()
+            # Build map result_id -> phrase
+            id_to_phrase = {row.id: getattr(row, "phrase", "") for row in rows}
+            for m in monthly_rows:
+                ws_dyn.append([
+                    id_to_phrase.get(m.result_id, ""),
+                    m.year_month,
+                    m.frequency,
+                ])
+        buf = io.BytesIO()
+        wb.save(buf)
+        buf.seek(0)
+        filename = f"wordstat-batch-{job_id}.xlsx"
+        return StreamingResponse(
+            buf,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        )
+
     if format == "xlsx":
         wb = openpyxl.Workbook()
         ws = wb.active
@@ -501,12 +634,22 @@ async def tool_results(
 
     results_rows = []
     brief_result = None
+    wordstat_monthly_map: dict[int, list] = {}
     if job.status in ("complete", "partial"):
         stmt_results = select(ResultModel).where(ResultModel.job_id == job_id)
         res = await db.execute(stmt_results)
         results_rows = res.scalars().all()
         if slug == "brief" and results_rows:
             brief_result = results_rows[0]
+        if slug == "wordstat-batch" and results_rows:
+            from app.models.wordstat_batch_job import WordstatMonthlyData
+            result_ids = [r.id for r in results_rows]
+            stmt_monthly = select(WordstatMonthlyData).where(
+                WordstatMonthlyData.result_id.in_(result_ids)
+            )
+            monthly_res = await db.execute(stmt_monthly)
+            for m in monthly_res.scalars().all():
+                wordstat_monthly_map.setdefault(m.result_id, []).append(m)
 
     return templates.TemplateResponse(
         request,
@@ -518,5 +661,6 @@ async def tool_results(
             "result": brief_result,
             "slug": slug,
             "export_headers": _EXPORT_HEADERS.get(slug, []),
+            "wordstat_monthly_map": wordstat_monthly_map,
         },
     )

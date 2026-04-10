@@ -1,39 +1,28 @@
 {% if job.status in ('pending', 'running') %}
 <div id="job-status"
   hx-get="/ui/tools/{{ slug }}/{{ job.id }}/status"
-  hx-trigger="load delay:{% if slug == 'wordstat-batch' %}5{% else %}10{% endif %}s"
+  hx-trigger="load delay:5s"
   hx-swap="outerHTML"
   class="p-4 bg-blue-50 rounded-lg border border-blue-100">
-  <div class="flex items-center gap-3">
+  <div class="flex items-center gap-3 mb-2">
     <svg class="animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
          style="width:1.25rem;height:1.25rem;color:#2563eb;flex-shrink:0;">
       <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
       <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
     </svg>
-    <div>
-      <div class="text-sm font-medium text-blue-700">
-        {% if slug == 'wordstat-batch' %}
-          {% if job.result_count is not none and job.result_count > 0 %}
-            Проверяем частотность... {{ job.result_count }}/{{ job.phrase_count }} фраз · {{ job.progress_pct | default(0) }}%
-          {% else %}
-            Проверяем частотность...
-          {% endif %}
-        {% else %}
-          {% if job.result_count is not none and job.result_count > 0 %}
-            Обработка... {{ job.result_count }}/{{ job.phrase_count if slug in ('commercialization', 'relevant-url') else job.url_count }} фраз
-          {% else %}
-            Обработка...
-          {% endif %}
-        {% endif %}
-      </div>
-      <div class="text-xs text-blue-500">Обычно занимает менее минуты</div>
+    <div class="text-sm font-medium text-blue-700">
+      {% if job.result_count is not none and job.result_count > 0 %}
+        Проверяем частотность... {{ job.result_count }}/{{ job.phrase_count }} фраз · {{ job.progress_pct | default(0) }}%
+      {% else %}
+        Проверяем частотность...
+      {% endif %}
     </div>
   </div>
-  {% if slug == 'wordstat-batch' %}
+  {# Progress bar #}
   <div class="w-full bg-gray-200 rounded h-2 mt-2">
     <div class="bg-indigo-600 h-2 rounded" style="width: {{ job.progress_pct | default(0) }}%"></div>
   </div>
-  {% endif %}
+  <div class="text-xs text-blue-500 mt-1">Обработка может занять несколько минут для большого числа фраз</div>
 </div>
 
 {% elif job.status == 'complete' %}
@@ -52,11 +41,7 @@
     <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126Z" />
   </svg>
   <div class="text-sm font-medium text-amber-800">
-    {% if slug == 'wordstat-batch' %}
-      Получено {{ job.result_count }} из {{ job.phrase_count }} (лимит API исчерпан — сохранены частичные данные)
-    {% else %}
-      Получено {{ job.result_count }} из ~{{ job.phrase_count if slug in ('commercialization', 'relevant-url') else job.url_count }} (баланс XMLProxy исчерпан — сохранены частичные данные)
-    {% endif %}
+    Получено {{ job.result_count }} из {{ job.phrase_count }} (лимит API исчерпан — сохранены частичные данные)
   </div>
 </div>
 
@@ -67,7 +52,7 @@
     <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9.303 3.376c.866 1.5-.217 3.374-1.948 3.374H2.645c-1.73 0-2.813-1.874-1.948-3.374l7.548-13.498c.866-1.5 3.032-1.5 3.898 0l7.548 13.498Z" />
   </svg>
   <div class="text-sm font-medium text-red-800">
-    {{ job.error_message or 'Не удалось выполнить задание. Проверьте прокси-пул или повторите позже.' }}
+    {{ job.error_message or 'Не удалось выполнить задание. Проверьте OAuth-токен или повторите позже.' }}
   </div>
 </div>
 {% endif %}
