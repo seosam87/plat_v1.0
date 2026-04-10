@@ -114,9 +114,9 @@ Plans:
   2. Из любого элемента дайджеста пользователь попадает на нужный раздел платформы одним тапом
   3. Пользователь открывает `/m/health/{site_id}` и видит карточку: доступность, свежие ошибки, статус краулинга, резкие изменения позиций
   4. С карточки здоровья пользователь может запустить краулинг или поставить задачу на ошибку — действие подтверждается тостом
-**Plans:** 2 plans
+**Plans:** 1/2 plans executed
 Plans:
-- [ ] 27-01-PLAN.md — Digest service layer + /m/digest page (DIG-01, DIG-02)
+- [x] 27-01-PLAN.md — Digest service layer + /m/digest page (DIG-01, DIG-02)
 - [ ] 27-02-PLAN.md — Health card page + actions (HLT-01, HLT-02)
 **UI hint**: yes
 
@@ -200,7 +200,7 @@ Plans:
 | 20–23 | v3.0 | 13/13 | Complete | 2026-04-10 |
 | 24–25 | v3.1 | 10/10 | Complete | 2026-04-10 |
 | 26 | v4.0 | 3/3 | Complete    | 2026-04-10 |
-| 27 | v4.0 | 0/? | Not started | - |
+| 27 | v4.0 | 1/2 | In Progress|  |
 | 28 | v4.0 | 0/? | Not started | - |
 | 29 | v4.0 | 0/? | Not started | - |
 | 30 | v4.0 | 0/? | Not started | - |
