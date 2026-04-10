@@ -8,7 +8,7 @@
 
 ### Mobile Foundation
 
-- [ ] **MOB-01**: Пользователь может открыть `/m/` на мобильном и видеть touch-friendly layout с bottom navigation (без sidebar)
+- [x] **MOB-01**: Пользователь может открыть `/m/` на мобильном и видеть touch-friendly layout с bottom navigation (без sidebar)
 - [ ] **MOB-02**: Пользователь может открыть приложение через Telegram WebApp и автоматически авторизоваться через Telegram ID (initData HMAC-SHA256 валидация)
 - [x] **MOB-03**: Мобильное приложение можно установить на домашний экран как PWA (manifest.json + service worker)
 
