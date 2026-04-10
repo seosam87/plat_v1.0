@@ -315,7 +315,7 @@ Phase 20 (Client CRM)
 | 22. Proposal Templates & Tariffs | v3.0 | 0/4 | Complete    | 2026-04-09 |
 | 23. Document Generator | v3.0 | 0/3 | Complete    | 2026-04-09 |
 | 24. Tools Infrastructure & Fast Tools | v3.1 | 5/5 | Complete    | 2026-04-10 |
-| 25. SERP Aggregation Tools | v3.1 | 5/5 | Complete   | 2026-04-10 |
+| 25. SERP Aggregation Tools | v3.1 | 5/5 | Complete    | 2026-04-10 |
 
 ## Backlog
 
