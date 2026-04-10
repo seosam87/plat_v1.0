@@ -223,7 +223,7 @@ Plans:
 
 **Milestone Goal:** Добавить в платформу раздел «Инструменты» — автономные SERP-инструменты без привязки к сайту клиента, работающие по модели Job: пользователь запускает задачу, Celery выполняет, результат доступен для просмотра и CSV/XLSX экспорта. Архитектура по образцу Phase 15 (SuggestJob), каждый инструмент — своя модель.
 
-- [ ] **Phase 24: Tools Infrastructure & Fast Tools** — новый раздел сайдбара, базовая Job-архитектура, три инструмента на существующих компонентах (коммерциализация, парсер мета-тегов, релевантный URL)
+- [x] **Phase 24: Tools Infrastructure & Fast Tools** — новый раздел сайдбара, базовая Job-архитектура, три инструмента на существующих компонентах (коммерциализация, парсер мета-тегов, релевантный URL) (completed 2026-04-10)
 - [ ] **Phase 25: SERP Aggregation Tools** — три инструмента, требующие SERP-краулинга (ТЗ на основе ТОП, PAA, пакетная частотность Wordstat)
 
 ### Phase 24: Tools Infrastructure & Fast Tools
@@ -241,9 +241,9 @@ Plans:
 Plans:
 - [x] 24-01-PLAN.md — Tools infrastructure: sidebar section + shared job-list page + HTMX polling pattern + CSV/XLSX export helper + navigation + smoke tests
 - [x] 24-02-PLAN.md — Commercialization Check: CommerceCheckJob + CommerceCheckResult models + migration + service + Celery task + XMLProxy integration + UI + tests
-- [ ] 24-03-PLAN.md — Meta Tag Parser: MetaParseJob + MetaParseResult models + migration + async httpx fetcher service + Celery task + UI + tests
-- [ ] 24-04-PLAN.md — Relevant URL Finder: RelevantUrlJob + RelevantUrlResult models + migration + service + Celery task + XMLProxy integration + UI + tests
-- [ ] 24-05-PLAN.md — Integration: tools index page + recent jobs across all tools + role-based access + router tests
+- [x] 24-03-PLAN.md — Meta Tag Parser: MetaParseJob + MetaParseResult models + migration + async httpx fetcher service + Celery task + UI + tests
+- [x] 24-04-PLAN.md — Relevant URL Finder: RelevantUrlJob + RelevantUrlResult models + migration + service + Celery task + XMLProxy integration + UI + tests
+- [x] 24-05-PLAN.md — Integration: tools index page + recent jobs across all tools + role-based access + router tests
 **UI hint**: yes
 
 ### Phase 25: SERP Aggregation Tools
@@ -314,7 +314,7 @@ Phase 20 (Client CRM)
 | 21. Site Audit Intake | v3.0 | 0/4 | Complete    | 2026-04-09 |
 | 22. Proposal Templates & Tariffs | v3.0 | 0/4 | Complete    | 2026-04-09 |
 | 23. Document Generator | v3.0 | 0/3 | Complete    | 2026-04-09 |
-| 24. Tools Infrastructure & Fast Tools | v3.1 | 2/5 | In Progress|  |
+| 24. Tools Infrastructure & Fast Tools | v3.1 | 5/5 | Complete   | 2026-04-10 |
 | 25. SERP Aggregation Tools | v3.1 | 0/5 | Not started | - |
 
 ## Backlog
@@ -323,7 +323,7 @@ Phase 20 (Client CRM)
 
 **Goal:** Extend `tests/_smoke_helpers.py::discover_routes` to auto-filter routes by `response_class=HTMLResponse` (or return-type annotation), skipping JSON/CSV endpoints automatically instead of requiring explicit `SMOKE_SKIP` entries. Eliminates the need for the 5 manual skips added during phase-15.1-deferred-routes debug session (`/metrika/{id}/pages`, `/metrika/{id}/compare`, `/analytics/sessions/{id}/export`, `/traffic-analysis/sessions/{id}`, `/traffic-analysis/sessions/{id}/anomalies`). Rationale: surfaced as tech debt in `.planning/phases/15.1-ui-smoke-crawler/deferred-items.md`.
 **Requirements:** TBD
-**Plans:** 2/5 plans executed
+**Plans:** 5/5 plans complete
 
 Plans:
 - [ ] TBD (promote with /gsd:review-backlog when ready)
