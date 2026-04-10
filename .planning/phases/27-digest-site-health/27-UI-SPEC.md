@@ -113,7 +113,7 @@ Note: Toast colors reuse status colors — these are already defined in `base_mo
 | Alert item format | "{alert_title} — {site_name}" |
 | Overdue task item format | "{task_title} (просрочена {n} дн.) — {site_name}" |
 | Empty block (no data) | "Нет данных за последние 7 дней" (positions) / "Нет новых ошибок" (crawler) / "Нет активных алертов" (alerts) / "Нет просроченных задач" (tasks) |
-| Empty state heading (no sites) | "Нет данных" |
+| Empty state heading (no sites) | "Дайджест пуст" |
 | Empty state body (no sites) | "Добавьте сайт и дождитесь первого краулинга, чтобы видеть дайджест." |
 | Error state | "Не удалось загрузить дайджест. Обновите страницу." |
 | Full version link | "Подробнее →" (per digest item, links to desktop page) |
@@ -138,7 +138,7 @@ Note: Toast colors reuse status colors — these are already defined in `base_mo
 | Inline task form — title field placeholder | "Текст задачи" (pre-filled with "Ошибка: {url}" when triggered from error row) |
 | Inline task form — priority label | "Приоритет" |
 | Inline task form — save button | "Сохранить задачу" |
-| Inline task form — cancel button | "Отмена" |
+| Inline task form — cancel button | "Не создавать" |
 | Task created toast success | "Задача создана" |
 | Task creation error toast | "Не удалось создать задачу. Проверьте поля." |
 | Empty state (site not found) | "Сайт не найден" |
@@ -174,8 +174,8 @@ No destructive actions in Phase 27. "Запустить краулинг" is a w
    - Form has `hx-post="/m/health/{site_id}/tasks"`, `hx-swap="outerHTML"`, `hx-target="closest form"`.
    - On success (HTTP 201): form replaced with empty string. `hx-on::after-request` calls `showToast('Задача создана', 'success')`.
    - On error: global error handler shows toast.
-5. **Inline task form — "Отмена":**
-   - `hx-get="/m/health/{site_id}/task-form/cancel"` returns empty string, `hx-target="#task-form-slot"`, `hx-swap="innerHTML"`. OR: plain JS `document.getElementById('task-form-slot').innerHTML = ''`. Use JS approach — no extra endpoint.
+5. **Inline task form — "Не создавать":**
+   - Plain JS `document.getElementById('task-form-slot').innerHTML = ''`. No extra endpoint.
 6. **HTMX event syntax:** Always `hx-on::after-request` (double colon — HTMX 2.0.3 is loaded).
 
 ### Touch Target Rules
@@ -244,7 +244,7 @@ All components are Jinja2 HTML + Tailwind inline styles. No React, no shadcn, no
     [inline form, if expanded]   ← white card, p-4, rounded-lg
       [title input]              ← full-width, min-h-44px
       [priority select]          ← full-width, min-h-44px
-      [Сохранить / Отмена btns]  ← flex row, gap-2
+      [Сохранить задачу / Не создавать btns]  ← flex row, gap-2
 [bottom-nav]
 [toast-container]
 ```
