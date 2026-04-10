@@ -1,10 +1,12 @@
-"""Profile router: Anthropic API key management + LLM usage stats.
+"""Profile router: Anthropic API key management + LLM usage stats + Telegram linking.
 
 Endpoints:
-- GET  /profile           -- profile page with key status + usage tab
+- GET  /profile                        -- profile page with key status + usage tab
 - POST /profile/anthropic-key          -- save encrypted key
 - POST /profile/anthropic-key/validate -- cheap 1-token test call (HTMX partial)
 - POST /profile/anthropic-key/remove   -- clear key
+- GET  /profile/link-telegram          -- Telegram Login Widget callback (links account)
+- POST /profile/unlink-telegram        -- removes telegram_id from user
 """
 from __future__ import annotations
 
@@ -18,9 +20,11 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user
+from app.config import settings
 from app.dependencies import get_db
 from app.models.llm_brief_job import LLMUsage
 from app.models.user import User
+from app.services.telegram_auth import validate_telegram_login_widget
 from app.services.user_service import (
     clear_anthropic_api_key,
     get_anthropic_api_key,
@@ -111,8 +115,11 @@ async def profile_page(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
     msg: str = "",
+    tg_linked: str = "",
+    tg_unlinked: str = "",
+    tg_error: str = "",
 ) -> HTMLResponse:
-    """Render profile page with Anthropic key status + usage stats."""
+    """Render profile page with Anthropic key status + usage stats + Telegram section."""
     usage = await _get_usage_stats(db, current_user)
 
     # Build masked key display
@@ -134,6 +141,10 @@ async def profile_page(
             "current_user": current_user,
             "key_preview": key_preview,
             "msg": msg,
+            "tg_linked": tg_linked,
+            "tg_unlinked": tg_unlinked,
+            "tg_error": tg_error,
+            "telegram_bot_username": settings.TELEGRAM_BOT_USERNAME,
             **usage,
         },
     )
@@ -219,3 +230,66 @@ async def remove_anthropic_key(
     await clear_anthropic_api_key(db, current_user)
     await db.commit()
     return RedirectResponse("/profile/?msg=removed", status_code=303)
+
+
+# ---------------------------------------------------------------------------
+# GET /profile/link-telegram — Telegram Login Widget callback
+# ---------------------------------------------------------------------------
+
+
+@router.get("/link-telegram")
+async def link_telegram(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> RedirectResponse:
+    """Handle Telegram Login Widget callback and link telegram_id to user account.
+
+    Telegram sends: id, first_name, last_name, username, photo_url, auth_date, hash
+    as query parameters to this URL after the user authenticates via the widget.
+    """
+    params = dict(request.query_params)
+    if not validate_telegram_login_widget(params, settings.TELEGRAM_BOT_TOKEN):
+        logger.warning(
+            "Invalid Telegram Login Widget signature for user {}", current_user.id
+        )
+        return RedirectResponse("/profile/?tg_error=invalid", status_code=303)
+
+    telegram_id = params.get("id")
+    if not telegram_id:
+        return RedirectResponse("/profile/?tg_error=invalid", status_code=303)
+
+    try:
+        current_user.telegram_id = int(telegram_id)
+        db.add(current_user)
+        await db.commit()
+        logger.info(
+            "Linked telegram_id={} to user {}", telegram_id, current_user.id
+        )
+    except Exception as exc:
+        logger.error(
+            "Failed to link telegram_id={} to user {}: {}", telegram_id, current_user.id, exc
+        )
+        await db.rollback()
+        return RedirectResponse("/profile/?tg_error=invalid", status_code=303)
+
+    return RedirectResponse("/profile/?tg_linked=1", status_code=303)
+
+
+# ---------------------------------------------------------------------------
+# POST /profile/unlink-telegram — remove telegram_id
+# ---------------------------------------------------------------------------
+
+
+@router.post("/unlink-telegram")
+async def unlink_telegram(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> RedirectResponse:
+    """Remove Telegram account link from current user."""
+    current_user.telegram_id = None
+    db.add(current_user)
+    await db.commit()
+    logger.info("Unlinked telegram from user {}", current_user.id)
+    return RedirectResponse("/profile/?tg_unlinked=1", status_code=303)
