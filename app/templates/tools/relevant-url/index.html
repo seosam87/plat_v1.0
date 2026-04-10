@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+{% from "macros/empty_state.html" import empty_state %}
+{% block title %}Поиск релевантного URL — SEO Platform{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="/ui/dashboard">Dashboard</a><span>&rsaquo;</span>
+  <a href="/ui/tools/">Инструменты</a><span>&rsaquo;</span>
+  <span>Поиск релевантного URL</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl">
+
+  <h1 class="text-2xl font-semibold text-gray-900 mb-6">Поиск релевантного URL</h1>
+
+  {# Input form card #}
+  <div class="card mb-6">
+    <h2 class="text-lg font-semibold text-gray-800 mb-4">Новое задание</h2>
+
+    <form method="post" action="/ui/tools/relevant-url/">
+      <div class="mb-4">
+        <label class="block text-sm font-semibold text-gray-700 mb-1" for="phrases-input">
+          Ключевые фразы
+        </label>
+        <textarea
+          id="phrases-input"
+          name="phrases"
+          rows="8"
+          required
+          class="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:ring-indigo-500 focus:border-indigo-500"
+          placeholder="Введите ключевые фразы, по одной на строке"
+          oninput="updateCounter(this)"
+        ></textarea>
+        <div class="flex justify-between items-center mt-1">
+          <span id="line-counter" class="text-xs text-gray-500">0 / 100 фраз</span>
+          <span class="text-xs text-gray-500">Лимит: 10 запросов в минуту</span>
+        </div>
+      </div>
+
+      <div class="mb-4">
+        <label class="block text-sm font-semibold text-gray-700 mb-1" for="domain-input">
+          Домен для поиска
+        </label>
+        <input
+          id="domain-input"
+          type="text"
+          name="domain"
+          required
+          placeholder="example.ru"
+          class="form-input mt-1 w-full px-3 py-2 border border-gray-300 rounded text-sm focus:ring-indigo-500 focus:border-indigo-500"
+        />
+      </div>
+
+      <div class="flex items-center gap-3">
+        <button
+          id="submit-btn"
+          type="submit"
+          class="btn btn-primary"
+          style="background-color:#4f46e5;color:white;padding:0.5rem 1.5rem;border-radius:0.5rem;font-weight:600;border:none;cursor:pointer;"
+          onmouseover="this.style.backgroundColor='#4338ca'"
+          onmouseout="this.style.backgroundColor='#4f46e5'"
+        >
+          Найти релевантные URL
+        </button>
+      </div>
+    </form>
+  </div>
+
+  {# Previous jobs #}
+  <div class="card">
+    <h2 class="text-lg font-semibold text-gray-800 mb-4">Предыдущие задания</h2>
+
+    {% if jobs %}
+    <div class="overflow-x-auto">
+      <table>
+        <thead>
+          <tr>
+            <th>Статус</th>
+            <th>Фраз</th>
+            <th>Домен</th>
+            <th>Создано</th>
+            <th>Действия</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for job in jobs %}
+          <tr id="job-row-{{ job.id }}">
+            <td>
+              {% if job.status == "complete" %}
+              <span class="badge" style="background-color:#f0fdf4;border:1px solid #bbf7d0;color:#166534;">Готово</span>
+              {% elif job.status == "partial" %}
+              <span class="badge" style="background-color:#fffbeb;border:1px solid #fde68a;color:#92400e;">Частично</span>
+              {% elif job.status == "failed" %}
+              <span class="badge" style="background-color:#fef2f2;border:1px solid #fecaca;color:#991b1b;">Ошибка</span>
+              {% else %}
+              <span class="badge" style="background-color:#eff6ff;border:1px solid #dbeafe;color:#1d4ed8;">В работе</span>
+              {% endif %}
+            </td>
+            <td class="text-sm text-gray-700">{{ job.phrase_count }}</td>
+            <td class="text-sm text-gray-700">{{ job.target_domain }}</td>
+            <td class="text-sm text-gray-500">{{ job.created_at.strftime("%d.%m.%Y %H:%M") if job.created_at else "—" }}</td>
+            <td class="text-sm">
+              <div class="flex items-center gap-2">
+                <a href="/ui/tools/relevant-url/{{ job.id }}" style="color:#4f46e5;">Смотреть результаты</a>
+                <button
+                  hx-delete="/ui/tools/relevant-url/{{ job.id }}"
+                  hx-confirm="Удалить задание #{{ job.id }}? Результаты будут безвозвратно удалены."
+                  hx-target="#job-row-{{ job.id }}"
+                  hx-swap="outerHTML"
+                  style="color:#dc2626;background:none;border:none;cursor:pointer;font-size:0.875rem;min-height:44px;"
+                >Удалить задание</button>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    {% call empty_state(
+        reason="Заданий пока нет.",
+        cta_label="Найти релевантные URL",
+        cta_url="/ui/tools/relevant-url/"
+    ) %}
+      <p>Введите фразы в форму выше и нажмите кнопку запуска. Результаты появятся здесь.</p>
+    {% endcall %}
+    {% endif %}
+  </div>
+
+</div>
+
+<script>
+function updateCounter(textarea) {
+  var lines = textarea.value.split('\n').filter(function(l) { return l.trim().length > 0; }).length;
+  var limit = 100;
+  var counterEl = document.getElementById('line-counter');
+  var submitBtn = document.getElementById('submit-btn');
+  counterEl.textContent = lines + ' / ' + limit + ' фраз';
+  if (lines > limit) {
+    counterEl.style.color = '#dc2626';
+    submitBtn.disabled = true;
+    submitBtn.style.opacity = '0.5';
+  } else {
+    counterEl.style.color = '';
+    submitBtn.disabled = false;
+    submitBtn.style.opacity = '1';
+  }
+}
+</script>
+{% endblock %}

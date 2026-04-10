@@ -169,7 +169,7 @@ async def tool_landing(
 
     return templates.TemplateResponse(
         request,
-        "tools/tool_landing.html",
+        f"tools/{slug}/index.html",
         {
             "tool": registry,
             "jobs": jobs,
@@ -252,7 +252,7 @@ async def tool_job_status(
 
     return templates.TemplateResponse(
         request,
-        "tools/partials/job_status.html",
+        f"tools/{slug}/partials/job_status.html",
         {"job": job, "slug": slug},
     )
 
@@ -381,7 +381,7 @@ async def tool_results(
 
     return templates.TemplateResponse(
         request,
-        "tools/tool_results.html",
+        f"tools/{slug}/results.html",
         {
             "tool": registry,
             "job": job,
