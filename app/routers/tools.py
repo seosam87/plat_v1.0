@@ -131,15 +131,38 @@ def _result_to_row(result, slug: str) -> list:
 
 
 # ---------------------------------------------------------------------------
-# 1. GET / — tools index: card grid
+# 1. GET / — tools index: card grid with job count badges
 # ---------------------------------------------------------------------------
 @router.get("/", response_class=HTMLResponse, name="tools_index")
-async def tools_index(request: Request) -> HTMLResponse:
-    """Tools index page with 3 tool cards."""
+async def tools_index(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> HTMLResponse:
+    """Tools index page with 3 tool cards and per-user job count badges."""
+    from app.models.commerce_check_job import CommerceCheckJob
+    from app.models.meta_parse_job import MetaParseJob
+    from app.models.relevant_url_job import RelevantUrlJob
+
+    job_counts: dict[str, int] = {}
+    for slug, model_cls in [
+        ("commercialization", CommerceCheckJob),
+        ("meta-parser", MetaParseJob),
+        ("relevant-url", RelevantUrlJob),
+    ]:
+        result = await db.execute(
+            select(func.count(model_cls.id)).where(model_cls.user_id == user.id)
+        )
+        job_counts[slug] = result.scalar() or 0
+
+    tools = []
+    for slug, info in TOOL_REGISTRY.items():
+        tools.append({**info, "job_count": job_counts.get(slug, 0)})
+
     return templates.TemplateResponse(
         request,
         "tools/index.html",
-        {"tools": list(TOOL_REGISTRY.values())},
+        {"tools": tools},
     )
 
 

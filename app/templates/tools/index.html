@@ -17,8 +17,13 @@
     <div class="card">
       <h2 class="text-lg font-semibold text-gray-800">{{ tool.name }}</h2>
       <p class="text-sm text-gray-600 mt-2">{{ tool.description }}</p>
-      <div class="mt-4">
+      <div class="flex items-center justify-between mt-4">
         <a href="/ui/tools/{{ tool.slug }}/" class="btn btn-primary">Открыть инструмент</a>
+        {% if tool.job_count > 0 %}
+        <span class="text-xs font-semibold text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+          {{ tool.job_count }} заданий
+        </span>
+        {% endif %}
       </div>
     </div>
     {% endfor %}
