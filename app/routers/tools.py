@@ -227,15 +227,20 @@ def _check_oauth_token_sync(needs_oauth: str) -> str | None:
 
 
 # ---------------------------------------------------------------------------
-# 1. GET / — tools index: card grid with job count badges
+# 1. GET / — tools index: card grid with job count badges + unified job history
 # ---------------------------------------------------------------------------
+_PAGE_SIZE = 20
+
+
 @router.get("/", response_class=HTMLResponse, name="tools_index")
 async def tools_index(
     request: Request,
+    page: int = Query(default=1, ge=1),
+    tool: str = Query(default=""),
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> HTMLResponse:
-    """Tools index page with tool cards and per-user job count badges."""
+    """Tools index page with tool cards, per-user job count badges, and unified job history."""
     from app.models.brief_job import BriefJob
     from app.models.commerce_check_job import CommerceCheckJob
     from app.models.meta_parse_job import MetaParseJob
@@ -243,15 +248,17 @@ async def tools_index(
     from app.models.relevant_url_job import RelevantUrlJob
     from app.models.wordstat_batch_job import WordstatBatchJob
 
+    model_map: dict[str, type] = {
+        "commercialization": CommerceCheckJob,
+        "meta-parser": MetaParseJob,
+        "relevant-url": RelevantUrlJob,
+        "brief": BriefJob,
+        "wordstat-batch": WordstatBatchJob,
+        "paa": PAAJob,
+    }
+
     job_counts: dict[str, int] = {}
-    for slug, model_cls in [
-        ("commercialization", CommerceCheckJob),
-        ("meta-parser", MetaParseJob),
-        ("relevant-url", RelevantUrlJob),
-        ("brief", BriefJob),
-        ("wordstat-batch", WordstatBatchJob),
-        ("paa", PAAJob),
-    ]:
+    for slug, model_cls in model_map.items():
         result = await db.execute(
             select(func.count(model_cls.id)).where(model_cls.user_id == user.id)
         )
@@ -261,10 +268,48 @@ async def tools_index(
     for slug, info in TOOL_REGISTRY.items():
         tools.append({**info, "job_count": job_counts.get(slug, 0)})
 
+    # Build unified job list across all (or filtered) tools
+    filter_tool = tool.strip() if tool.strip() in TOOL_REGISTRY else ""
+    slugs_to_query = [filter_tool] if filter_tool else list(model_map.keys())
+
+    raw_entries: list[dict] = []
+    for slug in slugs_to_query:
+        model_cls = model_map[slug]
+        registry = TOOL_REGISTRY[slug]
+        stmt = (
+            select(model_cls)
+            .where(model_cls.user_id == user.id)
+            .order_by(model_cls.created_at.desc())
+        )
+        result = await db.execute(stmt)
+        jobs = result.scalars().all()
+        for j in jobs:
+            count_val = getattr(j, registry["count_col"], 0) or 0
+            raw_entries.append({
+                "job": j,
+                "slug": slug,
+                "tool_name": registry["name"],
+                "count": count_val,
+                "created_at": j.created_at,
+            })
+
+    # Sort by created_at desc and paginate
+    raw_entries.sort(key=lambda e: e["created_at"], reverse=True)
+    total_jobs = len(raw_entries)
+    total_pages = max(1, (total_jobs + _PAGE_SIZE - 1) // _PAGE_SIZE)
+    offset = (page - 1) * _PAGE_SIZE
+    paged_entries = raw_entries[offset: offset + _PAGE_SIZE]
+
     return templates.TemplateResponse(
         request,
         "tools/index.html",
-        {"tools": tools},
+        {
+            "tools": tools,
+            "all_jobs": paged_entries,
+            "page": page,
+            "total_pages": total_pages,
+            "filter_tool": filter_tool,
+        },
     )
 
 
@@ -611,7 +656,78 @@ async def tool_delete(
 
 
 # ---------------------------------------------------------------------------
-# 7. GET /{slug}/{job_id} — results page (LAST — generic catch-all)
+# 7. POST /{slug}/rerun/{job_id} — re-run job with same input
+# ---------------------------------------------------------------------------
+@router.post("/{slug}/rerun/{job_id}", name="tool_rerun")
+async def tool_rerun(
+    slug: str,
+    job_id: uuid.UUID,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> Response:
+    if slug not in TOOL_REGISTRY:
+        raise HTTPException(status_code=404, detail="Unknown tool")
+    registry = TOOL_REGISTRY[slug]
+    JobModel, _ResultModel = _get_tool_models(slug)
+
+    stmt = select(JobModel).where(JobModel.id == job_id, JobModel.user_id == user.id)
+    result = await db.execute(stmt)
+    old_job = result.scalar_one_or_none()
+    if old_job is None:
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    # Copy input fields from old job
+    new_kwargs: dict = {
+        "id": uuid.uuid4(),
+        "status": "pending",
+        "user_id": user.id,
+        "created_at": datetime.now(timezone.utc),
+        registry["input_col"]: getattr(old_job, registry["input_col"]),
+        registry["count_col"]: getattr(old_job, registry["count_col"]),
+    }
+    if registry.get("has_domain_field"):
+        new_kwargs["target_domain"] = getattr(old_job, "target_domain", "")
+    if registry.get("has_region_field"):
+        new_kwargs["input_region"] = getattr(old_job, "input_region", 213)
+
+    new_job = JobModel(**new_kwargs)
+    db.add(new_job)
+    await db.commit()
+    await db.refresh(new_job)
+
+    new_job_id_str = str(new_job.id)
+
+    # Dispatch task
+    if slug == "brief":
+        from app.tasks.brief_tasks import (
+            run_brief_step1_serp,
+            run_brief_step2_crawl,
+            run_brief_step3_aggregate,
+            run_brief_step4_finalize,
+        )
+        celery_chain(
+            run_brief_step1_serp.si(new_job_id_str),
+            run_brief_step2_crawl.si(new_job_id_str),
+            run_brief_step3_aggregate.si(new_job_id_str),
+            run_brief_step4_finalize.si(new_job_id_str),
+        ).delay()
+    else:
+        task_fn = _get_tool_task(slug)
+        task_fn.delay(new_job_id_str)
+
+    redirect_url = f"/ui/tools/{slug}/{new_job.id}"
+    # For HTMX requests, send HX-Redirect header instead of 303
+    if request.headers.get("HX-Request"):
+        return Response(
+            status_code=200,
+            headers={"HX-Redirect": redirect_url},
+        )
+    return RedirectResponse(redirect_url, status_code=303)
+
+
+# ---------------------------------------------------------------------------
+# 8. GET /{slug}/{job_id} — results page (LAST — generic catch-all)
 # ---------------------------------------------------------------------------
 @router.get("/{slug}/{job_id}", response_class=HTMLResponse, name="tool_results")
 async def tool_results(
