@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v4.0
 milestone_name: Mobile & Telegram
 status: verifying
-stopped_at: Phase 27 context gathered
-last_updated: "2026-04-10T15:36:54.040Z"
+stopped_at: Phase 27 UI-SPEC approved
+last_updated: "2026-04-10T15:50:48.992Z"
 last_activity: 2026-04-10
 progress:
   total_phases: 11
@@ -67,6 +67,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-10T15:36:54.035Z
-Stopped at: Phase 27 context gathered
-Resume file: .planning/phases/27-digest-site-health/27-CONTEXT.md
+Last session: 2026-04-10T15:50:48.988Z
+Stopped at: Phase 27 UI-SPEC approved
+Resume file: .planning/phases/27-digest-site-health/27-UI-SPEC.md
