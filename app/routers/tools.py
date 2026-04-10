@@ -111,10 +111,10 @@ def _result_to_row(result, slug: str) -> list:
         ]
     elif slug == "meta-parser":
         return [
-            getattr(result, "url", ""),
+            getattr(result, "input_url", ""),
             getattr(result, "status_code", ""),
             getattr(result, "title", ""),
-            getattr(result, "description", ""),
+            getattr(result, "meta_description", ""),
             getattr(result, "h1", ""),
             getattr(result, "robots", ""),
             getattr(result, "canonical", ""),
