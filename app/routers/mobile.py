@@ -14,6 +14,7 @@ import uuid
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse, Response
 from fastapi.templating import Jinja2Templates
+from loguru import logger
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -497,6 +498,113 @@ async def mobile_positions_create_task(
     user: User = Depends(get_current_user),
 ):
     """Create a manual SEO task from the positions page. Returns empty 201."""
+    from app.models.task import SeoTask, TaskPriority, TaskType
+
+    task = SeoTask(
+        site_id=site_id,
+        task_type=TaskType.manual,
+        url="",
+        title=title,
+        priority=TaskPriority(priority),
+    )
+    db.add(task)
+    await db.flush()
+    await db.commit()
+    return HTMLResponse(content="", status_code=201)
+
+
+# ---------------------------------------------------------------------------
+# Traffic endpoints (/m/traffic)
+# ---------------------------------------------------------------------------
+
+
+@router.get("/traffic", response_class=HTMLResponse)
+async def mobile_traffic(
+    request: Request,
+    site_id: uuid.UUID | None = None,
+    period: str = "30d_vs_30d",
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Traffic comparison page — Metrika per-page delta between two periods."""
+    from app.models.site import Site
+    from app.services.mobile_traffic_service import PERIOD_PRESETS, get_traffic_comparison
+
+    sites = await get_sites(db)
+
+    # Default to first site if none selected
+    if site_id is None and sites:
+        site_id = sites[0].id
+
+    no_metrika = False
+    metrika_error = False
+    comparison = None
+
+    if site_id:
+        result = await db.get(Site, site_id)
+        site = result
+        if site and (not site.metrika_token or not site.metrika_counter_id):
+            no_metrika = True
+        elif site:
+            try:
+                comparison = await get_traffic_comparison(
+                    db, site_id, site.metrika_counter_id, site.metrika_token, preset=period
+                )
+            except Exception as exc:
+                logger.error("Traffic comparison failed for site {}: {}", site_id, exc)
+                metrika_error = True
+
+    context = {
+        "request": request,
+        "user": user,
+        "sites": sites,
+        "selected_site_id": site_id,
+        "comparison": comparison,
+        "period": period,
+        "presets": PERIOD_PRESETS,
+        "no_metrika": no_metrika,
+        "metrika_error": metrika_error,
+    }
+
+    # HTMX partial refresh — return only #traffic-content
+    if request.headers.get("HX-Request"):
+        return mobile_templates.TemplateResponse(
+            "mobile/partials/traffic_content.html",
+            context,
+        )
+
+    return mobile_templates.TemplateResponse("mobile/traffic.html", context)
+
+
+@router.get("/traffic/{site_id}/task-form", response_class=HTMLResponse)
+async def mobile_traffic_task_form(
+    site_id: uuid.UUID,
+    request: Request,
+    prefilled_title: str = "",
+    user: User = Depends(get_current_user),
+):
+    """Return inline task creation form fragment for traffic page (HTMX partial)."""
+    return mobile_templates.TemplateResponse(
+        "mobile/partials/task_form.html",
+        {
+            "request": request,
+            "site_id": site_id,
+            "prefilled_title": prefilled_title,
+            "post_url": f"/m/traffic/{site_id}/tasks",
+        },
+    )
+
+
+@router.post("/traffic/{site_id}/tasks", response_class=HTMLResponse)
+async def mobile_traffic_create_task(
+    site_id: uuid.UUID,
+    request: Request,
+    title: str = Form(...),
+    priority: str = Form("p3"),
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Create a manual SEO task from the traffic page. Returns empty 201."""
     from app.models.task import SeoTask, TaskPriority, TaskType
 
     task = SeoTask(

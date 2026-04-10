@@ -1,0 +1,50 @@
+{% extends "base_mobile.html" %}
+{% set active_tab = 'more' %}
+{% block title %}Трафик{% endblock %}
+
+{% block content %}
+
+<h1 class="text-xl font-semibold mb-4">Трафик</h1>
+
+<!-- Site selector -->
+<select
+  name="site_id"
+  class="w-full min-h-[44px] border border-gray-300 rounded-lg px-3 text-sm bg-white mb-4"
+  hx-get="/m/traffic"
+  hx-target="#traffic-content"
+  hx-swap="innerHTML"
+  hx-trigger="change"
+  hx-include="[name='period']"
+>
+  {% for site in sites %}
+  <option value="{{ site.id }}" {% if site.id == selected_site_id %}selected{% endif %}>{{ site.name }}</option>
+  {% endfor %}
+</select>
+
+<!-- Period preset pill group -->
+<div class="flex gap-2 mb-4 flex-wrap">
+  {% for preset_key, preset_label in presets.items() %}
+  <button
+    type="button"
+    class="min-h-[44px] {% if period == preset_key %}text-white rounded-full px-3 py-1 text-sm font-semibold{% else %}bg-white text-gray-700 rounded-full px-3 py-1 text-sm border border-gray-200{% endif %}"
+    {% if period == preset_key %}style="background:#4f46e5;"{% endif %}
+    hx-get="/m/traffic"
+    hx-target="#traffic-content"
+    hx-swap="innerHTML"
+    hx-vals='{"period": "{{ preset_key }}", "site_id": "{{ selected_site_id }}"}'
+  >{{ preset_label }}</button>
+  {% endfor %}
+</div>
+
+<!-- Hidden period input for site selector hx-include (default: 30d_vs_30d) -->
+<input type="hidden" name="period" value="{{ period | default('30d_vs_30d') }}">
+
+<!-- Traffic content area -->
+<div id="traffic-content">
+  {% include "mobile/partials/traffic_content.html" with context %}
+</div>
+
+<!-- Task form slot (loaded by page row taps) -->
+<div id="task-form-slot" class="mt-4"></div>
+
+{% endblock %}
