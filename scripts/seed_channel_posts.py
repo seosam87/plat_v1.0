@@ -146,6 +146,10 @@ def md_to_telegram_html(md: str) -> str:
 
 def inline_format(text: str) -> str:
     """Convert inline markdown to Telegram HTML."""
+    # Escape HTML entities FIRST (before adding our own tags)
+    text = text.replace("&", "&amp;")
+    text = text.replace("<", "&lt;")
+    text = text.replace(">", "&gt;")
     # Inline code
     text = re.sub(r"`([^`]+)`", r"<code>\1</code>", text)
     # Bold
