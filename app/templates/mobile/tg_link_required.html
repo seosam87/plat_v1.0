@@ -1,0 +1,28 @@
+{% extends "base_mobile.html" %}
+{% block title %}Привяжите Telegram — SEO Platform{% endblock %}
+
+{% block content %}
+<div class="rounded-lg p-6 shadow-sm bg-white max-w-sm mx-auto mt-12 text-center">
+
+  <!-- Telegram icon (inline SVG, 48x48) -->
+  <div class="flex justify-center mb-4">
+    <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <circle cx="24" cy="24" r="24" fill="#4f46e5"/>
+      <path fill="white" d="M10.5 23.6c6.9-3 11.5-5 13.9-6 6.6-2.8 8-3.3 8.9-3.3.2 0 .6.1.9.3.2.2.3.4.3.6 0 .1 0 .4-.1.6l-2.3 11.2c-.2.8-.6 1-.9 1-.4 0-.7-.2-1.1-.5l-3-2.3-1.4 1.4c-.2.1-.4.2-.7.2-.4 0-.7-.2-.9-.5l-.7-2.3-3.9 1.3c-.9.3-1.8-.2-1.8-1.1 0-.5.3-.9.9-1.2zm2.7-.1l3.1-1c.6-.2 1.2.1 1.4.7l.7 2.3.9-.9 3 2.3.1-.1 2.2-10.7-13.4 5.7v1.7z"/>
+    </svg>
+  </div>
+
+  <h1 class="text-xl font-semibold text-gray-900 mb-3">Привяжите Telegram-аккаунт</h1>
+
+  <p class="text-base text-gray-700 mb-6">
+    Откройте полную версию платформы &rarr; Профиль &rarr; Привязать Telegram.
+    После этого возвращайтесь сюда.
+  </p>
+
+  <a href="/profile"
+     class="inline-block bg-indigo-600 text-white rounded px-4 py-2 text-sm font-semibold mt-4">
+    Открыть полную версию
+  </a>
+
+</div>
+{% endblock %}

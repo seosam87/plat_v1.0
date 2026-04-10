@@ -83,8 +83,12 @@ class UIAuthMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request: Request, call_next):
         path = request.url.path
-        # Protect /ui/* and /m/* routes
-        if not (path.startswith("/ui") or path.startswith("/m")) or path in PUBLIC_PATHS:
+        # Protect /ui/* and /m/* routes; skip public paths and /m/auth/ endpoints
+        if (
+            not (path.startswith("/ui") or path.startswith("/m"))
+            or path in PUBLIC_PATHS
+            or path.startswith("/m/auth/")
+        ):
             return await call_next(request)
 
         token = request.cookies.get("access_token")
