@@ -112,12 +112,12 @@ def md_to_telegram_html(md: str) -> str:
             else:
                 line = " | ".join(inline_format(c) for c in cells)
 
-        # Headers -> bold
-        elif line.startswith("###"):
+        # Headers -> bold (only if # is followed by space — not hashtags like #версии)
+        elif line.startswith("### "):
             line = f"\n<b>{inline_format(line.lstrip('#').strip())}</b>"
-        elif line.startswith("##"):
+        elif line.startswith("## "):
             line = f"\n<b>{inline_format(line.lstrip('#').strip())}</b>"
-        elif line.startswith("#"):
+        elif line.startswith("# "):
             line = f"\n<b>{inline_format(line.lstrip('#').strip())}</b>\n"
 
         # List items
