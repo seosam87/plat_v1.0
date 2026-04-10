@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#1e1b4b">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>{% block title %}SEO Platform{% endblock %}</title>
+  <link rel="manifest" href="/static/manifest.json">
+  <link rel="apple-touch-icon" href="/static/icons/icon-192.png">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/htmx.org@2.0.3/dist/htmx.min.js"></script>
+  {% block head_extra %}{% endblock %}
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f5f5f5;
+      padding-bottom: 64px;
+    }
+    /* Toast container — offset above bottom nav */
+    #toast-container {
+      position: fixed;
+      bottom: 80px;
+      right: 16px;
+      z-index: 999;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .toast {
+      padding: .75rem 1.25rem;
+      border-radius: 6px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.15);
+      font-size: .9rem;
+      animation: toastIn .3s ease;
+      max-width: 320px;
+    }
+    .toast-success { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
+    .toast-error   { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+    .toast-info    { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
+    @keyframes toastIn { from { opacity: 0; transform: translateY(1rem); } to { opacity: 1; transform: translateY(0); } }
+  </style>
+</head>
+<body>
+
+  <!-- Version-switch strip: link to desktop full version -->
+  <div style="background:#f3f4f6; text-align:center; padding:4px 0; font-size:0.75rem; color:#6b7280;">
+    <a href="/ui/dashboard" class="underline" style="color:#4f46e5;">Полная версия</a>
+  </div>
+
+  <main class="p-4">
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- Bottom navigation bar -->
+  {% set active_tab = active_tab|default('digest') %}
+  <nav id="bottom-nav" style="position:fixed;bottom:0;left:0;right:0;height:64px;background:#1e1b4b;z-index:50;display:flex;justify-content:space-around;align-items:center;padding-bottom:env(safe-area-inset-bottom);">
+
+    <!-- Tab 1: Дайджест -->
+    <a href="/m/" style="display:flex;flex-direction:column;align-items:center;gap:4px;min-height:44px;justify-content:center;text-decoration:none;padding:0 8px;{% if active_tab == 'digest' %}color:#818cf8;{% else %}color:white;{% endif %}">
+      <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+      </svg>
+      <span style="font-size:0.75rem;{% if active_tab == 'digest' %}font-weight:600;{% endif %}">Дайджест</span>
+    </a>
+
+    <!-- Tab 2: Сайты -->
+    <a href="/m/sites" style="display:flex;flex-direction:column;align-items:center;gap:4px;min-height:44px;justify-content:center;text-decoration:none;padding:0 8px;{% if active_tab == 'sites' %}color:#818cf8;{% else %}color:white;{% endif %}">
+      <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418" />
+      </svg>
+      <span style="font-size:0.75rem;{% if active_tab == 'sites' %}font-weight:600;{% endif %}">Сайты</span>
+    </a>
+
+    <!-- Tab 3: Позиции -->
+    <a href="/m/positions" style="display:flex;flex-direction:column;align-items:center;gap:4px;min-height:44px;justify-content:center;text-decoration:none;padding:0 8px;{% if active_tab == 'positions' %}color:#818cf8;{% else %}color:white;{% endif %}">
+      <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941" />
+      </svg>
+      <span style="font-size:0.75rem;{% if active_tab == 'positions' %}font-weight:600;{% endif %}">Позиции</span>
+    </a>
+
+    <!-- Tab 4: Ещё (overflow menu placeholder) -->
+    <button type="button" style="display:flex;flex-direction:column;align-items:center;gap:4px;min-height:44px;justify-content:center;padding:0 8px;background:none;border:none;cursor:pointer;{% if active_tab == 'more' %}color:#818cf8;{% else %}color:white;{% endif %}">
+      <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM12.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM18.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" />
+      </svg>
+      <span style="font-size:0.75rem;{% if active_tab == 'more' %}font-weight:600;{% endif %}">Ещё</span>
+    </button>
+
+  </nav>
+
+  <div id="toast-container"></div>
+
+  <script>
+  function showToast(msg, type) {
+    type = type || 'info';
+    var c = document.getElementById('toast-container');
+    var t = document.createElement('div');
+    t.className = 'toast toast-' + type;
+    t.textContent = msg;
+    c.appendChild(t);
+    setTimeout(function() {
+      t.style.opacity = '0';
+      t.style.transition = 'opacity .3s';
+      setTimeout(function() { t.remove(); }, 300);
+    }, 4000);
+  }
+  document.body.addEventListener('htmx:responseError', function(e) {
+    showToast('Server error: ' + (e.detail.xhr.status || 'unknown'), 'error');
+  });
+  // Service worker registration
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/static/service-worker.js');
+  }
+  </script>
+
+  {% block telegram_auth %}{% endblock %}
+
+</body>
+</html>

@@ -75,7 +75,7 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # ---- Cookie-based UI auth middleware ----
 
-PUBLIC_PATHS = {"/ui/login", "/health", "/docs", "/openapi.json", "/redoc", "/docs/oauth2-redirect"}
+PUBLIC_PATHS = {"/ui/login", "/health", "/docs", "/openapi.json", "/redoc", "/docs/oauth2-redirect", "/auth/telegram-webapp"}
 
 
 class UIAuthMiddleware(BaseHTTPMiddleware):
@@ -83,8 +83,8 @@ class UIAuthMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request: Request, call_next):
         path = request.url.path
-        # Only protect UI routes
-        if not path.startswith("/ui") or path in PUBLIC_PATHS:
+        # Protect /ui/* and /m/* routes
+        if not (path.startswith("/ui") or path.startswith("/m")) or path in PUBLIC_PATHS:
             return await call_next(request)
 
         token = request.cookies.get("access_token")
@@ -181,6 +181,9 @@ app.include_router(templates_router)
 
 from app.routers.documents import router as documents_router
 app.include_router(documents_router)
+
+from app.routers.mobile import router as mobile_router
+app.include_router(mobile_router)
 
 
 # ---- Site selector API endpoints for nav sidebar ----
