@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+{% block title %}{{ tool.name }} — Результаты — SEO Platform{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="/ui/dashboard">Dashboard</a><span>&rsaquo;</span>
+  <a href="/ui/tools/" style="color:#4f46e5;">Инструменты</a><span>&rsaquo;</span>
+  <a href="/ui/tools/{{ slug }}/" style="color:#4f46e5;">{{ tool.name }}</a><span>&rsaquo;</span>
+  <span>#{{ job.id | string | truncate(8, True, '') }}</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl">
+
+  <h1 class="text-2xl font-semibold text-gray-900 mb-6">{{ tool.name }}</h1>
+
+  {# HTMX status partial #}
+  <div class="mb-4">
+    {% include "tools/partials/job_status.html" %}
+  </div>
+
+  {# Results card — visible when complete or partial #}
+  {% if job.status in ('complete', 'partial') %}
+  <div class="card mt-4">
+    <div class="flex items-center justify-between mb-4">
+      <div class="flex items-center gap-3">
+        <h2 class="text-lg font-semibold text-gray-800">Результаты</h2>
+        <span style="background:#f3f4f6;color:#374151;font-size:0.75rem;font-weight:600;padding:0.15rem 0.6rem;border-radius:9999px;">
+          {{ job.result_count or 0 }}
+        </span>
+      </div>
+      <div class="flex items-center gap-2">
+        <a href="/ui/tools/{{ slug }}/{{ job.id }}/export?format=csv"
+           class="text-sm text-indigo-600 hover:text-indigo-800 font-medium border border-indigo-200 rounded px-3 py-1">
+          Скачать CSV
+        </a>
+        <a href="/ui/tools/{{ slug }}/{{ job.id }}/export?format=xlsx"
+           class="text-sm text-indigo-600 hover:text-indigo-800 font-medium border border-indigo-200 rounded px-3 py-1">
+          Скачать XLSX
+        </a>
+      </div>
+    </div>
+
+    {# Filter input #}
+    <div class="mb-3">
+      <input
+        type="text"
+        id="results-filter"
+        placeholder="Фильтр..."
+        class="px-3 py-1.5 border border-gray-300 rounded text-sm focus:ring-indigo-500 focus:border-indigo-500 w-full max-w-xs"
+        oninput="(function(val){
+          var rows = document.querySelectorAll('#results-table tbody tr');
+          rows.forEach(function(row){
+            row.style.display = row.textContent.toLowerCase().indexOf(val.toLowerCase()) >= 0 ? '' : 'none';
+          });
+        })(this.value)"
+      />
+    </div>
+
+    {% if results %}
+    <div class="overflow-x-auto">
+      <table id="results-table" class="w-full text-sm">
+        <thead>
+          <tr>
+            {% for header in export_headers %}
+            <th class="text-left py-2 px-3 text-xs font-semibold text-gray-500 uppercase border-b border-gray-200">{{ header }}</th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in results %}
+          <tr class="border-t border-gray-100 hover:bg-gray-50">
+            {% if slug == 'commercialization' %}
+            <td class="py-2 px-3 text-gray-800">{{ r.phrase }}</td>
+            <td class="py-2 px-3 text-gray-700">
+              {% if r.commercialization is not none %}
+              <div class="flex items-center gap-2">
+                <div class="flex-1 bg-gray-200 rounded-full h-2" style="max-width:80px;">
+                  <div class="h-2 rounded-full {% if r.commercialization > 60 %}bg-green-500{% elif r.commercialization < 20 %}bg-blue-400{% else %}bg-amber-400{% endif %}"
+                       style="width:{{ r.commercialization }}%"></div>
+                </div>
+                <span>{{ r.commercialization }}%</span>
+              </div>
+              {% else %}—{% endif %}
+            </td>
+            <td class="py-2 px-3">
+              {% if r.intent == 'commercial' %}
+                <span style="background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;font-size:0.75rem;font-weight:600;padding:0.15rem 0.6rem;border-radius:9999px;">коммерческий</span>
+              {% elif r.intent == 'informational' %}
+                <span style="background:#eff6ff;color:#1d4ed8;border:1px solid #dbeafe;font-size:0.75rem;font-weight:600;padding:0.15rem 0.6rem;border-radius:9999px;">информационный</span>
+              {% elif r.intent == 'mixed' %}
+                <span style="background:#fffbeb;color:#92400e;border:1px solid #fde68a;font-size:0.75rem;font-weight:600;padding:0.15rem 0.6rem;border-radius:9999px;">смешанный</span>
+              {% else %}—{% endif %}
+            </td>
+            <td class="py-2 px-3">
+              {% if r.geo_dependent %}
+                <span style="background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;font-size:0.75rem;font-weight:600;padding:0.15rem 0.6rem;border-radius:9999px;">да</span>
+              {% else %}
+                <span style="background:#f9fafb;color:#6b7280;border:1px solid #e5e7eb;font-size:0.75rem;font-weight:600;padding:0.15rem 0.6rem;border-radius:9999px;">нет</span>
+              {% endif %}
+            </td>
+            <td class="py-2 px-3">
+              <span style="background:#fef2f2;color:#991b1b;border:1px solid #fecaca;font-size:0.75rem;font-weight:700;padding:0.15rem 0.5rem;border-radius:4px;">Я</span>
+            </td>
+
+            {% elif slug == 'meta-parser' %}
+            <td class="py-2 px-3"><a href="{{ r.url }}" target="_blank" class="text-indigo-600 hover:underline text-xs truncate" style="max-width:200px;display:inline-block;">{{ r.url | truncate(50) }}</a></td>
+            <td class="py-2 px-3 text-gray-700">{{ (r.title or '') | truncate(60) }}</td>
+            <td class="py-2 px-3 text-gray-600 text-xs">{{ (r.description or '') | truncate(120) }}</td>
+            <td class="py-2 px-3 text-gray-700">{{ (r.h1 or '') | truncate(50) }}</td>
+            <td class="py-2 px-3">
+              {% if r.robots and 'noindex' in r.robots %}
+                <span style="background:#fef2f2;color:#991b1b;font-size:0.75rem;font-weight:600;padding:0.15rem 0.5rem;border-radius:9999px;">noindex</span>
+              {% else %}
+                <span style="background:#f0fdf4;color:#166534;font-size:0.75rem;font-weight:600;padding:0.15rem 0.5rem;border-radius:9999px;">index</span>
+              {% endif %}
+            </td>
+
+            {% elif slug == 'relevant-url' %}
+            <td class="py-2 px-3 text-gray-800">{{ r.phrase }}</td>
+            <td class="py-2 px-3"><a href="{{ r.relevant_url }}" target="_blank" class="text-indigo-600 hover:underline text-xs">{{ r.relevant_url | truncate(50) if r.relevant_url else '—' }}</a></td>
+            <td class="py-2 px-3 text-gray-700">{{ r.position or '—' }}</td>
+            <td class="py-2 px-3 text-gray-600 text-xs">{{ r.top3_competitors or '—' }}</td>
+            {% endif %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="text-sm text-gray-500 py-4 text-center">Результатов не найдено. Попробуйте изменить фильтр.</div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}
