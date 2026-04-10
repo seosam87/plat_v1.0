@@ -1,126 +1,124 @@
 # Requirements: SEO Management Platform
 
-**Defined:** 2026-04-09
-**Core Value:** A team member or client can open the platform and immediately see the SEO health of any site — positions, recent changes, pending tasks — without switching between GSC, spreadsheets, and WP admin.
+**Defined:** 2026-04-10
+**Milestone:** v4.0 Mobile & Telegram
+**Core Value:** SEO-специалист может с телефона или из Telegram не только посмотреть статус, но и действовать — запустить проверку, утвердить изменения, отправить отчёт клиенту, создать ТЗ.
 
-## v3.0 Requirements
+## v4.0 Requirements
 
-Requirements for v3.0 Client & Proposal milestone. Each maps to roadmap phases.
+### Mobile Foundation
 
-### Client CRM
+- [ ] **MOB-01**: Пользователь может открыть `/m/` на мобильном и видеть touch-friendly layout с bottom navigation (без sidebar)
+- [ ] **MOB-02**: Пользователь может открыть приложение через Telegram WebApp и автоматически авторизоваться через Telegram ID (initData HMAC-SHA256 валидация)
+- [ ] **MOB-03**: Мобильное приложение можно установить на домашний экран как PWA (manifest.json + service worker)
 
-- [ ] **CRM-01**: User can create and edit client card (company name, legal name, INN/KPP, phone, email, notes)
-- [ ] **CRM-02**: User can assign a manager to a client
-- [ ] **CRM-03**: User can attach/detach sites to a client organization
-- [ ] **CRM-04**: User can add contacts to a client (multiple contacts per org with name, phone, email, role)
-- [ ] **CRM-05**: User can log interactions per client (notes + date + author)
-- [ ] **CRM-06**: User can view client list with search and filter
-- [ ] **CRM-07**: User can view client detail page with attached sites, open tasks, and recent interactions
+### Дайджест
 
-### Site Audit Intake
+- [ ] **DIG-01**: Пользователь видит утреннюю сводку: ТОП изменения позиций, новые ошибки краулера, сработавшие алерты, просроченные задачи
+- [ ] **DIG-02**: Из дайджеста можно перейти к проблеме одним тапом
 
-- [x] **INTAKE-01**: User can fill a structured intake form per site (access, goals, competitors, GSC/Metrika status, SEO setup)
-- [x] **INTAKE-02**: User can see a verification checklist (WP verified, GSC connected, Metrika linked, sitemap found, crawl done)
-- [x] **INTAKE-03**: Checklist items auto-populate from existing platform data
-- [x] **INTAKE-04**: User can save intake form as draft and resume later (section-by-section HTMX save)
-- [x] **INTAKE-05**: Site shows "intake complete" status after form is finished
+### Позиции
 
-### Proposal Templates
+- [ ] **POS-01**: Пользователь может запустить проверку позиций для сайта с телефона
+- [ ] **POS-02**: Пользователь видит результаты проверки: позиции, тренды, изменения за период
+- [ ] **POS-03**: Пользователь может создать задачу на просевшие позиции прямо из результатов
 
-- [x] **TPL-01**: Admin can create, edit, and delete proposal templates with Jinja2 variable syntax
-- [x] **TPL-02**: System resolves a fixed set of ~15 template variables from DB (client name, site URL, positions, audit errors, etc.)
-- [x] **TPL-03**: User can preview a rendered template with real site/client data before generating PDF
-- [x] **TPL-04**: User can clone an existing template
+### Отчёт клиенту
 
-### Document Generator
+- [ ] **REP-01**: Пользователь может сформировать PDF-отчёт для клиента с телефона (выбор сайта → тип → создать)
+- [ ] **REP-02**: Пользователь может отправить готовый отчёт клиенту в Telegram или email одной кнопкой
 
-- [x] **DOC-01**: User can generate PDF from a proposal template + client + site data (async Celery task)
-- [x] **DOC-02**: User can view list of generated documents per client with filters by type and date
-- [x] **DOC-03**: User can download generated PDF documents
-- [x] **DOC-04**: System supports document types (proposal, audit_report, brief)
-- [x] **DOC-05**: User can send generated document via Telegram or SMTP
+### Здоровье сайта
+
+- [ ] **HLT-01**: Пользователь видит карточку здоровья сайта: доступность, свежие ошибки, статус последнего краулинга, резкие изменения позиций
+- [ ] **HLT-02**: Пользователь может запустить краулинг или поставить задачу на ошибку с этой карточки
+
+### Трафик
+
+- [ ] **TRF-01**: Пользователь может сравнить трафик по сайту за два периода с телефона
+- [ ] **TRF-02**: Пользователь видит какие страницы просели/выросли и может создать ТЗ на просевшую
+
+### Страницы (действия над контентом)
+
+- [ ] **PAG-01**: Пользователь видит список страниц сайта с аудит-статусом (индексация, позиции, ошибки)
+- [ ] **PAG-02**: Пользователь может одобрить или отклонить изменения из WP Pipeline (approve queue) с 2-tap confirmation
+- [ ] **PAG-03**: Пользователь может выполнить quick fix: обновить title/meta/schema/TOC одной кнопкой → push в WP
+- [ ] **PAG-04**: Пользователь может запустить массовую операцию (обновить Schema на всех статьях, добавить TOC) с подтверждением
+
+### Быстрая задача и ТЗ
+
+- [ ] **TSK-01**: Пользователь может быстро добавить задачу в проект с телефона (текст + приоритет)
+- [ ] **TSK-02**: Пользователь может создать ТЗ копирайтеру из данных аналитики и отправить в TG/email
+
+### Инструменты
+
+- [ ] **TLS-01**: Пользователь может запустить любой из 6 SEO-инструментов с телефона
+- [ ] **TLS-02**: Пользователь получает уведомление о завершении и видит результаты
+
+### Ошибки из Метрики/Вебмастера
+
+- [ ] **ERR-01**: Пользователь видит ошибки из Yandex Webmaster API (индексация, краулинг, санкции) и Метрики
+- [ ] **ERR-02**: Пользователь может составить ТЗ на исправление ошибки прямо из списка
+
+### Telegram Bot
+
+- [ ] **BOT-01**: Бот принимает команды только от разрешённых Telegram ID (allowlist)
+- [ ] **BOT-02**: Пользователь может выполнить /status, /logs, /test, /deploy через бота с подтверждением
+- [ ] **BOT-03**: Бот может открывать Mini Apps по inline-кнопкам (дайджест, отчёт, позиции)
+
+### Claude Code Agent (Spike)
+
+- [ ] **AGT-01**: Пользователь может отправить текстовую задачу боту, которая выполняется через Claude Code
+- [ ] **AGT-02**: Бот присылает diff на утверждение, пользователь подтверждает или отклоняет
 
 ## Future Requirements
 
-Deferred to v3.x or later. Tracked but not in current roadmap.
+### v4.1+
 
-### CRM Enhancements
-
-- **CRM-08**: Client health score aggregated from site health widget data
-- **CRM-09**: "Sites needing attention" widget on client card
-- **CRM-10**: Interaction log linked to generated documents
-
-### Intake Enhancements
-
-- **INTAKE-06**: Auto-generate baseline crawl on intake completion
-- **INTAKE-07**: Intake answers pre-populate proposal template variables
-
-### Template Enhancements
-
-- **TPL-05**: Platform data variables with live DB queries (positions_improved_count, crawl_errors, metrika_sessions_30d)
-- **TPL-06**: Service rate card integration (pricing variables from configurable rate card)
-- **TPL-07**: Rich text editor for template body (Quill.js or similar)
-- **TPL-08**: Template versioning (active / draft status)
-
-### Document Enhancements
-
-- **DOC-06**: Variable overrides at generation time
-- **DOC-07**: Auto-generate proposal after intake completion
-- **DOC-08**: Document audit trail via audit_log
+- Dark mode для мобильного интерфейса
+- Offline-режим (cached data в service worker)
+- Голосовые команды боту
+- Автономный DevOps-агент (мониторинг + авто-починка)
 
 ## Out of Scope
 
-Explicitly excluded. Documented to prevent scope creep.
-
 | Feature | Reason |
 |---------|--------|
-| Full CRM pipeline (deal stages, sales funnel) | Scope creep; platform is SEO monitoring, not Salesforce |
-| Email composer inside platform | SMTP auth, threading, reply tracking — derails milestone |
-| Contact deduplication / merge | Not relevant at 20-100 clients scale |
-| Client portal for CRM data | High RBAC complexity; defer to v4+ |
-| Public intake form (client-filled) | Auth-free route, CSRF, spam protection — 3 separate concerns |
-| Dynamic form builder (custom intake fields) | Fixed schema covers 95% of cases; form builder is a product in itself |
-| E-signature integration (DocuSign) | OAuth, legal compliance, webhooks — separate product area |
-| Real-time collaborative template editing | Conflict resolution, WebSocket — SPA territory |
-| LLM-generated proposal copy | Non-deterministic output; proposal text is legally significant |
-| Multi-language template variants | Doubles template management; ship Russian-first |
-| DOCX / Word export | python-docx out of scope per PROJECT.md |
-| Online proposal viewer (HTML) | Public auth-free URL, link expiry — significant security surface |
-| Bulk proposal generation | Proposals are intentional one-at-a-time; scheduled delivery covers periodic reports |
+| Нативное мобильное приложение (iOS/Android) | PWA + Telegram WebApp покрывают все сценарии |
+| Переделка десктопного UI | Текущий UI остаётся as-is, мобильный — отдельный слой |
+| SPA-фреймворк для мобильного | Jinja2 + HTMX — единый стек, без React/Vue |
+| Telegram Bot polling mode | Webhook — единственный безопасный вариант на одном VPS |
 
 ## Traceability
 
-Which phases cover which requirements. Updated during roadmap creation.
-
-| Requirement | Phase | Status |
-|-------------|-------|--------|
-| CRM-01 | Phase 20 | Pending |
-| CRM-02 | Phase 20 | Pending |
-| CRM-03 | Phase 20 | Pending |
-| CRM-04 | Phase 20 | Pending |
-| CRM-05 | Phase 20 | Pending |
-| CRM-06 | Phase 20 | Pending |
-| CRM-07 | Phase 20 | Pending |
-| INTAKE-01 | Phase 21 | Complete |
-| INTAKE-02 | Phase 21 | Complete |
-| INTAKE-03 | Phase 21 | Complete |
-| INTAKE-04 | Phase 21 | Complete |
-| INTAKE-05 | Phase 21 | Complete |
-| TPL-01 | Phase 22 | Complete |
-| TPL-02 | Phase 22 | Complete |
-| TPL-03 | Phase 22 | Complete |
-| TPL-04 | Phase 22 | Complete |
-| DOC-01 | Phase 23 | Complete |
-| DOC-02 | Phase 23 | Complete |
-| DOC-03 | Phase 23 | Complete |
-| DOC-04 | Phase 23 | Complete |
-| DOC-05 | Phase 23 | Complete |
-
-**Coverage:**
-- v3.0 requirements: 21 total
-- Mapped to phases: 21
-- Unmapped: 0
-
----
-*Requirements defined: 2026-04-09*
-*Last updated: 2026-04-09 after roadmap creation*
+| REQ-ID | Phase | Plan | Status |
+|--------|-------|------|--------|
+| MOB-01 | — | — | Pending |
+| MOB-02 | — | — | Pending |
+| MOB-03 | — | — | Pending |
+| DIG-01 | — | — | Pending |
+| DIG-02 | — | — | Pending |
+| POS-01 | — | — | Pending |
+| POS-02 | — | — | Pending |
+| POS-03 | — | — | Pending |
+| REP-01 | — | — | Pending |
+| REP-02 | — | — | Pending |
+| HLT-01 | — | — | Pending |
+| HLT-02 | — | — | Pending |
+| TRF-01 | — | — | Pending |
+| TRF-02 | — | — | Pending |
+| PAG-01 | — | — | Pending |
+| PAG-02 | — | — | Pending |
+| PAG-03 | — | — | Pending |
+| PAG-04 | — | — | Pending |
+| TSK-01 | — | — | Pending |
+| TSK-02 | — | — | Pending |
+| TLS-01 | — | — | Pending |
+| TLS-02 | — | — | Pending |
+| ERR-01 | — | — | Pending |
+| ERR-02 | — | — | Pending |
+| BOT-01 | — | — | Pending |
+| BOT-02 | — | — | Pending |
+| BOT-03 | — | — | Pending |
+| AGT-01 | — | — | Pending |
+| AGT-02 | — | — | Pending |
