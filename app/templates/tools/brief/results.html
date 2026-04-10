@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+{% block title %}{{ tool.name }} — Результаты — SEO Platform{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="/ui/dashboard">Dashboard</a><span>&rsaquo;</span>
+  <a href="/ui/tools/" style="color:#4f46e5;">Инструменты</a><span>&rsaquo;</span>
+  <a href="/ui/tools/{{ slug }}/" style="color:#4f46e5;">{{ tool.name }}</a><span>&rsaquo;</span>
+  <span>#{{ job.id | string | truncate(8, True, '') }}</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl">
+
+  <h1 class="text-2xl font-semibold text-gray-900 mb-6">{{ tool.name }}</h1>
+
+  {# HTMX status partial #}
+  <div class="mb-4">
+    {% include "tools/brief/partials/job_status.html" %}
+  </div>
+
+  {# Brief sectioned results — visible when complete or partial #}
+  {% if job.status in ('complete', 'partial') %}
+
+  {# Header with XLSX download #}
+  <div class="flex items-center justify-between mb-4">
+    <div class="flex items-center gap-3">
+      <h2 class="text-lg font-semibold text-gray-800">ТЗ сформировано</h2>
+      {% if job.status == 'partial' %}
+      <span style="background:#fffbeb;color:#92400e;border:1px solid #fde68a;font-size:0.75rem;font-weight:600;padding:0.15rem 0.6rem;border-radius:9999px;">частично</span>
+      {% endif %}
+    </div>
+    <a href="/ui/tools/{{ slug }}/{{ job.id }}/export?format=xlsx"
+       class="inline-flex items-center border border-indigo-200 rounded px-3 py-1 text-sm text-indigo-600 hover:bg-indigo-50">
+      Скачать ТЗ (XLSX)
+    </a>
+  </div>
+
+  {% if result %}
+
+  {# 1. Title / H1 card #}
+  <div class="card mb-4">
+    <h3 class="text-lg font-semibold text-gray-800 mb-3">Рекомендации по title и H1</h3>
+    {% if result.title_suggestions %}
+    <ol class="list-decimal list-inside space-y-1">
+      {% for title in result.title_suggestions %}
+      <li class="text-sm text-gray-700">{{ title }}</li>
+      {% endfor %}
+    </ol>
+    {% else %}
+    <p class="text-sm text-gray-500">Данные недоступны.</p>
+    {% endif %}
+  </div>
+
+  {# 2. H2 cloud card #}
+  <div class="card mb-4">
+    <h3 class="text-lg font-semibold text-gray-800 mb-3">Заголовки H2 из ТОП-10</h3>
+    {% if result.h2_cloud %}
+    <div class="flex flex-wrap">
+      {% for item in result.h2_cloud %}
+      <span class="inline-block bg-indigo-50 text-indigo-700 rounded px-2 py-1 text-xs font-semibold mr-2 mb-2">
+        {{ item.text }} <span class="text-indigo-400">({{ item.count }})</span>
+      </span>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-sm text-gray-500">Данные недоступны.</p>
+    {% endif %}
+  </div>
+
+  {# 3. Highlights card #}
+  <div class="card mb-4">
+    <h3 class="text-lg font-semibold text-gray-800 mb-3">Подсветки Яндекса</h3>
+    {% if result.highlights %}
+    <ul class="list-disc list-inside space-y-1">
+      {% for hl in result.highlights %}
+      <li class="text-sm text-gray-700">{{ hl }}</li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="text-sm text-gray-500">Данные недоступны.</p>
+    {% endif %}
+  </div>
+
+  {# 4. Thematic words card #}
+  <div class="card mb-4">
+    <h3 class="text-lg font-semibold text-gray-800 mb-3">Тематические слова</h3>
+    {% if result.thematic_words %}
+    <table class="w-full text-sm">
+      <thead>
+        <tr>
+          <th class="text-left text-xs font-semibold text-gray-500 uppercase pb-2">Слово</th>
+          <th class="text-right text-xs font-semibold text-gray-500 uppercase pb-2">Частота</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in result.thematic_words %}
+        <tr class="border-t border-gray-100">
+          <td class="py-1 text-gray-700">{{ item.word }}</td>
+          <td class="py-1 text-right text-gray-500">{{ item.freq }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="text-sm text-gray-500">Данные недоступны.</p>
+    {% endif %}
+  </div>
+
+  {# 5. Volume stats card #}
+  <div class="card mb-4">
+    <h3 class="text-lg font-semibold text-gray-800 mb-3">Объём текста</h3>
+    <div class="flex flex-wrap gap-6">
+      <div class="flex flex-col">
+        <span class="text-xs font-semibold text-gray-500 uppercase mb-1">Средняя длина</span>
+        <span class="text-lg font-semibold text-gray-800">{{ result.avg_text_length or '—' }} симв.</span>
+      </div>
+      <div class="flex flex-col">
+        <span class="text-xs font-semibold text-gray-500 uppercase mb-1">Среднее H2</span>
+        <span class="text-lg font-semibold text-gray-800">{{ result.avg_h2_count or '—' }}</span>
+      </div>
+      <div class="flex flex-col">
+        <span class="text-xs font-semibold text-gray-500 uppercase mb-1">Коммерциализация</span>
+        <span class="text-lg font-semibold text-gray-800">{{ result.commercialization_pct or '—' }}%</span>
+      </div>
+      <div class="flex flex-col">
+        <span class="text-xs font-semibold text-gray-500 uppercase mb-1">Страниц проанализировано</span>
+        <span class="text-lg font-semibold text-gray-800">{{ result.pages_crawled or 0 }}/{{ result.pages_attempted or 0 }}</span>
+      </div>
+    </div>
+  </div>
+
+  {% else %}
+  <div class="card mb-4">
+    <p class="text-sm text-gray-500 py-4 text-center">Результаты ещё формируются или недоступны.</p>
+  </div>
+  {% endif %}
+
+  {% endif %}{# end if job.status in complete/partial #}
+
+</div>
+{% endblock %}
