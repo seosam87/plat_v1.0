@@ -105,6 +105,9 @@ A team member or client can open the platform and immediately see the SEO health
 
 **Goal:** Мобильные фокус-приложения + Telegram-бот — упрощённые точки входа в платформу с возможностью не только просматривать, но и действовать (quick fix, approve, ТЗ, отправка).
 
+**Completed:**
+- Phase 26 (Mobile Foundation): `base_mobile.html` с bottom nav, `/m/` router, Telegram WebApp auth (HMAC-SHA256), PWA manifest + service worker
+
 **Target features:**
 - Mobile foundation: `base_mobile.html`, роутинг `/m/`, Telegram WebApp обёртка
 - 8 фокус-приложений: Дайджест, Позиции, Отчёт клиенту, Здоровье сайта, Трафик, Страницы (approve queue + quick fix), Быстрая задача, Инструменты
@@ -115,4 +118,4 @@ A team member or client can open the platform and immediately see the SEO health
 This document evolves at phase transitions and milestone boundaries.
 
 ---
-*Last updated: 2026-04-10 after v4.0 milestone start*
+*Last updated: 2026-04-10 after Phase 26 (Mobile Foundation) complete*
