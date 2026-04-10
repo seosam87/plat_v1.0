@@ -55,7 +55,7 @@ Exceptions:
 | Role | Size | Weight | Line Height |
 |------|------|--------|-------------|
 | Body / table cells | 14px (`text-sm`) | 400 | 1.5 (browser default) |
-| Label / form label | 14px (`text-sm`) | 600 (`font-semibold`) | 1.5 |
+| Label / form label / breadcrumb | 14px (`text-sm`) | 600 (`font-semibold`) for label; 400 for breadcrumb | 1.5 |
 | Subheading / card title | 18px (`text-lg`) | 600 (`font-semibold`) | 1.2 |
 | Page heading (H1) | 24px (`text-2xl`) | 600 (`font-semibold`) | 1.2 |
 
@@ -63,9 +63,9 @@ Notes:
 - Badge text: 12px (`text-xs`) at weight 600
 - Table header text: 12px (`text-xs`) at weight 600, uppercase letter-spacing
 - Counter/hint text: 12px (`text-xs`) at weight 400, color `#6b7280`
-- Breadcrumb text: 13.6px (`0.85rem`) at weight 400
+- Breadcrumb text: 14px (`text-sm`) at weight 400 — use `text-sm` class, NOT `0.85rem`; color `#4f46e5` for links
 
-**Source:** Extracted directly from `tool_landing.html` and `tool_results.html` class lists.
+**Source:** Extracted directly from `tool_landing.html` and `tool_results.html` class lists. Breadcrumb consolidated from 13.6px (0.85rem) to 14px (`text-sm`) to maintain a 4-size scale: 12px / 14px / 18px / 24px.
 
 ---
 
@@ -94,6 +94,14 @@ Status colors (semantic, not accent):
 - Failed/Error: `#fef2f2` bg / `#991b1b` text / `#fecaca` border (red)
 
 **Source:** Extracted from `base.html`, `tool_landing.html`, `tool_results.html`, `job_status.html`.
+
+---
+
+## Visual Focal Points
+
+**Landing page (tool input form):** The primary visual anchor is the phrase textarea + CTA button group. The textarea occupies the dominant vertical space of the content area; the CTA button (`btn-primary`, indigo-600 background, full-width on mobile) sits immediately below it. The user's eye lands here first on every tool's landing page.
+
+**Results page:** The primary visual anchor depends on job status. When status is `pending` or `running`, the status banner (blue-tinted, top of content area, full-width card) is the focal point — it is the only element that changes dynamically via HTMX polling. When status is `complete`, the first section card (results table or, for Copywriting Brief, the Title/H1 recommendations card) becomes the focal point; the download export button is placed prominently at the top-right of the results header to draw the eye toward the primary action.
 
 ---
 
@@ -209,7 +217,7 @@ All copy in Russian. Match existing platform voice (direct, functional, no marke
 |---------|------|
 | Empty job history | Нет выполненных заданий. Выберите инструмент в сайдбаре и запустите задачу. |
 | Delete job confirmation | Удалить задание #{id}? Результаты будут безвозвратно удалены. |
-| Re-run button label | Повторить |
+| Re-run button label | Повторить задание |
 | Pagination | Показать ещё / Страница {N} из {M} |
 
 ---
