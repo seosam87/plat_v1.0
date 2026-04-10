@@ -79,7 +79,7 @@ v3.x analytics phases and v4.x UI overhaul phases also completed within v1.0.
 ### v4.0 Mobile & Telegram (active)
 
 - [x] **Phase 26: Mobile Foundation** - base_mobile.html, /m/ routing, Telegram WebApp auth, PWA (completed 2026-04-10)
-- [ ] **Phase 27: Digest & Site Health** - утренняя сводка + карточка здоровья сайта
+- [x] **Phase 27: Digest & Site Health** - утренняя сводка + карточка здоровья сайта (completed 2026-04-10)
 - [ ] **Phase 28: Positions & Traffic** - мобильные приложения позиций и трафика
 - [ ] **Phase 29: Reports & Tools** - генерация отчётов и запуск инструментов с телефона
 - [ ] **Phase 30: Errors & Quick Task** - ошибки Яндекса + быстрое создание задач и ТЗ
@@ -114,7 +114,7 @@ Plans:
   2. Из любого элемента дайджеста пользователь попадает на нужный раздел платформы одним тапом
   3. Пользователь открывает `/m/health/{site_id}` и видит карточку: доступность, свежие ошибки, статус краулинга, резкие изменения позиций
   4. С карточки здоровья пользователь может запустить краулинг или поставить задачу на ошибку — действие подтверждается тостом
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans complete
 Plans:
 - [x] 27-01-PLAN.md — Digest service layer + /m/digest page (DIG-01, DIG-02)
 - [ ] 27-02-PLAN.md — Health card page + actions (HLT-01, HLT-02)
@@ -200,7 +200,7 @@ Plans:
 | 20–23 | v3.0 | 13/13 | Complete | 2026-04-10 |
 | 24–25 | v3.1 | 10/10 | Complete | 2026-04-10 |
 | 26 | v4.0 | 3/3 | Complete    | 2026-04-10 |
-| 27 | v4.0 | 1/2 | In Progress|  |
+| 27 | v4.0 | 1/2 | Complete    | 2026-04-10 |
 | 28 | v4.0 | 0/? | Not started | - |
 | 29 | v4.0 | 0/? | Not started | - |
 | 30 | v4.0 | 0/? | Not started | - |
