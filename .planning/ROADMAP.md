@@ -226,3 +226,9 @@ Two deployment-drift incidents caught — no automated sync between git repo and
 ### Phase 999.6: LLM API Integration & Live Verification (BACKLOG)
 
 Complete human-verify checkpoint deferred from Phase 16-04. Requires real Anthropic API key for live testing.
+
+### Phase 999.7: Remove server log from mobile UI (BACKLOG)
+
+**Goal:** Убрать или настроить server log в мобильном интерфейсе — виден в Telegram Mini App, бесполезен для пользователя. Проверить base_mobile.html, digest.html и все /m/ шаблоны на предмет отладочных элементов.
+**Requirements:** TBD
+**Plans:** 0 plans
