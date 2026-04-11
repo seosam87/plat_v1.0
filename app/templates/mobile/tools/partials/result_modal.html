@@ -1,0 +1,34 @@
+{# 'Показать все' modal: full paginated result table #}
+<div id="result-modal"
+     class="fixed inset-0 bg-black/40 z-50 flex items-end"
+     onclick="if(event.target===this){this.remove();}">
+  <div class="bg-white rounded-t-lg w-full max-h-[85vh] overflow-y-auto p-4"
+       onclick="event.stopPropagation();">
+    <div class="flex items-center gap-2 mb-3">
+      <div class="text-sm font-semibold flex-1">Все результаты ({{ total }})</div>
+      <button type="button" class="text-sm text-gray-500 px-3 py-1" onclick="document.getElementById('result-modal').remove();">Закрыть</button>
+    </div>
+
+    <div class="divide-y divide-gray-100">
+      {% for row in values %}
+      <div class="p-3 min-h-[44px]">
+        {% for val in row %}
+          <div class="{% if loop.first %}text-sm font-semibold truncate{% else %}text-xs text-gray-500 truncate{% endif %}">
+            {% if headers and loop.index0 < headers|length %}<span class="text-gray-400">{{ headers[loop.index0] }}:</span> {% endif %}{{ val }}
+          </div>
+        {% endfor %}
+      </div>
+      {% endfor %}
+    </div>
+
+    {% if has_next %}
+    <button type="button"
+            class="w-full min-h-[44px] rounded-lg text-sm font-semibold border border-gray-300 text-gray-700 bg-white mt-3 py-3"
+            hx-get="/m/tools/{{ slug }}/jobs/{{ job_id }}/all?page={{ page + 1 }}"
+            hx-target="#result-modal"
+            hx-swap="outerHTML">
+      Показать ещё
+    </button>
+    {% endif %}
+  </div>
+</div>

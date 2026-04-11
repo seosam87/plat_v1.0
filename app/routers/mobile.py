@@ -905,6 +905,98 @@ async def mobile_tool_run_submit(
     )
 
 
+@router.get("/tools/{slug}/jobs/{job_id}", response_class=HTMLResponse, name="mobile_tool_result")
+async def mobile_tool_result(
+    slug: str,
+    job_id: uuid.UUID,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> HTMLResponse:
+    """Mobile result view — summary + top-20 + XLSX link + 'Показать все' button (D-13)."""
+    from app.routers.tools import TOOL_REGISTRY, _get_tool_models, _result_to_row, _EXPORT_HEADERS
+    from app.services.mobile_tools_service import count_results, get_paginated_results, get_top_results, get_job_for_user
+
+    if slug not in TOOL_REGISTRY:
+        raise HTTPException(status_code=404, detail="Unknown tool")
+    registry = TOOL_REGISTRY[slug]
+
+    JobModel, ResultModel = _get_tool_models(slug)
+
+    job = await get_job_for_user(db, JobModel, job_id, user.id)
+    if job is None:
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    total = await count_results(db, ResultModel, job_id)
+    top_rows = await get_top_results(db, ResultModel, job_id, limit=20)
+    top_values = [_result_to_row(r, slug) for r in top_rows]
+
+    status_label = {
+        "complete": "Завершено",
+        "done": "Завершено",
+        "partial": "Завершено",
+        "failed": "Ошибка",
+    }.get((job.status or "").lower(), "Завершено")
+
+    return mobile_templates.TemplateResponse(
+        "mobile/tools/result.html",
+        {
+            "request": request,
+            "active_tab": "more",
+            "slug": slug,
+            "job_id": str(job_id),
+            "tool": {"slug": slug, **registry},
+            "job": job,
+            "status_label": status_label,
+            "total": total,
+            "top_values": top_values,
+            "headers": _EXPORT_HEADERS.get(slug, []),
+        },
+    )
+
+
+@router.get("/tools/{slug}/jobs/{job_id}/all", response_class=HTMLResponse)
+async def mobile_tool_result_all(
+    slug: str,
+    job_id: uuid.UUID,
+    request: Request,
+    page: int = 1,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> HTMLResponse:
+    """'Показать все' modal content — paginated full results (HTMX target)."""
+    from app.routers.tools import TOOL_REGISTRY, _get_tool_models, _result_to_row, _EXPORT_HEADERS
+    from app.services.mobile_tools_service import count_results, get_paginated_results, get_job_for_user
+
+    if slug not in TOOL_REGISTRY:
+        raise HTTPException(status_code=404, detail="Unknown tool")
+    JobModel, ResultModel = _get_tool_models(slug)
+
+    job = await get_job_for_user(db, JobModel, job_id, user.id)
+    if job is None:
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    page_size = 50
+    rows = await get_paginated_results(db, ResultModel, job_id, page, page_size)
+    total = await count_results(db, ResultModel, job_id)
+    values = [_result_to_row(r, slug) for r in rows]
+
+    return mobile_templates.TemplateResponse(
+        "mobile/tools/partials/result_modal.html",
+        {
+            "request": request,
+            "slug": slug,
+            "job_id": str(job_id),
+            "headers": _EXPORT_HEADERS.get(slug, []),
+            "values": values,
+            "page": page,
+            "page_size": page_size,
+            "total": total,
+            "has_next": (page * page_size) < total,
+        },
+    )
+
+
 @router.get("/tools/{slug}/jobs/{job_id}/status", response_class=HTMLResponse)
 async def mobile_tool_job_status(
     slug: str,

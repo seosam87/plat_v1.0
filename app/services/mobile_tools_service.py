@@ -101,3 +101,53 @@ async def get_job_for_user(
     stmt = select(job_model).where(job_model.id == job_id, job_model.user_id == user_id)
     result = await db.execute(stmt)
     return result.scalars().first()
+
+
+async def get_top_results(
+    db: AsyncSession,
+    result_model: type,
+    job_id: uuid.UUID,
+    limit: int = 20,
+) -> list:
+    """Return first `limit` rows for a job (ordered by primary key)."""
+    from sqlalchemy import func  # noqa: F401 — func used for count_results below
+    stmt = (
+        select(result_model)
+        .where(result_model.job_id == job_id)
+        .order_by(result_model.id)
+        .limit(limit)
+    )
+    result = await db.execute(stmt)
+    return list(result.scalars().all())
+
+
+async def count_results(
+    db: AsyncSession,
+    result_model: type,
+    job_id: uuid.UUID,
+) -> int:
+    """Total result row count for a job."""
+    from sqlalchemy import func
+    stmt = select(func.count(result_model.id)).where(result_model.job_id == job_id)
+    result = await db.execute(stmt)
+    return int(result.scalar() or 0)
+
+
+async def get_paginated_results(
+    db: AsyncSession,
+    result_model: type,
+    job_id: uuid.UUID,
+    page: int = 1,
+    page_size: int = 50,
+) -> list:
+    """Return one page of results. 1-indexed `page`."""
+    offset = max(0, (page - 1) * page_size)
+    stmt = (
+        select(result_model)
+        .where(result_model.job_id == job_id)
+        .order_by(result_model.id)
+        .offset(offset)
+        .limit(page_size)
+    )
+    result = await db.execute(stmt)
+    return list(result.scalars().all())

@@ -1,0 +1,53 @@
+{% extends "mobile/base_mobile.html" %}
+{% block title %}{{ tool.name }}{% endblock %}
+{% block content %}
+<div class="p-4">
+  <a href="/m/tools/{{ slug }}/run" class="text-sm text-indigo-600 underline mb-2 inline-block">← {{ tool.name }}</a>
+
+  <div class="bg-white rounded-lg p-4 mb-4">
+    <div class="flex items-center gap-2 mb-2">
+      <div class="text-sm font-semibold flex-1 truncate">{{ tool.name }}</div>
+      {% if status_label == "Ошибка" %}
+        <span class="bg-red-100 text-red-700 text-xs rounded px-2 py-0.5 font-semibold">Ошибка</span>
+      {% else %}
+        <span class="bg-green-100 text-green-700 text-xs rounded px-2 py-0.5 font-semibold">Завершено</span>
+      {% endif %}
+    </div>
+    <div class="text-xs text-gray-500 mb-3">Всего результатов: {{ total }}</div>
+    <a href="/ui/tools/{{ slug }}/{{ job_id }}/export?format=xlsx"
+       class="block w-full min-h-[44px] rounded-lg text-sm font-semibold text-center border border-gray-300 text-gray-700 bg-white py-3 no-underline">
+       Скачать XLSX
+    </a>
+  </div>
+
+  {% if total == 0 %}
+    <div class="bg-white rounded-lg p-4 text-sm text-gray-500">
+      Результатов нет. Запустите инструмент с данными.
+    </div>
+  {% else %}
+  <div class="bg-white rounded-lg divide-y divide-gray-100">
+    {% for row in top_values %}
+    <div class="p-3 min-h-[44px]">
+      {% for val in row %}
+        <div class="{% if loop.first %}text-sm font-semibold truncate{% else %}text-xs text-gray-500 truncate{% endif %}">
+          {% if headers and loop.index0 < headers|length %}<span class="text-gray-400">{{ headers[loop.index0] }}:</span> {% endif %}{{ val }}
+        </div>
+      {% endfor %}
+    </div>
+    {% endfor %}
+  </div>
+
+  {% if total > 20 %}
+  <button type="button"
+          class="w-full min-h-[44px] rounded-lg text-sm font-semibold border border-gray-300 text-gray-700 bg-white mt-3 py-3"
+          hx-get="/m/tools/{{ slug }}/jobs/{{ job_id }}/all?page=1"
+          hx-target="#modal-slot"
+          hx-swap="innerHTML">
+    Показать все
+  </button>
+  {% endif %}
+  {% endif %}
+
+  <div id="modal-slot"></div>
+</div>
+{% endblock %}
