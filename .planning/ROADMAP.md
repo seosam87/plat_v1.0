@@ -244,7 +244,7 @@ Complete human-verify checkpoint deferred from Phase 16-04. Requires real Anthro
 - P4: медиа-привязки (ссылки на видео/статьи), страницы экспертов, FTS по `summary_md`
 
 **Requirements:** TBD (backlog — not mapped to v4.0 requirement IDs)
-**Plans:** 5/6 plans complete (UAT gap-closure Plan 06 pending)
+**Plans:** 6/6 plans complete
 
 Plans:
 - [x] 999.8-01-data-foundation-PLAN.md — Models, Alembic 0054, markdown filter, sidebar, router skeleton (Wave 1)
@@ -252,7 +252,7 @@ Plans:
 - [x] 999.8-03-playbook-builder-PLAN.md — Template list, drag-drop builder with Sortable.js@1.15.0, clone (Wave 2)
 - [x] 999.8-04-apply-and-project-tab-PLAN.md — Apply flow, kanban tab refactor, step checklist, hint service (Wave 3)
 - [x] 999.8-05-banner-and-seed-PLAN.md — Global banner, step API endpoints, idempotent demo seed (Wave 3)
-- [ ] 999.8-06-uat-fixes-PLAN.md — UAT gap closure: category filter 422, apply HX-Refresh, openPlaybookStep JS extraction, MissingGreenlet eager-load (Wave 4)
+- [x] 999.8-06-uat-fixes-PLAN.md — UAT gap closure: category filter 422, apply HX-Refresh, openPlaybookStep JS extraction, MissingGreenlet eager-load (Wave 4)
 
 ### Phase 999.9: Prompt Library — каркас AI-агентов через библиотеку промптов (BACKLOG)
 
