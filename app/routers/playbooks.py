@@ -25,13 +25,13 @@ from __future__ import annotations
 
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Body, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import require_admin, require_any_authenticated
 from app.dependencies import get_db
-from app.models.playbook import ActionKind, BlockMediaKind
+from app.models.playbook import ActionKind, BlockMediaKind, PlaybookCategory
 from app.models.user import User
 from app.services import playbook_service as svc
 from app.services.playbook_service import (
@@ -40,6 +40,8 @@ from app.services.playbook_service import (
     BlockUpdate,
     ExpertCreate,
     ExpertUpdate,
+    PlaybookCreate,
+    PlaybookUpdate,
 )
 from app.template_engine import templates
 
@@ -332,19 +334,239 @@ async def ui_playbook_expert_delete(
 
 
 # ---------------------------------------------------------------------------
-# --- Playbook templates list (Plan 01 placeholder — Plan 03 fills in) ---
+# --- Playbook Template Builder (Plan 03) ---
 # ---------------------------------------------------------------------------
 
 
 @router.get("/ui/playbooks", response_class=HTMLResponse)
 async def ui_playbook_templates(
     request: Request,
+    category: str | None = None,
     user: User = Depends(require_any_authenticated),
     db: AsyncSession = Depends(get_db),
 ) -> HTMLResponse:
-    """Placeholder playbook templates list. Filled in by Plan 03."""
+    """Playbook template list grid with optional category filter."""
+    cat_enum = PlaybookCategory(category) if category else None
+    playbooks = await svc.list_playbooks(db, category=cat_enum)
+    is_admin = user.role.value == "admin"
     return templates.TemplateResponse(
         request,
         "playbooks/index.html",
-        {"playbooks": [], "is_admin": user.role.value == "admin"},
+        {
+            "playbooks": playbooks,
+            "is_admin": is_admin,
+            "selected_category": category,
+            "all_categories": list(PlaybookCategory),
+        },
     )
+
+
+@router.get("/ui/playbooks/new", response_class=HTMLResponse)
+async def ui_playbook_new_form(
+    request: Request,
+    user: User = Depends(require_admin),
+) -> HTMLResponse:
+    """Return the inline 'create template' form fragment (admin only)."""
+    return templates.TemplateResponse(
+        request,
+        "playbooks/_new_form.html",
+        {"all_categories": list(PlaybookCategory)},
+    )
+
+
+@router.post("/ui/playbooks/new")
+async def ui_playbook_create(
+    request: Request,
+    user: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Persist a new playbook template and redirect to the builder."""
+    form = await request.form()
+    data = PlaybookCreate(
+        name=form["name"],
+        description_md=form.get("description_md") or None,
+        category=(
+            PlaybookCategory(form["category"]) if form.get("category") else None
+        ),
+        is_published=form.get("is_published") == "on",
+    )
+    playbook = await svc.create_playbook(db, data, created_by=user.id)
+    return RedirectResponse(
+        f"/ui/playbooks/{playbook.id}/edit", status_code=303
+    )
+
+
+@router.get("/ui/playbooks/{playbook_id}/edit", response_class=HTMLResponse)
+async def ui_playbook_builder(
+    request: Request,
+    playbook_id: uuid.UUID,
+    user: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+) -> HTMLResponse:
+    """Drag-and-drop builder page for a single playbook template."""
+    playbook = await svc.get_playbook_with_steps(db, playbook_id)
+    if playbook is None:
+        raise HTTPException(status_code=404, detail="Playbook not found")
+    blocks = await svc.list_blocks(db)
+    categories = await svc.list_categories(db)
+    return templates.TemplateResponse(
+        request,
+        "playbooks/builder.html",
+        {
+            "playbook": playbook,
+            "library_blocks": blocks,
+            "categories": categories,
+            "all_categories": list(PlaybookCategory),
+        },
+    )
+
+
+@router.post("/ui/playbooks/{playbook_id}/meta")
+async def ui_playbook_update_meta(
+    request: Request,
+    playbook_id: uuid.UUID,
+    user: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Save playbook metadata (name / category / is_published) via HTMX."""
+    form = await request.form()
+    data = PlaybookUpdate(
+        name=form["name"],
+        description_md=form.get("description_md") or None,
+        category=(
+            PlaybookCategory(form["category"]) if form.get("category") else None
+        ),
+        is_published=form.get("is_published") == "on",
+    )
+    pb = await svc.update_playbook(db, playbook_id, data)
+    if pb is None:
+        raise HTTPException(status_code=404, detail="Playbook not found")
+    return HTMLResponse(
+        "<div class='text-xs text-emerald-600'>Сохранено</div>"
+    )
+
+
+@router.post(
+    "/ui/playbooks/{playbook_id}/steps/add",
+    response_class=HTMLResponse,
+)
+async def ui_playbook_add_step(
+    request: Request,
+    playbook_id: uuid.UUID,
+    user: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+) -> HTMLResponse:
+    """Append a block as a new step and return the rendered step row."""
+    form = await request.form()
+    block_id = uuid.UUID(form["block_id"])
+    step = await svc.add_step(db, playbook_id, block_id)
+    if step is None:
+        raise HTTPException(status_code=404, detail="Playbook not found")
+    return templates.TemplateResponse(
+        request,
+        "playbooks/_step_row_builder.html",
+        {"step": step, "playbook_id": playbook_id},
+    )
+
+
+@router.delete("/ui/playbooks/{playbook_id}/steps/{step_id}")
+async def ui_playbook_remove_step(
+    playbook_id: uuid.UUID,
+    step_id: uuid.UUID,
+    user: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Delete a single step from the playbook template."""
+    ok = await svc.remove_step(db, step_id)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Step not found")
+    return HTMLResponse("", status_code=200)
+
+
+@router.post("/ui/playbooks/{playbook_id}/steps/reorder")
+async def ui_playbook_reorder_steps(
+    playbook_id: uuid.UUID,
+    payload: dict = Body(...),
+    user: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Persist a new step ordering.
+
+    Body: `{"order": ["uuid1", "uuid2", ...]}` — list must be a complete
+    permutation of the playbook's existing step IDs.
+    """
+    order = [uuid.UUID(sid) for sid in payload.get("order", [])]
+    ok = await svc.reorder_steps(db, playbook_id, order)
+    if not ok:
+        raise HTTPException(
+            status_code=400, detail="Invalid order — id set mismatch"
+        )
+    return {"status": "ok"}
+
+
+@router.put(
+    "/ui/playbooks/{playbook_id}/steps/{step_id}/move",
+    response_class=HTMLResponse,
+)
+async def ui_playbook_move_step(
+    request: Request,
+    playbook_id: uuid.UUID,
+    step_id: uuid.UUID,
+    direction: str,
+    user: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+) -> HTMLResponse:
+    """Keyboard-accessible up/down move. Re-renders the full step list."""
+    if direction not in ("up", "down"):
+        raise HTTPException(
+            status_code=400, detail="direction must be up or down"
+        )
+    await svc.move_step(db, playbook_id, step_id, direction)
+    pb = await svc.get_playbook_with_steps(db, playbook_id)
+    return templates.TemplateResponse(
+        request,
+        "playbooks/_builder_step_list.html",
+        {"playbook": pb},
+    )
+
+
+@router.post("/ui/playbooks/{playbook_id}/steps/{step_id}/note")
+async def ui_playbook_update_step_note(
+    request: Request,
+    playbook_id: uuid.UUID,
+    step_id: uuid.UUID,
+    user: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Save a per-step markdown note (blur auto-save)."""
+    form = await request.form()
+    await svc.update_step_note(db, step_id, form.get("note_md"))
+    return HTMLResponse("", status_code=204)
+
+
+@router.post("/ui/playbooks/{playbook_id}/clone")
+async def ui_playbook_clone(
+    playbook_id: uuid.UUID,
+    user: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Deep-clone a playbook template and redirect to the new builder."""
+    new_pb = await svc.clone_playbook(db, playbook_id, created_by=user.id)
+    if new_pb is None:
+        raise HTTPException(status_code=404, detail="Playbook not found")
+    return RedirectResponse(
+        f"/ui/playbooks/{new_pb.id}/edit", status_code=303
+    )
+
+
+@router.post("/ui/playbooks/{playbook_id}/delete")
+async def ui_playbook_delete(
+    playbook_id: uuid.UUID,
+    user: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Delete a playbook template (cascades to PlaybookStep rows)."""
+    ok = await svc.delete_playbook(db, playbook_id)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Playbook not found")
+    return RedirectResponse("/ui/playbooks", status_code=303)
