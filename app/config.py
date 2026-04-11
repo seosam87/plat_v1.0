@@ -74,5 +74,8 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = "INFO"
     APP_URL: str = "http://localhost:8000"
 
+    # Mobile reports download links (absolute URL for Telegram delivery)
+    APP_BASE_URL: str = "http://localhost:8000"
+
 
 settings = Settings()
