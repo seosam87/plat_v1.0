@@ -675,8 +675,10 @@ async def ui_project_playbook_apply(
 ):
     """Copy-on-apply a Playbook template to this project.
 
-    Returns an HX-Redirect so the modal closes client-side and the
-    Kanban page reloads with the Playbook tab active (#playbook hash).
+    Returns an HX-Refresh header so the modal closes and the Kanban
+    page fully reloads. kanban.html reads the URL hash on load and
+    auto-activates the #playbook tab, so the user lands on the new
+    ProjectPlaybook card immediately.
     """
     form = await request.form()
     try:
@@ -686,10 +688,15 @@ async def ui_project_playbook_apply(
     pp = await svc.apply_playbook(db, project_id, playbook_id, applied_by=user.id)
     if pp is None:
         raise HTTPException(status_code=404, detail="Playbook not found")
+    # HX-Refresh triggers a full page reload regardless of current URL
+    # (HX-Redirect is a no-op when target URL == current URL, which happens
+    # because switchProjectTab() already wrote #playbook into history via
+    # replaceState). kanban.html already auto-activates the #playbook tab on
+    # page load, so the reload lands in the right place.
     return HTMLResponse(
         "",
         status_code=200,
-        headers={"HX-Redirect": f"/ui/projects/{project_id}/kanban#playbook"},
+        headers={"HX-Refresh": "true"},
     )
 
 
