@@ -83,6 +83,13 @@
       return;
     }
 
+    // Skip on playbook admin/config pages — banner is for target flow screens,
+    // not the screens where the admin configures blocks/templates/experts.
+    if (window.location.pathname.indexOf('/ui/playbooks') === 0) {
+      hide();
+      return;
+    }
+
     var state;
     try {
       var raw = sessionStorage.getItem(SS_KEY);
