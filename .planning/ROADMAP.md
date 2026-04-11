@@ -81,7 +81,7 @@ v3.x analytics phases and v4.x UI overhaul phases also completed within v1.0.
 - [x] **Phase 26: Mobile Foundation** - base_mobile.html, /m/ routing, Telegram WebApp auth, PWA (completed 2026-04-10)
 - [x] **Phase 27: Digest & Site Health** - утренняя сводка + карточка здоровья сайта (completed 2026-04-10)
 - [x] **Phase 28: Positions & Traffic** - мобильные приложения позиций и трафика (completed 2026-04-10)
-- [ ] **Phase 29: Reports & Tools** - генерация отчётов и запуск инструментов с телефона
+- [x] **Phase 29: Reports & Tools** - генерация отчётов и запуск инструментов с телефона (completed 2026-04-11)
 - [ ] **Phase 30: Errors & Quick Task** - ошибки Яндекса + быстрое создание задач и ТЗ
 - [ ] **Phase 31: Pages App** - approve queue, quick fix, массовые операции над контентом
 - [ ] **Phase 32: Telegram Bot** - отдельный Docker-сервис, команды, Mini App кнопки
@@ -145,11 +145,11 @@ Plans:
   2. Готовый отчёт пользователь отправляет клиенту в Telegram или email одной кнопкой прямо с телефона
   3. Пользователь открывает `/m/tools` и видит все 6 SEO-инструментов в мобильном формате, запускает любой из них
   4. После завершения инструмента пользователь получает in-app уведомление и видит результаты в мобильном представлении
-**Plans:** 2/3 plans executed
+**Plans:** 3/3 plans complete
 Plans:
 - [x] 29-01-reports-mobile-PLAN.md — Mobile reports: APP_BASE_URL, mobile_reports_service, /m/reports/new + delivery endpoints (REP-01, REP-02)
 - [x] 29-02-tools-list-run-PLAN.md — Mobile tools: /m/tools list + /m/tools/{slug}/run + HTMX progress polling (TLS-01)
-- [ ] 29-03-tool-result-notify-PLAN.md — Mobile tool result view + notify() in 6 tool tasks (TLS-02, completes TLS-01)
+- [x] 29-03-tool-result-notify-PLAN.md — Mobile tool result view + notify() in 6 tool tasks (TLS-02, completes TLS-01)
 **UI hint**: yes
 
 ### Phase 30: Errors & Quick Task
@@ -209,7 +209,7 @@ Plans:
 | 26 | v4.0 | 3/3 | Complete    | 2026-04-10 |
 | 27 | v4.0 | 1/2 | Complete    | 2026-04-10 |
 | 28 | v4.0 | 2/2 | Complete    | 2026-04-10 |
-| 29 | v4.0 | 2/3 | In Progress|  |
+| 29 | v4.0 | 3/3 | Complete   | 2026-04-11 |
 | 30 | v4.0 | 0/? | Not started | - |
 | 31 | v4.0 | 0/? | Not started | - |
 | 32 | v4.0 | 0/? | Not started | - |
