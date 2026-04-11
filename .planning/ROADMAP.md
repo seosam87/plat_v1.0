@@ -244,12 +244,12 @@ Complete human-verify checkpoint deferred from Phase 16-04. Requires real Anthro
 - P4: медиа-привязки (ссылки на видео/статьи), страницы экспертов, FTS по `summary_md`
 
 **Requirements:** TBD (backlog — not mapped to v4.0 requirement IDs)
-**Plans:** 2/5 plans executed
+**Plans:** 3/5 plans executed
 
 Plans:
 - [x] 999.8-01-data-foundation-PLAN.md — Models, Alembic 0054, markdown filter, sidebar, router skeleton (Wave 1)
 - [x] 999.8-02-admin-crud-PLAN.md — Block + Expert admin CRUD, filter dropdowns, media fieldset (Wave 2)
-- [ ] 999.8-03-playbook-builder-PLAN.md — Template list, drag-drop builder with Sortable.js@1.15.0, clone (Wave 2)
+- [x] 999.8-03-playbook-builder-PLAN.md — Template list, drag-drop builder with Sortable.js@1.15.0, clone (Wave 2)
 - [ ] 999.8-04-apply-and-project-tab-PLAN.md — Apply flow, kanban tab refactor, step checklist, hint service (Wave 3)
 - [ ] 999.8-05-banner-and-seed-PLAN.md — Global banner, step API endpoints, idempotent demo seed (Wave 3)
 
