@@ -232,3 +232,19 @@ Complete human-verify checkpoint deferred from Phase 16-04. Requires real Anthro
 **Goal:** Убрать или настроить server log в мобильном интерфейсе — виден в Telegram Mini App, бесполезен для пользователя. Проверить base_mobile.html, digest.html и все /m/ шаблоны на предмет отладочных элементов.
 **Requirements:** TBD
 **Plans:** 0 plans
+
+### Phase 999.8: Playbook Builder — инструмент сборки плана продвижения из переиспользуемых блоков (BACKLOG)
+
+**Goal:** Каркас управления SEO-методологиями через переиспользуемые «кубики». Каждый `PlaybookBlock` привязан к `ExpertSource` (Шестаков, Шакин, агентство) и к медиа-материалам (ссылки на видео, статьи — без транскриптов, только URL). `Playbook` — шаблон из блоков, `ProjectPlaybook` — применённая копия с живым чеклистом на странице проекта. Шаги playbook ведут пользователя через существующие экраны системы (крауль, ключи, конкуренты, коммерческие страницы).
+
+Высокий приоритет. Планируемые фазы:
+- P1: модели `ExpertSource`, `BlockCategory`, `PlaybookBlock`, `BlockMedia` + админ-CRUD
+- P2: `Playbook` + `PlaybookStep` + drag-and-drop билдер (HTMX + Sortable.js)
+- P3: `ProjectPlaybook` + живой чеклист на странице проекта + переходы по UI с плашкой текущего шага
+- P4: медиа-привязки (ссылки на видео/статьи), страницы экспертов, FTS по `summary_md`
+
+**Requirements:** TBD
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (promote with /gsd:review-backlog when ready)
