@@ -30,7 +30,7 @@
     hx-swap="outerHTML"
     hx-target="closest [data-step-id]"
     aria-label="Статус шага: {{ status }}. Нажмите для изменения."
-    class="w-6 h-6 rounded-full border-2 flex-shrink-0 flex items-center justify-center text-xs font-semibold
+    class="w-6 h-6 rounded-full border-2 flex-shrink-0 flex items-center justify-center text-xs font-semibold cursor-pointer
     {% if status == 'done' %}bg-emerald-500 border-emerald-500 text-white
     {% elif status == 'in_progress' %}bg-indigo-500 border-indigo-500 text-white
     {% else %}bg-white border-gray-300 text-transparent hover:border-indigo-400{% endif %}">
@@ -105,58 +105,9 @@
   {% set pp_name = step.project_playbook.name if step.project_playbook else '' %}
   {% set pp_total = (step.project_playbook.steps | length) if step.project_playbook else 0 %}
   <button type="button"
-    onclick="openPlaybookStep('{{ step.id }}', '{{ step.project_playbook_id }}', '{{ project_id }}', {{ step.block.title | tojson }}, {{ step.position + 1 }}, {{ pp_total }}, {{ pp_name | tojson }}, '{{ action_kind }}')"
+    onclick='openPlaybookStep("{{ step.id }}", "{{ step.project_playbook_id }}", "{{ project_id }}", {{ step.block.title | tojson }}, {{ step.position + 1 }}, {{ pp_total }}, {{ pp_name | tojson }}, "{{ action_kind }}")'
     class="px-3 py-1.5 text-xs font-medium rounded bg-indigo-600 text-white hover:bg-indigo-700 flex-shrink-0 border-0 cursor-pointer">
     Перейти к шагу
   </button>
   {% endif %}
 </div>
-
-<script>
-{# Defined once per page. Re-includes from outerHTML swaps reuse the existing function. #}
-if (typeof window.openPlaybookStep === 'undefined') {
-  window.openPlaybookStep = async function (stepId, ppId, projectId, title, pos, total, pbName, actionKind) {
-    try {
-      sessionStorage.setItem('active_playbook_step', JSON.stringify({
-        step_id: stepId,
-        project_playbook_id: ppId,
-        project_id: projectId,
-        title: title,
-        position: pos,
-        total: total,
-        playbook_name: pbName,
-        opened_at: Date.now()
-      }));
-    } catch (e) {
-      console.warn('sessionStorage write failed', e);
-    }
-    try {
-      await fetch('/api/project-playbook-steps/' + encodeURIComponent(stepId) + '/open-action', {
-        method: 'POST',
-        credentials: 'same-origin'
-      });
-    } catch (e) {
-      console.warn('open-action failed', e);
-    }
-    try {
-      const resp = await fetch(
-        '/api/playbook-step-route?step_id=' + encodeURIComponent(stepId),
-        { credentials: 'same-origin' }
-      );
-      if (!resp.ok) {
-        alert('Не удалось открыть шаг (код ' + resp.status + ')');
-        return;
-      }
-      const data = await resp.json();
-      if (data && data.url) {
-        window.location.href = data.url;
-      } else {
-        alert('Шаг завершается вручную');
-      }
-    } catch (e) {
-      console.error('playbook-step-route failed', e);
-      alert('Ошибка при открытии шага: ' + (e && e.message ? e.message : 'unknown'));
-    }
-  };
-}
-</script>
