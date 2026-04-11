@@ -145,7 +145,11 @@ Plans:
   2. Готовый отчёт пользователь отправляет клиенту в Telegram или email одной кнопкой прямо с телефона
   3. Пользователь открывает `/m/tools` и видит все 6 SEO-инструментов в мобильном формате, запускает любой из них
   4. После завершения инструмента пользователь получает in-app уведомление и видит результаты в мобильном представлении
-**Plans**: TBD
+**Plans:** 3 plans
+Plans:
+- [ ] 29-01-reports-mobile-PLAN.md — Mobile reports: APP_BASE_URL, mobile_reports_service, /m/reports/new + delivery endpoints (REP-01, REP-02)
+- [ ] 29-02-tools-list-run-PLAN.md — Mobile tools: /m/tools list + /m/tools/{slug}/run + HTMX progress polling (TLS-01)
+- [ ] 29-03-tool-result-notify-PLAN.md — Mobile tool result view + notify() in 6 tool tasks (TLS-02, completes TLS-01)
 **UI hint**: yes
 
 ### Phase 30: Errors & Quick Task
@@ -205,7 +209,7 @@ Plans:
 | 26 | v4.0 | 3/3 | Complete    | 2026-04-10 |
 | 27 | v4.0 | 1/2 | Complete    | 2026-04-10 |
 | 28 | v4.0 | 2/2 | Complete    | 2026-04-10 |
-| 29 | v4.0 | 0/? | Not started | - |
+| 29 | v4.0 | 0/3 | Not started | - |
 | 30 | v4.0 | 0/? | Not started | - |
 | 31 | v4.0 | 0/? | Not started | - |
 | 32 | v4.0 | 0/? | Not started | - |
