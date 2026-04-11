@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v4.0
 milestone_name: Mobile & Telegram
 status: executing
-stopped_at: Completed 999.8-01 data foundation (models + migration + sidebar + router skeleton)
-last_updated: "2026-04-11T15:48:11.258Z"
+stopped_at: Completed 999.8-02 admin CRUD (block/expert service + routes + 6 templates)
+last_updated: "2026-04-11T16:00:23.084Z"
 last_activity: 2026-04-11
 progress:
   total_phases: 16
   completed_phases: 4
   total_plans: 14
-  completed_plans: 10
+  completed_plans: 11
   percent: 0
 ---
 
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-04-06)
 
 Milestone: v2.1 Onboarding & Project Health
 Phase: 999.8 (playbook-builder-reusable-promotion-plan-blocks) — EXECUTING
-Plan: 2 of 5
+Plan: 3 of 5
 Status: Ready to execute
 Last activity: 2026-04-11
 
@@ -77,6 +77,7 @@ Progress: v2.1 [__________] 0%
 | Phase 28-positions-traffic P01 | 12 | 2 tasks | 7 files |
 | Phase 28-positions-traffic P02 | 2 | 2 tasks | 6 files |
 | Phase 999.8 P01 | 6 | 3 tasks | 12 files |
+| Phase 999.8 P02 | 8 | 3 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -111,6 +112,6 @@ Progress: v2.1 [__________] 0%
 
 ## Session Continuity
 
-Last session: 2026-04-11T15:48:11.254Z
-Stopped at: Completed 999.8-01 data foundation (models + migration + sidebar + router skeleton)
+Last session: 2026-04-11T16:00:23.079Z
+Stopped at: Completed 999.8-02 admin CRUD (block/expert service + routes + 6 templates)
 Resume file: None
