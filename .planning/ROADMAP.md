@@ -248,3 +248,19 @@ Complete human-verify checkpoint deferred from Phase 16-04. Requires real Anthro
 
 Plans:
 - [ ] TBD (promote with /gsd:review-backlog when ready)
+
+### Phase 999.9: Prompt Library — каркас AI-агентов через библиотеку промптов (BACKLOG)
+
+**Goal:** Каркас «AI-агентов» без реальной интеграции с LLM API. Каталог промптов, сгруппированных по `ExpertSource` (Шестаков, Шакин, агентства) и категориям (ТЗ для текста, проверка свежести, fact-check, ссылочная стратегия, GEO/AEO). Пользователь подставляет переменные, копирует финальный промпт, прогоняет во внешнем сервисе (ChatGPT/Claude/Gemini), возвращает результат текстом/файлом обратно в систему. Результаты копятся как `PromptRun` и привязываются к шагам `ProjectPlaybook` из фазы 999.8.
+
+Средний приоритет — делаем после того, как Playbook Builder (999.8) даст каркас блоков и экспертов. Планируемые фазы:
+- P5: модели `PromptTemplate` + `PromptRun` + UI библиотеки промптов
+- P6: сшивка с Playbook — поле `PlaybookBlock.prompt_template_id`, кнопка «Запустить промпт» внутри шага playbook'а, история прогонов в контексте проекта
+
+Когда появится бюджет и решение о живой LLM-интеграции — `PromptRun` эволюционирует в `AgentRun` без миграции данных (просто добавляется автоисполнение через LangGraph/Pydantic AI).
+
+**Requirements:** TBD
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (promote with /gsd:review-backlog when ready)
