@@ -1,0 +1,73 @@
+{% extends "mobile/base_mobile.html" %}
+{% block title %}{{ tool.name }}{% endblock %}
+{% block content %}
+<div class="p-4">
+  <a href="/m/tools" class="text-sm text-indigo-600 underline mb-2 inline-block">&larr; Инструменты</a>
+  <h1 class="text-xl font-semibold mb-1">{{ tool.name }}</h1>
+  <div class="text-sm text-gray-500 mb-4">{{ tool.description }}</div>
+  <div class="text-xs text-gray-400 mb-3">Лимит: до {{ tool.limit }} фраз</div>
+
+  <form hx-post="/m/tools/{{ slug }}/run"
+        hx-target="#tool-progress-slot"
+        hx-swap="outerHTML"
+        hx-encoding="multipart/form-data"
+        enctype="multipart/form-data">
+
+    <label class="block text-xs text-gray-500 mb-1">Введите фразы</label>
+    <textarea name="phrases"
+              class="w-full min-h-[120px] rounded-lg border border-gray-300 bg-white p-3 text-sm mb-3"
+              placeholder="Введите фразы (по одной на строку)"></textarea>
+
+    <label class="block text-xs text-gray-500 mb-1">или файл (TXT / XLSX)</label>
+    <input type="file" name="upload" accept=".txt,.xlsx"
+           class="w-full text-sm mb-3">
+
+    {% if tool.has_domain_field %}
+    <label class="block text-xs text-gray-500 mb-1">Домен</label>
+    <input type="text" name="domain"
+           class="w-full min-h-[44px] rounded-lg border border-gray-300 bg-white px-3 text-sm mb-3"
+           placeholder="example.ru">
+    {% endif %}
+
+    {% if tool.has_region_field %}
+    <label class="block text-xs text-gray-500 mb-1">Регион</label>
+    <select name="region"
+            class="w-full min-h-[44px] rounded-lg border border-gray-300 bg-white px-3 text-sm mb-3">
+      <option value="213">Москва (213)</option>
+      <option value="2">Санкт-Петербург (2)</option>
+      <option value="225">Россия (225)</option>
+    </select>
+    {% endif %}
+
+    <button type="submit"
+            class="w-full min-h-[44px] rounded-lg text-white font-semibold text-sm"
+            style="background:#4f46e5;">
+      Запустить
+    </button>
+  </form>
+
+  <div id="tool-progress-slot" class="mt-4"></div>
+</div>
+
+<script>
+// D-11 client-side safety: validate exclusive input before submit
+document.querySelector('form[hx-post]').addEventListener('htmx:configRequest', function(evt){
+  const txt = evt.detail.elt.querySelector('textarea[name=phrases]').value.trim();
+  const file = evt.detail.elt.querySelector('input[name=upload]').files[0];
+  if (txt && file){
+    evt.preventDefault();
+    showToast('Используйте одно из двух: текст или файл', 'error');
+  }
+});
+document.body.addEventListener('htmx:afterRequest', function(evt){
+  if (evt.detail.successful && evt.detail.pathInfo.requestPath.endsWith('/run')){
+    showToast('Запущено', 'success');
+  } else if (!evt.detail.successful && evt.detail.pathInfo.requestPath.endsWith('/run')){
+    try {
+      const j = JSON.parse(evt.detail.xhr.responseText || '{}');
+      showToast(j.detail || 'Ошибка запуска', 'error');
+    } catch(e){ showToast('Ошибка запуска', 'error'); }
+  }
+});
+</script>
+{% endblock %}

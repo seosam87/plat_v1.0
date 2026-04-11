@@ -1,0 +1,47 @@
+{# Tool progress polling partial. Pattern source: position_progress.html #}
+{% if status in ["started", "running"] %}
+<div id="tool-progress-slot"
+     hx-get="/m/tools/{{ slug }}/jobs/{{ job_id }}/status"
+     hx-trigger="every 3s"
+     hx-target="this"
+     hx-swap="outerHTML"
+     aria-live="polite">
+  <div class="bg-white rounded-lg p-4 flex items-center gap-3 mt-4">
+    <svg class="animate-spin h-5 w-5 text-indigo-600 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+    </svg>
+    <div class="flex-1">
+      <div class="text-sm font-semibold">
+        {% if total and total > 0 %}Проверено {{ checked }} из {{ total }}{% else %}Выполняется...{% endif %}
+      </div>
+      {% if total and total > 0 %}
+      <div class="w-full h-2 bg-gray-200 rounded-full mt-2">
+        <div class="h-2 rounded-full" style="background:#4f46e5;width:{{ (checked / total * 100) | int }}%"></div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% elif status == "done" %}
+<div id="tool-progress-slot" aria-live="polite">
+  <div class="bg-white rounded-lg p-4 flex items-center gap-3 mt-4">
+    <svg class="h-5 w-5 text-green-600 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+    <span class="text-sm font-semibold flex-1">Завершено — {{ total }} результатов</span>
+    <a class="min-h-[44px] rounded-lg text-white font-semibold text-sm px-4 py-3 no-underline"
+       style="background:#4f46e5;"
+       href="/m/tools/{{ slug }}/jobs/{{ job_id }}">Показать результаты</a>
+  </div>
+</div>
+{% else %}
+<div id="tool-progress-slot" aria-live="polite">
+  <div class="bg-white rounded-lg p-4 flex items-center gap-3 mt-4">
+    <svg class="h-5 w-5 text-red-600 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+    </svg>
+    <span class="text-sm font-semibold flex-1 text-red-700">Ошибка. Попробуйте ещё раз.</span>
+  </div>
+</div>
+{% endif %}

@@ -1,0 +1,28 @@
+{% extends "mobile/base_mobile.html" %}
+{% block title %}SEO Инструменты{% endblock %}
+{% block content %}
+<div class="p-4">
+  <h1 class="text-xl font-semibold mb-4">SEO Инструменты</h1>
+
+  <div class="bg-white rounded-lg divide-y divide-gray-100">
+    {% for t in tools %}
+    <a href="/m/tools/{{ t.slug }}/run"
+       class="flex items-center gap-3 p-4 min-h-[44px] no-underline text-inherit">
+      <div class="flex-1 min-w-0">
+        <div class="text-sm font-semibold truncate">{{ t.name }}</div>
+        <div class="text-xs text-gray-500 truncate">{{ t.description }}</div>
+      </div>
+      <div class="flex flex-col items-end gap-1 flex-shrink-0">
+        {% if t.needs_oauth == 'wordstat' %}
+          <span class="bg-amber-100 text-amber-800 text-xs rounded px-2 py-0.5 font-semibold">Требует Wordstat</span>
+        {% endif %}
+        <span class="text-xs text-gray-400">до {{ t.limit }} фраз</span>
+      </div>
+      <svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+      </svg>
+    </a>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}
