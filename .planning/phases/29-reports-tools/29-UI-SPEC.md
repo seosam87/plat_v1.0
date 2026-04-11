@@ -1,10 +1,11 @@
 ---
 phase: 29
 slug: reports-tools
-status: draft
+status: approved
 shadcn_initialized: false
 preset: none
 created: 2026-04-11
+reviewed_at: 2026-04-11
 ---
 
 # Phase 29 — UI Design Contract: Reports & Tools
