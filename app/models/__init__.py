@@ -7,3 +7,18 @@ from app.models.client import Client, ClientContact, ClientInteraction  # noqa: 
 from app.models.site_intake import SiteIntake, IntakeStatus  # noqa: F401
 from app.models.generated_document import GeneratedDocument  # noqa: F401
 from app.models.channel_post import TelegramChannelPost, PostStatus  # noqa: F401
+from app.models.playbook import (  # noqa: F401
+    ActionKind,
+    BlockCategory,
+    BlockMedia,
+    BlockMediaKind,
+    ExpertSource,
+    Playbook,
+    PlaybookBlock,
+    PlaybookCategory,
+    PlaybookStep,
+    ProjectPlaybook,
+    ProjectPlaybookStatus,
+    ProjectPlaybookStep,
+    ProjectPlaybookStepStatus,
+)

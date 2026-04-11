@@ -9,12 +9,30 @@ Usage in routers:
 """
 from __future__ import annotations
 
+import markdown as _md
 from fastapi.templating import Jinja2Templates
+from markupsafe import Markup
 from starlette.requests import Request
 
 from app.navigation import build_sidebar_sections, resolve_nav_context
 
 _jinja_templates = Jinja2Templates(directory="app/templates")
+
+
+def _markdown_filter(text: str) -> Markup:
+    """Jinja2 filter: render Markdown to safe HTML.
+
+    Supported extensions (Phase 999.8):
+    - nl2br        — single newline → <br>
+    - tables       — GFM tables
+    - fenced_code  — ``` fenced code blocks
+    """
+    if not text:
+        return Markup("")
+    return Markup(_md.markdown(text, extensions=["nl2br", "tables", "fenced_code"]))
+
+
+_jinja_templates.env.filters["markdown"] = _markdown_filter
 
 # Help module mapping: URL prefix → module name for context-sensitive help
 _HELP_MODULE_MAP = {
