@@ -583,3 +583,121 @@ async def ui_playbook_delete(
     if not ok:
         raise HTTPException(status_code=404, detail="Playbook not found")
     return RedirectResponse("/ui/playbooks", status_code=303)
+
+
+# ---------------------------------------------------------------------------
+# --- Banner Endpoints (Plan 05) ---
+# ---------------------------------------------------------------------------
+#
+# These 2 endpoints feed the global playbook banner (D-16/D-17). They
+# intentionally use direct SQLAlchemy queries rather than going through
+# ``playbook_service`` because Plan 05 runs in parallel with Plan 04 and
+# we must not depend on service helpers that the other wave is adding.
+#
+# The third banner-related route ``/api/playbook-step-route`` lives in
+# Plan 04 (it was moved there during revision because Plan 04's builder
+# template needs it in the same wave).
+
+
+@router.get("/api/playbook-step-active")
+async def api_playbook_step_active(
+    step_id: uuid.UUID,
+    user: User = Depends(require_any_authenticated),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return the minimal step payload the banner JS needs to render.
+
+    Called from ``static/js/playbook_banner.js`` on every page load when
+    ``sessionStorage.active_playbook_step`` is present. Returns 404 if the
+    step has been deleted so the banner JS can clear its state silently.
+    """
+    from sqlalchemy import select
+    from sqlalchemy.orm import selectinload
+
+    from app.models.playbook import (
+        PlaybookBlock,
+        ProjectPlaybook,
+        ProjectPlaybookStep,
+    )
+
+    result = await db.execute(
+        select(ProjectPlaybookStep)
+        .options(
+            selectinload(ProjectPlaybookStep.block),
+            selectinload(ProjectPlaybookStep.project_playbook).selectinload(
+                ProjectPlaybook.steps
+            ),
+        )
+        .where(ProjectPlaybookStep.id == step_id)
+    )
+    step = result.scalar_one_or_none()
+    if step is None:
+        raise HTTPException(status_code=404, detail="Step not found")
+
+    pp = step.project_playbook
+    total = len(pp.steps) if pp is not None and pp.steps else 0
+    # Position is 0-indexed in DB; UI wants 1-indexed "Шаг N/M".
+    display_position = (step.position or 0) + 1
+    block_title = step.block.title if step.block is not None else ""
+    action_kind_value = (
+        step.block.action_kind.value if step.block is not None else ""
+    )
+    return {
+        "step_id": str(step.id),
+        "project_playbook_id": str(step.project_playbook_id),
+        "project_id": str(pp.project_id) if pp is not None else None,
+        "title": block_title,
+        "position": display_position,
+        "total": total,
+        "playbook_name": pp.name if pp is not None else "",
+        "status": step.status.value,
+        "action_kind": action_kind_value,
+    }
+
+
+@router.post("/api/project-playbook-steps/{step_id}/complete")
+async def api_project_step_complete(
+    step_id: uuid.UUID,
+    user: User = Depends(require_any_authenticated),
+    db: AsyncSession = Depends(get_db),
+):
+    """Mark a ProjectPlaybookStep as done from the banner CTA.
+
+    D-20: any authenticated user with project access may complete a step.
+    Stamps ``completed_at`` and flips status to ``done``. Returns the
+    ``project_id`` so the banner JS can redirect back to the project
+    playbook tab.
+    """
+    from datetime import datetime
+
+    from sqlalchemy import select
+    from sqlalchemy.orm import selectinload
+
+    from app.models.playbook import (
+        ProjectPlaybook,
+        ProjectPlaybookStep,
+        ProjectPlaybookStepStatus,
+    )
+
+    result = await db.execute(
+        select(ProjectPlaybookStep)
+        .options(
+            selectinload(ProjectPlaybookStep.project_playbook),
+        )
+        .where(ProjectPlaybookStep.id == step_id)
+    )
+    step = result.scalar_one_or_none()
+    if step is None:
+        raise HTTPException(status_code=404, detail="Step not found")
+
+    step.status = ProjectPlaybookStepStatus.done
+    if step.completed_at is None:
+        step.completed_at = datetime.utcnow()
+    await db.flush()
+
+    project_id = (
+        str(step.project_playbook.project_id)
+        if step.project_playbook is not None
+        else None
+    )
+    return {"status": "ok", "project_id": project_id}
