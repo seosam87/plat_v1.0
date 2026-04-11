@@ -1,0 +1,9 @@
+{% if playbook.steps %}
+  {% for step in playbook.steps %}
+    {% with playbook_id=playbook.id %}
+      {% include "playbooks/_step_row_builder.html" %}
+    {% endwith %}
+  {% endfor %}
+{% else %}
+<p class="text-sm text-gray-500 py-8 text-center">Плейбук пуст. Добавьте блоки из библиотеки слева.</p>
+{% endif %}

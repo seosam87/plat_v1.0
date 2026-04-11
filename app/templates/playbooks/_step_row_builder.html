@@ -1,0 +1,44 @@
+{% set action_labels = {
+    "run_crawl": "Краулинг",
+    "open_keywords": "Ключевые слова",
+    "open_competitors": "Конкуренты",
+    "open_content_plan": "Контент-план",
+    "open_commercial_check": "Коммерческий аудит",
+    "open_brief": "ТЗ для копирайтера",
+    "manual_note": "Ручная заметка",
+} %}
+{% set pb_id = playbook_id or step.playbook_id %}
+<div class="flex items-center gap-3 py-3 border-b border-gray-200 hover:bg-gray-50" data-step-id="{{ step.id }}">
+  <span class="drag-handle cursor-grab text-gray-300" aria-hidden="true" title="Перетащите для изменения порядка">&#9776;</span>
+  <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-slate-100 text-slate-600 text-xs font-semibold flex-shrink-0">{{ step.position + 1 }}</span>
+  <div class="flex-1 min-w-0">
+    <div class="text-sm font-medium text-gray-800 truncate">{{ step.block.title }}</div>
+    <div class="text-xs text-gray-400">
+      {{ step.block.category.name }}{% if step.block.expert_source %} &middot; {{ step.block.expert_source.name }}{% endif %}
+    </div>
+  </div>
+  <span class="text-xs font-semibold px-2 py-0.5 rounded bg-indigo-50 text-indigo-600">
+    {{ action_labels.get(step.block.action_kind.value, step.block.action_kind.value) }}
+  </span>
+  <div class="flex items-center gap-1">
+    <button type="button"
+            hx-put="/ui/playbooks/{{ pb_id }}/steps/{{ step.id }}/move?direction=up"
+            hx-target="#steps-list"
+            hx-swap="innerHTML"
+            class="text-gray-400 hover:text-indigo-600 text-xs px-1"
+            aria-label="Переместить блок выше">&uarr;</button>
+    <button type="button"
+            hx-put="/ui/playbooks/{{ pb_id }}/steps/{{ step.id }}/move?direction=down"
+            hx-target="#steps-list"
+            hx-swap="innerHTML"
+            class="text-gray-400 hover:text-indigo-600 text-xs px-1"
+            aria-label="Переместить блок ниже">&darr;</button>
+    <button type="button"
+            hx-delete="/ui/playbooks/{{ pb_id }}/steps/{{ step.id }}"
+            hx-confirm="Удалить шаг из плейбука?"
+            hx-target="closest [data-step-id]"
+            hx-swap="outerHTML"
+            class="text-gray-400 hover:text-rose-600 text-xs ml-1 px-1"
+            aria-label="Удалить шаг">&#10005;</button>
+  </div>
+</div>

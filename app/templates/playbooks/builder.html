@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% block title %}{{ playbook.name }} — Билдер плейбука{% endblock %}
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="/ui/dashboard">Dashboard</a>
+  <span>&rsaquo;</span>
+  <a href="/ui/playbooks">Шаблоны</a>
+  <span>&rsaquo;</span>
+  {{ playbook.name }}
+</div>
+{% endblock %}
+{% block content %}
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+  <form hx-post="/ui/playbooks/{{ playbook.id }}/meta"
+        hx-target="#meta-save-status"
+        hx-swap="innerHTML"
+        class="flex gap-3 flex-wrap items-end">
+    <div class="flex-1 min-w-[240px]">
+      <label class="block text-xs font-semibold text-gray-600 mb-1">Название</label>
+      <input type="text" name="name" value="{{ playbook.name }}" required
+             class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-indigo-500 focus:border-indigo-500">
+    </div>
+    <div class="min-w-[160px]">
+      <label class="block text-xs font-semibold text-gray-600 mb-1">Категория</label>
+      <select name="category"
+              class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded bg-white focus:ring-indigo-500 focus:border-indigo-500">
+        <option value="">—</option>
+        {% for c in all_categories %}
+        <option value="{{ c.value }}" {% if playbook.category and playbook.category.value == c.value %}selected{% endif %}>
+          {% if c.value == "commerce" %}Коммерция
+          {% elif c.value == "content" %}Контент
+          {% elif c.value == "technical" %}Технический
+          {% else %}Смешанный{% endif %}
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+    <label class="inline-flex items-center gap-2 text-sm">
+      <input type="checkbox" name="is_published" {% if playbook.is_published %}checked{% endif %}> Опубликован
+    </label>
+    <div class="w-full">
+      <label class="block text-xs font-semibold text-gray-600 mb-1">Описание</label>
+      <textarea name="description_md" rows="2"
+                class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-indigo-500 focus:border-indigo-500">{{ playbook.description_md or '' }}</textarea>
+    </div>
+    <button type="submit"
+            class="px-3 py-1.5 text-sm font-medium rounded bg-indigo-600 text-white hover:bg-indigo-700">
+      Сохранить
+    </button>
+    <div id="meta-save-status" class="text-xs"></div>
+  </form>
+</div>
+
+<div class="grid grid-cols-3 gap-6">
+  <!-- LEFT col: Library -->
+  <div class="col-span-1 bg-white rounded-lg border border-gray-200 p-4">
+    <h3 class="text-lg font-semibold text-gray-800 m-0 mb-3">Библиотека блоков</h3>
+    <div class="max-h-[600px] overflow-y-auto">
+      {% if library_blocks %}
+      {% for b in library_blocks %}
+      <div class="flex items-start gap-2 py-2 border-b border-gray-100">
+        <div class="flex-1 min-w-0">
+          <div class="text-sm font-medium text-gray-800 truncate">{{ b.title }}</div>
+          <div class="text-xs text-gray-400 truncate">
+            {{ b.category.name }}{% if b.expert_source %} &middot; {{ b.expert_source.name }}{% endif %}
+          </div>
+        </div>
+        <form hx-post="/ui/playbooks/{{ playbook.id }}/steps/add"
+              hx-target="#steps-list"
+              hx-swap="beforeend">
+          <input type="hidden" name="block_id" value="{{ b.id }}">
+          <button type="submit"
+                  class="px-2 py-1 text-xs font-medium rounded bg-indigo-600 text-white hover:bg-indigo-700"
+                  aria-label="Добавить блок в плейбук">+ Добавить</button>
+        </form>
+      </div>
+      {% endfor %}
+      {% else %}
+      <p class="text-sm text-gray-500">
+        Библиотека пуста. <a href="/ui/playbooks/blocks/new" class="text-indigo-600">Создать блок</a>
+      </p>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- RIGHT col: Steps -->
+  <div class="col-span-2 bg-white rounded-lg border border-gray-200 p-4">
+    <h3 class="text-lg font-semibold text-gray-800 m-0 mb-3">Шаги плейбука</h3>
+    <div id="steps-list" data-playbook-id="{{ playbook.id }}">
+      {% if playbook.steps %}
+      {% for step in playbook.steps %}
+        {% with playbook_id=playbook.id %}
+          {% include "playbooks/_step_row_builder.html" %}
+        {% endwith %}
+      {% endfor %}
+      {% else %}
+      <p class="text-sm text-gray-500 py-8 text-center">Плейбук пуст. Добавьте блоки из библиотеки слева, чтобы выстроить последовательность шагов.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+<script>
+(function() {
+  const list = document.getElementById('steps-list');
+  if (!list) return;
+  const playbookId = list.dataset.playbookId;
+  new Sortable(list, {
+    handle: '.drag-handle',
+    animation: 150,
+    onEnd: function() {
+      const order = Array.from(list.querySelectorAll('[data-step-id]')).map(el => el.dataset.stepId);
+      fetch(`/ui/playbooks/${playbookId}/steps/reorder`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({order: order}),
+      }).then(r => {
+        if (r.ok) {
+          window.dispatchEvent(new CustomEvent('toast', {detail: {msg: 'Порядок сохранён', type: 'success'}}));
+        } else {
+          window.dispatchEvent(new CustomEvent('toast', {detail: {msg: 'Ошибка сохранения порядка', type: 'error'}}));
+          setTimeout(() => location.reload(), 1500);
+        }
+      });
+    }
+  });
+})();
+</script>
+{% endblock %}

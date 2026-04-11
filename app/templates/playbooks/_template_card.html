@@ -1,0 +1,39 @@
+{% set total_days = pb.steps|sum(attribute='block.estimated_days') if pb.steps else 0 %}
+<div class="bg-white rounded-lg border border-gray-200 p-4">
+  <div class="flex items-center gap-2 mb-2">
+    {% if pb.category %}
+    <span class="inline-block px-2 py-0.5 rounded text-xs font-semibold bg-indigo-50 text-indigo-600">
+      {% if pb.category.value == "commerce" %}Коммерция
+      {% elif pb.category.value == "content" %}Контент
+      {% elif pb.category.value == "technical" %}Технический
+      {% else %}Смешанный{% endif %}
+    </span>
+    {% endif %}
+    {% if pb.is_published %}
+    <span class="inline-block px-2 py-0.5 rounded text-xs font-semibold bg-emerald-100 text-emerald-700">Опубликован</span>
+    {% else %}
+    <span class="inline-block px-2 py-0.5 rounded text-xs font-semibold bg-gray-100 text-gray-500">Черновик</span>
+    {% endif %}
+  </div>
+  <h3 class="text-lg font-semibold text-gray-800 m-0 mb-1">{{ pb.name }}</h3>
+  {% if pb.description_md %}
+  <p class="text-sm text-gray-500 mb-2 line-clamp-2">{{ pb.description_md|truncate(140) }}</p>
+  {% endif %}
+  <div class="text-xs text-gray-400 mb-3">
+    {{ pb.steps|length }} шагов{% if total_days %} &middot; ~{{ total_days }} дней{% endif %}
+  </div>
+  {% if is_admin %}
+  <div class="flex items-center gap-3">
+    <a href="/ui/playbooks/{{ pb.id }}/edit" class="text-xs text-indigo-600 hover:text-indigo-700">Редактировать</a>
+    <form method="post" action="/ui/playbooks/{{ pb.id }}/clone" class="inline">
+      <button type="submit" class="text-xs text-gray-500 hover:text-indigo-600">Клонировать</button>
+    </form>
+    <form method="post"
+          action="/ui/playbooks/{{ pb.id }}/delete"
+          class="inline"
+          hx-confirm="Удалить шаблон «{{ pb.name }}»? Применённые к проектам копии останутся без изменений.">
+      <button type="submit" class="text-xs text-gray-500 hover:text-rose-600">Удалить</button>
+    </form>
+  </div>
+  {% endif %}
+</div>

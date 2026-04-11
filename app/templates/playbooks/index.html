@@ -1,8 +1,63 @@
 {% extends "base.html" %}
 {% block title %}Шаблоны плейбуков{% endblock %}
+{% block breadcrumbs %}
+<div class="breadcrumbs"><a href="/ui/dashboard">Dashboard</a><span>&rsaquo;</span>Шаблоны плейбуков</div>
+{% endblock %}
 {% block content %}
 <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-  <h2 class="text-lg font-semibold text-gray-800 m-0 mb-4">Шаблоны плейбуков</h2>
-  <p class="text-sm text-gray-500">Шаблонов ещё нет.</p>
+  <div class="flex justify-between items-center mb-4">
+    <h2 class="text-lg font-semibold text-gray-800 m-0">Шаблоны плейбуков</h2>
+    {% if is_admin %}
+    <button type="button"
+            onclick="document.getElementById('new-playbook-form').classList.toggle('hidden')"
+            class="px-3 py-1.5 text-sm font-medium rounded bg-indigo-600 text-white hover:bg-indigo-700">
+      + Создать шаблон
+    </button>
+    {% endif %}
+  </div>
+
+  {% if is_admin %}
+  <div id="new-playbook-form" class="hidden mb-4">
+    {% include "playbooks/_new_form.html" %}
+  </div>
+  {% endif %}
+
+  <div class="flex items-center gap-3 mb-4">
+    <select name="category"
+            hx-get="/ui/playbooks"
+            hx-trigger="change"
+            hx-target="#templates-grid"
+            hx-select="#templates-grid"
+            hx-swap="outerHTML"
+            hx-push-url="true"
+            class="px-2 py-1.5 text-sm border border-gray-300 rounded bg-white text-gray-700 focus:ring-indigo-500 focus:border-indigo-500">
+      <option value="">Все категории</option>
+      {% for c in all_categories %}
+      <option value="{{ c.value }}" {% if selected_category == c.value %}selected{% endif %}>
+        {% if c.value == "commerce" %}Коммерция
+        {% elif c.value == "content" %}Контент
+        {% elif c.value == "technical" %}Технический
+        {% else %}Смешанный{% endif %}
+      </option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div id="templates-grid">
+    {% if playbooks %}
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {% for pb in playbooks %}
+        {% include "playbooks/_template_card.html" %}
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-12">
+      <p class="text-sm text-gray-500 mb-2">Шаблонов ещё нет.</p>
+      {% if is_admin %}
+      <p class="text-sm text-gray-500">Соберите первый плейбук из блоков библиотеки.</p>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
 </div>
 {% endblock %}
