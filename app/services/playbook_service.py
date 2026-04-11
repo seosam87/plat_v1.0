@@ -824,7 +824,13 @@ async def get_project_step(
             .selectinload(PlaybookBlock.expert_source),
             selectinload(ProjectPlaybookStep.block)
             .selectinload(PlaybookBlock.media),
-            selectinload(ProjectPlaybookStep.project_playbook),
+            # Phase 999.8 Plan 06 (Gap D): eager-load parent playbook AND its
+            # sibling steps. _playbook_project_step.html reads
+            # `step.project_playbook.steps | length` to compute pp_total, which
+            # lazy-loads inside sync Jinja2 and triggers MissingGreenlet on the
+            # status-toggle partial render path.
+            selectinload(ProjectPlaybookStep.project_playbook)
+            .selectinload(ProjectPlaybook.steps),
         )
         .where(ProjectPlaybookStep.id == step_id)
     )
@@ -847,7 +853,12 @@ async def set_step_status(
     elif new_status == ProjectPlaybookStepStatus.open:
         step.completed_at = None
     await db.flush()
-    await db.refresh(step)
+    # Phase 999.8 Plan 06 (Gap D): intentionally no explicit refresh call —
+    # the async session has expire_on_commit=False, so the eager-loaded
+    # relationships (block, project_playbook.steps, ...) survive db.flush().
+    # An explicit refresh would re-expire them and force a lazy-load inside
+    # sync Jinja2 context, which triggers MissingGreenlet on the partial
+    # render path for /api/project-playbook-steps/{id}/status.
     return step
 
 
@@ -884,7 +895,11 @@ async def open_step_action(
     if step.status == ProjectPlaybookStepStatus.open:
         step.status = ProjectPlaybookStepStatus.in_progress
     await db.flush()
-    await db.refresh(step)
+    # Phase 999.8 Plan 06 (Gap D): defensive consistency with set_step_status.
+    # This function currently returns JSON only (no Jinja render), so the
+    # MissingGreenlet bug does not manifest here today — but dropping the
+    # redundant refresh prevents a latent regression if a future change
+    # re-renders a partial on this path.
     return step
 
 
