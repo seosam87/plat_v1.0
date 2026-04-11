@@ -3,11 +3,11 @@ gsd_state_version: 1.0
 milestone: v4.0
 milestone_name: Mobile & Telegram
 status: verifying
-stopped_at: Completed 28-positions-traffic/28-02-PLAN.md
-last_updated: "2026-04-10T19:49:32.965Z"
-last_activity: 2026-04-10
+stopped_at: "v4.0: Phase 28 complete, channel management built, HTTPS + Telegram Mini App configured, positions UI fixed"
+last_updated: "2026-04-11T00:02:00.024Z"
+last_activity: "2026-04-10 - Completed quick task 260410-v5e: Telegram channel management"
 progress:
-  total_phases: 11
+  total_phases: 12
   completed_phases: 4
   total_plans: 9
   completed_plans: 9
@@ -110,6 +110,6 @@ Progress: v2.1 [__________] 0%
 
 ## Session Continuity
 
-Last session: 2026-04-10T20:34:25Z
-Stopped at: Completed quick/260410-v5e (Telegram channel management)
-Resume file: None
+Last session: 2026-04-11T00:02:00.019Z
+Stopped at: v4.0: Phase 28 complete, channel management built, HTTPS + Telegram Mini App configured, positions UI fixed
+Resume file: app/routers/mobile.py
