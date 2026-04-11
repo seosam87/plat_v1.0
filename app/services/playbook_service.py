@@ -38,7 +38,12 @@ from app.models.playbook import (
     PlaybookBlock,
     PlaybookCategory,
     PlaybookStep,
+    ProjectPlaybook,
+    ProjectPlaybookStatus,
+    ProjectPlaybookStep,
+    ProjectPlaybookStepStatus,
 )
+from app.models.project import Project
 
 
 # ---------------------------------------------------------------------------
@@ -672,3 +677,252 @@ async def clone_playbook(
     await db.refresh(new_pb)
     logger.info("Cloned Playbook {} → {}", playbook_id, new_pb.id)
     return new_pb
+
+
+# ---------------------------------------------------------------------------
+# --- Copy-on-apply (Plan 04) ---
+# ---------------------------------------------------------------------------
+# Owned by Plan 999.8-04 (apply-and-project-tab). Append-only section — do
+# not reorder. Uses `db.flush()` per the project convention (get_db commits
+# the session after the request handler returns).
+# ---------------------------------------------------------------------------
+
+
+from datetime import datetime  # noqa: E402  (grouped with copy-on-apply block)
+
+
+# ---------- ACTION_KIND_TO_ROUTE map (D-02) ----------
+# Verified paths against app/main.py + app/routers/tools.py on 2026-04-11:
+#   run_crawl              → /ui/sites/{site_id}/crawls          (app/routers/crawl.py)
+#   open_keywords          → /ui/keywords/{site_id}              (app/main.py)
+#   open_competitors       → /ui/competitors/{site_id}           (app/main.py)
+#   open_content_plan      → /ui/projects/{project_id}/plan      (app/main.py)
+#   open_commercial_check  → /ui/tools/commercialization/        (tools router, slug-based)
+#   open_brief             → /ui/tools/brief/                    (tools router, slug-based)
+#   manual_note            → "" (no navigation — caller shows a hint)
+ACTION_KIND_TO_ROUTE: dict[str, str] = {
+    "run_crawl": "/ui/sites/{site_id}/crawls",
+    "open_keywords": "/ui/keywords/{site_id}",
+    "open_competitors": "/ui/competitors/{site_id}",
+    "open_content_plan": "/ui/projects/{project_id}/plan",
+    "open_commercial_check": "/ui/tools/commercialization/",
+    "open_brief": "/ui/tools/brief/",
+    "manual_note": "",
+}
+
+
+def resolve_action_route(
+    action_kind: str,
+    *,
+    project_id: uuid.UUID,
+    site_id: uuid.UUID | None,
+) -> str | None:
+    """Resolve an action_kind to a concrete UI URL given project context.
+
+    Returns None if:
+      - action_kind is unknown,
+      - action_kind is manual_note (no navigation target),
+      - site_id is missing for a site-scoped action kind.
+    """
+    template = ACTION_KIND_TO_ROUTE.get(action_kind)
+    if not template:
+        return None
+    # Site-scoped templates MUST have a real site_id.
+    if "{site_id}" in template and site_id is None:
+        return None
+    return template.format(
+        site_id=str(site_id) if site_id else "",
+        project_id=str(project_id),
+    )
+
+
+# ---------- Apply playbook (copy-on-apply D-12) ----------
+
+
+async def apply_playbook(
+    db: AsyncSession,
+    project_id: uuid.UUID,
+    playbook_id: uuid.UUID,
+    applied_by: uuid.UUID | None,
+    custom_name: str | None = None,
+) -> ProjectPlaybook | None:
+    """Copy a Playbook template into a ProjectPlaybook + ProjectPlaybookStep rows.
+
+    D-12: later edits to the source Playbook/PlaybookStep rows do NOT affect
+    existing applied copies. Prerequisites are copied from PlaybookBlock.
+    """
+    source = await get_playbook_with_steps(db, playbook_id)
+    if source is None:
+        return None
+    pp = ProjectPlaybook(
+        project_id=project_id,
+        playbook_id=playbook_id,
+        name=custom_name or source.name,
+        status=ProjectPlaybookStatus.active,
+        applied_by=applied_by,
+    )
+    db.add(pp)
+    await db.flush()
+    for template_step in source.steps:
+        # Copy prerequisites from PlaybookBlock (they reference PlaybookBlock UUIDs).
+        prereqs = list(template_step.block.prerequisites or [])
+        db.add(
+            ProjectPlaybookStep(
+                project_playbook_id=pp.id,
+                block_id=template_step.block_id,
+                position=template_step.position,
+                status=ProjectPlaybookStepStatus.open,
+                prerequisites=prereqs,
+                note_md=template_step.note_md,
+            )
+        )
+    await db.flush()
+    await db.refresh(pp)
+    logger.info(
+        "Applied Playbook {} to Project {} as ProjectPlaybook {}",
+        playbook_id,
+        project_id,
+        pp.id,
+    )
+    return pp
+
+
+async def list_project_playbooks(
+    db: AsyncSession, project_id: uuid.UUID
+) -> Sequence[ProjectPlaybook]:
+    """Return non-archived ProjectPlaybooks for a project with steps eager-loaded."""
+    stmt = (
+        select(ProjectPlaybook)
+        .options(
+            selectinload(ProjectPlaybook.steps)
+            .selectinload(ProjectPlaybookStep.block)
+            .selectinload(PlaybookBlock.category),
+            selectinload(ProjectPlaybook.steps)
+            .selectinload(ProjectPlaybookStep.block)
+            .selectinload(PlaybookBlock.expert_source),
+            selectinload(ProjectPlaybook.steps)
+            .selectinload(ProjectPlaybookStep.block)
+            .selectinload(PlaybookBlock.media),
+        )
+        .where(ProjectPlaybook.project_id == project_id)
+        .where(ProjectPlaybook.status != ProjectPlaybookStatus.archived)
+        .order_by(ProjectPlaybook.applied_at.desc())
+    )
+    result = await db.execute(stmt)
+    return result.scalars().unique().all()
+
+
+async def get_project_step(
+    db: AsyncSession, step_id: uuid.UUID
+) -> ProjectPlaybookStep | None:
+    stmt = (
+        select(ProjectPlaybookStep)
+        .options(
+            selectinload(ProjectPlaybookStep.block)
+            .selectinload(PlaybookBlock.category),
+            selectinload(ProjectPlaybookStep.block)
+            .selectinload(PlaybookBlock.expert_source),
+            selectinload(ProjectPlaybookStep.block)
+            .selectinload(PlaybookBlock.media),
+            selectinload(ProjectPlaybookStep.project_playbook),
+        )
+        .where(ProjectPlaybookStep.id == step_id)
+    )
+    result = await db.execute(stmt)
+    return result.scalar_one_or_none()
+
+
+async def set_step_status(
+    db: AsyncSession,
+    step_id: uuid.UUID,
+    new_status: ProjectPlaybookStepStatus,
+) -> ProjectPlaybookStep | None:
+    step = await get_project_step(db, step_id)
+    if step is None:
+        return None
+    step.status = new_status
+    now = datetime.utcnow()
+    if new_status == ProjectPlaybookStepStatus.done:
+        step.completed_at = now
+    elif new_status == ProjectPlaybookStepStatus.open:
+        step.completed_at = None
+    await db.flush()
+    await db.refresh(step)
+    return step
+
+
+async def cycle_step_status(
+    db: AsyncSession, step_id: uuid.UUID
+) -> ProjectPlaybookStep | None:
+    """Cycle a step's status: open → in_progress → done → open."""
+    step = await get_project_step(db, step_id)
+    if step is None:
+        return None
+    order = [
+        ProjectPlaybookStepStatus.open,
+        ProjectPlaybookStepStatus.in_progress,
+        ProjectPlaybookStepStatus.done,
+    ]
+    next_idx = (order.index(step.status) + 1) % len(order)
+    return await set_step_status(db, step_id, order[next_idx])
+
+
+async def open_step_action(
+    db: AsyncSession, step_id: uuid.UUID
+) -> ProjectPlaybookStep | None:
+    """Mark `opened_at` and transition open → in_progress.
+
+    Called when the user clicks "Перейти к шагу". `opened_at` is only set
+    once (never overwritten) so hint queries remain anchored to the first
+    navigation event.
+    """
+    step = await get_project_step(db, step_id)
+    if step is None:
+        return None
+    if step.opened_at is None:
+        step.opened_at = datetime.utcnow()
+    if step.status == ProjectPlaybookStepStatus.open:
+        step.status = ProjectPlaybookStepStatus.in_progress
+    await db.flush()
+    await db.refresh(step)
+    return step
+
+
+async def update_project_step_note(
+    db: AsyncSession, step_id: uuid.UUID, note_md: str | None
+) -> bool:
+    step = await get_project_step(db, step_id)
+    if step is None:
+        return False
+    step.note_md = note_md or None
+    await db.flush()
+    return True
+
+
+async def get_project_playbook(
+    db: AsyncSession, pp_id: uuid.UUID
+) -> ProjectPlaybook | None:
+    result = await db.execute(
+        select(ProjectPlaybook).where(ProjectPlaybook.id == pp_id)
+    )
+    return result.scalar_one_or_none()
+
+
+async def archive_project_playbook(db: AsyncSession, pp_id: uuid.UUID) -> bool:
+    pp = await get_project_playbook(db, pp_id)
+    if pp is None:
+        return False
+    pp.status = ProjectPlaybookStatus.archived
+    await db.flush()
+    logger.info("Archived ProjectPlaybook {}", pp_id)
+    return True
+
+
+async def get_project_site_id(
+    db: AsyncSession, project_id: uuid.UUID
+) -> uuid.UUID | None:
+    """Return the site_id for a given project (cheap scalar lookup)."""
+    result = await db.execute(
+        select(Project.site_id).where(Project.id == project_id)
+    )
+    return result.scalar_one_or_none()
