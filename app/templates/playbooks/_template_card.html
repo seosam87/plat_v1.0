@@ -1,4 +1,10 @@
-{% set total_days = pb.steps|sum(attribute='block.estimated_days') if pb.steps else 0 %}
+{% set ns = namespace(total_days=0) %}
+{% if pb.steps %}
+  {% for s in pb.steps %}
+    {% set ns.total_days = ns.total_days + (s.block.estimated_days or 0) %}
+  {% endfor %}
+{% endif %}
+{% set total_days = ns.total_days %}
 <div class="bg-white rounded-lg border border-gray-200 p-4">
   <div class="flex items-center gap-2 mb-2">
     {% if pb.category %}
