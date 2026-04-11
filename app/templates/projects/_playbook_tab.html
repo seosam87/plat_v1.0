@@ -1,0 +1,86 @@
+{# Playbook tab panel — Phase 999.8 Plan 04.
+   Loaded via `hx-get` from /ui/projects/{id}/playbook-tab with
+   `hx-trigger="intersect once"` so the query only fires when the user
+   actually opens the Плейбуки tab.
+
+   Context vars passed by router:
+     project_id        — uuid of the current project
+     project_playbooks — Sequence[ProjectPlaybook] (steps eager-loaded)
+     hints             — dict[step.id → bool] for "Похоже, выполнено" badge
+     blocked           — dict[step.id → bool] for prereq rose border
+     is_admin          — whether the current user can apply/archive
+#}
+
+{% if not project_playbooks %}
+<div class="text-center py-12">
+  <h3 class="text-lg font-semibold text-gray-700 mb-2 m-0">Плейбуки не применены</h3>
+  <p class="text-sm text-gray-500 mb-4">Нет активных плейбуков для этого проекта. Выберите методологию и примените её.</p>
+  {% if is_admin %}
+  <button type="button"
+    hx-get="/ui/projects/{{ project_id }}/playbooks/apply-modal"
+    hx-target="#apply-modal-container"
+    hx-swap="innerHTML"
+    class="px-3 py-1.5 text-sm font-medium rounded bg-indigo-600 text-white hover:bg-indigo-700">
+    Применить плейбук
+  </button>
+  <div id="apply-modal-container"></div>
+  {% endif %}
+</div>
+{% else %}
+
+{% if is_admin %}
+<div class="flex justify-end mb-4">
+  <button type="button"
+    hx-get="/ui/projects/{{ project_id }}/playbooks/apply-modal"
+    hx-target="#apply-modal-container"
+    hx-swap="innerHTML"
+    class="px-3 py-1.5 text-sm font-medium rounded bg-indigo-600 text-white hover:bg-indigo-700">
+    Применить плейбук
+  </button>
+</div>
+<div id="apply-modal-container"></div>
+{% endif %}
+
+{% for pp in project_playbooks %}
+  {% set total_steps = pp.steps|length %}
+  {% set done_steps = pp.steps|selectattr('status.value', 'equalto', 'done')|list|length %}
+  {% set pct = (done_steps * 100 // total_steps) if total_steps else 0 %}
+  <div class="bg-white border border-gray-200 rounded-lg mb-4">
+    <div class="flex items-center justify-between p-4">
+      <div class="flex items-center gap-3">
+        <h3 class="text-base font-semibold text-gray-800 m-0">{{ pp.name }}</h3>
+        <span class="inline-block px-2 py-0.5 rounded text-xs font-semibold
+          {% if pp.status.value == 'active' %}bg-indigo-100 text-indigo-700
+          {% elif pp.status.value == 'done' %}bg-emerald-100 text-emerald-700
+          {% elif pp.status.value == 'paused' %}bg-slate-100 text-slate-600
+          {% else %}bg-slate-100 text-slate-600{% endif %}">
+          {% if pp.status.value == 'active' %}Активен
+          {% elif pp.status.value == 'paused' %}На паузе
+          {% elif pp.status.value == 'done' %}Завершён
+          {% else %}Архив{% endif %}
+        </span>
+      </div>
+      {% if is_admin %}
+      <form method="post" action="/ui/project-playbooks/{{ pp.id }}/archive" class="inline"
+            hx-confirm="Архивировать плейбук «{{ pp.name }}»? Данные о прогрессе сохранятся.">
+        <button type="submit" class="text-xs text-gray-500 hover:text-rose-600 bg-transparent border-0 cursor-pointer">Архивировать</button>
+      </form>
+      {% endif %}
+    </div>
+    <div class="px-4 pb-3">
+      <div class="text-xs text-gray-500 mb-1">Выполнено: {{ done_steps }}/{{ total_steps }} шагов</div>
+      <div class="bg-gray-200 rounded-full h-2">
+        <div class="bg-indigo-600 h-2 rounded-full" style="width: {{ pct }}%"></div>
+      </div>
+    </div>
+    <div class="border-t border-gray-100">
+      {% for step in pp.steps %}
+        {% with hint=hints.get(step.id, False), is_blocked=blocked.get(step.id, False) %}
+          {% include "projects/_playbook_project_step.html" %}
+        {% endwith %}
+      {% endfor %}
+    </div>
+  </div>
+{% endfor %}
+
+{% endif %}
