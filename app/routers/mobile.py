@@ -9,10 +9,13 @@ Public auth endpoints under /m/auth/ are excluded from UIAuthMiddleware.
 """
 from __future__ import annotations
 
+import asyncio
 import uuid
+from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, Form, HTTPException, Request
-from fastapi.responses import HTMLResponse, JSONResponse, Response, StreamingResponse
+from celery import chain as celery_chain
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, UploadFile
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response, StreamingResponse
 from fastapi.templating import Jinja2Templates
 from loguru import logger
 from sqlalchemy import select
@@ -769,3 +772,180 @@ async def mobile_report_send_email(
             status_code=502,
         )
     return JSONResponse({"ok": True})
+
+
+# ---------------------------------------------------------------------------
+# /m/tools — Phase 29 Mobile Tools (TLS-01)
+# ---------------------------------------------------------------------------
+
+@router.get("/tools", response_class=HTMLResponse, name="mobile_tools_list")
+async def mobile_tools_list(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> HTMLResponse:
+    """Single-column card list of 6 tools (D-08, D-09)."""
+    from app.routers.tools import TOOL_REGISTRY
+    tools = [
+        {"slug": slug, **info}
+        for slug, info in TOOL_REGISTRY.items()
+    ]
+    return mobile_templates.TemplateResponse(
+        "mobile/tools/list.html",
+        {"request": request, "active_tab": "more", "tools": tools},
+    )
+
+
+@router.get("/tools/{slug}/run", response_class=HTMLResponse, name="mobile_tool_run_form")
+async def mobile_tool_run_form(
+    slug: str,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Tool entry screen. For wordstat-batch: redirect to desktop OAuth if no token (D-10)."""
+    from app.routers.tools import TOOL_REGISTRY, _check_oauth_token_sync
+    if slug not in TOOL_REGISTRY:
+        raise HTTPException(status_code=404, detail="Unknown tool")
+    registry = TOOL_REGISTRY[slug]
+
+    # D-10: OAuth check — redirect to desktop handshake if missing
+    needs_oauth = registry.get("needs_oauth")
+    if needs_oauth:
+        token = await asyncio.get_event_loop().run_in_executor(
+            None, lambda: _check_oauth_token_sync(needs_oauth)
+        )
+        if not token:
+            return RedirectResponse(
+                f"/ui/integrations/{needs_oauth}/auth?return_to=/m/tools/{slug}/run",
+                status_code=303,
+            )
+
+    return mobile_templates.TemplateResponse(
+        "mobile/tools/run.html",
+        {
+            "request": request,
+            "active_tab": "more",
+            "slug": slug,
+            "tool": {"slug": slug, **registry},
+        },
+    )
+
+
+@router.post("/tools/{slug}/run", response_class=HTMLResponse)
+async def mobile_tool_run_submit(
+    slug: str,
+    request: Request,
+    phrases: str = Form(default=""),
+    domain: str = Form(default=""),
+    region: str = Form(default="213"),
+    upload: UploadFile | None = File(default=None),
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> HTMLResponse:
+    """Parse input, create Job, dispatch Celery task, return polling partial."""
+    from app.routers.tools import TOOL_REGISTRY, _get_tool_models, _get_tool_task
+    from app.services.mobile_tools_service import parse_tool_input
+    if slug not in TOOL_REGISTRY:
+        raise HTTPException(status_code=404, detail="Unknown tool")
+    registry = TOOL_REGISTRY[slug]
+
+    parsed = await parse_tool_input(phrases, upload, registry["limit"])
+
+    JobModel, _ = _get_tool_models(slug)
+    job_kwargs: dict = {
+        "id": uuid.uuid4(),
+        "status": "pending",
+        "user_id": user.id,
+        "created_at": datetime.now(timezone.utc),
+        registry["input_col"]: parsed.lines,
+        registry["count_col"]: parsed.count,
+    }
+    if registry.get("has_domain_field"):
+        job_kwargs["target_domain"] = (domain or "").strip()
+    if registry.get("has_region_field"):
+        try:
+            job_kwargs["input_region"] = int(region or "213")
+        except (ValueError, TypeError):
+            job_kwargs["input_region"] = 213
+
+    job = JobModel(**job_kwargs)
+    db.add(job)
+    await db.commit()
+    await db.refresh(job)
+    job_id_str = str(job.id)
+
+    if slug == "brief":
+        from app.tasks.brief_tasks import (
+            run_brief_step1_serp,
+            run_brief_step2_crawl,
+            run_brief_step3_aggregate,
+            run_brief_step4_finalize,
+        )
+        celery_chain(
+            run_brief_step1_serp.si(job_id_str),
+            run_brief_step2_crawl.si(job_id_str),
+            run_brief_step3_aggregate.si(job_id_str),
+            run_brief_step4_finalize.si(job_id_str),
+        ).delay()
+    else:
+        _get_tool_task(slug).delay(job_id_str)
+
+    logger.info("mobile tool dispatched slug={} job_id={} user={}", slug, job_id_str, user.id)
+    return mobile_templates.TemplateResponse(
+        "mobile/tools/partials/tool_progress.html",
+        {
+            "request": request,
+            "slug": slug,
+            "job_id": job_id_str,
+            "status": "started",
+            "checked": 0,
+            "total": parsed.count,
+        },
+    )
+
+
+@router.get("/tools/{slug}/jobs/{job_id}/status", response_class=HTMLResponse)
+async def mobile_tool_job_status(
+    slug: str,
+    job_id: uuid.UUID,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> HTMLResponse:
+    """HTMX polling endpoint — returns tool_progress.html partial."""
+    from app.routers.tools import TOOL_REGISTRY, _get_tool_models
+    from app.services.mobile_tools_service import get_job_for_user
+    if slug not in TOOL_REGISTRY:
+        raise HTTPException(status_code=404, detail="Unknown tool")
+    JobModel, _ = _get_tool_models(slug)
+
+    job = await get_job_for_user(db, JobModel, job_id, user.id)
+    if job is None:
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    # Normalize status: pending/running → started, complete/partial → done, else error
+    status_raw = (job.status or "").lower()
+    if status_raw in ("pending", "running", "started"):
+        status = "started"
+    elif status_raw in ("complete", "done", "partial"):
+        status = "done"
+    else:
+        status = "error"
+
+    total = getattr(job, TOOL_REGISTRY[slug]["count_col"], 0) or 0
+    checked = getattr(job, "processed_count", None)
+    if checked is None:
+        checked = total if status == "done" else 0
+
+    return mobile_templates.TemplateResponse(
+        "mobile/tools/partials/tool_progress.html",
+        {
+            "request": request,
+            "slug": slug,
+            "job_id": str(job_id),
+            "status": status,
+            "checked": checked,
+            "total": total,
+        },
+    )
