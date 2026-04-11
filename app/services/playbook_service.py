@@ -506,14 +506,25 @@ async def add_step(
     playbook_id: uuid.UUID,
     block_id: uuid.UUID,
 ) -> PlaybookStep | None:
-    pb = await get_playbook_with_steps(db, playbook_id)
-    if pb is None:
+    # Confirm playbook exists (cheap PK lookup — avoid eager loading the cached
+    # `steps` collection which would return a stale snapshot on repeated adds).
+    pb_row = await db.execute(select(Playbook.id).where(Playbook.id == playbook_id))
+    if pb_row.scalar_one_or_none() is None:
         return None
-    max_pos = max((s.position for s in pb.steps), default=-1)
+    # Compute next position via a fresh aggregate against the DB — `func.max`
+    # always reflects current persisted state, unlike Playbook.steps which may
+    # be cached in the session's identity map across consecutive add_step calls.
+    max_pos_result = await db.execute(
+        select(func.max(PlaybookStep.position)).where(
+            PlaybookStep.playbook_id == playbook_id
+        )
+    )
+    max_pos = max_pos_result.scalar()
+    next_pos = 0 if max_pos is None else max_pos + 1
     step = PlaybookStep(
         playbook_id=playbook_id,
         block_id=block_id,
-        position=max_pos + 1,
+        position=next_pos,
     )
     db.add(step)
     await db.flush()
