@@ -121,6 +121,18 @@ NAV_SECTIONS = [
         ],
     },
     {
+        "id": "playbooks",
+        "label": "Плейбуки",
+        "icon": "book-open",
+        "url": None,
+        "admin_only": False,
+        "children": [
+            {"id": "playbooks-blocks", "label": "Библиотека блоков", "url": "/ui/playbooks/blocks"},
+            {"id": "playbooks-templates", "label": "Шаблоны", "url": "/ui/playbooks"},
+            {"id": "playbooks-experts", "label": "Эксперты", "url": "/ui/playbooks/experts", "admin_only": True},
+        ],
+    },
+    {
         "id": "settings",
         "label": "Настройки",
         "icon": "cog-6-tooth",

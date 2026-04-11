@@ -60,6 +60,7 @@ _HELP_MODULE_MAP = {
     "/traffic-analysis": "traffic-analysis",
     "/intent": "intent",
     "/ui/competitors": "competitors",
+    "/ui/playbooks": "playbooks",
 }
 
 
