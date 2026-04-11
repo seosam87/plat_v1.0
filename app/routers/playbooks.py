@@ -32,9 +32,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import require_admin, require_any_authenticated
 from app.dependencies import get_db
-from app.models.playbook import ActionKind, BlockMediaKind, PlaybookCategory
+from app.models.playbook import (
+    ActionKind,
+    BlockMediaKind,
+    PlaybookCategory,
+    ProjectPlaybookStepStatus,
+)
 from app.models.user import User
 from app.services import playbook_service as svc
+from app.services.playbook_hints import compute_hints_for_playbook
 from app.services.playbook_service import (
     BlockCreate,
     BlockMediaCreate,
@@ -583,6 +589,272 @@ async def ui_playbook_delete(
     if not ok:
         raise HTTPException(status_code=404, detail="Playbook not found")
     return RedirectResponse("/ui/playbooks", status_code=303)
+
+
+# ---------------------------------------------------------------------------
+# --- Apply + Hints + Step Route (Plan 04) ---
+# ---------------------------------------------------------------------------
+# Owned by Plan 999.8-04 (apply-and-project-tab). Endpoints bind a Playbook
+# template to a Project via copy-on-apply (D-12), render the project-page
+# playbook tab, and toggle step status via HTMX.
+#
+# `/api/playbook-step-route` was moved here from Plan 05 during the
+# plan-checker pass because the Task 3 template (openPlaybookStep JS)
+# calls it to resolve the target URL. Keeping it in the same plan avoids
+# a non-deterministic Wave-3 ordering between Plans 04 and 05.
+#
+# Banner endpoints (`/api/playbook-step-active`,
+# `/api/project-playbook-steps/{id}/complete`) remain owned by Plan 05.
+# ---------------------------------------------------------------------------
+
+
+@router.get(
+    "/ui/projects/{project_id}/playbooks/apply-modal",
+    response_class=HTMLResponse,
+)
+async def ui_project_playbook_apply_modal(
+    request: Request,
+    project_id: uuid.UUID,
+    user: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+) -> HTMLResponse:
+    """Return the apply-playbook modal HTML fragment (admin only)."""
+    playbooks = await svc.list_playbooks(db, only_published=True)
+    return templates.TemplateResponse(
+        request,
+        "playbooks/_apply_modal.html",
+        {"project_id": project_id, "playbooks": playbooks},
+    )
+
+
+@router.get(
+    "/ui/playbooks/{playbook_id}/preview", response_class=HTMLResponse
+)
+async def ui_playbook_preview(
+    request: Request,
+    playbook_id: uuid.UUID,
+    user: User = Depends(require_any_authenticated),
+    db: AsyncSession = Depends(get_db),
+) -> HTMLResponse:
+    """Lightweight preview fragment used by the apply modal dropdown."""
+    pb = await svc.get_playbook_with_steps(db, playbook_id)
+    if pb is None:
+        raise HTTPException(status_code=404, detail="Playbook not found")
+    total_days = sum((s.block.estimated_days or 0) for s in pb.steps)
+    return HTMLResponse(
+        '<div class="text-sm text-gray-600">'
+        f'<p class="mb-2">{pb.description_md or ""}</p>'
+        f'<p class="text-xs text-gray-500">{len(pb.steps)} шагов · ~{total_days} дней</p>'
+        "</div>"
+    )
+
+
+@router.post("/ui/projects/{project_id}/playbooks/apply")
+async def ui_project_playbook_apply(
+    request: Request,
+    project_id: uuid.UUID,
+    user: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Copy-on-apply a Playbook template to this project.
+
+    Returns an HX-Redirect so the modal closes client-side and the
+    Kanban page reloads with the Playbook tab active (#playbook hash).
+    """
+    form = await request.form()
+    try:
+        playbook_id = uuid.UUID(form["playbook_id"])
+    except (KeyError, ValueError) as e:
+        raise HTTPException(status_code=400, detail=f"Invalid playbook_id: {e}")
+    pp = await svc.apply_playbook(db, project_id, playbook_id, applied_by=user.id)
+    if pp is None:
+        raise HTTPException(status_code=404, detail="Playbook not found")
+    return HTMLResponse(
+        "",
+        status_code=200,
+        headers={"HX-Redirect": f"/ui/projects/{project_id}/kanban#playbook"},
+    )
+
+
+@router.get(
+    "/ui/projects/{project_id}/playbook-tab", response_class=HTMLResponse
+)
+async def ui_project_playbook_tab(
+    request: Request,
+    project_id: uuid.UUID,
+    user: User = Depends(require_any_authenticated),
+    db: AsyncSession = Depends(get_db),
+) -> HTMLResponse:
+    """Render the project's Playbook tab panel.
+
+    Computes hint + blocked state server-side so the template renders
+    without extra round-trips. `blocked` resolves PlaybookBlock UUIDs
+    from `prerequisites` to the step that shares that block_id within
+    THIS ProjectPlaybook (prereqs reference block_id, not step_id).
+    """
+    project_playbooks = await svc.list_project_playbooks(db, project_id)
+    site_id = await svc.get_project_site_id(db, project_id)
+
+    hints: dict[uuid.UUID, bool] = {}
+    blocked: dict[uuid.UUID, bool] = {}
+
+    for pp in project_playbooks:
+        pp_hints = await compute_hints_for_playbook(
+            db,
+            list(pp.steps),
+            site_id=site_id,
+            project_id=project_id,
+        )
+        hints.update(pp_hints)
+
+        # Build block_id → status map to resolve prereqs cheaply.
+        step_status_by_block = {s.block_id: s.status for s in pp.steps}
+        for s in pp.steps:
+            prereqs = s.prerequisites or []
+            if not prereqs:
+                blocked[s.id] = False
+                continue
+            unmet = []
+            for block_uuid in prereqs:
+                try:
+                    as_uuid = (
+                        block_uuid
+                        if isinstance(block_uuid, uuid.UUID)
+                        else uuid.UUID(str(block_uuid))
+                    )
+                except (ValueError, TypeError):
+                    continue
+                if step_status_by_block.get(as_uuid) != ProjectPlaybookStepStatus.done:
+                    unmet.append(as_uuid)
+            blocked[s.id] = len(unmet) > 0
+
+    is_admin = user.role.value == "admin"
+    return templates.TemplateResponse(
+        request,
+        "projects/_playbook_tab.html",
+        {
+            "project_id": project_id,
+            "project_playbooks": project_playbooks,
+            "hints": hints,
+            "blocked": blocked,
+            "is_admin": is_admin,
+        },
+    )
+
+
+@router.post(
+    "/api/project-playbook-steps/{step_id}/status", response_class=HTMLResponse
+)
+async def api_project_step_status(
+    request: Request,
+    step_id: uuid.UUID,
+    user: User = Depends(require_any_authenticated),
+    db: AsyncSession = Depends(get_db),
+) -> HTMLResponse:
+    """Cycle status (open → in_progress → done → open) and re-render row."""
+    step = await svc.cycle_step_status(db, step_id)
+    if step is None:
+        raise HTTPException(status_code=404, detail="Step not found")
+    pp = await svc.get_project_playbook(db, step.project_playbook_id)
+    project_id = pp.project_id if pp else None
+    return templates.TemplateResponse(
+        request,
+        "projects/_playbook_project_step.html",
+        {
+            "step": step,
+            "project_id": project_id,
+            "blocked": False,
+            "hint": False,
+            "hints": {step.id: False},
+            "blocked_map": {step.id: False},
+            "is_admin": user.role.value == "admin",
+        },
+    )
+
+
+@router.post("/api/project-playbook-steps/{step_id}/open-action")
+async def api_project_step_open_action(
+    step_id: uuid.UUID,
+    user: User = Depends(require_any_authenticated),
+    db: AsyncSession = Depends(get_db),
+):
+    """Mark `opened_at` + transition open → in_progress.
+
+    Called by `openPlaybookStep()` (Plan 04 Task 3 JS) before navigation.
+    Fire-and-forget; non-blocking client-side.
+    """
+    step = await svc.open_step_action(db, step_id)
+    if step is None:
+        raise HTTPException(status_code=404, detail="Step not found")
+    return {
+        "status": "ok",
+        "step_id": str(step_id),
+        "opened_at": step.opened_at.isoformat() if step.opened_at else None,
+    }
+
+
+@router.get("/api/playbook-step-route")
+async def api_playbook_step_route(
+    step_id: uuid.UUID,
+    user: User = Depends(require_any_authenticated),
+    db: AsyncSession = Depends(get_db),
+):
+    """Resolve a ProjectPlaybookStep to its target UI URL.
+
+    Walks ProjectPlaybookStep → ProjectPlaybook → Project → site_id,
+    then calls `svc.resolve_action_route()` (which uses
+    `ACTION_KIND_TO_ROUTE` per CONTEXT.md D-02). Returns
+    `{"url": str | null}` where `null` means "manual_note" or an
+    unmapped action kind — the caller shows a Russian notice.
+
+    Owned by Plan 04 (moved from Plan 05 during planning — Task 3
+    template depends on it, so it must ship in the same wave).
+    """
+    step = await svc.get_project_step(db, step_id)
+    if step is None:
+        raise HTTPException(status_code=404, detail="Step not found")
+    pp = step.project_playbook
+    if pp is None:
+        raise HTTPException(status_code=404, detail="Project playbook missing")
+    site_id = await svc.get_project_site_id(db, pp.project_id)
+    url = svc.resolve_action_route(
+        step.block.action_kind.value,
+        project_id=pp.project_id,
+        site_id=site_id,
+    )
+    return {"url": url}
+
+
+@router.post("/api/project-playbook-steps/{step_id}/note")
+async def api_project_step_note(
+    request: Request,
+    step_id: uuid.UUID,
+    user: User = Depends(require_any_authenticated),
+    db: AsyncSession = Depends(get_db),
+):
+    """Save a per-step markdown note (blur auto-save for manual_note)."""
+    form = await request.form()
+    await svc.update_project_step_note(db, step_id, form.get("note_md"))
+    return HTMLResponse("", status_code=204)
+
+
+@router.post("/ui/project-playbooks/{pp_id}/archive")
+async def ui_project_playbook_archive(
+    pp_id: uuid.UUID,
+    user: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Archive an applied ProjectPlaybook (admin only)."""
+    pp = await svc.get_project_playbook(db, pp_id)
+    if pp is None:
+        raise HTTPException(status_code=404, detail="ProjectPlaybook not found")
+    project_id = pp.project_id
+    ok = await svc.archive_project_playbook(db, pp_id)
+    if not ok:
+        raise HTTPException(status_code=404, detail="ProjectPlaybook not found")
+    return RedirectResponse(
+        f"/ui/projects/{project_id}/kanban#playbook", status_code=303
+    )
 
 
 # ---------------------------------------------------------------------------
