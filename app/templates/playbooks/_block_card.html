@@ -1,0 +1,48 @@
+{% set cat_colors = {
+  "competitors": ("bg-violet-100", "text-violet-700"),
+  "keywords": ("bg-sky-100", "text-sky-700"),
+  "site-structure": ("bg-teal-100", "text-teal-700"),
+  "commerce": ("bg-orange-100", "text-orange-700"),
+  "content": ("bg-emerald-100", "text-emerald-700"),
+  "technical": ("bg-rose-100", "text-rose-700"),
+  "backlinks": ("bg-amber-100", "text-amber-700"),
+  "regular": ("bg-slate-100", "text-slate-600"),
+} %}
+{% set action_labels = {
+  "run_crawl": "Краулинг",
+  "open_keywords": "Ключевые слова",
+  "open_competitors": "Конкуренты",
+  "open_content_plan": "Контент-план",
+  "open_commercial_check": "Коммерческий аудит",
+  "open_brief": "ТЗ для копирайтера",
+  "manual_note": "Ручная заметка",
+} %}
+{% set cat_pair = cat_colors.get(block.category.slug, ("bg-slate-100", "text-slate-600")) %}
+{% set cat_bg = cat_pair[0] %}
+{% set cat_text = cat_pair[1] %}
+<div class="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition">
+  <div class="flex items-center gap-2 mb-2 flex-wrap">
+    <span class="inline-block px-2 py-0.5 rounded text-xs font-semibold {{ cat_bg }} {{ cat_text }}">{{ block.category.name }}</span>
+    {% if block.expert_source %}
+    <span class="inline-block px-2 py-0.5 rounded text-xs font-semibold bg-slate-100 text-slate-600">{{ block.expert_source.name }}</span>
+    {% endif %}
+  </div>
+  <h3 class="text-lg font-semibold text-gray-800 m-0 mb-1">{{ block.title }}</h3>
+  <p class="text-sm text-gray-500 mb-3">{{ block.summary_md|truncate(140) }}</p>
+  <div class="flex items-center justify-between gap-2">
+    <div class="flex items-center gap-2 flex-wrap">
+      {% if block.estimated_days %}
+      <span class="text-xs text-gray-400">~{{ block.estimated_days }} дн.</span>
+      {% endif %}
+      <span class="text-xs font-semibold px-2 py-0.5 rounded bg-indigo-50 text-indigo-600">{{ action_labels.get(block.action_kind.value, block.action_kind.value) }}</span>
+    </div>
+    {% if is_admin %}
+    <div class="flex items-center gap-2 flex-shrink-0">
+      <a href="/ui/playbooks/blocks/{{ block.id }}/edit" class="text-xs text-gray-500 hover:text-indigo-600" aria-label="Редактировать блок">Редактировать</a>
+      <form method="post" action="/ui/playbooks/blocks/{{ block.id }}/delete" class="inline" hx-confirm="Удалить блок «{{ block.title }}»? Это действие нельзя отменить.">
+        <button type="submit" class="text-xs text-gray-500 hover:text-rose-600" aria-label="Удалить блок">Удалить</button>
+      </form>
+    </div>
+    {% endif %}
+  </div>
+</div>

@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% block title %}{% if block %}Редактировать блок{% else %}Новый блок{% endif %} — Плейбуки{% endblock %}
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="/ui/dashboard">Дашборд</a><span>&rsaquo;</span>
+  <a href="/ui/playbooks/blocks">Библиотека блоков</a><span>&rsaquo;</span>
+  {% if block %}{{ block.title }}{% else %}Новый блок{% endif %}
+</div>
+{% endblock %}
+{% block content %}
+{% set action_labels = {
+  "run_crawl": "Краулинг",
+  "open_keywords": "Ключевые слова",
+  "open_competitors": "Конкуренты",
+  "open_content_plan": "Контент-план",
+  "open_commercial_check": "Коммерческий аудит",
+  "open_brief": "ТЗ для копирайтера",
+  "manual_note": "Ручная заметка",
+} %}
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 max-w-3xl">
+  <h2 class="text-lg font-semibold text-gray-800 m-0 mb-4">
+    {% if block %}Редактировать блок{% else %}Создать новый блок{% endif %}
+  </h2>
+
+  <form method="post" action="{{ form_action }}" class="flex flex-col gap-4">
+
+    <div>
+      <label class="block text-xs font-semibold text-gray-600 mb-1" for="f-title">Название блока <span class="text-rose-600">*</span></label>
+      <input id="f-title" type="text" name="title" required
+        value="{{ block.title if block else '' }}"
+        class="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-indigo-500 focus:border-indigo-500">
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div>
+        <label class="block text-xs font-semibold text-gray-600 mb-1" for="f-category">Категория <span class="text-rose-600">*</span></label>
+        <select id="f-category" name="category_id" required
+          class="w-full px-3 py-2 text-sm border border-gray-300 rounded bg-white text-gray-700 focus:ring-indigo-500 focus:border-indigo-500">
+          {% for c in categories %}
+          <option value="{{ c.id }}" {% if block and block.category_id|string == c.id|string %}selected{% endif %}>{{ c.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-gray-600 mb-1" for="f-expert">Эксперт / источник</label>
+        <select id="f-expert" name="expert_source_id"
+          class="w-full px-3 py-2 text-sm border border-gray-300 rounded bg-white text-gray-700 focus:ring-indigo-500 focus:border-indigo-500">
+          <option value="">Без эксперта</option>
+          {% for e in experts %}
+          <option value="{{ e.id }}" {% if block and block.expert_source_id and block.expert_source_id|string == e.id|string %}selected{% endif %}>{{ e.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div>
+        <label class="block text-xs font-semibold text-gray-600 mb-1" for="f-action">Тип действия <span class="text-rose-600">*</span></label>
+        <select id="f-action" name="action_kind" required
+          class="w-full px-3 py-2 text-sm border border-gray-300 rounded bg-white text-gray-700 focus:ring-indigo-500 focus:border-indigo-500">
+          {% for ak in action_kinds %}
+          <option value="{{ ak.value }}" {% if block and block.action_kind.value == ak.value %}selected{% endif %}>{{ action_labels.get(ak.value, ak.value) }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-gray-600 mb-1" for="f-days">Оценка в днях</label>
+        <input id="f-days" type="number" name="estimated_days" min="1"
+          value="{{ block.estimated_days if block and block.estimated_days else '' }}"
+          placeholder="Не указано"
+          class="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-indigo-500 focus:border-indigo-500">
+      </div>
+    </div>
+
+    <div>
+      <label class="block text-xs font-semibold text-gray-600 mb-1" for="f-summary">Описание (Markdown) <span class="text-rose-600">*</span></label>
+      <textarea id="f-summary" name="summary_md" rows="5" required
+        class="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-indigo-500 focus:border-indigo-500 font-mono">{{ block.summary_md if block else '' }}</textarea>
+    </div>
+
+    <div>
+      <label class="block text-xs font-semibold text-gray-600 mb-1" for="f-checklist">Чеклист подзадач (Markdown, необязательно)</label>
+      <textarea id="f-checklist" name="checklist_md" rows="5"
+        placeholder="- [ ] Первый шаг&#10;- [ ] Второй шаг"
+        class="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-indigo-500 focus:border-indigo-500 font-mono">{{ block.checklist_md if block and block.checklist_md else '' }}</textarea>
+    </div>
+
+    <fieldset class="border border-gray-200 rounded-lg p-4">
+      <legend class="text-xs font-semibold text-gray-600 px-1">Ссылки на видео и статьи</legend>
+      <div id="media-list" class="flex flex-col gap-2">
+        {% if block and block.media %}
+          {% for m in block.media %}
+            {% set media = m %}
+            {% include "playbooks/_block_media_row.html" %}
+          {% endfor %}
+        {% endif %}
+      </div>
+      <button type="button"
+        hx-get="/ui/playbooks/blocks/media-row"
+        hx-target="#media-list"
+        hx-swap="beforeend"
+        class="mt-2 px-3 py-1.5 text-xs font-semibold rounded border border-gray-300 text-gray-700 hover:bg-gray-50">
+        + Добавить ссылку
+      </button>
+    </fieldset>
+
+    <p class="text-xs text-gray-400 m-0">Зависимости (prerequisites) задаются при добавлении блока в шаблон плейбука.</p>
+
+    <div class="flex items-center gap-3 pt-2">
+      <button type="submit" class="px-4 py-2 text-sm font-medium rounded bg-indigo-600 text-white hover:bg-indigo-700">
+        Сохранить блок
+      </button>
+      <a href="/ui/playbooks/blocks" class="px-4 py-2 text-sm font-medium rounded border border-gray-300 text-gray-700 hover:bg-gray-50">
+        Отменить и вернуться
+      </a>
+    </div>
+  </form>
+</div>
+{% endblock %}

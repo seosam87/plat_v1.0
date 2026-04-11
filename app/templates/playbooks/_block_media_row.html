@@ -1,0 +1,29 @@
+{#
+  Single media row for the block form.
+  Used both server-rendered (inside block_form.html loop over block.media)
+  and HTMX-fetched (GET /ui/playbooks/blocks/media-row → beforeend swap).
+  Inputs use plain (non-indexed) array names so _parse_media_rows on the
+  server can align rows via getlist() positional order.
+#}
+<div class="flex items-start gap-2 media-row">
+  <select name="media_kind" class="px-2 py-1.5 text-sm border border-gray-300 rounded bg-white text-gray-700 focus:ring-indigo-500 focus:border-indigo-500">
+    {% for mk in media_kinds %}
+    <option value="{{ mk.value }}" {% if media and media.kind.value == mk.value %}selected{% endif %}>{% if mk.value == "video" %}Видео{% else %}Статья{% endif %}</option>
+    {% endfor %}
+  </select>
+  <input type="url" name="media_url" required
+    placeholder="https://..."
+    value="{{ media.url if media else '' }}"
+    class="flex-1 min-w-0 px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-indigo-500 focus:border-indigo-500">
+  <input type="text" name="media_title"
+    placeholder="Заголовок"
+    value="{{ media.title if media else '' }}"
+    class="flex-1 min-w-0 px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-indigo-500 focus:border-indigo-500">
+  <textarea name="media_description" rows="2"
+    placeholder="Краткое описание (необязательно)"
+    class="flex-1 min-w-0 px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-indigo-500 focus:border-indigo-500">{{ media.description_md if media and media.description_md else '' }}</textarea>
+  <button type="button"
+    onclick="this.closest('.media-row').remove()"
+    class="px-2 py-1.5 text-xs text-gray-400 hover:text-rose-600"
+    aria-label="Удалить ссылку">✕</button>
+</div>

@@ -25,8 +25,9 @@ from __future__ import annotations
 
 import uuid
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Request
+from fastapi import APIRouter, Body, Depends, HTTPException, Request, status
 from fastapi.responses import HTMLResponse, RedirectResponse
+from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import require_admin, require_any_authenticated
@@ -133,7 +134,13 @@ async def ui_playbook_block_create(
         ),
         display_order=int(form.get("display_order") or 0),
     )
-    media = _parse_media_rows(form)
+    try:
+        media = _parse_media_rows(form)
+    except ValidationError as e:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Некорректный URL в ссылках: {e.errors()[0].get('msg', 'проверьте формат')}",
+        )
     await svc.create_block(db, data, media, created_by=user.id)
     return RedirectResponse("/ui/playbooks/blocks", status_code=303)
 
@@ -191,7 +198,13 @@ async def ui_playbook_block_update(
         ),
         display_order=int(form.get("display_order") or 0),
     )
-    media = _parse_media_rows(form)
+    try:
+        media = _parse_media_rows(form)
+    except ValidationError as e:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Некорректный URL в ссылках: {e.errors()[0].get('msg', 'проверьте формат')}",
+        )
     block = await svc.update_block(db, block_id, data, media)
     if block is None:
         raise HTTPException(status_code=404, detail="Block not found")

@@ -1,0 +1,22 @@
+{% if blocks %}
+<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+  {% for block in blocks %}
+    {% include "playbooks/_block_card.html" %}
+  {% endfor %}
+</div>
+{% else %}
+<div class="text-center py-12">
+  {% if selected_category_id or selected_expert_id %}
+  <h3 class="text-lg font-semibold text-gray-800 m-0 mb-1">Блоки не найдены</h3>
+  <p class="text-sm text-gray-500">Нет блоков по выбранным фильтрам. Попробуйте другую категорию или эксперта.</p>
+  {% else %}
+  <h3 class="text-lg font-semibold text-gray-800 m-0 mb-1">Библиотека блоков пуста</h3>
+  {% if is_admin %}
+  <p class="text-sm text-gray-500 mb-3">Создайте первый блок, чтобы начать строить методологию.</p>
+  <a href="/ui/playbooks/blocks/new" class="inline-block px-3 py-1.5 text-sm font-medium rounded bg-indigo-600 text-white hover:bg-indigo-700">+ Создать блок</a>
+  {% else %}
+  <p class="text-sm text-gray-500">Попросите администратора добавить блоки.</p>
+  {% endif %}
+  {% endif %}
+</div>
+{% endif %}

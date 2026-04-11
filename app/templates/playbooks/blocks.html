@@ -1,8 +1,48 @@
 {% extends "base.html" %}
 {% block title %}Библиотека блоков — Плейбуки{% endblock %}
+{% block breadcrumbs %}
+<div class="breadcrumbs"><a href="/ui/dashboard">Дашборд</a><span>&rsaquo;</span>Плейбуки<span>&rsaquo;</span>Библиотека блоков</div>
+{% endblock %}
 {% block content %}
 <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-  <h2 class="text-lg font-semibold text-gray-800 m-0 mb-4">Библиотека блоков</h2>
-  <p class="text-sm text-gray-500">Библиотека блоков пуста. Создайте первый блок, чтобы начать строить методологию.</p>
+  <div class="flex justify-between items-center mb-4">
+    <h2 class="text-lg font-semibold text-gray-800 m-0">Библиотека блоков</h2>
+    {% if is_admin %}
+    <a href="/ui/playbooks/blocks/new" class="px-3 py-1.5 text-sm font-medium rounded bg-indigo-600 text-white hover:bg-indigo-700">+ Создать блок</a>
+    {% endif %}
+  </div>
+
+  <div class="flex items-center gap-3 mb-4">
+    <select name="category_id"
+      hx-get="/ui/playbooks/blocks"
+      hx-trigger="change"
+      hx-target="#blocks-grid"
+      hx-swap="innerHTML"
+      hx-push-url="true"
+      hx-include="[name='expert_source_id']"
+      class="px-2 py-1.5 text-sm border border-gray-300 rounded bg-white text-gray-700 focus:ring-indigo-500 focus:border-indigo-500">
+      <option value="">Все категории</option>
+      {% for c in categories %}
+      <option value="{{ c.id }}" {% if selected_category_id and (selected_category_id|string == c.id|string) %}selected{% endif %}>{{ c.name }}</option>
+      {% endfor %}
+    </select>
+    <select name="expert_source_id"
+      hx-get="/ui/playbooks/blocks"
+      hx-trigger="change"
+      hx-target="#blocks-grid"
+      hx-swap="innerHTML"
+      hx-push-url="true"
+      hx-include="[name='category_id']"
+      class="px-2 py-1.5 text-sm border border-gray-300 rounded bg-white text-gray-700 focus:ring-indigo-500 focus:border-indigo-500">
+      <option value="">Все эксперты</option>
+      {% for e in experts %}
+      <option value="{{ e.id }}" {% if selected_expert_id and (selected_expert_id|string == e.id|string) %}selected{% endif %}>{{ e.name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div id="blocks-grid">
+    {% include "playbooks/_block_card_grid.html" %}
+  </div>
 </div>
 {% endblock %}

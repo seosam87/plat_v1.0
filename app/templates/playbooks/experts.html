@@ -1,8 +1,106 @@
 {% extends "base.html" %}
 {% block title %}Эксперты — Плейбуки{% endblock %}
+{% block breadcrumbs %}
+<div class="breadcrumbs"><a href="/ui/dashboard">Дашборд</a><span>&rsaquo;</span>Плейбуки<span>&rsaquo;</span>Эксперты</div>
+{% endblock %}
 {% block content %}
 <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-  <h2 class="text-lg font-semibold text-gray-800 m-0 mb-4">Эксперты</h2>
-  <p class="text-sm text-gray-500">Список экспертов пуст.</p>
+  <div class="flex justify-between items-center mb-4">
+    <h2 class="text-lg font-semibold text-gray-800 m-0">Эксперты</h2>
+    <button type="button"
+      onclick="document.getElementById('expert-create-form').classList.toggle('hidden')"
+      class="px-3 py-1.5 text-sm font-medium rounded bg-indigo-600 text-white hover:bg-indigo-700">
+      + Добавить эксперта
+    </button>
+  </div>
+
+  <div id="expert-create-form" class="hidden mb-6 p-4 border border-gray-200 rounded-lg bg-gray-50">
+    <h3 class="text-sm font-semibold text-gray-800 m-0 mb-3">Новый эксперт</h3>
+    <form method="post" action="/ui/playbooks/experts/new" class="flex flex-col gap-3">
+      <div>
+        <label class="block text-xs font-semibold text-gray-600 mb-1" for="new-name">Имя <span class="text-rose-600">*</span></label>
+        <input id="new-name" type="text" name="name" required
+          class="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-indigo-500 focus:border-indigo-500">
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-gray-600 mb-1" for="new-url">Внешняя ссылка</label>
+        <input id="new-url" type="url" name="external_url" placeholder="https://..."
+          class="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-indigo-500 focus:border-indigo-500">
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-gray-600 mb-1" for="new-bio">Биография (Markdown)</label>
+        <textarea id="new-bio" name="bio_md" rows="3"
+          class="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-indigo-500 focus:border-indigo-500 font-mono"></textarea>
+      </div>
+      <div class="flex items-center gap-2">
+        <button type="submit" class="px-3 py-1.5 text-sm font-medium rounded bg-indigo-600 text-white hover:bg-indigo-700">Сохранить</button>
+        <button type="button"
+          onclick="document.getElementById('expert-create-form').classList.add('hidden')"
+          class="px-3 py-1.5 text-sm font-medium rounded border border-gray-300 text-gray-700 hover:bg-gray-50">
+          Отмена
+        </button>
+      </div>
+    </form>
+  </div>
+
+  {% if experts %}
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead>
+        <tr class="text-xs font-semibold text-gray-500 uppercase border-b border-gray-200">
+          <th class="text-left py-2 px-2">Имя</th>
+          <th class="text-left py-2 px-2">Slug</th>
+          <th class="text-left py-2 px-2">Кол-во блоков</th>
+          <th class="text-left py-2 px-2">Внешняя ссылка</th>
+          <th class="text-right py-2 px-2">Действия</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for e in experts %}
+        <tr class="border-b border-gray-100 hover:bg-gray-50">
+          <td class="py-2 px-2 text-gray-800 font-medium">{{ e.name }}</td>
+          <td class="py-2 px-2 text-gray-500 text-xs">{{ e.slug }}</td>
+          <td class="py-2 px-2 text-gray-500">{{ block_counts.get(e.id, 0) }}</td>
+          <td class="py-2 px-2 text-gray-500 text-xs">
+            {% if e.external_url %}
+            <a href="{{ e.external_url }}" target="_blank" rel="noopener" class="text-indigo-600 hover:underline">{{ e.external_url|truncate(40) }}</a>
+            {% else %}
+            —
+            {% endif %}
+          </td>
+          <td class="py-2 px-2 text-right">
+            <details class="inline-block text-left">
+              <summary class="text-xs text-gray-500 hover:text-indigo-600 cursor-pointer list-none">Редактировать</summary>
+              <form method="post" action="/ui/playbooks/experts/{{ e.id }}/edit" class="mt-2 p-3 border border-gray-200 rounded bg-gray-50 flex flex-col gap-2 w-80">
+                <input type="text" name="name" required value="{{ e.name }}"
+                  class="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-indigo-500 focus:border-indigo-500">
+                <input type="url" name="external_url" placeholder="https://..." value="{{ e.external_url or '' }}"
+                  class="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-indigo-500 focus:border-indigo-500">
+                <textarea name="bio_md" rows="3" placeholder="Биография (Markdown)"
+                  class="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-indigo-500 focus:border-indigo-500 font-mono">{{ e.bio_md or '' }}</textarea>
+                <button type="submit" class="px-2 py-1 text-xs font-medium rounded bg-indigo-600 text-white hover:bg-indigo-700">Сохранить</button>
+              </form>
+            </details>
+            <form method="post" action="/ui/playbooks/experts/{{ e.id }}/delete" class="inline ml-2"
+              hx-confirm="Удалить эксперта «{{ e.name }}»? Блоки, привязанные к этому эксперту, останутся, но потеряют привязку.">
+              <button type="submit" class="text-xs text-gray-500 hover:text-rose-600" aria-label="Удалить эксперта">Удалить</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="text-center py-12">
+    <h3 class="text-lg font-semibold text-gray-800 m-0 mb-1">Список экспертов пуст</h3>
+    <p class="text-sm text-gray-500 mb-3">Добавьте источник компетенций (эксперта или агентство).</p>
+    <button type="button"
+      onclick="document.getElementById('expert-create-form').classList.remove('hidden')"
+      class="inline-block px-3 py-1.5 text-sm font-medium rounded bg-indigo-600 text-white hover:bg-indigo-700">
+      + Добавить эксперта
+    </button>
+  </div>
+  {% endif %}
 </div>
 {% endblock %}
