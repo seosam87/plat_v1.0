@@ -12,7 +12,7 @@ from __future__ import annotations
 import uuid
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
-from fastapi.responses import HTMLResponse, JSONResponse, Response
+from fastapi.responses import HTMLResponse, JSONResponse, Response, StreamingResponse
 from fastapi.templating import Jinja2Templates
 from loguru import logger
 from sqlalchemy import select
@@ -618,3 +618,154 @@ async def mobile_traffic_create_task(
     await db.flush()
     await db.commit()
     return HTMLResponse(content="", status_code=201)
+
+
+# ---------------------------------------------------------------------------
+# /m/reports — Phase 29 Reports & Tools (REP-01, REP-02)
+# ---------------------------------------------------------------------------
+
+@router.get("/reports/new", response_class=HTMLResponse, name="mobile_report_new")
+async def mobile_report_new(
+    request: Request,
+    report_token: str | None = None,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> HTMLResponse:
+    """Single-page form for creating a PDF report (D-03).
+
+    If ?report_token=... is present, result block is pre-rendered (server-side
+    reveal alternative to HTMX swap — simpler for MVP per D-04).
+    """
+    from app.services.mobile_reports_service import list_clients_for_reports
+    from app.services.project_service import get_accessible_projects
+
+    projects = await get_accessible_projects(db, user)
+    clients = await list_clients_for_reports(db)
+    ctx = {
+        "request": request,
+        "active_tab": "more",
+        "projects": projects,
+        "clients": clients,
+        "report_token": report_token,
+        "report_type": request.query_params.get("report_type", ""),
+        "project_name": request.query_params.get("project_name", ""),
+    }
+    return mobile_templates.TemplateResponse("mobile/reports/new.html", ctx)
+
+
+@router.post("/reports/new", response_class=HTMLResponse)
+async def mobile_report_create(
+    request: Request,
+    project_id: uuid.UUID = Form(...),
+    report_type: str = Form("brief"),
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> HTMLResponse:
+    """Generate PDF synchronously, store bytes in Redis, return inline result partial."""
+    from app.services import report_service
+    from app.services.mobile_reports_service import list_clients_for_reports, store_report_pdf
+
+    if report_type not in ("brief", "detailed"):
+        raise HTTPException(status_code=422, detail="report_type must be brief|detailed")
+
+    try:
+        pdf_bytes = await report_service.generate_pdf_report(db, project_id, report_type)
+    except Exception as exc:
+        logger.error("mobile report generation failed: {}", exc)
+        raise HTTPException(status_code=500, detail="Не удалось сгенерировать отчёт") from exc
+
+    token = await store_report_pdf(pdf_bytes)
+
+    # Load project name for display
+    from app.models.project import Project
+    proj = await db.get(Project, project_id)
+    project_name = proj.name if proj else ""
+
+    clients = await list_clients_for_reports(db)
+    return mobile_templates.TemplateResponse(
+        "mobile/reports/partials/result_block.html",
+        {
+            "request": request,
+            "report_token": token,
+            "report_type": report_type,
+            "project_name": project_name,
+            "clients": clients,
+        },
+    )
+
+
+@router.get("/reports/download/{token}", name="mobile_report_download")
+async def mobile_report_download(token: str) -> StreamingResponse:
+    """Token-protected PDF download (D-06). No auth — token IS the auth."""
+    from app.services.mobile_reports_service import load_report_pdf
+
+    pdf_bytes = await load_report_pdf(token)
+    if not pdf_bytes:
+        raise HTTPException(status_code=404, detail="Token expired or invalid")
+    return StreamingResponse(
+        iter([pdf_bytes]),
+        media_type="application/pdf",
+        headers={"Content-Disposition": 'attachment; filename="report.pdf"'},
+    )
+
+
+@router.post("/reports/{token}/send/telegram", response_class=JSONResponse)
+async def mobile_report_send_telegram(
+    token: str,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> JSONResponse:
+    """Send link-based Telegram delivery (D-06): send_message_sync with absolute URL."""
+    from app.services import telegram_service
+    from app.services.mobile_reports_service import build_download_url, load_report_pdf
+
+    pdf_bytes = await load_report_pdf(token)
+    if not pdf_bytes:
+        return JSONResponse({"ok": False, "error": "Ссылка истекла"}, status_code=410)
+
+    url = build_download_url(token)
+    ok = telegram_service.send_message_sync(f"Отчёт клиенту готов:\n{url}")
+    if not ok:
+        return JSONResponse(
+            {"ok": False, "error": "Ошибка отправки в Telegram"},
+            status_code=502,
+        )
+    return JSONResponse({"ok": True})
+
+
+@router.post("/reports/{token}/send/email", response_class=JSONResponse)
+async def mobile_report_send_email(
+    token: str,
+    client_id: uuid.UUID = Form(...),
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> JSONResponse:
+    """Send PDF as email attachment to selected Client.email."""
+    from app.models.client import Client as ClientModel
+    from app.services import smtp_service
+    from app.services.mobile_reports_service import load_report_pdf
+
+    client = await db.get(ClientModel, client_id)
+    if client is None or client.is_deleted or not client.email:
+        return JSONResponse(
+            {"ok": False, "error": "Ошибка: email клиента не указан"},
+            status_code=422,
+        )
+
+    pdf_bytes = await load_report_pdf(token)
+    if not pdf_bytes:
+        return JSONResponse({"ok": False, "error": "Ссылка истекла"}, status_code=410)
+
+    ok = smtp_service.send_email_with_attachment_sync(
+        to=client.email,
+        subject="SEO-отчёт",
+        body_html="<p>Во вложении — актуальный SEO-отчёт по вашему проекту.</p>",
+        attachment_bytes=pdf_bytes,
+        attachment_filename="report.pdf",
+    )
+    if not ok:
+        return JSONResponse(
+            {"ok": False, "error": "Ошибка отправки email"},
+            status_code=502,
+        )
+    return JSONResponse({"ok": True})
