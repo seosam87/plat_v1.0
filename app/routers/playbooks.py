@@ -63,16 +63,33 @@ router = APIRouter(tags=["playbooks"])
 @router.get("/ui/playbooks/blocks", response_class=HTMLResponse)
 async def ui_playbook_blocks(
     request: Request,
-    category_id: uuid.UUID | None = None,
-    expert_source_id: uuid.UUID | None = None,
+    category_id: str | None = None,
+    expert_source_id: str | None = None,
     user: User = Depends(require_any_authenticated),
     db: AsyncSession = Depends(get_db),
 ) -> HTMLResponse:
-    """Block library grid + HTMX filter. Any authenticated user can view."""
+    """Block library grid + HTMX filter. Any authenticated user can view.
+
+    Phase 999.8 Plan 06 (Gap A): accept ``str | None`` for filter params and
+    coerce manually. FastAPI's automatic ``uuid.UUID | None`` parsing 422s when
+    one slot is a valid uuid and the other is an empty string (sent by the
+    sibling ``hx-include`` dropdown), which broke the category+expert filter.
+    """
+    def _parse_uuid(raw: str | None) -> uuid.UUID | None:
+        if not raw:
+            return None
+        try:
+            return uuid.UUID(raw)
+        except (ValueError, TypeError):
+            return None
+
+    category_uuid = _parse_uuid(category_id)
+    expert_uuid = _parse_uuid(expert_source_id)
+
     blocks = await svc.list_blocks(
         db,
-        category_id=category_id,
-        expert_source_id=expert_source_id,
+        category_id=category_uuid,
+        expert_source_id=expert_uuid,
     )
     categories = await svc.list_categories(db)
     experts = await svc.list_experts(db)
@@ -82,8 +99,8 @@ async def ui_playbook_blocks(
         "categories": categories,
         "experts": experts,
         "is_admin": is_admin,
-        "selected_category_id": category_id,
-        "selected_expert_id": expert_source_id,
+        "selected_category_id": category_uuid,
+        "selected_expert_id": expert_uuid,
     }
     if request.headers.get("HX-Request"):
         return templates.TemplateResponse(
