@@ -1,0 +1,87 @@
+{% extends "mobile/base_mobile.html" %}
+{% block title %}Отчёт клиенту{% endblock %}
+{% block content %}
+<div class="p-4">
+  <h1 class="text-xl font-semibold mb-4">Отчёт клиенту</h1>
+
+  {% if not projects %}
+    <div class="bg-white rounded-lg p-4 text-sm text-gray-500">
+      Нет проектов. Создайте проект на полной версии платформы.
+    </div>
+  {% else %}
+  <form id="report-form"
+        hx-post="/m/reports/new"
+        hx-target="#result-slot"
+        hx-swap="innerHTML"
+        hx-indicator="#submit-spinner">
+
+    <label class="block text-xs text-gray-500 mb-1">Проект</label>
+    <select name="project_id" id="project-select"
+            class="w-full min-h-[44px] rounded-lg border border-gray-300 bg-white px-3 mb-4 text-sm"
+            required>
+      <option value="">— Выберите проект —</option>
+      {% for p in projects %}
+        <option value="{{ p.id }}">{{ p.name }}</option>
+      {% endfor %}
+    </select>
+
+    <label class="block text-xs text-gray-500 mb-2">Тип отчёта</label>
+    <div class="grid grid-cols-1 gap-2 mb-4" id="report-type-cards">
+      <label class="bg-white rounded-lg border-2 border-gray-200 p-4 cursor-pointer report-type-card block">
+        <input type="radio" name="report_type" value="brief" class="sr-only" required>
+        <div class="text-sm font-semibold">Краткий (1-2 стр.)</div>
+        <div class="text-xs text-gray-500">Топ-изменения + задачи</div>
+      </label>
+      <label class="bg-white rounded-lg border-2 border-gray-200 p-4 cursor-pointer report-type-card block">
+        <input type="radio" name="report_type" value="detailed" class="sr-only">
+        <div class="text-sm font-semibold">Подробный (5-10 стр.)</div>
+        <div class="text-xs text-gray-500">Полная таблица keywords + задачи + изменения</div>
+      </label>
+    </div>
+
+    <button type="submit" id="submit-btn" disabled
+            class="w-full min-h-[44px] rounded-lg text-white font-semibold text-sm opacity-50 cursor-not-allowed"
+            style="background:#4f46e5;">
+      <span class="htmx-indicator inline-block" id="submit-spinner">&#9203;</span>
+      Создать отчёт
+    </button>
+  </form>
+
+  <div id="result-slot" class="mt-4" aria-live="polite">
+    {% if report_token %}
+      {% include "mobile/reports/partials/result_block.html" %}
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+
+<script>
+(function(){
+  var form = document.getElementById('report-form');
+  if (!form) return;
+  var btn = document.getElementById('submit-btn');
+  var sel = document.getElementById('project-select');
+  var cards = document.querySelectorAll('.report-type-card');
+
+  function refresh(){
+    var project = sel.value;
+    var type = form.querySelector('input[name="report_type"]:checked');
+    var ok = project && type;
+    btn.disabled = !ok;
+    btn.classList.toggle('opacity-50', !ok);
+    btn.classList.toggle('cursor-not-allowed', !ok);
+  }
+  sel.addEventListener('change', refresh);
+  cards.forEach(function(card){
+    card.addEventListener('click', function(){
+      cards.forEach(function(c){ c.classList.replace('border-indigo-600', 'border-gray-200'); });
+      card.classList.replace('border-gray-200', 'border-indigo-600');
+      var input = card.querySelector('input[type=radio]');
+      input.checked = true;
+      refresh();
+    });
+  });
+  refresh();
+})();
+</script>
+{% endblock %}
