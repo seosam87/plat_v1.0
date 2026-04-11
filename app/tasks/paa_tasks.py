@@ -11,6 +11,29 @@ from app.celery_app import celery_app
 from app.database import get_sync_db
 
 
+async def _send_mobile_notify(
+    user_id, title: str, body: str, slug: str, job_id_str: str
+) -> None:
+    """Fire in-app notification with link to /m/tools/{slug}/jobs/{job_id}."""
+    from app.database import AsyncSessionLocal
+    from app.services.notifications import notify
+    try:
+        async with AsyncSessionLocal() as db:
+            await notify(
+                db=db,
+                user_id=user_id,
+                kind="tool.completed",
+                title=title,
+                body=body,
+                link_url=f"/m/tools/{slug}/jobs/{job_id_str}",
+                site_id=None,
+                severity="info",
+            )
+            await db.commit()
+    except Exception:
+        logger.exception("mobile notify failed slug={} job={}", slug, job_id_str)
+
+
 @celery_app.task(
     name="app.tasks.paa_tasks.run_paa",
     bind=True,
@@ -147,4 +170,22 @@ def run_paa(self, job_id: str) -> dict:
         len(phrases),
         len(all_results),
     )
+
+    # TLS-02: in-app notification for mobile
+    try:
+        with get_sync_db() as _db:
+            _job = _db.get(PAAJob, job_uuid)
+            _user_id = _job.user_id if _job else None
+        if _user_id:
+            import asyncio
+            asyncio.run(_send_mobile_notify(
+                user_id=_user_id,
+                title="PAA-парсер завершён",
+                body=f"Получено {len(all_results)} вопросов",
+                slug="paa",
+                job_id_str=job_id,
+            ))
+    except Exception:
+        logger.exception("notify wrap failed")
+
     return {"status": "complete", "count": len(all_results)}

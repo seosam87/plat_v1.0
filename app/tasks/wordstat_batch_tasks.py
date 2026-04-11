@@ -13,6 +13,30 @@ from app.celery_app import celery_app
 from app.database import get_sync_db
 
 
+async def _send_mobile_notify(
+    user_id, title: str, body: str, slug: str, job_id_str: str
+) -> None:
+    """Fire in-app notification with link to /m/tools/{slug}/jobs/{job_id}."""
+    from app.database import AsyncSessionLocal
+    from app.services.notifications import notify
+    try:
+        async with AsyncSessionLocal() as db:
+            await notify(
+                db=db,
+                user_id=user_id,
+                kind="tool.completed",
+                title=title,
+                body=body,
+                link_url=f"/m/tools/{slug}/jobs/{job_id_str}",
+                site_id=None,
+                severity="info",
+            )
+            await db.commit()
+    except Exception:
+        from loguru import logger
+        logger.exception("mobile notify failed slug={} job={}", slug, job_id_str)
+
+
 @celery_app.task(
     name="app.tasks.wordstat_batch_tasks.run_wordstat_batch",
     bind=True,
@@ -141,5 +165,23 @@ def run_wordstat_batch(self, job_id: str) -> dict:
             if partial_error:
                 job.error_message = "лимит API исчерпан — сохранены частичные данные"
             db.commit()
+
+    # TLS-02: in-app notification for mobile
+    try:
+        with get_sync_db() as _db:
+            _job = _db.get(WordstatBatchJob, job_uuid)
+            _user_id = _job.user_id if _job else None
+        if _user_id:
+            import asyncio
+            asyncio.run(_send_mobile_notify(
+                user_id=_user_id,
+                title="Wordstat пакет завершён",
+                body=f"Обработано {processed_count} фраз",
+                slug="wordstat-batch",
+                job_id_str=job_id,
+            ))
+    except Exception:
+        from loguru import logger
+        logger.exception("notify wrap failed")
 
     return {"status": final_status, "count": processed_count}
