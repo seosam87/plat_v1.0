@@ -117,6 +117,18 @@
     </button>
   </form>
 
+  <div class="mt-4">
+    <label class="toggle-label" style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+      <input type="checkbox"
+             {% if current_user.tg_notifications_enabled %}checked{% endif %}
+             hx-post="/profile/tg-notifications-toggle"
+             hx-swap="outerHTML"
+             hx-target="closest label">
+      Уведомления в Telegram ({{ "включены" if current_user.tg_notifications_enabled else "выключены" }})
+    </label>
+    <small class="text-muted d-block text-xs text-gray-400 mt-1">Критические уведомления (падение позиций, ошибки краулера) будут дублироваться в Telegram</small>
+  </div>
+
   {% elif telegram_bot_username %}
   <p class="text-sm text-gray-600 mb-4">
     Привяжите Telegram-аккаунт для входа через Mini App.

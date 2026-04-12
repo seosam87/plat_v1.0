@@ -293,3 +293,40 @@ async def unlink_telegram(
     await db.commit()
     logger.info("Unlinked telegram from user {}", current_user.id)
     return RedirectResponse("/profile/?tg_unlinked=1", status_code=303)
+
+
+# ---------------------------------------------------------------------------
+# POST /profile/tg-notifications-toggle — HTMX toggle (D-14)
+# ---------------------------------------------------------------------------
+
+
+@router.post("/tg-notifications-toggle", response_class=HTMLResponse)
+async def toggle_tg_notifications(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> HTMLResponse | RedirectResponse:
+    """Toggle Telegram error notifications on/off for the current user.
+
+    HTMX: returns an updated <label> element for hx-swap="outerHTML".
+    Plain POST: redirects back to /profile/.
+    """
+    current_user.tg_notifications_enabled = not current_user.tg_notifications_enabled
+    db.add(current_user)
+    await db.commit()
+
+    enabled = current_user.tg_notifications_enabled
+    status = "включены" if enabled else "выключены"
+    checked = "checked" if enabled else ""
+
+    if request.headers.get("HX-Request"):
+        return HTMLResponse(
+            f'<label class="toggle-label" style="display:flex;align-items:center;gap:8px;cursor:pointer;">'
+            f'<input type="checkbox" {checked} '
+            f'hx-post="/profile/tg-notifications-toggle" '
+            f'hx-swap="outerHTML" hx-target="closest label">'
+            f' Уведомления в Telegram ({status})'
+            f"</label>"
+        )
+
+    return RedirectResponse("/profile/", status_code=303)

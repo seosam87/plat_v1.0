@@ -53,6 +53,9 @@ class Settings(BaseSettings):
     TELEGRAM_BOT_USERNAME: str = ""
     TELEGRAM_CHANNEL_ID: str = ""  # e.g. @mychannel or -100123456789
     POSITION_DROP_THRESHOLD: int = 5  # alert if keyword drops by this many positions
+    TELEGRAM_WEBHOOK_SECRET: str = ""   # X-Telegram-Bot-Api-Secret-Token for bot webhook
+    TELEGRAM_WEBHOOK_BASE_URL: str = "" # Public base URL for webhook registration
+    TELEGRAM_BOT_PORT: int = 8443       # Internal port for bot webhook server
 
     # Proxy & anticaptcha for SERP parsing
     PROXY_URL: str = ""
