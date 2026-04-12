@@ -18,7 +18,7 @@
   {% if position_changes %}
   <div class="bg-white rounded-lg divide-y divide-gray-100">
     {% for item in position_changes %}
-    <a href="/ui/sites/{{ item.site_id }}/positions"
+    <a href="/m/positions"
        class="flex items-center gap-3 p-3 min-h-[44px]"
        style="text-decoration:none;color:inherit;"
        aria-label="{{ item.keyword }} на {{ item.site_name }}: {{ '%+d'|format(item.delta) }} позиций">
@@ -44,7 +44,7 @@
   {% if crawl_errors %}
   <div class="bg-white rounded-lg divide-y divide-gray-100">
     {% for item in crawl_errors %}
-    <a href="/ui/crawls/{{ item.crawl_job_id }}"
+    <a href="/m/errors"
        class="flex items-center gap-3 p-3 min-h-[44px]"
        style="text-decoration:none;color:inherit;">
       <span class="inline-block w-2 h-2 rounded-full flex-shrink-0 {% if item.http_status == 404 %}bg-red-500{% else %}bg-yellow-500{% endif %}"></span>
@@ -68,7 +68,7 @@
   {% if alerts %}
   <div class="bg-white rounded-lg divide-y divide-gray-100">
     {% for item in alerts %}
-    <a href="/ui/sites/{{ item.site_id }}/monitoring"
+    <a href="/m/health/{{ item.site_id }}"
        class="flex items-center gap-3 p-3 min-h-[44px]"
        style="text-decoration:none;color:inherit;">
       <span class="inline-block w-2 h-2 rounded-full flex-shrink-0 {% if item.severity == 'error' %}bg-red-500{% elif item.severity == 'warning' %}bg-yellow-500{% else %}bg-blue-500{% endif %}"></span>
@@ -92,7 +92,7 @@
   {% if overdue_tasks %}
   <div class="bg-white rounded-lg divide-y divide-gray-100">
     {% for item in overdue_tasks %}
-    <a href="/ui/tasks?site_id={{ item.site_id }}"
+    <a href="/m/tasks/new"
        class="flex items-center gap-3 p-3 min-h-[44px]"
        style="text-decoration:none;color:inherit;">
       <span class="inline-block w-2 h-2 rounded-full flex-shrink-0 {% if item.overdue_days > 7 %}bg-red-500{% else %}bg-yellow-500{% endif %}"></span>
