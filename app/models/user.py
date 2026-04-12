@@ -2,6 +2,7 @@ import uuid
 from datetime import datetime
 from enum import Enum as PyEnum
 
+import sqlalchemy as sa
 from sqlalchemy import BigInteger, Boolean, DateTime, Enum as SAEnum, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
@@ -46,6 +47,10 @@ class User(Base):
     # Telegram user ID — 64-bit integer, set when user links Telegram account (migration 0051)
     telegram_id: Mapped[int | None] = mapped_column(
         BigInteger, nullable=True, unique=True, index=True, default=None
+    )
+    # Telegram notification preference toggle (migration 0056, D-14)
+    tg_notifications_enabled: Mapped[bool] = mapped_column(
+        sa.Boolean, nullable=False, server_default=sa.text("false")
     )
 
     @property
