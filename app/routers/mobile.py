@@ -144,6 +144,24 @@ async def mobile_digest(
 
 
 # ---------------------------------------------------------------------------
+# /m/sites — site picker (INT-01: MOB-01, HLT-01, HLT-02)
+# ---------------------------------------------------------------------------
+
+@router.get("/sites", response_class=HTMLResponse)
+async def mobile_sites(
+    request: Request,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Site picker page — lists all sites, each links to /m/health/{site_id}."""
+    sites = await get_sites(db)
+    return mobile_templates.TemplateResponse(
+        "mobile/sites.html",
+        {"request": request, "user": user, "sites": sites, "active_tab": "sites"},
+    )
+
+
+# ---------------------------------------------------------------------------
 # Health card endpoints (/m/health/{site_id})
 # ---------------------------------------------------------------------------
 
@@ -627,6 +645,12 @@ async def mobile_traffic_create_task(
 # ---------------------------------------------------------------------------
 # /m/reports — Phase 29 Reports & Tools (REP-01, REP-02)
 # ---------------------------------------------------------------------------
+
+@router.get("/reports", response_class=RedirectResponse)
+async def mobile_reports_redirect():
+    """Redirect /m/reports → /m/reports/new (INT-02: REP-01, BOT-03)."""
+    return RedirectResponse(url="/m/reports/new", status_code=302)
+
 
 @router.get("/reports/new", response_class=HTMLResponse, name="mobile_report_new")
 async def mobile_report_new(
