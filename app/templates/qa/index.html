@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block title %}QA Surface Matrix — SEO Platform{% endblock %}
+
+{% block content %}
+<div class="main-content">
+
+  {# Page header #}
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
+    <div>
+      <h1 style="font-size:1.25rem;font-weight:600;color:#111827;margin:0 0 0.25rem 0;">QA Surface Matrix</h1>
+      <p style="font-size:0.875rem;color:#6b7280;margin:0;">Feature coverage across Desktop, Mobile, and Telegram surfaces</p>
+    </div>
+    <a href="/ui/qa/features/new" class="btn btn-primary" style="text-decoration:none;">Add User Flow</a>
+  </div>
+
+  {# Matrix table or empty state #}
+  {% if features %}
+  <div class="card" style="overflow-x:auto;">
+    <table style="border-collapse:collapse;width:100%;">
+      <thead>
+        <tr>
+          <th style="text-align:left;padding:0.75rem 1rem;font-size:0.875rem;font-weight:600;color:#374151;border-bottom:2px solid #e5e7eb;white-space:nowrap;">User Flow</th>
+          <th style="text-align:center;padding:0.75rem 0.5rem;font-size:0.875rem;font-weight:600;color:#374151;border-bottom:2px solid #e5e7eb;white-space:nowrap;">Retest (days)</th>
+          <th style="text-align:center;padding:0.75rem 1rem;font-size:0.875rem;font-weight:600;color:#374151;border-bottom:2px solid #e5e7eb;white-space:nowrap;">Desktop</th>
+          <th style="text-align:center;padding:0.75rem 1rem;font-size:0.875rem;font-weight:600;color:#374151;border-bottom:2px solid #e5e7eb;white-space:nowrap;">Mobile</th>
+          <th style="text-align:center;padding:0.75rem 1rem;font-size:0.875rem;font-weight:600;color:#374151;border-bottom:2px solid #e5e7eb;white-space:nowrap;">Telegram</th>
+          <th style="text-align:center;padding:0.75rem 1rem;font-size:0.875rem;font-weight:600;color:#374151;border-bottom:2px solid #e5e7eb;white-space:nowrap;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for feature in features %}
+        <tr id="feature-{{ feature.id }}" style="border-bottom:1px solid #f3f4f6;">
+          <td style="padding:0.75rem 1rem;font-size:0.875rem;color:#111827;max-width:240px;">
+            <div style="font-weight:500;">{{ feature.name }}</div>
+            {% if feature.description %}
+            <div style="font-size:0.75rem;color:#9ca3af;margin-top:0.2rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ feature.description[:80] }}{% if feature.description|length > 80 %}…{% endif %}</div>
+            {% endif %}
+          </td>
+          <td style="padding:0.75rem 0.5rem;font-size:0.875rem;color:#6b7280;text-align:center;">{{ feature.retest_days }}</td>
+
+          {# Surface columns — desktop, mobile, telegram in order #}
+          {% for surface in surfaces %}
+            {% set check = feature.checks | selectattr('surface', 'equalto', surface) | first %}
+            {% if check %}
+            <td
+              id="check-{{ check.id }}"
+              style="padding:0;text-align:center;min-height:44px;cursor:pointer;background:{{ status_colors[check.status.value]['bg'] }};color:{{ status_colors[check.status.value]['text'] }};"
+              hx-get="/ui/qa/checks/{{ check.id }}/edit"
+              hx-target="#check-{{ check.id }}"
+              hx-swap="innerHTML"
+              title="Click to update status"
+            >
+              <div style="display:flex;align-items:center;justify-content:center;gap:0.25rem;min-height:44px;padding:0.75rem 0.5rem;font-size:0.8rem;font-weight:600;">
+                {% if check.status.value == 'needs_retest' %}
+                {# Clock icon #}
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;flex-shrink:0;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                {% elif check.status.value == 'failed' %}
+                {# X icon #}
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;flex-shrink:0;"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                {% endif %}
+                {% if check.status.value == 'not_tested' %}Not Tested
+                {% elif check.status.value == 'passed' %}Passed
+                {% elif check.status.value == 'failed' %}Failed
+                {% elif check.status.value == 'needs_retest' %}Needs Retest
+                {% else %}{{ check.status.value | title }}
+                {% endif %}
+              </div>
+            </td>
+            {% else %}
+            <td style="padding:0.75rem;text-align:center;font-size:0.75rem;color:#9ca3af;">—</td>
+            {% endif %}
+          {% endfor %}
+
+          {# Actions column #}
+          <td style="padding:0.75rem 1rem;text-align:center;white-space:nowrap;">
+            <a href="/ui/qa/features/{{ feature.id }}" class="btn btn-sm" style="text-decoration:none;margin-right:0.5rem;">Edit</a>
+            <form method="post" action="/ui/qa/features/{{ feature.id }}/delete" style="display:inline;" onsubmit="return confirm('This will remove the flow and all surface check records. This cannot be undone. Delete?')">
+              <button type="submit" class="btn btn-sm" style="background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;">Delete</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% else %}
+  {# Empty state #}
+  <div class="card" style="text-align:center;padding:3rem 2rem;">
+    <h2 style="font-size:1.125rem;font-weight:600;color:#374151;margin:0 0 0.75rem 0;">No user flows registered yet</h2>
+    <p style="font-size:0.875rem;color:#6b7280;margin:0 0 1.5rem 0;">Add a user flow manually, or use Discover Routes to import candidates from the running app.</p>
+    <div style="display:flex;align-items:center;justify-content:center;gap:0.75rem;">
+      <a href="/ui/qa/features/new" class="btn btn-primary" style="text-decoration:none;">Add User Flow</a>
+      <a href="/ui/qa/candidates" class="btn" style="text-decoration:none;">Discover Routes</a>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

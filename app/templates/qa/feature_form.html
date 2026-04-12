@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+
+{% block title %}{% if mode == "create" %}New User Flow{% else %}Edit User Flow{% endif %} — SEO Platform{% endblock %}
+
+{% block content %}
+<div class="main-content">
+
+  {# Page header #}
+  <div style="margin-bottom:1.5rem;">
+    <h1 style="font-size:1.25rem;font-weight:600;color:#111827;margin:0 0 0.25rem 0;">
+      {% if mode == "create" %}New User Flow{% else %}Edit User Flow{% endif %}
+    </h1>
+  </div>
+
+  {# Form card #}
+  <div class="card" style="max-width:640px;margin:0 auto;">
+
+    <form
+      method="post"
+      action="{% if mode == 'create' %}/ui/qa/features{% else %}/ui/qa/features/{{ feature.id }}{% endif %}"
+      novalidate
+    >
+
+      {# Name #}
+      <div style="margin-bottom:1.25rem;">
+        <label for="qa-name" style="display:block;font-size:0.875rem;font-weight:600;color:#374151;margin-bottom:0.4rem;">
+          Name <span style="color:#991b1b;">*</span>
+        </label>
+        <input
+          type="text"
+          id="qa-name"
+          name="name"
+          required
+          value="{{ feature.name if feature else '' }}"
+          placeholder="e.g. Run position check and see results"
+          style="width:100%;box-sizing:border-box;padding:0.5rem 0.75rem;font-size:0.875rem;border:1px solid #d1d5db;border-radius:6px;color:#111827;"
+        >
+        <p style="font-size:0.75rem;color:#9ca3af;margin:0.3rem 0 0 0;">
+          Flow name is required. Enter a short description of what the user does (e.g. 'Run position check and see results').
+        </p>
+      </div>
+
+      {# Slug #}
+      <div style="margin-bottom:1.25rem;">
+        <label for="qa-slug" style="display:block;font-size:0.875rem;font-weight:600;color:#374151;margin-bottom:0.4rem;">
+          Slug <span style="color:#991b1b;">*</span>
+        </label>
+        <input
+          type="text"
+          id="qa-slug"
+          name="slug"
+          required
+          value="{{ feature.slug if feature else '' }}"
+          placeholder="e.g. position-check-flow"
+          style="width:100%;box-sizing:border-box;padding:0.5rem 0.75rem;font-size:0.875rem;border:1px solid #d1d5db;border-radius:6px;color:#111827;font-family:monospace;"
+        >
+        <p style="font-size:0.75rem;color:#9ca3af;margin:0.3rem 0 0 0;">
+          Unique identifier (lowercase, hyphens only). Auto-generated from name if left blank.
+        </p>
+      </div>
+
+      {# Description #}
+      <div style="margin-bottom:1.25rem;">
+        <label for="qa-description" style="display:block;font-size:0.875rem;font-weight:600;color:#374151;margin-bottom:0.4rem;">
+          Description
+        </label>
+        <textarea
+          id="qa-description"
+          name="description"
+          rows="3"
+          placeholder="Optional — steps the user takes, routes involved, etc."
+          style="width:100%;box-sizing:border-box;padding:0.5rem 0.75rem;font-size:0.875rem;border:1px solid #d1d5db;border-radius:6px;color:#111827;resize:vertical;"
+        >{{ feature.description if feature and feature.description else '' }}</textarea>
+      </div>
+
+      {# Retest days #}
+      <div style="margin-bottom:1.75rem;">
+        <label for="qa-retest-days" style="display:block;font-size:0.875rem;font-weight:600;color:#374151;margin-bottom:0.4rem;">
+          Retest every N days
+        </label>
+        <input
+          type="number"
+          id="qa-retest-days"
+          name="retest_days"
+          min="1"
+          value="{{ feature.retest_days if feature else 30 }}"
+          style="width:120px;padding:0.5rem 0.75rem;font-size:0.875rem;border:1px solid #d1d5db;border-radius:6px;color:#111827;"
+        >
+        <span style="font-size:0.875rem;color:#6b7280;margin-left:0.5rem;">days</span>
+      </div>
+
+      {# Actions #}
+      <div style="display:flex;align-items:center;gap:1rem;">
+        <button type="submit" class="btn btn-primary">
+          {% if mode == "create" %}Create User Flow{% else %}Update User Flow{% endif %}
+        </button>
+        <a href="/ui/qa/" style="font-size:0.875rem;color:#6b7280;text-decoration:none;">Back to Matrix</a>
+      </div>
+
+    </form>
+  </div>
+
+</div>
+
+{# Auto-generate slug from name #}
+<script>
+(function() {
+  var nameInput = document.getElementById('qa-name');
+  var slugInput = document.getElementById('qa-slug');
+  if (!nameInput || !slugInput) return;
+  nameInput.addEventListener('input', function() {
+    if (slugInput.dataset.edited) return;
+    slugInput.value = nameInput.value
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+  });
+  slugInput.addEventListener('input', function() {
+    slugInput.dataset.edited = '1';
+  });
+})();
+</script>
+{% endblock %}

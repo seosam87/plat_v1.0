@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+
+{% block title %}Route Candidates — SEO Platform{% endblock %}
+
+{% block content %}
+<div class="main-content">
+
+  {# Page header #}
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
+    <div>
+      <h1 style="font-size:1.25rem;font-weight:600;color:#111827;margin:0 0 0.25rem 0;">Route Candidates</h1>
+      <p style="font-size:0.875rem;color:#6b7280;margin:0;">Select routes that belong to the same user flow, enter a flow name, and save.</p>
+    </div>
+    <a href="/ui/qa/" class="btn" style="text-decoration:none;">Back to Matrix</a>
+  </div>
+
+  {% if routes %}
+  <form method="post" action="/ui/qa/candidates/save">
+
+    <div style="display:flex;gap:1.5rem;align-items:flex-start;flex-wrap:wrap;">
+
+      {# Left panel — route checklist #}
+      <div class="card" style="flex:1;min-width:300px;">
+        <h2 style="font-size:0.875rem;font-weight:600;color:#374151;margin:0 0 1rem 0;">Discovered Routes ({{ routes | length }})</h2>
+
+        {# Group routes by prefix #}
+        {% set prefixes = ['/ui/', '/m/', '/analytics/', '/audit/', '/gap/', '/intent/', '/architecture/', '/bulk/', '/traffic-analysis/', '/monitoring/', '/notifications'] %}
+
+        {% for prefix in prefixes %}
+          {% set prefix_routes = routes | selectattr('path', 'startswith', prefix) | list %}
+          {% if prefix_routes %}
+          <div style="margin-bottom:1rem;">
+            <div style="font-size:0.75rem;font-weight:600;color:#9ca3af;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.5rem;padding-bottom:0.25rem;border-bottom:1px solid #f3f4f6;">{{ prefix }}</div>
+            {% for route in prefix_routes %}
+            <label style="display:flex;align-items:center;gap:0.5rem;padding:0.35rem 0;cursor:pointer;font-size:0.875rem;color:#374151;">
+              <input
+                type="checkbox"
+                name="routes"
+                value="{{ route.path }}"
+                style="flex-shrink:0;"
+              >
+              <span style="font-family:monospace;font-size:0.8rem;flex:1;">{{ route.path }}</span>
+              <span class="badge" style="font-size:0.7rem;background:#f3f4f6;color:#6b7280;flex-shrink:0;">{{ route.methods | list | join(', ') }}</span>
+            </label>
+            {% endfor %}
+          </div>
+          {% endif %}
+        {% endfor %}
+
+        {# Other routes not matching any known prefix #}
+        {% set known_prefixes = ['/ui/', '/m/', '/analytics/', '/audit/', '/gap/', '/intent/', '/architecture/', '/bulk/', '/traffic-analysis/', '/monitoring/', '/notifications'] %}
+        {% set other_routes = [] %}
+        {% for route in routes %}
+          {% set is_known = namespace(value=false) %}
+          {% for p in known_prefixes %}
+            {% if route.path.startswith(p) %}{% set is_known.value = true %}{% endif %}
+          {% endfor %}
+          {% if not is_known.value %}{% set _ = other_routes.append(route) %}{% endif %}
+        {% endfor %}
+        {% if other_routes %}
+        <div style="margin-bottom:1rem;">
+          <div style="font-size:0.75rem;font-weight:600;color:#9ca3af;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.5rem;padding-bottom:0.25rem;border-bottom:1px solid #f3f4f6;">Other</div>
+          {% for route in other_routes %}
+          <label style="display:flex;align-items:center;gap:0.5rem;padding:0.35rem 0;cursor:pointer;font-size:0.875rem;color:#374151;">
+            <input
+              type="checkbox"
+              name="routes"
+              value="{{ route.path }}"
+              style="flex-shrink:0;"
+            >
+            <span style="font-family:monospace;font-size:0.8rem;flex:1;">{{ route.path }}</span>
+            <span class="badge" style="font-size:0.7rem;background:#f3f4f6;color:#6b7280;flex-shrink:0;">{{ route.methods | list | join(', ') }}</span>
+          </label>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+      </div>
+
+      {# Right panel — flow definition form #}
+      <div class="card" style="width:320px;flex-shrink:0;">
+        <h2 style="font-size:0.875rem;font-weight:600;color:#374151;margin:0 0 1rem 0;">Define User Flow</h2>
+
+        {# Name #}
+        <div style="margin-bottom:1rem;">
+          <label for="cand-name" style="display:block;font-size:0.875rem;font-weight:600;color:#374151;margin-bottom:0.4rem;">
+            Flow Name <span style="color:#991b1b;">*</span>
+          </label>
+          <input
+            type="text"
+            id="cand-name"
+            name="name"
+            required
+            placeholder="e.g. Run position check"
+            style="width:100%;box-sizing:border-box;padding:0.5rem 0.75rem;font-size:0.875rem;border:1px solid #d1d5db;border-radius:6px;color:#111827;"
+          >
+        </div>
+
+        {# Slug #}
+        <div style="margin-bottom:1rem;">
+          <label for="cand-slug" style="display:block;font-size:0.875rem;font-weight:600;color:#374151;margin-bottom:0.4rem;">
+            Slug <span style="color:#991b1b;">*</span>
+          </label>
+          <input
+            type="text"
+            id="cand-slug"
+            name="slug"
+            required
+            placeholder="e.g. run-position-check"
+            style="width:100%;box-sizing:border-box;padding:0.5rem 0.75rem;font-size:0.875rem;border:1px solid #d1d5db;border-radius:6px;color:#111827;font-family:monospace;"
+          >
+        </div>
+
+        {# Description #}
+        <div style="margin-bottom:1rem;">
+          <label for="cand-description" style="display:block;font-size:0.875rem;font-weight:600;color:#374151;margin-bottom:0.4rem;">Description</label>
+          <textarea
+            id="cand-description"
+            name="description"
+            rows="3"
+            placeholder="Optional notes about this user flow"
+            style="width:100%;box-sizing:border-box;padding:0.5rem 0.75rem;font-size:0.875rem;border:1px solid #d1d5db;border-radius:6px;color:#111827;resize:vertical;"
+          ></textarea>
+        </div>
+
+        {# Retest days #}
+        <div style="margin-bottom:1.5rem;">
+          <label for="cand-retest" style="display:block;font-size:0.875rem;font-weight:600;color:#374151;margin-bottom:0.4rem;">Retest every N days</label>
+          <input
+            type="number"
+            id="cand-retest"
+            name="retest_days"
+            min="1"
+            value="30"
+            style="width:100px;padding:0.5rem 0.75rem;font-size:0.875rem;border:1px solid #d1d5db;border-radius:6px;color:#111827;"
+          >
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width:100%;">Add User Flow</button>
+      </div>
+
+    </div>
+
+  </form>
+
+  {% else %}
+  {# Empty state #}
+  <div class="card" style="text-align:center;padding:3rem 2rem;">
+    <p style="font-size:0.875rem;color:#6b7280;margin:0 0 1rem 0;">No HTML routes discovered. Ensure the app is running.</p>
+    <a href="/ui/qa/" class="btn" style="text-decoration:none;">Back to Matrix</a>
+  </div>
+  {% endif %}
+
+</div>
+
+{# Auto-generate slug from name #}
+<script>
+(function() {
+  var nameInput = document.getElementById('cand-name');
+  var slugInput = document.getElementById('cand-slug');
+  if (!nameInput || !slugInput) return;
+  nameInput.addEventListener('input', function() {
+    if (slugInput.dataset.edited) return;
+    slugInput.value = nameInput.value
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+  });
+  slugInput.addEventListener('input', function() {
+    slugInput.dataset.edited = '1';
+  });
+})();
+</script>
+{% endblock %}
