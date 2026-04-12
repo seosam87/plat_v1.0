@@ -82,7 +82,7 @@ v3.x analytics phases and v4.x UI overhaul phases also completed within v1.0.
 - [x] **Phase 27: Digest & Site Health** - утренняя сводка + карточка здоровья сайта (completed 2026-04-10)
 - [x] **Phase 28: Positions & Traffic** - мобильные приложения позиций и трафика (completed 2026-04-10)
 - [x] **Phase 29: Reports & Tools** - генерация отчётов и запуск инструментов с телефона (completed 2026-04-11)
-- [ ] **Phase 30: Errors & Quick Task** - ошибки Яндекса + быстрое создание задач и ТЗ
+- [x] **Phase 30: Errors & Quick Task** - ошибки Яндекса + быстрое создание задач и ТЗ (completed 2026-04-12)
 - [ ] **Phase 31: Pages App** - approve queue, quick fix, массовые операции над контентом
 - [ ] **Phase 32: Telegram Bot** - отдельный Docker-сервис, команды, Mini App кнопки
 - [ ] **Phase 33: Claude Code Agent** - spike: задача боту → Claude Code → diff на утверждение
@@ -161,11 +161,11 @@ Plans:
   2. Из списка ошибок пользователь составляет ТЗ на исправление и сохраняет его — ТЗ привязывается к конкретной ошибке
   3. Пользователь открывает `/m/tasks/new` и создаёт задачу в нужный проект: текст + приоритет + проект — три поля, одна кнопка
   4. Пользователь создаёт ТЗ копирайтеру из аналитических данных и отправляет его в Telegram или email
-**Plans:** 1/3 plans executed
+**Plans:** 3/3 plans complete
 Plans:
 - [x] 30-01-PLAN.md — Data foundation: YandexError model, migration 0055, Celery sync task, service (ERR-01, ERR-02)
-- [ ] 30-02-PLAN.md — Errors UI: /m/errors page, sync, inline brief, bottom nav (ERR-01, ERR-02)
-- [ ] 30-03-PLAN.md — Quick task & brief: /m/tasks/new, mode toggle, copywriter template, delivery (TSK-01, TSK-02)
+- [x] 30-02-PLAN.md — Errors UI: /m/errors page, sync, inline brief, bottom nav (ERR-01, ERR-02)
+- [x] 30-03-PLAN.md — Quick task & brief: /m/tasks/new, mode toggle, copywriter template, delivery (TSK-01, TSK-02)
 **UI hint**: yes
 
 ### Phase 31: Pages App
@@ -214,7 +214,7 @@ Plans:
 | 27 | v4.0 | 1/2 | Complete    | 2026-04-10 |
 | 28 | v4.0 | 2/2 | Complete    | 2026-04-10 |
 | 29 | v4.0 | 3/3 | Complete    | 2026-04-11 |
-| 30 | v4.0 | 1/3 | In Progress|  |
+| 30 | v4.0 | 3/3 | Complete   | 2026-04-12 |
 | 31 | v4.0 | 0/? | Not started | - |
 | 32 | v4.0 | 0/? | Not started | - |
 | 33 | v4.0 | 0/? | Not started | - |
