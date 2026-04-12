@@ -61,6 +61,7 @@ _HELP_MODULE_MAP = {
     "/intent": "intent",
     "/ui/competitors": "competitors",
     "/ui/playbooks": "playbooks",
+    "/ui/qa": "admin",
 }
 
 

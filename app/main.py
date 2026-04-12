@@ -198,6 +198,9 @@ app.include_router(playbooks_router)
 from app.routers.agents import router as agents_router
 app.include_router(agents_router)
 
+from app.routers.qa_surfaces import router as qa_surfaces_router
+app.include_router(qa_surfaces_router)
+
 
 # ---- Site selector API endpoints for nav sidebar ----
 
