@@ -1,5 +1,16 @@
 {% extends "base.html" %}
 {% block title %}Change Feed — Crawl {{ job.id }}{% endblock %}
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="/ui/dashboard">Dashboard</a><span>&rsaquo;</span>
+  <a href="/ui/sites">Sites</a><span>&rsaquo;</span>
+  {% if site %}
+  <a href="/ui/sites/{{ site.id }}/crawls">{{ site.name }}</a><span>&rsaquo;</span>
+  <a href="/ui/sites/{{ site.id }}/crawls">Краулы</a><span>&rsaquo;</span>
+  {% endif %}
+  Crawl {{ job.id.hex[:8] }}
+</div>
+{% endblock %}
 {% block content %}
 <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
   <div class="flex justify-between items-center mb-4">
@@ -17,16 +28,13 @@
     </a>
   </div>
 
-  <!-- Filter buttons -->
+  <!-- Filter tabs -->
   <div class="flex gap-2 flex-wrap mb-4">
     {% for f in ["all", "seo_changed", "content_changed", "new_pages", "status_changed"] %}
-    <button
+    <a
+      href="/ui/crawls/{{ job.id }}?filter={{ f }}"
       class="px-3 py-1.5 text-sm font-medium rounded-md {% if filter == f %}bg-indigo-600 text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}"
-      hx-get="/ui/crawls/{{ job.id }}?filter={{ f }}"
-      hx-target="#pages-tbody"
-      hx-swap="innerHTML"
-      hx-push-url="false"
-    >{{ f.replace("_", " ").title() }}</button>
+    >{{ f.replace("_", " ").title() }}</a>
     {% endfor %}
   </div>
 

@@ -212,12 +212,17 @@ async def ui_crawl_feed(
     db: AsyncSession = Depends(get_db),
 ) -> HTMLResponse:
     """Show change feed for a crawl job."""
+    from app.models.site import Site
+
     job_result = await db.execute(
         select(CrawlJob).where(CrawlJob.id == crawl_job_id)
     )
     job = job_result.scalar_one_or_none()
     if job is None:
         raise HTTPException(status_code=404, detail="Crawl job not found")
+
+    site_result = await db.execute(select(Site).where(Site.id == job.site_id))
+    site = site_result.scalar_one_or_none()
 
     # Load pages + snapshots
     pages_result = await db.execute(
@@ -234,13 +239,27 @@ async def ui_crawl_feed(
         if snap.page_id not in snaps_by_page:
             snaps_by_page[snap.page_id] = snap
 
-    page_rows = [
-        {
-            "page": p,
-            "snap": snaps_by_page.get(p.id),
-        }
-        for p in pages
-    ]
+    # Build filtered page rows — mirrors the logic in list_crawl_pages JSON API
+    page_rows = []
+    for p in pages:
+        snap = snaps_by_page.get(p.id)
+        diff_data = snap.diff_data if snap else None
+
+        if filter == "seo_changed":
+            if not diff_data or not any(k in SEO_FIELDS for k in diff_data):
+                continue
+        elif filter == "content_changed":
+            if not diff_data or "content_preview" not in diff_data:
+                continue
+        elif filter == "status_changed":
+            if not diff_data or "http_status" not in diff_data:
+                continue
+        elif filter == "new_pages":
+            # new_pages: page exists but had no prior snapshot to diff against
+            if diff_data is not None:
+                continue
+
+        page_rows.append({"page": p, "snap": snap})
 
     # If HTMX partial request, return only the table body
     if request and request.headers.get("HX-Request"):
@@ -253,5 +272,5 @@ async def ui_crawl_feed(
     return templates.TemplateResponse(
         request,
         "crawl/feed.html",
-        {"job": job, "page_rows": page_rows, "filter": filter},
+        {"job": job, "site": site, "page_rows": page_rows, "filter": filter},
     )
