@@ -139,8 +139,13 @@ Plans:
 
 ### Phase 999.10: QA Surface Tracker — десктоп, мобилка, Telegram (BACKLOG)
 
-Retroactive audit system. FeatureSurface реестр с retest_policy. Высокий приоритет.
-**Plans:** 0 plans
+**Goal:** Retroactive QA audit system — FeatureSurface registry with parent-child model, matrix view (features x surfaces), Celery Beat periodic retest scan, route candidate auto-discovery.
+**Plans:** 3 plans
+
+Plans:
+- [ ] 999.10-01-PLAN.md — Models, migration, service layer, smoke seed integration
+- [ ] 999.10-02-PLAN.md — Router, 4 Jinja2 templates, sidebar navigation wiring
+- [ ] 999.10-03-PLAN.md — Celery Beat scan task, RedBeat registration
 
 ### Phase 999.11: SEO-курс на основе Playbook-данных (BACKLOG — SEED)
 
