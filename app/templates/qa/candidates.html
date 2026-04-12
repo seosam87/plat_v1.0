@@ -40,7 +40,7 @@
                 style="flex-shrink:0;margin-top:0.2rem;"
               >
               <span style="flex:1;min-width:0;">
-                <span style="display:block;font-size:0.8rem;color:#111827;font-weight:500;">{{ route.name | replace('_', ' ') | title }}</span>
+                <span style="display:block;font-size:0.8rem;color:#111827;font-weight:500;">{{ route_labels.get(route.name, route.name | replace('_', ' ') | title) }}</span>
                 <span style="display:block;font-family:monospace;font-size:0.7rem;color:#9ca3af;">{{ route.path }}</span>
               </span>
             </label>
@@ -71,7 +71,7 @@
               style="flex-shrink:0;margin-top:0.2rem;"
             >
             <span style="flex:1;min-width:0;">
-              <span style="display:block;font-size:0.8rem;color:#111827;font-weight:500;">{{ route.name | replace('_', ' ') | title }}</span>
+              <span style="display:block;font-size:0.8rem;color:#111827;font-weight:500;">{{ route_labels.get(route.name, route.name | replace('_', ' ') | title) }}</span>
               <span style="display:block;font-family:monospace;font-size:0.7rem;color:#9ca3af;">{{ route.path }}</span>
             </span>
           </label>

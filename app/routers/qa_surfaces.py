@@ -27,6 +27,196 @@ STATUS_COLORS = {
     "needs_retest": {"bg": "#fef3c7", "text": "#92400e"},
 }
 
+# Russian labels for discovered routes (route.name -> label)
+ROUTE_LABELS: dict[str, str] = {
+    # Analytics
+    "analytics_page": "Аналитика сайта",
+    "brief_detail_view": "Просмотр брифа",
+    "dead_content_page": "Мёртвый контент",
+    "fix_status": "Статус исправления",
+    "opportunities_page": "Точки роста",
+    "opportunities_detail_cannibal": "Каннибализация — детали",
+    "opportunities_detail_gap": "Gap-анализ — детали",
+    "opportunities_detail_loss": "Потери позиций — детали",
+    "opportunities_cannibal": "Каннибализация",
+    "opportunities_gaps": "Gap-анализ",
+    "opportunities_losses": "Потери позиций",
+    "opportunities_trend": "Тренды",
+    "quick_wins_page": "Быстрые победы",
+    "quick_wins_table": "Таблица быстрых побед",
+    # Architecture, Audit, Bulk, Gap, Intent
+    "architecture_page": "Архитектура сайта",
+    "audit_page": "Аудит сайта",
+    "bulk_page": "Массовые операции",
+    "export_keywords": "Экспорт ключевых слов",
+    "gap_page": "Gap-анализ",
+    "intent_page": "Интент ключевых слов",
+    # Mobile
+    "mobile_index": "Мобильная — главная",
+    "agent_diff_page": "Агент — просмотр diff",
+    "auth_link_required": "Авторизация — ссылка",
+    "mobile_digest": "Дайджест",
+    "mobile_errors": "Ошибки сайта",
+    "mobile_errors_content": "Ошибки контента",
+    "mobile_errors_sync_status": "Статус синхронизации ошибок",
+    "mobile_error_brief_form": "Бриф по ошибке",
+    "mobile_errors_show_all": "Все ошибки по типу",
+    "mobile_health": "Здоровье сайта",
+    "mobile_task_form": "Форма задачи",
+    "mobile_pages": "Страницы",
+    "mobile_bulk_progress": "Прогресс массовой операции",
+    "mobile_bulk_schema_confirm": "Подтверждение Schema",
+    "mobile_bulk_toc_confirm": "Подтверждение TOC",
+    "mobile_page_detail": "Детали страницы",
+    "mobile_page_detail_collapsed": "Детали страницы (свёрнуто)",
+    "mobile_page_edit": "Редактирование страницы",
+    "mobile_pipeline": "Пайплайн",
+    "mobile_positions": "Позиции",
+    "mobile_position_check_status": "Статус проверки позиций",
+    "mobile_positions_task_form": "Форма проверки позиций",
+    "mobile_report_download": "Скачать отчёт",
+    "mobile_report_new": "Новый отчёт",
+    "mobile_sites": "Список сайтов",
+    "mobile_tasks_new": "Новая задача",
+    "mobile_tasks_new_form": "Форма новой задачи",
+    "mobile_tools_list": "Инструменты",
+    "mobile_tool_result": "Результат инструмента",
+    "mobile_tool_result_all": "Все результаты инструмента",
+    "mobile_tool_job_status": "Статус задачи инструмента",
+    "mobile_tool_run_form": "Запуск инструмента",
+    "mobile_traffic": "Трафик",
+    "mobile_traffic_task_form": "Форма анализа трафика",
+    # Metrika, Monitoring, Notifications
+    "metrika_page": "Яндекс.Метрика",
+    "metrika_widget": "Виджет Метрики",
+    "monitoring_page": "Мониторинг изменений",
+    "notifications_index": "Уведомления",
+    "bell_fragment": "Колокольчик уведомлений",
+    "dropdown_fragment": "Выпадающий список уведомлений",
+    # Profile
+    "profile_page": "Профиль",
+    "link_telegram": "Привязка Telegram",
+    # Traffic analysis
+    "dashboard": "Анализ трафика",
+    # Admin
+    "ui_admin_audit": "Админ — журнал аудита",
+    "ui_admin_groups": "Админ — группы",
+    "ui_admin_issues": "Админ — проблемы",
+    "ui_admin_parameters": "Админ — параметры",
+    "ui_admin_proxy": "Админ — прокси",
+    "ui_admin_report_schedule_get": "Админ — расписание отчётов",
+    "ui_admin_settings_redirect": "Админ — настройки",
+    "ui_admin_users": "Админ — пользователи",
+    # Ads
+    "ui_ads": "Рекламные объявления",
+    # Agents
+    "catalogue": "Каталог AI-агентов",
+    "job_status": "Статус задачи агента",
+    "new_agent_form": "Новый агент",
+    "parse_vars": "Парсинг переменных",
+    "edit_agent_form": "Редактирование агента",
+    "run_agent_page": "Запуск агента",
+    # Analytics UI
+    "ui_analytics_select": "Аналитика — выбор сайта",
+    "ui_analytics": "Аналитика сайта",
+    "ui_cannibalization": "Каннибализация",
+    # Channel
+    "channel_index": "Telegram-канал — посты",
+    "channel_new": "Новый пост",
+    "channel_edit": "Редактирование поста",
+    "channel_preview": "Предпросмотр поста",
+    # Client reports
+    "client_reports_page": "Клиентские отчёты",
+    "report_history": "История отчётов",
+    "report_status": "Статус отчёта",
+    "download_report": "Скачать отчёт",
+    # Clusters, Competitors, Content
+    "ui_clusters": "Кластеризация",
+    "ui_competitors": "Конкуренты",
+    "ui_content_publish": "Публикация контента",
+    # Crawl
+    "ui_crawl_feed": "Лента изменений краула",
+    # CRM
+    "client_list": "Список клиентов",
+    "client_new_modal": "Новый клиент",
+    "client_detail": "Карточка клиента",
+    "contact_read_row": "Контакт клиента",
+    "contact_edit_form": "Редактирование контакта",
+    "documents_tab": "Документы клиента",
+    "download_document": "Скачать документ",
+    "document_status": "Статус документа",
+    "client_edit_modal": "Редактирование клиента",
+    "search_unattached_sites": "Поиск свободных сайтов",
+    # Dashboard
+    "ui_dashboard": "Главная панель",
+    "ui_datasources": "Источники данных",
+    # Help
+    "ui_help": "Справка по модулю",
+    # Keywords
+    "keyword_suggest_page": "Подбор ключевых слов",
+    "export_csv": "Экспорт CSV",
+    "suggest_status": "Статус подбора",
+    "wordstat_status": "Статус Wordstat",
+    "ui_keywords": "Ключевые слова сайта",
+    # Metrika UI
+    "ui_metrika_select": "Метрика — выбор сайта",
+    "ui_metrika": "Яндекс.Метрика",
+    # Pipeline
+    "ui_pipeline": "WP Пайплайн",
+    # Playbooks
+    "ui_playbook_templates": "Плейбуки",
+    "ui_playbook_blocks": "Блоки плейбуков",
+    "ui_playbook_block_media_row": "Медиа-строка блока",
+    "ui_playbook_block_new": "Новый блок",
+    "ui_playbook_block_edit": "Редактирование блока",
+    "ui_playbook_experts": "Эксперты",
+    "ui_playbook_new_form": "Новый плейбук",
+    "ui_playbook_builder": "Конструктор плейбука",
+    "ui_playbook_preview": "Предпросмотр плейбука",
+    # Positions
+    "ui_positions_select": "Позиции — выбор сайта",
+    "ui_positions": "Позиции сайта",
+    # Projects
+    "ui_projects": "Проекты",
+    "ui_kanban": "Kanban-доска",
+    "ui_plan": "План проекта",
+    "ui_project_playbook_tab": "Плейбук проекта",
+    "ui_project_playbook_apply_modal": "Применить плейбук",
+    # QA
+    "qa_matrix": "QA Матрица покрытия",
+    "candidates_page": "Кандидаты маршрутов",
+    "view_check_cell": "Ячейка проверки",
+    "edit_check_cell": "Редактирование проверки",
+    "new_feature_form": "Новый сценарий",
+    "edit_feature_form": "Редактирование сценария",
+    # Reports
+    "ui_reports": "Отчёты проекта",
+    # Sites
+    "ui_sites": "Список сайтов",
+    "ui_create_site_form": "Добавить сайт",
+    "ui_site_overview": "Обзор сайта",
+    "ui_site_crawl_history": "История краулов",
+    "ui_site_detail": "Детали сайта",
+    "ui_edit_site_form": "Редактирование сайта",
+    "intake_form": "Анкета аудита",
+    "refresh_checklist": "Обновить чеклист",
+    "ui_site_schedule": "Расписание краулов",
+    # Tasks
+    "ui_tasks": "Задачи",
+    # Templates
+    "template_list": "Шаблоны КП",
+    "template_new_page": "Новый шаблон",
+    "sites_for_client": "Сайты клиента",
+    "template_edit_page": "Редактирование шаблона",
+    # Tools
+    "tools_index": "SEO-инструменты",
+    "tool_landing": "Инструмент",
+    "tool_results": "Результаты инструмента",
+    "tool_job_status": "Статус задачи",
+    # Uploads
+    "ui_uploads": "Загрузки",
+}
+
 
 # ---------------------------------------------------------------------------
 # GET /ui/qa/ — Matrix view
@@ -233,6 +423,7 @@ async def candidates_page(
     return templates.TemplateResponse(request, "qa/candidates.html", {
         "routes": routes,
         "surfaces": list(Surface),
+        "route_labels": ROUTE_LABELS,
     })
 
 
