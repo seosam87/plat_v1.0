@@ -56,7 +56,7 @@ async def start_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
             ],
             [
                 make_webapp_button("Инструменты", "/m/tools", base),
-                make_webapp_button("Здоровье", "/m/health", base),
+                make_webapp_button("Сайты", "/m/sites", base),
             ],
         ]
     )
