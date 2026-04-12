@@ -207,11 +207,10 @@ Plans:
   1. Пользователь отправляет текстовую задачу боту — задача принимается, бот подтверждает получение и сообщает о начале выполнения
   2. После выполнения Claude Code бот присылает diff изменений — пользователь отвечает "да" или "нет" для применения или отката
   3. Spike задокументирован: решение о production-использовании принято на основе результатов эксперимента
-**Plans:** 3 plans
+**Plans:** 2 plans
 Plans:
-- [x] 31-01-PLAN.md — Pages list: bottom nav, site dropdown, audit tabs, inline expand (PAG-01)
-- [ ] 31-02-PLAN.md — Pipeline approve queue + title/meta edit with SERP preview (PAG-02, PAG-03)
-- [ ] 31-03-PLAN.md — Quick fix Celery tasks + bulk operations with progress (PAG-03, PAG-04)
+- [ ] 33-01-PLAN.md — Docker infra + agent handler: Claude CLI subprocess, git branch lifecycle, approve/reject (AGT-01, AGT-02)
+- [ ] 33-02-PLAN.md — Diff viewer WebApp + SPIKE-REPORT.md (AGT-02)
 
 ## Progress
 
@@ -229,7 +228,7 @@ Plans:
 | 30 | v4.0 | 3/3 | Complete    | 2026-04-12 |
 | 31 | v4.0 | 3/3 | Complete    | 2026-04-12 |
 | 32 | v4.0 | 3/3 | Complete    | 2026-04-12 |
-| 33 | v4.0 | 0/? | Not started | - |
+| 33 | v4.0 | 0/2 | Planned | - |
 
 **Total: 45 phases shipped, 8 phases planned for v4.0**
 
