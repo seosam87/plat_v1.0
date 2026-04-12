@@ -1,0 +1,45 @@
+{% extends "base_mobile.html" %}
+{% block title %}Страницы сайта{% endblock %}
+{% block content %}
+<div style="padding:0 0 64px 0;">
+  <h1 class="text-xl font-semibold mb-4">Страницы сайта</h1>
+
+  {% if not sites %}
+  <div class="bg-white rounded-lg p-4 text-sm text-gray-400 text-center">
+    Нет сайтов. Добавьте сайт в полной версии платформы.
+  </div>
+  {% else %}
+
+  <!-- Site dropdown -->
+  <select name="site_id"
+    class="w-full min-h-[44px] border border-gray-300 rounded-lg px-3 py-2 text-sm mb-3"
+    hx-get="/m/pages"
+    hx-target="#pages-content"
+    hx-swap="innerHTML"
+    hx-include="this"
+    hx-push-url="false">
+    {% for site in sites %}
+    <option value="{{ site.id }}" {% if site.id|string == site_id|string %}selected{% endif %}>{{ site.name or site.domain }}</option>
+    {% endfor %}
+  </select>
+
+  <!-- Pages content: tabs + list -->
+  <div id="pages-content">
+    {% include "mobile/pages/partials/pages_content.html" %}
+  </div>
+
+  <!-- Bulk operation buttons (outside #pages-content to avoid HTMX swap removal) -->
+  <div class="mt-4 space-y-2">
+    <a href="/m/pages/bulk/schema/confirm?site_id={{ site_id }}"
+       class="block w-full min-h-[44px] rounded-lg border border-gray-300 text-gray-700 bg-white text-sm font-semibold text-center leading-[44px]">
+      Добавить Schema всем страницам
+    </a>
+    <a href="/m/pages/bulk/toc/confirm?site_id={{ site_id }}"
+       class="block w-full min-h-[44px] rounded-lg border border-gray-300 text-gray-700 bg-white text-sm font-semibold text-center leading-[44px]">
+      Добавить TOC всем страницам
+    </a>
+  </div>
+
+  {% endif %}
+</div>
+{% endblock %}

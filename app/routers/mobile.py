@@ -1530,3 +1530,184 @@ async def mobile_tasks_new_submit(
         return HTMLResponse(
             content=f'<script>showToast("{toast_msg}", "success"); setTimeout(() => window.location.href = "/m/", 1000);</script>'
         )
+
+
+# ---------------------------------------------------------------------------
+# /m/pages — Phase 31 Pages App (PAG-01)
+# ---------------------------------------------------------------------------
+
+
+@router.get("/pages", response_class=HTMLResponse)
+async def mobile_pages(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+    site_id: str | None = None,
+    tab: str = "all",
+    offset: int = 0,
+):
+    """Pages list screen — audit status from latest crawl with 4 filter tabs."""
+    from sqlalchemy import func
+
+    from app.models.crawl import CrawlJob, CrawlJobStatus, Page
+    from app.models.site import Site
+
+    sites_result = await db.execute(select(Site).order_by(Site.domain))
+    sites = sites_result.scalars().all()
+
+    if not sites:
+        ctx = {
+            "request": request,
+            "user": user,
+            "active_tab": "pages",
+            "sites": [],
+            "pages": [],
+        }
+        return mobile_templates.TemplateResponse("mobile/pages/index.html", ctx)
+
+    # Determine selected site
+    if not site_id:
+        site_id = request.cookies.get("m_pages_site_id")
+    if not site_id or not any(str(s.id) == site_id for s in sites):
+        site_id = str(sites[0].id)
+
+    # Tab validation
+    valid_tabs = ("all", "no_schema", "no_toc", "noindex")
+    if tab not in valid_tabs:
+        tab = "all"
+
+    selected_uuid = uuid.UUID(site_id)
+
+    # Latest completed crawl subquery
+    latest_crawl_sq = (
+        select(CrawlJob.id)
+        .where(
+            CrawlJob.site_id == selected_uuid,
+            CrawlJob.status == CrawlJobStatus.done,
+        )
+        .order_by(CrawlJob.finished_at.desc())
+        .limit(1)
+        .scalar_subquery()
+    )
+
+    base_filter = Page.crawl_job_id == latest_crawl_sq
+
+    # Count queries for tab badges
+    count_all = (
+        await db.execute(select(func.count()).select_from(Page).where(base_filter))
+    ).scalar_one()
+    count_no_schema = (
+        await db.execute(
+            select(func.count()).select_from(Page).where(base_filter, Page.has_schema == False)  # noqa: E712
+        )
+    ).scalar_one()
+    count_no_toc = (
+        await db.execute(
+            select(func.count()).select_from(Page).where(base_filter, Page.has_toc == False)  # noqa: E712
+        )
+    ).scalar_one()
+    count_noindex = (
+        await db.execute(
+            select(func.count()).select_from(Page).where(base_filter, Page.has_noindex == True)  # noqa: E712
+        )
+    ).scalar_one()
+
+    # Build filtered query
+    pages_q = select(Page).where(base_filter)
+    if tab == "no_schema":
+        pages_q = pages_q.where(Page.has_schema == False)  # noqa: E712
+    elif tab == "no_toc":
+        pages_q = pages_q.where(Page.has_toc == False)  # noqa: E712
+    elif tab == "noindex":
+        pages_q = pages_q.where(Page.has_noindex == True)  # noqa: E712
+
+    pages_q = pages_q.order_by(Page.url).limit(21).offset(offset)
+    rows = (await db.execute(pages_q)).scalars().all()
+
+    pages = rows[:20]
+    has_more = len(rows) > 20
+    next_offset = offset + 20
+
+    ctx = {
+        "request": request,
+        "user": user,
+        "active_tab": "pages",
+        "sites": sites,
+        "pages": pages,
+        "site_id": site_id,
+        "tab": tab,
+        "counts": {
+            "all": count_all,
+            "no_schema": count_no_schema,
+            "no_toc": count_no_toc,
+            "noindex": count_noindex,
+        },
+        "has_more": has_more,
+        "offset": offset,
+        "next_offset": next_offset,
+    }
+
+    if request.headers.get("HX-Request"):
+        response = mobile_templates.TemplateResponse(
+            "mobile/pages/partials/pages_content.html", ctx
+        )
+    else:
+        response = mobile_templates.TemplateResponse("mobile/pages/index.html", ctx)
+
+    response.set_cookie(
+        key="m_pages_site_id",
+        value=site_id,
+        httponly=True,
+        samesite="lax",
+        max_age=86400 * 30,
+    )
+    return response
+
+
+@router.get("/pages/detail/{page_id}", response_class=HTMLResponse)
+async def mobile_page_detail(
+    request: Request,
+    page_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Inline expand detail for a page card."""
+    from app.models.crawl import Page
+    from app.models.site import Site
+
+    page = (
+        await db.execute(select(Page).where(Page.id == page_id))
+    ).scalar_one_or_none()
+    if page is None:
+        raise HTTPException(status_code=404, detail="Page not found")
+
+    site = (
+        await db.execute(select(Site).where(Site.id == page.site_id))
+    ).scalar_one_or_none()
+
+    return mobile_templates.TemplateResponse(
+        "mobile/pages/partials/page_detail.html",
+        {"request": request, "page": page, "site": site},
+    )
+
+
+@router.get("/pages/detail/{page_id}/collapsed", response_class=HTMLResponse)
+async def mobile_page_detail_collapsed(
+    request: Request,
+    page_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Collapse expanded page detail back to compact row."""
+    from app.models.crawl import Page
+
+    page = (
+        await db.execute(select(Page).where(Page.id == page_id))
+    ).scalar_one_or_none()
+    if page is None:
+        raise HTTPException(status_code=404, detail="Page not found")
+
+    return mobile_templates.TemplateResponse(
+        "mobile/pages/partials/page_row.html",
+        {"request": request, "page": page},
+    )

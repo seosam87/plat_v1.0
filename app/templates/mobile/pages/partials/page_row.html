@@ -1,0 +1,44 @@
+<div class="page-row p-3 min-h-[44px] flex items-center justify-between cursor-pointer"
+     hx-get="/m/pages/detail/{{ page.id }}"
+     hx-target="closest .page-row"
+     hx-swap="outerHTML">
+  <span class="text-xs text-gray-500 truncate flex-1 mr-2">{{ page.url }}</span>
+  <div class="flex items-center gap-1">
+    <!-- Schema icon (code-bracket) -->
+    <span title="Schema">
+      {% if page.has_schema %}
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width:20px;height:20px;" class="text-green-600">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+      </svg>
+      {% else %}
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width:20px;height:20px;" class="text-gray-300">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+      </svg>
+      {% endif %}
+    </span>
+    <!-- TOC icon (list-bullet) -->
+    <span title="TOC">
+      {% if page.has_toc %}
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width:20px;height:20px;" class="text-green-600">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+      </svg>
+      {% else %}
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width:20px;height:20px;" class="text-gray-300">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+      </svg>
+      {% endif %}
+    </span>
+    <!-- Index icon (eye / exclamation) -->
+    <span title="Index">
+      {% if page.has_noindex %}
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width:20px;height:20px;" class="text-red-500">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
+      </svg>
+      {% else %}
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width:20px;height:20px;" class="text-green-600">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+      </svg>
+      {% endif %}
+    </span>
+  </div>
+</div>

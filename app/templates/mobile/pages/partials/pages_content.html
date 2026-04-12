@@ -1,0 +1,56 @@
+<!-- Audit filter tabs with count-badges -->
+<div class="flex border-b border-gray-200 mb-3 overflow-x-auto">
+  <a href="#" hx-get="/m/pages?site_id={{ site_id }}&tab=all"
+     hx-target="#pages-content" hx-swap="innerHTML" hx-push-url="false"
+     class="flex-shrink-0 px-3 py-2 text-sm cursor-pointer text-decoration-none
+       {% if tab == 'all' %}font-semibold border-b-2 border-indigo-600 text-indigo-600{% else %}text-gray-500{% endif %}">
+    Все<span class="text-xs bg-gray-100 text-gray-600 rounded-full px-1.5 ml-1">{{ counts.all }}</span>
+  </a>
+  <a href="#" hx-get="/m/pages?site_id={{ site_id }}&tab=no_schema"
+     hx-target="#pages-content" hx-swap="innerHTML" hx-push-url="false"
+     class="flex-shrink-0 px-3 py-2 text-sm cursor-pointer text-decoration-none
+       {% if tab == 'no_schema' %}font-semibold border-b-2 border-indigo-600 text-indigo-600{% else %}text-gray-500{% endif %}">
+    Без Schema<span class="text-xs bg-gray-100 text-gray-600 rounded-full px-1.5 ml-1">{{ counts.no_schema }}</span>
+  </a>
+  <a href="#" hx-get="/m/pages?site_id={{ site_id }}&tab=no_toc"
+     hx-target="#pages-content" hx-swap="innerHTML" hx-push-url="false"
+     class="flex-shrink-0 px-3 py-2 text-sm cursor-pointer text-decoration-none
+       {% if tab == 'no_toc' %}font-semibold border-b-2 border-indigo-600 text-indigo-600{% else %}text-gray-500{% endif %}">
+    Без TOC<span class="text-xs bg-gray-100 text-gray-600 rounded-full px-1.5 ml-1">{{ counts.no_toc }}</span>
+  </a>
+  <a href="#" hx-get="/m/pages?site_id={{ site_id }}&tab=noindex"
+     hx-target="#pages-content" hx-swap="innerHTML" hx-push-url="false"
+     class="flex-shrink-0 px-3 py-2 text-sm cursor-pointer text-decoration-none
+       {% if tab == 'noindex' %}font-semibold border-b-2 border-indigo-600 text-indigo-600{% else %}text-gray-500{% endif %}">
+    Noindex<span class="text-xs bg-gray-100 text-gray-600 rounded-full px-1.5 ml-1">{{ counts.noindex }}</span>
+  </a>
+</div>
+
+{% if not pages %}
+<!-- Empty state -->
+<div class="bg-white rounded-lg p-6 text-center">
+  <p class="text-sm text-gray-400 mb-4">Нет данных о страницах</p>
+  <button hx-post="/m/health/{{ site_id }}/crawl"
+          hx-target="#pages-content"
+          hx-swap="innerHTML"
+          class="w-full min-h-[44px] rounded-lg text-white font-semibold text-sm"
+          style="background:#4f46e5;">
+    Запустить краулинг
+  </button>
+</div>
+{% else %}
+<!-- Page cards -->
+<div class="bg-white rounded-lg divide-y divide-gray-100 pages-list">
+  {% for page in pages %}
+    {% include "mobile/pages/partials/page_row.html" %}
+  {% endfor %}
+  {% if has_more %}
+  <div class="p-3 text-center"
+       hx-get="/m/pages?site_id={{ site_id }}&tab={{ tab }}&offset={{ next_offset }}"
+       hx-target="this"
+       hx-swap="outerHTML">
+    <span class="text-sm text-indigo-600 underline cursor-pointer">Загрузить ещё</span>
+  </div>
+  {% endif %}
+</div>
+{% endif %}
