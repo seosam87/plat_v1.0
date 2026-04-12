@@ -86,6 +86,7 @@ v3.x analytics phases and v4.x UI overhaul phases also completed within v1.0.
 - [x] **Phase 31: Pages App** - approve queue, quick fix, массовые операции над контентом (completed 2026-04-12)
 - [x] **Phase 32: Telegram Bot** - отдельный Docker-сервис, команды, Mini App кнопки (completed 2026-04-12)
 - [x] **Phase 33: Claude Code Agent** - spike: задача боту → Claude Code → diff на утверждение (completed 2026-04-12)
+- [ ] **Phase 33.1: Fix Mobile Integration Wiring** - gap closure: 6 integration fixes (routes, templates, toast, digest links)
 
 ## Phase Details
 
@@ -212,6 +213,21 @@ Plans:
 - [x] 33-01-PLAN.md — Docker infra + agent handler: Claude CLI subprocess, git branch lifecycle, approve/reject (AGT-01, AGT-02)
 - [x] 33-02-PLAN.md — Diff viewer WebApp + SPIKE-REPORT.md (AGT-02)
 
+### Phase 33.1: Fix Mobile Integration Wiring (INSERTED — Gap Closure)
+**Goal**: Закрыть 6 интеграционных gaps из v4.0-MILESTONE-AUDIT.md — мёртвые маршруты, сломанные шаблоны, toast и digest ссылки
+**Depends on**: Phase 33
+**Requirements**: MOB-01, HLT-01, HLT-02, REP-01, BOT-03, TLS-01, PAG-03, PAG-04, DIG-02
+**Success Criteria** (what must be TRUE):
+  1. `/m/sites` отдаёт страницу выбора сайта с переходом на `/m/health/{site_id}`
+  2. `/m/reports` редиректит на `/m/reports/new`
+  3. Бот кнопка "Здоровье" ведёт на `/m/sites` (а не `/m/health` без site_id)
+  4. Все mobile шаблоны extends `base_mobile.html` (не `mobile/base_mobile.html`)
+  5. showToast работает через HX-Trigger во всех /m/ страницах
+  6. Digest ссылки ведут на /m/ mobile маршруты
+**Plans:** 0 plans
+Plans:
+- [ ] TBD
+
 ## Progress
 
 | Phase | Milestone | Plans | Status | Completed |
@@ -229,8 +245,9 @@ Plans:
 | 31 | v4.0 | 3/3 | Complete    | 2026-04-12 |
 | 32 | v4.0 | 3/3 | Complete    | 2026-04-12 |
 | 33 | v4.0 | 2/2 | Complete    | 2026-04-12 |
+| 33.1 | v4.0 | 0/1 | Planned | - |
 
-**Total: 45 phases shipped, 8 phases planned for v4.0**
+**Total: 45 phases shipped, 9 phases in v4.0**
 
 ## Backlog
 
