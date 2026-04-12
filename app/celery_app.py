@@ -33,6 +33,7 @@ celery_app = Celery(
         "app.tasks.wordstat_batch_tasks",
         "app.tasks.yandex_errors_tasks",
         "app.tasks.agent_tasks",
+        "app.tasks.qa_surface_tasks",
     ],
 )
 
@@ -122,6 +123,8 @@ def restore_crawl_schedules(**kwargs):
         restore_report_schedules_from_db()
         from app.tasks.notification_tasks import register_notifications_cleanup_schedule
         register_notifications_cleanup_schedule()
+        from app.tasks.qa_surface_tasks import register_qa_surface_scan_schedule
+        register_qa_surface_scan_schedule()
     except Exception as exc:
         import logging
 
