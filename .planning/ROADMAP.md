@@ -85,7 +85,7 @@ v3.x analytics phases and v4.x UI overhaul phases also completed within v1.0.
 - [x] **Phase 30: Errors & Quick Task** - ошибки Яндекса + быстрое создание задач и ТЗ (completed 2026-04-12)
 - [x] **Phase 31: Pages App** - approve queue, quick fix, массовые операции над контентом (completed 2026-04-12)
 - [x] **Phase 32: Telegram Bot** - отдельный Docker-сервис, команды, Mini App кнопки (completed 2026-04-12)
-- [ ] **Phase 33: Claude Code Agent** - spike: задача боту → Claude Code → diff на утверждение
+- [x] **Phase 33: Claude Code Agent** - spike: задача боту → Claude Code → diff на утверждение (completed 2026-04-12)
 
 ## Phase Details
 
@@ -207,10 +207,10 @@ Plans:
   1. Пользователь отправляет текстовую задачу боту — задача принимается, бот подтверждает получение и сообщает о начале выполнения
   2. После выполнения Claude Code бот присылает diff изменений — пользователь отвечает "да" или "нет" для применения или отката
   3. Spike задокументирован: решение о production-использовании принято на основе результатов эксперимента
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans complete
 Plans:
 - [x] 33-01-PLAN.md — Docker infra + agent handler: Claude CLI subprocess, git branch lifecycle, approve/reject (AGT-01, AGT-02)
-- [ ] 33-02-PLAN.md — Diff viewer WebApp + SPIKE-REPORT.md (AGT-02)
+- [x] 33-02-PLAN.md — Diff viewer WebApp + SPIKE-REPORT.md (AGT-02)
 
 ## Progress
 
@@ -228,7 +228,7 @@ Plans:
 | 30 | v4.0 | 3/3 | Complete    | 2026-04-12 |
 | 31 | v4.0 | 3/3 | Complete    | 2026-04-12 |
 | 32 | v4.0 | 3/3 | Complete    | 2026-04-12 |
-| 33 | v4.0 | 1/2 | In Progress|  |
+| 33 | v4.0 | 2/2 | Complete   | 2026-04-12 |
 
 **Total: 45 phases shipped, 8 phases planned for v4.0**
 
