@@ -1,0 +1,26 @@
+{% if not jobs %}
+<div class="bg-white rounded-lg p-6 text-center mt-2">
+  <p class="text-sm font-semibold text-gray-700 mb-1">
+    {% if status_filter == 'awaiting_approval' %}
+      Нет заданий на проверке
+    {% elif status_filter == 'pushed' %}
+      Нет отправленных изменений
+    {% else %}
+      Нет ошибок
+    {% endif %}
+  </p>
+  <p class="text-xs text-gray-500">
+    {% if status_filter == 'awaiting_approval' %}
+      Изменения появятся здесь после обработки контента.
+    {% elif status_filter == 'pushed' %}
+      Одобренные изменения отображаются здесь.
+    {% else %}
+      Задания с ошибками появятся здесь.
+    {% endif %}
+  </p>
+</div>
+{% else %}
+{% for job in jobs %}
+{% include "mobile/pipeline/partials/job_card.html" %}
+{% endfor %}
+{% endif %}

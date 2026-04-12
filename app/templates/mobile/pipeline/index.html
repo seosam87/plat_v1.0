@@ -1,0 +1,111 @@
+{% extends "base_mobile.html" %}
+{% block title %}Очередь изменений{% endblock %}
+{% block content %}
+<div style="padding:0 0 64px 0;">
+  <h1 class="text-xl font-semibold mb-4">Очередь изменений</h1>
+
+  {% if not sites %}
+  <div class="bg-white rounded-lg p-4 text-sm text-gray-400 text-center">
+    Нет сайтов. Добавьте сайт в полной версии платформы.
+  </div>
+  {% else %}
+
+  <!-- Site dropdown -->
+  <select name="site_id"
+    class="w-full min-h-[44px] border border-gray-300 rounded-lg px-3 py-2 text-sm mb-3"
+    hx-get="/m/pipeline"
+    hx-target="#pipeline-content"
+    hx-swap="innerHTML"
+    hx-include="this"
+    hx-push-url="false">
+    {% for site in sites %}
+    <option value="{{ site.id }}" {% if site.id|string == site_id|string %}selected{% endif %}>{{ site.name or site.url }}</option>
+    {% endfor %}
+  </select>
+
+  <!-- Status tabs -->
+  <div class="flex gap-2 mb-3 overflow-x-auto">
+    <a href="/m/pipeline?status=awaiting_approval{% if site_id %}&site_id={{ site_id }}{% endif %}"
+       class="flex-shrink-0 px-3 py-1.5 rounded-full text-sm font-medium border
+              {% if status_filter == 'awaiting_approval' %}bg-amber-100 border-amber-400 text-amber-800{% else %}bg-white border-gray-300 text-gray-600{% endif %}">
+      На проверке
+      {% if counts.awaiting_approval > 0 %}
+      <span class="ml-1 inline-flex items-center justify-center w-5 h-5 rounded-full text-xs font-bold
+                   {% if status_filter == 'awaiting_approval' %}bg-amber-500 text-white{% else %}bg-gray-200 text-gray-700{% endif %}">{{ counts.awaiting_approval }}</span>
+      {% endif %}
+    </a>
+    <a href="/m/pipeline?status=pushed{% if site_id %}&site_id={{ site_id }}{% endif %}"
+       class="flex-shrink-0 px-3 py-1.5 rounded-full text-sm font-medium border
+              {% if status_filter == 'pushed' %}bg-green-100 border-green-400 text-green-800{% else %}bg-white border-gray-300 text-gray-600{% endif %}">
+      Отправлено
+      {% if counts.pushed > 0 %}
+      <span class="ml-1 inline-flex items-center justify-center w-5 h-5 rounded-full text-xs font-bold
+                   {% if status_filter == 'pushed' %}bg-green-500 text-white{% else %}bg-gray-200 text-gray-700{% endif %}">{{ counts.pushed }}</span>
+      {% endif %}
+    </a>
+    <a href="/m/pipeline?status=failed{% if site_id %}&site_id={{ site_id }}{% endif %}"
+       class="flex-shrink-0 px-3 py-1.5 rounded-full text-sm font-medium border
+              {% if status_filter == 'failed' %}bg-red-100 border-red-400 text-red-800{% else %}bg-white border-gray-300 text-gray-600{% endif %}">
+      Ошибки
+      {% if counts.failed > 0 %}
+      <span class="ml-1 inline-flex items-center justify-center w-5 h-5 rounded-full text-xs font-bold
+                   {% if status_filter == 'failed' %}bg-red-500 text-white{% else %}bg-gray-200 text-gray-700{% endif %}">{{ counts.failed }}</span>
+      {% endif %}
+    </a>
+  </div>
+
+  <!-- Pipeline content -->
+  <div id="pipeline-content">
+    {% include "mobile/pipeline/partials/pipeline_content.html" %}
+  </div>
+
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function initTwoTapButton(btn) {
+  let timer = null;
+  btn.addEventListener('click', function(e) {
+    e.preventDefault();
+    if (btn.dataset.ready === 'true') {
+      htmx.ajax('POST', btn.dataset.actionUrl, {target: btn.dataset.target, swap: 'outerHTML'});
+      btn.dataset.ready = 'false';
+      return;
+    }
+    const originalText = btn.textContent;
+    const originalClass = btn.className;
+    btn.textContent = btn.dataset.confirmText;
+    btn.className = btn.className.replace(/border-gray-300 text-gray-700 bg-white/, btn.dataset.confirmClass);
+    btn.dataset.ready = 'true';
+    timer = setTimeout(function() {
+      btn.textContent = originalText;
+      btn.className = originalClass;
+      btn.dataset.ready = 'false';
+    }, 2000);
+  });
+}
+document.addEventListener('htmx:afterSettle', function() {
+  document.querySelectorAll('[data-confirm-text]:not([data-initialized])').forEach(function(btn) {
+    initTwoTapButton(btn);
+    btn.dataset.initialized = 'true';
+  });
+});
+document.addEventListener('htmx:afterOnLoad', function(e) {
+  var detail = e.detail;
+  if (detail && detail.xhr) {
+    try {
+      var trigger = JSON.parse(detail.xhr.getResponseHeader('HX-Trigger') || '{}');
+      if (trigger.showToast) {
+        showToast(trigger.showToast.msg, trigger.showToast.type);
+      }
+    } catch(ex) {}
+  }
+});
+document.querySelectorAll('[data-confirm-text]').forEach(function(btn) {
+  initTwoTapButton(btn);
+  btn.dataset.initialized = 'true';
+});
+</script>
+{% endblock %}

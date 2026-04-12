@@ -1,0 +1,94 @@
+<div id="job-{{ job.id }}" class="bg-white rounded-lg p-4 mb-3" aria-live="polite">
+  <!-- Header: URL + status badge -->
+  <div class="flex items-start justify-between gap-2 mb-2">
+    <div class="flex-1 min-w-0">
+      <p class="text-xs text-gray-500 truncate">{{ job.page_url or '—' }}</p>
+      {% if job.post_type %}
+      <p class="text-xs text-gray-400 mt-0.5">{{ job.post_type }}</p>
+      {% endif %}
+    </div>
+    <span class="flex-shrink-0 px-2 py-0.5 rounded-full text-xs font-semibold
+      {% if job.status.value == 'awaiting_approval' %}bg-amber-100 text-amber-800
+      {% elif job.status.value == 'pushed' or job.status.value == 'approved' %}bg-green-100 text-green-800
+      {% elif job.status.value == 'failed' %}bg-red-100 text-red-800
+      {% elif job.status.value == 'rolled_back' %}bg-gray-100 text-gray-600
+      {% else %}bg-gray-100 text-gray-600{% endif %}">
+      {% if job.status.value == 'awaiting_approval' %}На проверке
+      {% elif job.status.value == 'approved' %}Одобрено
+      {% elif job.status.value == 'pushed' %}Отправлено
+      {% elif job.status.value == 'failed' %}Ошибка
+      {% elif job.status.value == 'rolled_back' %}Откатано
+      {% else %}{{ job.status.value }}{% endif %}
+    </span>
+  </div>
+
+  <!-- Diff block -->
+  {% set diff = job.diff_json or {} %}
+  {% set parsed_lines = job.parsed_diff_lines if job.parsed_diff_lines is defined else [] %}
+  {% if parsed_lines %}
+  <div class="bg-gray-50 rounded p-3 mb-3 border-l-2 border-gray-300 overflow-x-auto">
+    <p class="text-xs text-gray-400 mb-1">Изменения:</p>
+    <div id="diff-body-{{ job.id }}">
+      {% for line in parsed_lines[:5] %}
+      <div class="text-sm font-mono leading-relaxed">{{ line.html }}</div>
+      {% endfor %}
+    </div>
+    {% if parsed_lines|length > 5 %}
+    <div id="diff-extra-{{ job.id }}" style="display:none;">
+      {% for line in parsed_lines[5:] %}
+      <div class="text-sm font-mono leading-relaxed">{{ line.html }}</div>
+      {% endfor %}
+    </div>
+    <button type="button"
+            class="text-xs text-indigo-600 underline mt-1"
+            onclick="(function(btn){
+              var extra = document.getElementById('diff-extra-{{ job.id }}');
+              if(extra.style.display === 'none'){extra.style.display='block';btn.textContent='Свернуть';}
+              else{extra.style.display='none';btn.textContent='Показать весь diff';}
+            })(this)">Показать весь diff</button>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <!-- Action buttons -->
+  {% if job.status.value == 'awaiting_approval' %}
+  <div class="flex gap-2">
+    <button class="flex-1 min-h-[44px] rounded-lg border border-gray-300 text-gray-700 bg-white text-sm font-semibold"
+            data-confirm-text="Подтвердить?"
+            data-confirm-class="bg-green-50 border-green-600 text-green-800 font-semibold"
+            data-action-url="/m/pipeline/{{ job.id }}/approve"
+            data-target="#job-{{ job.id }}">Принять</button>
+    <button class="flex-1 min-h-[44px] rounded-lg border border-gray-300 text-gray-700 bg-white text-sm font-semibold"
+            data-confirm-text="Подтвердить отклонение?"
+            data-confirm-class="bg-red-50 border-red-600 text-red-800 font-semibold"
+            data-action-url="/m/pipeline/{{ job.id }}/reject"
+            data-target="#job-{{ job.id }}">Отклонить</button>
+  </div>
+  {% elif job.status.value == 'pushed' %}
+  <div class="flex gap-2">
+    <button class="flex-1 min-h-[44px] rounded-lg border border-gray-300 text-gray-700 bg-white text-sm font-semibold"
+            data-confirm-text="Подтвердить откат?"
+            data-confirm-class="bg-amber-50 border-amber-600 text-amber-800 font-semibold"
+            data-action-url="/m/pipeline/{{ job.id }}/rollback"
+            data-target="#job-{{ job.id }}">Откатить</button>
+  </div>
+  {% elif job.status.value == 'failed' %}
+  <div class="flex gap-2">
+    <button class="flex-1 min-h-[44px] rounded-lg border border-gray-300 text-gray-700 bg-white text-sm font-semibold"
+            data-confirm-text="Подтвердить?"
+            data-confirm-class="bg-green-50 border-green-600 text-green-800 font-semibold"
+            data-action-url="/m/pipeline/{{ job.id }}/approve"
+            data-target="#job-{{ job.id }}">Повторить</button>
+  </div>
+  {% elif job.status.value == 'approved' %}
+  <div class="text-xs text-gray-400 text-center py-2">Отправляется в WP...</div>
+  {% endif %}
+
+  <!-- Metadata -->
+  {% if job.created_at %}
+  <p class="text-xs text-gray-400 mt-2">Создано: {{ job.created_at.strftime('%d.%m.%Y %H:%M') }}</p>
+  {% endif %}
+  {% if job.error_message %}
+  <p class="text-xs text-red-500 mt-1">{{ job.error_message }}</p>
+  {% endif %}
+</div>

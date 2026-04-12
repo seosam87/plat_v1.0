@@ -10,6 +10,7 @@ Public auth endpoints under /m/auth/ are excluded from UIAuthMiddleware.
 from __future__ import annotations
 
 import asyncio
+import json
 import uuid
 from datetime import datetime, timezone
 
@@ -1711,3 +1712,658 @@ async def mobile_page_detail_collapsed(
         "mobile/pages/partials/page_row.html",
         {"request": request, "page": page},
     )
+
+
+# ---------------------------------------------------------------------------
+# /m/pages/{site_id}/{page_id}/edit — Phase 31 Title/Meta edit (PAG-03)
+# ---------------------------------------------------------------------------
+
+
+@router.get("/pages/{site_id}/{page_id}/edit", response_class=HTMLResponse)
+async def mobile_page_edit(
+    request: Request,
+    site_id: uuid.UUID,
+    page_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Title/Meta edit screen with SERP preview (D-15)."""
+    from app.models.crawl import Page
+    from app.models.site import Site
+
+    page = await db.get(Page, page_id)
+    if page is None or page.site_id != site_id:
+        raise HTTPException(status_code=404, detail="Page not found")
+
+    site = await db.get(Site, site_id)
+
+    return mobile_templates.TemplateResponse(
+        "mobile/pages/edit.html",
+        {"request": request, "page": page, "site": site, "site_id": site_id, "active_tab": "pages"},
+    )
+
+
+@router.post("/pages/{site_id}/{page_id}/edit", response_class=HTMLResponse)
+async def mobile_page_edit_submit(
+    request: Request,
+    site_id: uuid.UUID,
+    page_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Create WpContentJob with awaiting_approval status and redirect to /m/pipeline (D-13, D-15)."""
+    from markupsafe import Markup
+    from app.models.crawl import Page
+    from app.models.site import Site
+    from app.models.wp_content_job import WpContentJob, JobStatus
+    from app.services.content_pipeline import compute_content_diff
+
+    form = await request.form()
+    title = (form.get("title") or "").strip()
+    meta_description = (form.get("meta_description") or "").strip()
+
+    if not title:
+        page = await db.get(Page, page_id)
+        site = await db.get(Site, site_id)
+        return mobile_templates.TemplateResponse(
+            "mobile/pages/edit.html",
+            {
+                "request": request,
+                "page": page,
+                "site": site,
+                "site_id": site_id,
+                "active_tab": "pages",
+                "error": "Заголовок страницы не может быть пустым",
+            },
+        )
+
+    page = await db.get(Page, page_id)
+    if page is None or page.site_id != site_id:
+        raise HTTPException(status_code=404, detail="Page not found")
+
+    # Resolve wp_post_id from latest WpContentJob for this page URL
+    # (Per Pitfall 1 — Page model has no wp_post_id field)
+    wp_job = (await db.execute(
+        select(WpContentJob)
+        .where(
+            WpContentJob.site_id == site_id,
+            WpContentJob.page_url == page.url,
+        )
+        .order_by(WpContentJob.created_at.desc())
+        .limit(1)
+    )).scalar_one_or_none()
+    wp_post_id = wp_job.wp_post_id if wp_job else None
+
+    original = f"Title: {page.title or ''}\nMeta: {page.meta_description or ''}"
+    updated = f"Title: {title}\nMeta: {meta_description}"
+    diff = compute_content_diff(original, updated)
+
+    job = WpContentJob(
+        site_id=site_id,
+        wp_post_id=wp_post_id,
+        page_url=page.url,
+        post_type="title_meta",
+        status=JobStatus.awaiting_approval,
+        original_content=original,
+        processed_content=updated,
+        diff_json=diff,
+        rollback_payload={
+            "original_title": page.title,
+            "original_meta": page.meta_description,
+            "wp_post_id": wp_post_id,
+        },
+    )
+    db.add(job)
+    await db.commit()
+
+    return RedirectResponse("/m/pipeline", status_code=303)
+
+
+# ---------------------------------------------------------------------------
+# /m/pipeline — Phase 31 Approve Queue (PAG-02)
+# ---------------------------------------------------------------------------
+
+
+def _parse_diff_lines(diff_text: str) -> list[dict]:
+    """Parse unified diff text into classified lines with XSS-safe HTML.
+
+    Escapes each line with markupsafe.escape() BEFORE wrapping in ins/del tags
+    to prevent XSS (Pitfall 2 from RESEARCH.md).
+    """
+    from markupsafe import escape, Markup
+
+    result = []
+    for line in diff_text.split("\n"):
+        if line.startswith("+++") or line.startswith("---") or line.startswith("@@"):
+            continue
+        if line.startswith("+"):
+            content = str(escape(line[1:]))
+            result.append({"type": "added", "html": Markup(f'<ins class="bg-green-100 text-green-800">{content}</ins>')})
+        elif line.startswith("-"):
+            content = str(escape(line[1:]))
+            result.append({"type": "removed", "html": Markup(f'<del class="bg-red-100 text-red-800 line-through">{content}</del>')})
+        elif line:
+            content = str(escape(line))
+            result.append({"type": "context", "html": Markup(content)})
+    return result
+
+
+@router.get("/pipeline", response_class=HTMLResponse)
+async def mobile_pipeline(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+    site_id: str | None = None,
+    status: str | None = None,
+):
+    """Pipeline approve queue — shows WpContentJobs filtered by status (D-08, D-09)."""
+    from sqlalchemy import func
+    from app.models.site import Site
+    from app.models.wp_content_job import WpContentJob, JobStatus
+
+    sites = await get_sites(db)
+
+    if not site_id:
+        site_id = request.cookies.get("m_pages_site_id")
+    if not site_id or not any(str(s.id) == site_id for s in sites):
+        site_id = str(sites[0].id) if sites else None
+
+    status_filter = status or "awaiting_approval"
+
+    status_map = {
+        "awaiting_approval": JobStatus.awaiting_approval,
+        "pushed": JobStatus.pushed,
+        "failed": JobStatus.failed,
+    }
+    job_status = status_map.get(status_filter, JobStatus.awaiting_approval)
+
+    jobs = []
+    counts = {"awaiting_approval": 0, "pushed": 0, "failed": 0}
+
+    if site_id:
+        selected_uuid = uuid.UUID(site_id)
+
+        jobs_result = await db.execute(
+            select(WpContentJob)
+            .where(
+                WpContentJob.site_id == selected_uuid,
+                WpContentJob.status == job_status,
+            )
+            .order_by(WpContentJob.created_at.desc())
+            .limit(50)
+        )
+        raw_jobs = jobs_result.scalars().all()
+
+        # Parse diff for each job
+        jobs = []
+        for job in raw_jobs:
+            diff_text = (job.diff_json or {}).get("diff_text", "") if job.diff_json else ""
+            parsed = _parse_diff_lines(diff_text) if diff_text else []
+            # Attach parsed diff as a non-persisted attribute
+            job.__dict__["parsed_diff_lines"] = parsed
+            jobs.append(job)
+
+        # Count queries for tab badges
+        for s, js in status_map.items():
+            cnt = (await db.execute(
+                select(func.count()).select_from(WpContentJob).where(
+                    WpContentJob.site_id == selected_uuid,
+                    WpContentJob.status == js,
+                )
+            )).scalar_one()
+            counts[s] = cnt
+
+    ctx = {
+        "request": request,
+        "user": user,
+        "active_tab": "pages",
+        "sites": sites,
+        "site_id": site_id,
+        "status_filter": status_filter,
+        "jobs": jobs,
+        "counts": counts,
+    }
+
+    response: Response
+    if request.headers.get("HX-Request"):
+        response = mobile_templates.TemplateResponse(
+            "mobile/pipeline/partials/pipeline_content.html", ctx
+        )
+    else:
+        response = mobile_templates.TemplateResponse("mobile/pipeline/index.html", ctx)
+
+    if site_id:
+        response.set_cookie(
+            key="m_pages_site_id",
+            value=site_id,
+            httponly=True,
+            samesite="lax",
+            max_age=86400 * 30,
+        )
+    return response
+
+
+@router.post("/pipeline/{job_id}/approve", response_class=HTMLResponse)
+async def mobile_pipeline_approve(
+    request: Request,
+    job_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Approve a job — set status=approved and dispatch push_to_wp Celery task (D-10, D-11)."""
+    from app.models.wp_content_job import WpContentJob, JobStatus
+    from app.tasks.wp_content_tasks import push_to_wp
+
+    job = await db.get(WpContentJob, job_id)
+    if job is None or job.status != JobStatus.awaiting_approval:
+        return HTMLResponse(
+            content='<div class="bg-red-50 text-red-800 text-sm p-3 rounded">Задание не найдено или уже обработано.</div>',
+            status_code=200,
+        )
+
+    job.status = JobStatus.approved
+    await db.commit()
+    push_to_wp.delay(str(job.id))
+
+    # Re-attach parsed diff for template rendering
+    diff_text = (job.diff_json or {}).get("diff_text", "") if job.diff_json else ""
+    job.__dict__["parsed_diff_lines"] = _parse_diff_lines(diff_text) if diff_text else []
+
+    response = mobile_templates.TemplateResponse(
+        "mobile/pipeline/partials/job_card.html",
+        {"request": request, "job": job},
+    )
+    response.headers["HX-Trigger"] = '{"showToast": {"msg": "Изменение принято и отправлено в WP", "type": "success"}}'
+    return response
+
+
+@router.post("/pipeline/{job_id}/reject", response_class=HTMLResponse)
+async def mobile_pipeline_reject(
+    request: Request,
+    job_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Reject a job — set status=rolled_back and remove from queue (D-10)."""
+    from app.models.wp_content_job import WpContentJob, JobStatus
+
+    job = await db.get(WpContentJob, job_id)
+    if job is None or job.status != JobStatus.awaiting_approval:
+        return HTMLResponse(content="", status_code=200)
+
+    job.status = JobStatus.rolled_back
+    await db.commit()
+
+    response = HTMLResponse(content="", status_code=200)
+    response.headers["HX-Trigger"] = '{"showToast": {"msg": "Изменение отклонено", "type": "info"}}'
+    return response
+
+
+@router.post("/pipeline/{job_id}/rollback", response_class=HTMLResponse)
+async def mobile_pipeline_rollback(
+    request: Request,
+    job_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Rollback a pushed job — dispatch rollback_job Celery task (D-12)."""
+    from app.models.wp_content_job import WpContentJob, JobStatus
+    from app.tasks.wp_content_tasks import rollback_job
+
+    job = await db.get(WpContentJob, job_id)
+    if job is None or job.status != JobStatus.pushed:
+        return HTMLResponse(
+            content='<div class="bg-red-50 text-red-800 text-sm p-3 rounded">Задание не найдено или не может быть откатано.</div>',
+            status_code=200,
+        )
+
+    rollback_job.delay(str(job.id))
+
+    # Re-attach parsed diff for template rendering
+    diff_text = (job.diff_json or {}).get("diff_text", "") if job.diff_json else ""
+    job.__dict__["parsed_diff_lines"] = _parse_diff_lines(diff_text) if diff_text else []
+
+    response = mobile_templates.TemplateResponse(
+        "mobile/pipeline/partials/job_card.html",
+        {"request": request, "job": job},
+    )
+    response.headers["HX-Trigger"] = '{"showToast": {"msg": "Откат выполнен", "type": "info"}}'
+    return response
+
+
+# ---------------------------------------------------------------------------
+# /m/pages/fix — Phase 31 Quick Fix TOC/Schema (PAG-03)
+# ---------------------------------------------------------------------------
+
+
+@router.post("/pages/fix/{page_id}/toc", response_class=HTMLResponse)
+async def mobile_fix_toc(
+    request: Request,
+    page_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Dispatch quick_fix_toc Celery task. Returns green success partial immediately (D-14)."""
+    from app.models.crawl import Page
+    from app.tasks.pages_tasks import quick_fix_toc
+
+    page = (await db.execute(select(Page).where(Page.id == page_id))).scalar_one_or_none()
+    if page is None:
+        raise HTTPException(status_code=404, detail="Page not found")
+
+    quick_fix_toc.delay(str(page_id))
+
+    response = mobile_templates.TemplateResponse(
+        "mobile/pages/partials/fix_success.html",
+        {"request": request, "message": "TOC добавлен и отправлен в WP"},
+    )
+    response.headers["HX-Trigger"] = '{"showToast": {"msg": "TOC добавлен", "type": "success"}}'
+    return response
+
+
+@router.post("/pages/fix/{page_id}/schema", response_class=HTMLResponse)
+async def mobile_fix_schema(
+    request: Request,
+    page_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Dispatch quick_fix_schema Celery task. Returns green success partial immediately (D-14)."""
+    from app.models.crawl import Page
+    from app.tasks.pages_tasks import quick_fix_schema
+
+    page = (await db.execute(select(Page).where(Page.id == page_id))).scalar_one_or_none()
+    if page is None:
+        raise HTTPException(status_code=404, detail="Page not found")
+
+    quick_fix_schema.delay(str(page_id))
+
+    response = mobile_templates.TemplateResponse(
+        "mobile/pages/partials/fix_success.html",
+        {"request": request, "message": "Schema добавлена и отправлена в WP"},
+    )
+    response.headers["HX-Trigger"] = '{"showToast": {"msg": "Schema добавлена", "type": "success"}}'
+    return response
+
+
+# ---------------------------------------------------------------------------
+# /m/pages/bulk — Phase 31 Bulk Operations (PAG-04)
+# ---------------------------------------------------------------------------
+
+# Export alias for verification scripts
+mobile_router = router
+
+
+@router.get("/pages/bulk/schema/confirm", response_class=HTMLResponse)
+async def mobile_bulk_schema_confirm(
+    request: Request,
+    site_id: str,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Bulk schema confirmation screen — shows count of pages without schema (D-17)."""
+    from sqlalchemy import func
+
+    from app.models.crawl import CrawlJob, CrawlJobStatus, Page
+    from app.models.site import Site
+
+    try:
+        selected_uuid = uuid.UUID(site_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid site_id")
+
+    site = (await db.execute(select(Site).where(Site.id == selected_uuid))).scalar_one_or_none()
+    if not site:
+        raise HTTPException(status_code=404, detail="Site not found")
+
+    # Latest completed crawl
+    latest_crawl_id = (await db.execute(
+        select(CrawlJob.id)
+        .where(
+            CrawlJob.site_id == selected_uuid,
+            CrawlJob.status == CrawlJobStatus.done,
+        )
+        .order_by(CrawlJob.finished_at.desc())
+        .limit(1)
+    )).scalar_one_or_none()
+
+    count = 0
+    if latest_crawl_id:
+        count = (await db.execute(
+            select(func.count()).select_from(Page).where(
+                Page.crawl_job_id == latest_crawl_id,
+                Page.has_schema == False,  # noqa: E712
+            )
+        )).scalar_one()
+
+    return mobile_templates.TemplateResponse(
+        "mobile/pages/bulk_confirm.html",
+        {
+            "request": request,
+            "user": user,
+            "site": site,
+            "count": count,
+            "fix_type": "schema",
+            "active_tab": "pages",
+        },
+    )
+
+
+@router.get("/pages/bulk/toc/confirm", response_class=HTMLResponse)
+async def mobile_bulk_toc_confirm(
+    request: Request,
+    site_id: str,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Bulk TOC confirmation screen — shows count of pages without TOC (D-17)."""
+    from sqlalchemy import func
+
+    from app.models.crawl import CrawlJob, CrawlJobStatus, Page
+    from app.models.site import Site
+
+    try:
+        selected_uuid = uuid.UUID(site_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid site_id")
+
+    site = (await db.execute(select(Site).where(Site.id == selected_uuid))).scalar_one_or_none()
+    if not site:
+        raise HTTPException(status_code=404, detail="Site not found")
+
+    # Latest completed crawl
+    latest_crawl_id = (await db.execute(
+        select(CrawlJob.id)
+        .where(
+            CrawlJob.site_id == selected_uuid,
+            CrawlJob.status == CrawlJobStatus.done,
+        )
+        .order_by(CrawlJob.finished_at.desc())
+        .limit(1)
+    )).scalar_one_or_none()
+
+    count = 0
+    if latest_crawl_id:
+        count = (await db.execute(
+            select(func.count()).select_from(Page).where(
+                Page.crawl_job_id == latest_crawl_id,
+                Page.has_toc == False,  # noqa: E712
+            )
+        )).scalar_one()
+
+    return mobile_templates.TemplateResponse(
+        "mobile/pages/bulk_confirm.html",
+        {
+            "request": request,
+            "user": user,
+            "site": site,
+            "count": count,
+            "fix_type": "toc",
+            "active_tab": "pages",
+        },
+    )
+
+
+@router.post("/pages/bulk/schema", response_class=HTMLResponse)
+async def mobile_bulk_schema_start(
+    request: Request,
+    site_id: str = Form(...),
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Dispatch bulk_fix_schema Celery task. Returns progress partial (D-16, D-18)."""
+    from sqlalchemy import func
+
+    from app.models.crawl import CrawlJob, CrawlJobStatus, Page
+    from app.tasks.pages_tasks import bulk_fix_schema
+
+    try:
+        selected_uuid = uuid.UUID(site_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid site_id")
+
+    # Get count for initial progress display
+    latest_crawl_id = (await db.execute(
+        select(CrawlJob.id)
+        .where(
+            CrawlJob.site_id == selected_uuid,
+            CrawlJob.status == CrawlJobStatus.done,
+        )
+        .order_by(CrawlJob.finished_at.desc())
+        .limit(1)
+    )).scalar_one_or_none()
+
+    total = 0
+    if latest_crawl_id:
+        total = (await db.execute(
+            select(func.count()).select_from(Page).where(
+                Page.crawl_job_id == latest_crawl_id,
+                Page.has_schema == False,  # noqa: E712
+            )
+        )).scalar_one()
+
+    result = bulk_fix_schema.delay(site_id)
+
+    return mobile_templates.TemplateResponse(
+        "mobile/pages/partials/bulk_progress.html",
+        {
+            "request": request,
+            "task_id": result.id,
+            "status": "running",
+            "done": 0,
+            "total": total,
+            "pct": 0,
+            "errors": 0,
+            "site_id": site_id,
+            "fix_type": "schema",
+        },
+    )
+
+
+@router.post("/pages/bulk/toc", response_class=HTMLResponse)
+async def mobile_bulk_toc_start(
+    request: Request,
+    site_id: str = Form(...),
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Dispatch bulk_fix_toc Celery task. Returns progress partial (D-16, D-18)."""
+    from sqlalchemy import func
+
+    from app.models.crawl import CrawlJob, CrawlJobStatus, Page
+    from app.tasks.pages_tasks import bulk_fix_toc
+
+    try:
+        selected_uuid = uuid.UUID(site_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid site_id")
+
+    # Get count for initial progress display
+    latest_crawl_id = (await db.execute(
+        select(CrawlJob.id)
+        .where(
+            CrawlJob.site_id == selected_uuid,
+            CrawlJob.status == CrawlJobStatus.done,
+        )
+        .order_by(CrawlJob.finished_at.desc())
+        .limit(1)
+    )).scalar_one_or_none()
+
+    total = 0
+    if latest_crawl_id:
+        total = (await db.execute(
+            select(func.count()).select_from(Page).where(
+                Page.crawl_job_id == latest_crawl_id,
+                Page.has_toc == False,  # noqa: E712
+            )
+        )).scalar_one()
+
+    result = bulk_fix_toc.delay(site_id)
+
+    return mobile_templates.TemplateResponse(
+        "mobile/pages/partials/bulk_progress.html",
+        {
+            "request": request,
+            "task_id": result.id,
+            "status": "running",
+            "done": 0,
+            "total": total,
+            "pct": 0,
+            "errors": 0,
+            "site_id": site_id,
+            "fix_type": "toc",
+        },
+    )
+
+
+@router.get("/pages/bulk/progress/{task_id}", response_class=HTMLResponse)
+async def mobile_bulk_progress(
+    request: Request,
+    task_id: str,
+    site_id: str = "",
+    fix_type: str = "schema",
+    user: User = Depends(get_current_user),
+):
+    """HTMX polling endpoint — reads Redis progress for bulk operation (D-18)."""
+    import redis as redis_lib
+
+    r = redis_lib.from_url(settings.REDIS_URL, decode_responses=True)
+
+    try:
+        data = r.get(f"bulk:{task_id}:progress")
+        if data:
+            progress = json.loads(data)
+        else:
+            progress = {"done": 0, "total": 0, "status": "running", "errors": []}
+    except Exception:
+        progress = {"done": 0, "total": 0, "status": "running", "errors": []}
+
+    done = progress.get("done", 0)
+    total = progress.get("total", 0)
+    status = progress.get("status", "running")
+    error_list = progress.get("errors", [])
+    errors = len(error_list)
+    pct = int(done / total * 100) if total > 0 else 0
+
+    response = mobile_templates.TemplateResponse(
+        "mobile/pages/partials/bulk_progress.html",
+        {
+            "request": request,
+            "task_id": task_id,
+            "status": status,
+            "done": done,
+            "total": total,
+            "pct": pct,
+            "errors": errors,
+            "site_id": site_id,
+            "fix_type": fix_type,
+        },
+    )
+
+    if status == "done":
+        done_msg = f"Schema добавлена на {done} страниц" if fix_type == "schema" else f"TOC добавлен на {done} страниц"
+        response.headers["HX-Trigger"] = (
+            f'{{"showToast": {{"msg": "{done_msg}", "type": "success"}}}}'
+        )
+
+    return response
