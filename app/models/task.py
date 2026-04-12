@@ -15,6 +15,9 @@ class TaskType(str, PyEnum):
     missing_page = "missing_page"
     cannibalization = "cannibalization"
     manual = "manual"
+    yandex_indexing = "yandex_indexing"
+    yandex_crawl = "yandex_crawl"
+    yandex_sanction = "yandex_sanction"
 
 
 class TaskPriority(str, PyEnum):
@@ -71,6 +74,11 @@ class SeoTask(Base):
     )
     priority: Mapped[TaskPriority] = mapped_column(
         SAEnum(TaskPriority), nullable=False, default=TaskPriority.p3
+    )
+    source_error_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("yandex_errors.id", ondelete="SET NULL"),
+        nullable=True,
     )
     due_date: Mapped[datetime | None] = mapped_column(Date, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
