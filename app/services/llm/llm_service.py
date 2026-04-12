@@ -308,6 +308,35 @@ async def reset_circuit(redis, user_id: int) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Agent execution call (Phase 999.9)
+# ---------------------------------------------------------------------------
+
+
+async def call_agent(
+    api_key: str,
+    *,
+    system_prompt: str,
+    user_message: str,
+    model: str,
+    temperature: float,
+    max_tokens: int,
+) -> tuple[str, int, int]:
+    """Call Anthropic for agent execution. Returns (output_text, input_tokens, output_tokens)."""
+    from anthropic import AsyncAnthropic
+
+    client = AsyncAnthropic(api_key=api_key)
+    response = await client.messages.create(
+        model=model,
+        max_tokens=max_tokens,
+        system=system_prompt,
+        messages=[{"role": "user", "content": user_message}],
+        temperature=temperature,
+    )
+    text = response.content[0].text
+    return text, response.usage.input_tokens, response.usage.output_tokens
+
+
+# ---------------------------------------------------------------------------
 # Usage logging
 # ---------------------------------------------------------------------------
 

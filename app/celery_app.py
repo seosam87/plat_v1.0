@@ -32,6 +32,7 @@ celery_app = Celery(
         "app.tasks.paa_tasks",
         "app.tasks.wordstat_batch_tasks",
         "app.tasks.yandex_errors_tasks",
+        "app.tasks.agent_tasks",
     ],
 )
 
