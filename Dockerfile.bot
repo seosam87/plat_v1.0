@@ -1,0 +1,24 @@
+FROM python:3.12-slim
+
+WORKDIR /opt/app
+
+# System deps for asyncpg
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install main project requirements (for shared app.models, app.config, etc.)
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Install bot-specific requirements
+COPY bot/requirements.txt bot/requirements.txt
+RUN pip install --no-cache-dir -r bot/requirements.txt
+
+# Copy application code (app/ for models+config, bot/ for bot logic)
+COPY app/ app/
+COPY bot/ bot/
+COPY alembic/ alembic/
+COPY alembic.ini .
+
+CMD ["python", "-m", "bot.main"]
