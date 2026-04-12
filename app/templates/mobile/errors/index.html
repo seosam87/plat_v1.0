@@ -1,0 +1,41 @@
+{% extends "base_mobile.html" %}
+{% block title %}Ошибки сайта{% endblock %}
+{% block content %}
+<div style="padding:16px;padding-bottom:64px;">
+  <h1 class="text-xl font-semibold mb-4">Ошибки сайта</h1>
+
+  {% if not has_sites %}
+  <div class="bg-white rounded-lg p-4 text-sm text-gray-400 text-center">
+    Нет сайтов. Добавьте сайт в полной версии платформы.
+  </div>
+  {% else %}
+  <!-- Site dropdown -->
+  <select name="site_id" class="w-full min-h-[44px] border border-gray-300 rounded-lg px-3 py-2 text-sm mb-4"
+    hx-get="/m/errors" hx-target="#errors-content" hx-swap="innerHTML"
+    hx-include="this" hx-push-url="false">
+    {% for site in sites %}
+    <option value="{{ site.id }}" {% if site.id|string == selected_site_id|string %}selected{% endif %}>{{ site.name or site.url }}</option>
+    {% endfor %}
+  </select>
+
+  <!-- Sync row -->
+  <div class="flex items-center justify-between mb-4">
+    <span class="text-xs text-gray-400">
+      {% if last_synced %}Последнее обновление: {{ last_synced }}{% else %}Ещё не синхронизировано{% endif %}
+    </span>
+    <button hx-post="/m/errors/sync" hx-include="[name=site_id]" hx-target="#sync-progress" hx-swap="innerHTML"
+      class="border border-gray-300 text-gray-700 bg-white rounded-lg px-4 min-h-[44px] text-sm font-semibold">
+      Обновить
+    </button>
+  </div>
+
+  <!-- Sync progress slot -->
+  <div id="sync-progress" aria-live="polite"></div>
+
+  <!-- Error sections -->
+  <div id="errors-content">
+    {% include "mobile/errors/partials/errors_content.html" %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
