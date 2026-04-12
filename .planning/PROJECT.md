@@ -10,12 +10,13 @@ A team member or client can open the platform and immediately see the SEO health
 
 ## Current State (v4.0 in progress — 2026-04-12)
 
-**5 milestones shipped, 47 phases, 141 plans.**
+**5 milestones shipped, 48 phases, 144 plans.**
 
 **v4.0 Mobile & Telegram — in progress:**
 - Phase 26: Mobile Foundation — base_mobile.html, /m/ routing, Telegram WebApp auth, PWA manifest
 - Phase 27: Digest & Site Health — утренняя сводка (/m/digest) с 4 блоками + карточка здоровья (/m/health/{site_id}) с 6 метриками и 2 действиями
 - Phase 28: Positions & Traffic — /m/positions (проверка позиций, HTMX-поллинг, карточки ключей, табы Все/Просевшие) + /m/traffic (сравнение трафика Метрики за 3 пресета, задачи на просадки)
+- Phase 32: Telegram Bot — отдельный Docker-сервис (PTB 21, webhook), DevOps+SEO команды, Mini App кнопки, push критических уведомлений
 
 **v3.1 SEO Tools — shipped 2026-04-10:**
 - Phase 24: Tools Infrastructure — shared TOOL_REGISTRY, Job-архитектура, 3 быстрых инструмента (коммерциализация, мета-теги, релевантный URL)
