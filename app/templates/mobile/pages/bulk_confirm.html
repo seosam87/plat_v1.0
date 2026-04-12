@@ -1,0 +1,58 @@
+{% extends "base_mobile.html" %}
+{% block title %}Массовая операция{% endblock %}
+
+{% block content %}
+
+<a href="javascript:history.back()" class="flex items-center gap-1 text-sm text-indigo-600 mb-4">
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width:16px;height:16px;">
+    <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+  </svg>
+  Назад
+</a>
+
+<h1 class="text-xl font-semibold mb-6">Массовая операция</h1>
+
+<div class="bg-white rounded-lg p-6 text-center">
+  <!-- Bolt icon -->
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"
+       class="text-indigo-400 mx-auto mb-4" style="width:48px;height:48px;">
+    <path stroke-linecap="round" stroke-linejoin="round" d="m3.75 13.5 10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75Z" />
+  </svg>
+
+  <h2 class="text-base font-semibold text-gray-800 mb-2">
+    {% if fix_type == "schema" %}
+      Добавить Schema на {{ count }} страниц?
+    {% else %}
+      Добавить TOC на {{ count }} страниц?
+    {% endif %}
+  </h2>
+
+  <p class="text-sm text-gray-500 mb-6">
+    Операция будет применена ко всем страницам без
+    {% if fix_type == "schema" %}Schema{% else %}TOC{% endif %}
+    на сайте {{ site.domain }}. Это может занять несколько минут.
+  </p>
+
+  <!-- Confirm button -->
+  <button
+    class="w-full min-h-[44px] rounded-lg text-white font-semibold text-sm mb-3"
+    style="background:#4f46e5;"
+    hx-post="/m/pages/bulk/{{ fix_type }}"
+    hx-vals='{"site_id":"{{ site.id }}"}'
+    hx-target="#bulk-progress"
+    hx-swap="innerHTML"
+    hx-disabled-elt="this"
+  >
+    Подтвердить
+  </button>
+
+  <!-- Cancel -->
+  <div>
+    <a href="javascript:history.back()" class="text-sm text-gray-400 underline">Отмена</a>
+  </div>
+</div>
+
+<!-- Progress slot — populated after POST -->
+<div id="bulk-progress"></div>
+
+{% endblock %}
