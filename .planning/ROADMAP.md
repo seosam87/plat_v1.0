@@ -177,7 +177,11 @@ Plans:
   2. Пользователь видит очередь ожидающих изменений WP Pipeline и одобряет или отклоняет каждое изменение через 2-tap confirmation
   3. Пользователь выбирает страницу и выполняет quick fix (обновить title/meta/schema/TOC) одной кнопкой — изменение отправляется в WP и подтверждается тостом
   4. Пользователь запускает массовую операцию (обновить Schema на всех статьях или добавить TOC) с экраном подтверждения и прогресс-индикатором
-**Plans**: TBD
+**Plans:** 3 plans
+Plans:
+- [ ] 31-01-PLAN.md — Pages list: bottom nav, site dropdown, audit tabs, inline expand (PAG-01)
+- [ ] 31-02-PLAN.md — Pipeline approve queue + title/meta edit with SERP preview (PAG-02, PAG-03)
+- [ ] 31-03-PLAN.md — Quick fix Celery tasks + bulk operations with progress (PAG-03, PAG-04)
 **UI hint**: yes
 
 ### Phase 32: Telegram Bot
@@ -189,7 +193,11 @@ Plans:
   2. Пользователь отправляет /status, /logs, /test или /deploy — бот запрашивает подтверждение и выполняет операцию, возвращая результат в чат
   3. Бот отвечает inline-кнопками, открывающими Mini App: дайджест, отчёт, позиции — каждая кнопка ведёт на соответствующий /m/ маршрут
   4. Telegram Bot работает как отдельный контейнер в docker-compose.yml и не падает при недоступности основного FastAPI сервиса
-**Plans**: TBD
+**Plans:** 3 plans
+Plans:
+- [ ] 31-01-PLAN.md — Pages list: bottom nav, site dropdown, audit tabs, inline expand (PAG-01)
+- [ ] 31-02-PLAN.md — Pipeline approve queue + title/meta edit with SERP preview (PAG-02, PAG-03)
+- [ ] 31-03-PLAN.md — Quick fix Celery tasks + bulk operations with progress (PAG-03, PAG-04)
 
 ### Phase 33: Claude Code Agent (Spike)
 **Goal**: Пользователь может отправить текстовую задачу боту, которая выполняется через Claude Code с diff-подтверждением
@@ -199,7 +207,11 @@ Plans:
   1. Пользователь отправляет текстовую задачу боту — задача принимается, бот подтверждает получение и сообщает о начале выполнения
   2. После выполнения Claude Code бот присылает diff изменений — пользователь отвечает "да" или "нет" для применения или отката
   3. Spike задокументирован: решение о production-использовании принято на основе результатов эксперимента
-**Plans**: TBD
+**Plans:** 3 plans
+Plans:
+- [ ] 31-01-PLAN.md — Pages list: bottom nav, site dropdown, audit tabs, inline expand (PAG-01)
+- [ ] 31-02-PLAN.md — Pipeline approve queue + title/meta edit with SERP preview (PAG-02, PAG-03)
+- [ ] 31-03-PLAN.md — Quick fix Celery tasks + bulk operations with progress (PAG-03, PAG-04)
 
 ## Progress
 
@@ -215,7 +227,7 @@ Plans:
 | 28 | v4.0 | 2/2 | Complete    | 2026-04-10 |
 | 29 | v4.0 | 3/3 | Complete    | 2026-04-11 |
 | 30 | v4.0 | 3/3 | Complete    | 2026-04-12 |
-| 31 | v4.0 | 0/? | Not started | - |
+| 31 | v4.0 | 0/3 | Planning complete | - |
 | 32 | v4.0 | 0/? | Not started | - |
 | 33 | v4.0 | 0/? | Not started | - |
 
