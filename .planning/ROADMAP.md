@@ -228,7 +228,7 @@ Plans:
 | 30 | v4.0 | 3/3 | Complete    | 2026-04-12 |
 | 31 | v4.0 | 3/3 | Complete    | 2026-04-12 |
 | 32 | v4.0 | 3/3 | Complete    | 2026-04-12 |
-| 33 | v4.0 | 2/2 | Complete   | 2026-04-12 |
+| 33 | v4.0 | 2/2 | Complete    | 2026-04-12 |
 
 **Total: 45 phases shipped, 8 phases planned for v4.0**
 
