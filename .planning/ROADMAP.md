@@ -84,7 +84,7 @@ v3.x analytics phases and v4.x UI overhaul phases also completed within v1.0.
 - [x] **Phase 29: Reports & Tools** - генерация отчётов и запуск инструментов с телефона (completed 2026-04-11)
 - [x] **Phase 30: Errors & Quick Task** - ошибки Яндекса + быстрое создание задач и ТЗ (completed 2026-04-12)
 - [x] **Phase 31: Pages App** - approve queue, quick fix, массовые операции над контентом (completed 2026-04-12)
-- [ ] **Phase 32: Telegram Bot** - отдельный Docker-сервис, команды, Mini App кнопки
+- [x] **Phase 32: Telegram Bot** - отдельный Docker-сервис, команды, Mini App кнопки (completed 2026-04-12)
 - [ ] **Phase 33: Claude Code Agent** - spike: задача боту → Claude Code → diff на утверждение
 
 ## Phase Details
@@ -193,11 +193,11 @@ Plans:
   2. Пользователь отправляет /status, /logs, /test или /deploy — бот запрашивает подтверждение и выполняет операцию, возвращая результат в чат
   3. Бот отвечает inline-кнопками, открывающими Mini App: дайджест, отчёт, позиции — каждая кнопка ведёт на соответствующий /m/ маршрут
   4. Telegram Bot работает как отдельный контейнер в docker-compose.yml и не падает при недоступности основного FastAPI сервиса
-**Plans:** 2/3 plans executed
+**Plans:** 3/3 plans complete
 Plans:
 - [x] 32-01-PLAN.md — Bot foundation: migration 0056, bot/ package (config, auth, DB, utils) (BOT-01)
 - [x] 32-02-PLAN.md — Docker infrastructure: Dockerfile.bot, docker-compose bot service, nginx webhook proxy (BOT-03)
-- [ ] 32-03-PLAN.md — Bot handlers (devops+seo+miniapp), notification push, profile toggle (BOT-01, BOT-02, BOT-03)
+- [x] 32-03-PLAN.md — Bot handlers (devops+seo+miniapp), notification push, profile toggle (BOT-01, BOT-02, BOT-03)
 
 ### Phase 33: Claude Code Agent (Spike)
 **Goal**: Пользователь может отправить текстовую задачу боту, которая выполняется через Claude Code с diff-подтверждением
@@ -228,7 +228,7 @@ Plans:
 | 29 | v4.0 | 3/3 | Complete    | 2026-04-11 |
 | 30 | v4.0 | 3/3 | Complete    | 2026-04-12 |
 | 31 | v4.0 | 3/3 | Complete    | 2026-04-12 |
-| 32 | v4.0 | 2/3 | In Progress|  |
+| 32 | v4.0 | 3/3 | Complete   | 2026-04-12 |
 | 33 | v4.0 | 0/? | Not started | - |
 
 **Total: 45 phases shipped, 8 phases planned for v4.0**
