@@ -27,7 +27,8 @@
         {% set prefixes = ['/ui/', '/m/', '/analytics/', '/audit/', '/gap/', '/intent/', '/architecture/', '/bulk/', '/traffic-analysis/', '/monitoring/', '/notifications'] %}
 
         {% for prefix in prefixes %}
-          {% set prefix_routes = routes | selectattr('path', 'startswith', prefix) | list %}
+          {% set prefix_routes = [] %}
+          {% for r in routes %}{% if r.path.startswith(prefix) %}{% set _ = prefix_routes.append(r) %}{% endif %}{% endfor %}
           {% if prefix_routes %}
           <div style="margin-bottom:1rem;">
             <div style="font-size:0.75rem;font-weight:600;color:#9ca3af;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.5rem;padding-bottom:0.25rem;border-bottom:1px solid #f3f4f6;">{{ prefix }}</div>
@@ -163,6 +164,11 @@
     if (slugInput.dataset.edited) return;
     slugInput.value = nameInput.value
       .toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/[а-яё]/g, function(c) {
+        var m = {а:'a',б:'b',в:'v',г:'g',д:'d',е:'e',ё:'yo',ж:'zh',з:'z',и:'i',й:'y',к:'k',л:'l',м:'m',н:'n',о:'o',п:'p',р:'r',с:'s',т:'t',у:'u',ф:'f',х:'kh',ц:'ts',ч:'ch',ш:'sh',щ:'shch',ъ:'',ы:'y',ь:'',э:'e',ю:'yu',я:'ya'};
+        return m[c] || c;
+      })
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-+|-+$/g, '');
   });
