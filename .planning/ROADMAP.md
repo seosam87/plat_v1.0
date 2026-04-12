@@ -193,10 +193,10 @@ Plans:
   2. Пользователь отправляет /status, /logs, /test или /deploy — бот запрашивает подтверждение и выполняет операцию, возвращая результат в чат
   3. Бот отвечает inline-кнопками, открывающими Mini App: дайджест, отчёт, позиции — каждая кнопка ведёт на соответствующий /m/ маршрут
   4. Telegram Bot работает как отдельный контейнер в docker-compose.yml и не падает при недоступности основного FastAPI сервиса
-**Plans:** 3 plans
+**Plans:** 1/3 plans executed
 Plans:
 - [ ] 32-01-PLAN.md — Bot foundation: migration 0056, bot/ package (config, auth, DB, utils) (BOT-01)
-- [ ] 32-02-PLAN.md — Docker infrastructure: Dockerfile.bot, docker-compose bot service, nginx webhook proxy (BOT-03)
+- [x] 32-02-PLAN.md — Docker infrastructure: Dockerfile.bot, docker-compose bot service, nginx webhook proxy (BOT-03)
 - [ ] 32-03-PLAN.md — Bot handlers (devops+seo+miniapp), notification push, profile toggle (BOT-01, BOT-02, BOT-03)
 
 ### Phase 33: Claude Code Agent (Spike)
@@ -228,7 +228,7 @@ Plans:
 | 29 | v4.0 | 3/3 | Complete    | 2026-04-11 |
 | 30 | v4.0 | 3/3 | Complete    | 2026-04-12 |
 | 31 | v4.0 | 3/3 | Complete    | 2026-04-12 |
-| 32 | v4.0 | 0/3 | Planned | - |
+| 32 | v4.0 | 1/3 | In Progress|  |
 | 33 | v4.0 | 0/? | Not started | - |
 
 **Total: 45 phases shipped, 8 phases planned for v4.0**
