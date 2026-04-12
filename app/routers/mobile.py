@@ -1354,3 +1354,179 @@ async def mobile_tool_job_status(
             "total": total,
         },
     )
+
+
+# ---------------------------------------------------------------------------
+# /m/tasks/new — Phase 30 Quick Task & Copywriter Brief (TSK-01, TSK-02)
+# ---------------------------------------------------------------------------
+
+
+@router.get("/tasks/new", response_class=HTMLResponse)
+async def mobile_tasks_new(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+    mode: str = "task",
+):
+    """Quick task / copywriter brief creation page with mode toggle (D-12)."""
+    from app.services.mobile_brief_service import list_clients_for_brief
+    from app.services.project_service import get_accessible_projects
+
+    projects = await get_accessible_projects(db, user)
+    clients = await list_clients_for_brief(db) if mode == "brief" else []
+    return mobile_templates.TemplateResponse(
+        "mobile/tasks/new.html",
+        {
+            "request": request,
+            "user": user,
+            "mode": mode,
+            "projects": projects,
+            "clients": clients,
+            "active_tab": "more",
+        },
+    )
+
+
+@router.get("/tasks/new/form", response_class=HTMLResponse)
+async def mobile_tasks_new_form(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+    mode: str = "task",
+):
+    """HTMX swap partial for mode toggle on /m/tasks/new."""
+    from app.services.mobile_brief_service import list_clients_for_brief
+    from app.services.project_service import get_accessible_projects
+
+    projects = await get_accessible_projects(db, user)
+    clients = await list_clients_for_brief(db) if mode == "brief" else []
+    template = (
+        "mobile/tasks/partials/brief_form.html"
+        if mode == "brief"
+        else "mobile/tasks/partials/task_form.html"
+    )
+    return mobile_templates.TemplateResponse(
+        template,
+        {"request": request, "projects": projects, "clients": clients},
+    )
+
+
+@router.post("/tasks/new", response_class=HTMLResponse)
+async def mobile_tasks_new_submit(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+    mode: str = Form("task"),
+    text: str = Form(None),
+    keywords: str = Form(None),
+    priority: str = Form("p3"),
+    project_id: str = Form(...),
+    tone: str = Form(None),
+    length: str = Form(None),
+    recipient_id: str | None = Form(None),
+    action: str = Form("save"),
+):
+    """Handle quick task (mode=task) or copywriter brief (mode=brief) creation."""
+    from app.models.project import Project
+    from app.models.site import Site
+    from app.models.task import SeoTask, TaskPriority, TaskStatus, TaskType
+    from app.services.mobile_brief_service import (
+        render_brief,
+        send_brief_email,
+        send_brief_telegram,
+    )
+
+    # Parse and validate project UUID
+    try:
+        proj_uuid = uuid.UUID(project_id)
+    except (ValueError, AttributeError):
+        return HTMLResponse(
+            content='<script>showToast("Неверный идентификатор проекта.", "error"); setTimeout(() => window.history.back(), 1500);</script>'
+        )
+
+    proj_result = await db.execute(select(Project).where(Project.id == proj_uuid))
+    project = proj_result.scalar_one_or_none()
+    if project is None:
+        return HTMLResponse(
+            content='<script>showToast("Проект не найден.", "error"); setTimeout(() => window.history.back(), 1500);</script>'
+        )
+
+    # Defensive check: project must have a linked site
+    if project.site_id is None:
+        return HTMLResponse(
+            content='<script>showToast("У проекта нет привязанного сайта. Привяжите сайт в настройках проекта.", "error"); setTimeout(() => window.history.back(), 1500);</script>'
+        )
+
+    if mode == "task":
+        title = (text or "")[:80].strip() or "Задача"
+        task = SeoTask(
+            site_id=project.site_id,
+            task_type=TaskType.manual,
+            status=TaskStatus.open,
+            url="",
+            title=title,
+            description=text,
+            project_id=proj_uuid,
+            priority=TaskPriority(priority),
+            source_error_id=None,
+        )
+        db.add(task)
+        await db.commit()
+        return HTMLResponse(
+            content='<script>showToast("Задача создана", "success"); setTimeout(() => window.location.href = "/m/", 1000);</script>'
+        )
+
+    else:
+        # mode == "brief"
+        site_result = await db.execute(select(Site).where(Site.id == project.site_id))
+        site = site_result.scalar_one_or_none()
+        site_url = site.url if site else ""
+
+        keywords_list = [k.strip() for k in (keywords or "").split("\n") if k.strip()]
+        rendered = render_brief(
+            project.name,
+            site_url,
+            length or "2000",
+            tone or "Информационный",
+            keywords_list,
+        )
+
+        task = SeoTask(
+            site_id=project.site_id,
+            task_type=TaskType.manual,
+            status=TaskStatus.open,
+            url="",
+            title=f"ТЗ копирайтеру: {len(keywords_list)} ключевых слов",
+            description=rendered,
+            project_id=proj_uuid,
+            priority=TaskPriority(priority),
+            source_error_id=None,
+        )
+        db.add(task)
+        await db.commit()
+
+        toast_msg = "ТЗ сохранено"
+        if recipient_id and action == "send":
+            from app.models.client import Client as ClientModel
+
+            try:
+                recipient_uuid = uuid.UUID(recipient_id)
+                client_result = await db.execute(
+                    select(ClientModel).where(ClientModel.id == recipient_uuid)
+                )
+                client = client_result.scalar_one_or_none()
+                if client and client.email:
+                    tg_ok = await send_brief_telegram(rendered, client.email)
+                    email_ok = await send_brief_email(rendered, client.email, project.name)
+                    if tg_ok or email_ok:
+                        toast_msg = "ТЗ создано и отправлено клиенту"
+                    else:
+                        toast_msg = "ТЗ сохранено (отправка не удалась)"
+                else:
+                    toast_msg = "ТЗ сохранено (клиент без контактов)"
+            except (ValueError, AttributeError):
+                toast_msg = "ТЗ сохранено (ошибка получателя)"
+
+        return HTMLResponse(
+            content=f'<script>showToast("{toast_msg}", "success"); setTimeout(() => window.location.href = "/m/", 1000);</script>'
+        )
