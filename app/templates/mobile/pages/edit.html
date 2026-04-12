@@ -1,0 +1,78 @@
+{% extends "base_mobile.html" %}
+{% block title %}Редактировать Title / Meta{% endblock %}
+{% block content %}
+<div style="padding:0 0 64px 0;">
+
+  <!-- Back link -->
+  <a href="javascript:history.back()" class="text-sm text-indigo-600 underline mb-3 flex items-center gap-1">&#8592; Назад</a>
+
+  <h1 class="text-xl font-semibold mb-4">Редактировать Title / Meta</h1>
+
+  {% if error %}
+  <div class="bg-red-50 text-red-800 text-sm p-3 rounded mb-3">{{ error }}</div>
+  {% endif %}
+
+  <!-- SERP preview block -->
+  <div class="bg-white rounded-lg p-4 mb-4 border border-gray-200">
+    <p class="text-xs text-gray-400 mb-2">Предпросмотр в поиске</p>
+    <div id="serp-title" class="text-sm font-semibold text-blue-700 truncate">{{ page.title[:60] if page.title else '' }}</div>
+    <div id="serp-url" class="text-xs text-green-700 mt-0.5">{{ (site.url if site else '') }}{{ (page.url or '')|replace((site.url if site else ''), '')|truncate(60) }}</div>
+    <div id="serp-desc" class="text-sm text-gray-600 mt-1 line-clamp-2">{{ page.meta_description[:160] if page.meta_description else '' }}</div>
+    <div id="title-counter" class="text-xs text-gray-400 text-right mt-1">{{ (page.title|length if page.title else 0) }}/60</div>
+    <div id="desc-counter" class="text-xs text-gray-400 text-right mt-1">{{ (page.meta_description|length if page.meta_description else 0) }}/160</div>
+  </div>
+
+  <!-- Edit form -->
+  <form method="post" action="/m/pages/{{ site_id }}/{{ page.id }}/edit">
+    <div class="mb-3">
+      <label class="block text-sm font-medium text-gray-700 mb-1" for="title-input">Заголовок (Title)</label>
+      <input id="title-input"
+             name="title"
+             type="text"
+             value="{{ page.title or '' }}"
+             class="w-full min-h-[44px] border border-gray-300 rounded-lg px-3 py-2 text-sm"
+             maxlength="120"
+             placeholder="Заголовок страницы">
+    </div>
+    <div class="mb-3">
+      <label class="block text-sm font-medium text-gray-700 mb-1" for="meta-input">Meta Description</label>
+      <textarea id="meta-input"
+                name="meta_description"
+                class="w-full min-h-[100px] border border-gray-300 rounded-lg px-3 py-2 text-sm resize-none"
+                maxlength="300"
+                placeholder="Описание страницы">{{ page.meta_description or '' }}</textarea>
+    </div>
+    <button type="submit"
+            class="w-full min-h-[44px] rounded-lg text-white font-semibold text-sm mt-4"
+            style="background:#4f46e5;">Отправить на проверку</button>
+  </form>
+
+  <!-- Page info -->
+  <div class="mt-4 text-xs text-gray-400">
+    <p>URL: {{ page.url }}</p>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const titleInput = document.getElementById('title-input');
+  const metaInput = document.getElementById('meta-input');
+  const serpTitle = document.getElementById('serp-title');
+  const serpDesc = document.getElementById('serp-desc');
+  const titleCounter = document.getElementById('title-counter');
+  const descCounter = document.getElementById('desc-counter');
+  function truncate(str, max) { return str.length > max ? str.substring(0, max) + '...' : str; }
+  titleInput.addEventListener('input', function() {
+    serpTitle.textContent = truncate(this.value, 60);
+    titleCounter.textContent = this.value.length + '/60';
+    titleCounter.className = this.value.length > 60 ? 'text-xs text-red-500 text-right mt-1' : 'text-xs text-gray-400 text-right mt-1';
+  });
+  metaInput.addEventListener('input', function() {
+    serpDesc.textContent = truncate(this.value, 160);
+    descCounter.textContent = this.value.length + '/160';
+    descCounter.className = this.value.length > 160 ? 'text-xs text-red-500 text-right mt-1' : 'text-xs text-gray-400 text-right mt-1';
+  });
+</script>
+{% endblock %}
