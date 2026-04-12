@@ -86,7 +86,7 @@ v3.x analytics phases and v4.x UI overhaul phases also completed within v1.0.
 - [x] **Phase 31: Pages App** - approve queue, quick fix, массовые операции над контентом (completed 2026-04-12)
 - [x] **Phase 32: Telegram Bot** - отдельный Docker-сервис, команды, Mini App кнопки (completed 2026-04-12)
 - [x] **Phase 33: Claude Code Agent** - spike: задача боту → Claude Code → diff на утверждение (completed 2026-04-12)
-- [ ] **Phase 33.1: Fix Mobile Integration Wiring** - gap closure: 6 integration fixes (routes, templates, toast, digest links)
+- [x] **Phase 33.1: Fix Mobile Integration Wiring** - gap closure: 6 integration fixes (routes, templates, toast, digest links) (completed 2026-04-12)
 
 ## Phase Details
 
@@ -224,7 +224,7 @@ Plans:
   4. Все mobile шаблоны extends `base_mobile.html` (не `mobile/base_mobile.html`)
   5. showToast работает через HX-Trigger во всех /m/ страницах
   6. Digest ссылки ведут на /m/ mobile маршруты
-**Plans:** 0 plans
+**Plans:** 1/1 plans complete
 Plans:
 - [ ] TBD
 
@@ -245,7 +245,7 @@ Plans:
 | 31 | v4.0 | 3/3 | Complete    | 2026-04-12 |
 | 32 | v4.0 | 3/3 | Complete    | 2026-04-12 |
 | 33 | v4.0 | 2/2 | Complete    | 2026-04-12 |
-| 33.1 | v4.0 | 0/1 | Planned | - |
+| 33.1 | v4.0 | 1/1 | Complete   | 2026-04-12 |
 
 **Total: 45 phases shipped, 9 phases in v4.0**
 
