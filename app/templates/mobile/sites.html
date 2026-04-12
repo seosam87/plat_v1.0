@@ -1,0 +1,30 @@
+{% extends "base_mobile.html" %}
+{% block title %}Сайты{% endblock %}
+{% block content %}
+
+<h1 class="text-xl font-semibold mb-4">Сайты</h1>
+
+{% if sites %}
+<div class="bg-white rounded-lg divide-y divide-gray-100">
+  {% for site in sites %}
+  <a href="/m/health/{{ site.id }}"
+     class="flex items-center gap-3 p-4 min-h-[56px]"
+     style="text-decoration:none;color:inherit;">
+    <div class="flex-1">
+      <div class="text-sm font-medium text-gray-900">{{ site.name }}</div>
+      <div class="text-xs text-gray-400">{{ site.url }}</div>
+    </div>
+    <svg class="w-5 h-5 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+    </svg>
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+<div class="flex flex-col items-center justify-center py-12 text-center">
+  <p class="text-gray-500 text-sm">Нет добавленных сайтов</p>
+  <a href="/ui/sites/new" class="mt-3 text-indigo-600 text-sm underline">Добавить сайт</a>
+</div>
+{% endif %}
+
+{% endblock %}
