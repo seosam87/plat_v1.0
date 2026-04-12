@@ -51,6 +51,60 @@ async def list_hosts(user_id: str) -> list[dict]:
     ]
 
 
+async def resolve_host_id(user_id: str, domain: str) -> str | None:
+    """Find host_id for a domain from user's verified hosts."""
+    hosts = await list_hosts(user_id)
+    domain_lower = domain.lower().rstrip("/")
+    for host in hosts:
+        ascii_url = host.get("ascii_host_url", "").lower().rstrip("/")
+        # Strip protocol to compare plain domain
+        clean = ascii_url.replace("https://", "").replace("http://", "").rstrip("/")
+        if clean == domain_lower or ascii_url.endswith(domain_lower):
+            return host.get("host_id")
+    return None
+
+
+async def fetch_indexing_errors(user_id: str, host_id: str) -> list[dict]:
+    """Fetch indexing error samples (HTTP_4XX, HTTP_5XX, OTHER) from Yandex Webmaster API."""
+    url = f"{API_BASE}/user/{user_id}/hosts/{host_id}/indexing/samples"
+    params = {"status": ["HTTP_4XX", "HTTP_5XX", "OTHER"], "limit": 100, "offset": 0}
+    async with httpx.AsyncClient(timeout=TIMEOUT) as client:
+        resp = await client.get(url, headers=_headers(), params=params)
+        resp.raise_for_status()
+        data = resp.json()
+    return data.get("samples", [])
+
+
+async def fetch_crawl_errors(user_id: str, host_id: str) -> list[dict]:
+    """Fetch broken internal link samples from Yandex Webmaster API."""
+    url = f"{API_BASE}/user/{user_id}/hosts/{host_id}/links/internal/broken/samples"
+    params = {"indicator": ["SITE_ERROR", "DISALLOWED_BY_USER", "UNSUPPORTED_BY_ROBOT"], "limit": 100, "offset": 0}
+    async with httpx.AsyncClient(timeout=TIMEOUT) as client:
+        resp = await client.get(url, headers=_headers(), params=params)
+        resp.raise_for_status()
+        data = resp.json()
+    return data.get("links", [])
+
+
+async def fetch_sanctions(user_id: str, host_id: str) -> list[dict]:
+    """Fetch site problems (FATAL/CRITICAL) from Yandex Webmaster summary as sanction proxy.
+
+    No dedicated sanctions endpoint exists — uses site_problems from /summary.
+    """
+    url = f"{API_BASE}/user/{user_id}/hosts/{host_id}/summary"
+    async with httpx.AsyncClient(timeout=TIMEOUT) as client:
+        resp = await client.get(url, headers=_headers())
+        resp.raise_for_status()
+        data = resp.json()
+    problems = data.get("site_problems", {})
+    result = []
+    for severity in ("FATAL", "CRITICAL"):
+        count = problems.get(severity, 0)
+        if count > 0:
+            result.append({"severity": severity, "count": count})
+    return result
+
+
 async def fetch_search_queries(
     user_id: str,
     host_id: str,
