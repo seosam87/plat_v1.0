@@ -305,7 +305,7 @@ async def toggle_tg_notifications(
     request: Request,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-) -> HTMLResponse | RedirectResponse:
+):
     """Toggle Telegram error notifications on/off for the current user.
 
     HTMX: returns an updated <label> element for hx-swap="outerHTML".
