@@ -25,6 +25,11 @@ from bot.handlers.devops import (
     test_handler,
 )
 from bot.handlers.miniapp import help_handler, start_handler
+from bot.handlers.agent import (
+    agent_approve_callback,
+    agent_reject_callback,
+    task_handler,
+)
 from bot.handlers.seo import (
     check_handler,
     crawl_handler,
@@ -66,6 +71,7 @@ async def post_init(application: Application) -> None:
             ("crawl", "Запустить краул сайта"),
             ("check", "Проверить позиции"),
             ("report", "Сформировать отчёт"),
+            ("task", "Выполнить задачу через Claude Code"),
             ("help", "Помощь"),
         ]
     )
@@ -105,6 +111,7 @@ def main() -> None:
     app.add_handler(CommandHandler("crawl", crawl_handler))
     app.add_handler(CommandHandler("check", check_handler))
     app.add_handler(CommandHandler("report", report_handler))
+    app.add_handler(CommandHandler("task", task_handler))
 
     # Callback handlers (confirmation buttons + site-picker)
     app.add_handler(CallbackQueryHandler(confirm_callback, pattern=r"^confirm:"))
@@ -112,6 +119,8 @@ def main() -> None:
     app.add_handler(
         CallbackQueryHandler(seo_site_callback, pattern=r"^(crawl|check|report):[0-9a-f\-]+$")
     )
+    app.add_handler(CallbackQueryHandler(agent_approve_callback, pattern=r"^agent_approve:"))
+    app.add_handler(CallbackQueryHandler(agent_reject_callback, pattern=r"^agent_reject:"))
 
     app.add_error_handler(error_handler)
 
