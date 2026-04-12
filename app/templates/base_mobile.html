@@ -119,6 +119,17 @@
       setTimeout(function() { t.remove(); }, 300);
     }, 4000);
   }
+  document.addEventListener('htmx:afterOnLoad', function(e) {
+    var detail = e.detail;
+    if (detail && detail.xhr) {
+      try {
+        var trigger = JSON.parse(detail.xhr.getResponseHeader('HX-Trigger') || '{}');
+        if (trigger.showToast) {
+          showToast(trigger.showToast.msg, trigger.showToast.type);
+        }
+      } catch(ex) {}
+    }
+  });
   document.body.addEventListener('htmx:responseError', function(e) {
     showToast('Server error: ' + (e.detail.xhr.status || 'unknown'), 'error');
   });
