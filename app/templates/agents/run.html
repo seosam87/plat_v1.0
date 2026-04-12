@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}Запуск: {{ agent.name }}{% endblock %}
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="/ui/dashboard">Дашборд</a><span>&rsaquo;</span>
+  <a href="/ui/agents/">AI-агенты</a><span>&rsaquo;</span>
+  {{ agent.name }}
+</div>
+{% endblock %}
+{% block content %}
+{% set cat_colors = {
+  "content": ("bg-emerald-100", "text-emerald-700"),
+  "audit": ("bg-rose-100", "text-rose-700"),
+  "analytics": ("bg-sky-100", "text-sky-700"),
+  "technical-seo": ("bg-teal-100", "text-teal-700"),
+  "misc": ("bg-slate-100", "text-slate-600"),
+} %}
+{% set cat_slug = agent.category.slug if agent.category else "misc" %}
+{% set cat_pair = cat_colors.get(cat_slug, ("bg-slate-100", "text-slate-600")) %}
+
+<div class="max-w-2xl">
+  <!-- Agent header -->
+  <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-5 mb-4">
+    <div class="flex items-center gap-3 mb-3">
+      <div class="w-10 h-10 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-base font-semibold flex-shrink-0">
+        {{ agent.icon or agent.name[:1] }}
+      </div>
+      <div>
+        <h2 class="text-lg font-semibold text-gray-800 m-0">{{ agent.name }}</h2>
+        {% if agent.category %}
+        <span class="inline-block px-2 py-0.5 rounded text-xs font-semibold {{ cat_pair[0] }} {{ cat_pair[1] }} mt-0.5">{{ agent.category.name }}</span>
+        {% endif %}
+      </div>
+    </div>
+    {% if agent.description %}
+    <p class="text-sm text-gray-500 mb-3">{{ agent.description }}</p>
+    {% endif %}
+
+    <!-- System prompt preview (collapsible) -->
+    <details class="mb-0">
+      <summary class="text-xs font-semibold text-gray-500 cursor-pointer hover:text-gray-700">Системный промпт</summary>
+      <pre class="bg-gray-50 rounded p-3 font-mono text-xs text-gray-600 mt-2 whitespace-pre-wrap overflow-x-auto">{{ agent.system_prompt }}</pre>
+    </details>
+  </div>
+
+  <!-- Variable input form -->
+  <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
+    <h3 class="text-base font-semibold text-gray-700 m-0 mb-4">Параметры запроса</h3>
+
+    <form method="post"
+          hx-post="/ui/agents/{{ agent.id }}/run"
+          hx-target="#agent-run-result"
+          hx-swap="outerHTML">
+
+      {% if variables %}
+        {% for var in variables %}
+        <div class="mb-4">
+          <label class="block text-sm font-semibold text-gray-700 mb-1">{{ var }}</label>
+          {% if 'text' in var or 'content' in var or 'описание' in var or 'description' in var %}
+          <textarea name="{{ var }}" rows="4" required
+                    class="w-full text-sm border border-gray-300 rounded px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500"></textarea>
+          {% else %}
+          <input type="text" name="{{ var }}" required
+                 class="w-full text-sm border border-gray-300 rounded px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500">
+          {% endif %}
+        </div>
+        {% endfor %}
+      {% else %}
+      <p class="text-sm text-gray-400 mb-4">Этот агент не требует входных данных — он запустится сразу.</p>
+      {% endif %}
+
+      <button type="submit"
+              class="w-full sm:w-auto px-6 py-2 bg-indigo-600 text-white text-sm font-semibold rounded hover:bg-indigo-700">
+        Запустить агента
+      </button>
+    </form>
+
+    <!-- Result container (populated by HTMX POST response) -->
+    <div id="agent-run-result"></div>
+  </div>
+</div>
+{% endblock %}

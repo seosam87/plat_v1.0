@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+{% block title %}{% if is_edit %}Редактировать агента{% else %}Новый агент{% endif %}{% endblock %}
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="/ui/dashboard">Дашборд</a><span>&rsaquo;</span>
+  <a href="/ui/agents/">AI-агенты</a><span>&rsaquo;</span>
+  {% if is_edit %}{{ agent.name }}{% else %}Новый агент{% endif %}
+</div>
+{% endblock %}
+{% block content %}
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 max-w-3xl">
+  <h2 class="text-lg font-semibold text-gray-800 m-0 mb-4">
+    {% if is_edit %}Редактировать агента{% else %}Создать нового агента{% endif %}
+  </h2>
+
+  {% if agent and agent.fork_of_id %}
+  <div class="border border-indigo-200 bg-indigo-50 rounded p-3 text-sm text-indigo-700 mb-4">
+    Форк от: {{ agent.forked_from.name if agent.forked_from else 'удалённый агент' }} — изменения не влияют на оригинал
+  </div>
+  {% endif %}
+
+  <form method="post" class="flex flex-col gap-4">
+
+    <!-- Основные поля -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div>
+        <label class="block text-xs font-semibold text-gray-600 mb-1" for="f-name">
+          Название <span class="text-rose-600">*</span>
+        </label>
+        <input id="f-name" type="text" name="name" required
+               value="{{ agent.name if agent else '' }}"
+               class="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-indigo-500 focus:border-indigo-500">
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-gray-600 mb-1" for="f-icon">
+          Иконка
+        </label>
+        <input id="f-icon" type="text" name="icon" placeholder="Эмодзи или URL"
+               value="{{ agent.icon if agent else '' }}"
+               class="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-indigo-500 focus:border-indigo-500">
+      </div>
+    </div>
+
+    <div>
+      <label class="block text-xs font-semibold text-gray-600 mb-1" for="f-description">Описание</label>
+      <textarea id="f-description" name="description" rows="2"
+                class="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-indigo-500 focus:border-indigo-500">{{ agent.description if agent else '' }}</textarea>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div>
+        <label class="block text-xs font-semibold text-gray-600 mb-1" for="f-category">Категория</label>
+        <select id="f-category" name="category_id"
+                class="w-full px-3 py-2 text-sm border border-gray-300 rounded bg-white text-gray-700 focus:ring-indigo-500 focus:border-indigo-500">
+          <option value="">Без категории</option>
+          {% for cat in categories %}
+          <option value="{{ cat.id }}"
+                  {% if agent and agent.category_id and agent.category_id|string == cat.id|string %}selected{% endif %}>
+            {{ cat.name }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="flex items-center gap-2 pt-5">
+        <input id="f-public" type="checkbox" name="is_public" value="1"
+               {% if not agent or agent.is_public %}checked{% endif %}
+               class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+        <label for="f-public" class="text-sm text-gray-700">Публичный агент</label>
+      </div>
+    </div>
+
+    <!-- Промпт-поля -->
+    <div>
+      <label class="block text-xs font-semibold text-gray-600 mb-1" for="f-system-prompt">
+        Системный промпт <span class="text-rose-600">*</span>
+      </label>
+      <textarea id="f-system-prompt" name="system_prompt" rows="6" required
+                aria-describedby="system-prompt-hint"
+                class="w-full px-3 py-2 text-sm font-mono border border-gray-300 rounded focus:ring-indigo-500 focus:border-indigo-500">{{ agent.system_prompt if agent else '' }}</textarea>
+      <p id="system-prompt-hint" class="text-xs text-gray-400 mt-1">Роль и контекст агента. Пользователь этот текст не видит.</p>
+    </div>
+
+    <div>
+      <label class="block text-xs font-semibold text-gray-600 mb-1" for="f-user-template">
+        Шаблон запроса
+      </label>
+      <textarea id="f-user-template" name="user_template" rows="6"
+                name="template"
+                hx-get="/ui/agents/parse-vars"
+                hx-trigger="keyup changed delay:500ms"
+                hx-target="#variables-preview"
+                hx-include="this"
+                class="w-full px-3 py-2 text-sm font-mono border border-gray-300 rounded focus:ring-indigo-500 focus:border-indigo-500">{{ agent.user_template if agent else '' }}</textarea>
+      <p id="template-hint" class="text-xs text-gray-400 mt-1">Используйте <code>{{переменная}}</code> для полей ввода</p>
+      <div id="variables-preview" class="mt-2">
+        {% if agent and agent.user_template %}
+        <!-- Variables preview populated on load or on edit -->
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- LLM-настройки -->
+    <div class="border border-gray-100 rounded-lg p-4 bg-gray-50">
+      <p class="text-xs font-semibold text-gray-600 mb-3 uppercase tracking-wide">LLM-настройки</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1" for="f-model">Модель</label>
+          <select id="f-model" name="model"
+                  class="w-full px-3 py-2 text-sm border border-gray-300 rounded bg-white text-gray-700 focus:ring-indigo-500 focus:border-indigo-500">
+            <option value="claude-haiku-4-5-20251001" {% if not agent or agent.model == 'claude-haiku-4-5-20251001' %}selected{% endif %}>claude-haiku-4-5 (быстрый)</option>
+            <option value="claude-sonnet-4-20250514" {% if agent and agent.model == 'claude-sonnet-4-20250514' %}selected{% endif %}>claude-sonnet-4 (сбалансированный)</option>
+            <option value="claude-opus-4-20250514" {% if agent and agent.model == 'claude-opus-4-20250514' %}selected{% endif %}>claude-opus-4 (мощный)</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1" for="f-output-format">Формат вывода</label>
+          <select id="f-output-format" name="output_format"
+                  class="w-full px-3 py-2 text-sm border border-gray-300 rounded bg-white text-gray-700 focus:ring-indigo-500 focus:border-indigo-500">
+            <option value="text" {% if not agent or agent.output_format == 'text' %}selected{% endif %}>Текст</option>
+            <option value="markdown" {% if agent and agent.output_format == 'markdown' %}selected{% endif %}>Markdown</option>
+            <option value="json" {% if agent and agent.output_format == 'json' %}selected{% endif %}>JSON</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1" for="f-temperature">
+            Температура
+          </label>
+          <input id="f-temperature" type="number" name="temperature" min="0" max="1" step="0.1"
+                 value="{{ agent.temperature if agent else '0.7' }}"
+                 class="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-indigo-500 focus:border-indigo-500">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1" for="f-max-tokens">
+            Max tokens
+          </label>
+          <input id="f-max-tokens" type="number" name="max_tokens" min="100" max="8192"
+                 value="{{ agent.max_tokens if agent else '800' }}"
+                 class="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-indigo-500 focus:border-indigo-500">
+        </div>
+      </div>
+    </div>
+
+    <!-- Теги -->
+    <div>
+      <label class="block text-xs font-semibold text-gray-600 mb-1" for="f-tags">Теги</label>
+      <input id="f-tags" type="text" name="tags" placeholder="через запятую"
+             value="{{ agent.tags | join(', ') if agent and agent.tags else '' }}"
+             class="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-indigo-500 focus:border-indigo-500">
+    </div>
+
+    <!-- Кнопки -->
+    <div class="flex items-center gap-3 pt-2">
+      <button type="submit"
+              class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 font-semibold text-sm">
+        Сохранить агента
+      </button>
+      <a href="/ui/agents/"
+         class="border border-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-50 text-sm">
+        Отмена
+      </a>
+      {% if is_edit %}
+      <button type="submit"
+              formaction="/ui/agents/{{ agent.id }}/delete"
+              hx-confirm="Удалить агента «{{ agent.name }}»? Форки не удаляются."
+              class="ml-auto border border-rose-300 text-rose-600 px-4 py-2 rounded hover:bg-rose-50 text-sm font-medium">
+        Удалить
+      </button>
+      {% endif %}
+    </div>
+
+  </form>
+</div>
+{% endblock %}

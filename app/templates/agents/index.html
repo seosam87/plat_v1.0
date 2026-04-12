@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}AI-агенты{% endblock %}
+{% block breadcrumbs %}
+<div class="breadcrumbs"><a href="/ui/dashboard">Дашборд</a><span>&rsaquo;</span>AI-агенты</div>
+{% endblock %}
+{% block content %}
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+  <div class="flex justify-between items-center mb-4">
+    <h2 class="text-lg font-semibold text-gray-800 m-0">AI-агенты</h2>
+    <a href="/ui/agents/new" class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded hover:bg-indigo-700">
+      + Создать агента
+    </a>
+  </div>
+
+  <div class="flex flex-wrap items-center gap-3 mb-4">
+    <select name="category"
+            hx-get="/ui/agents/"
+            hx-target="#agents-grid"
+            hx-trigger="change"
+            hx-push-url="true"
+            hx-include="[name='search'],[name='favourite']"
+            class="text-sm border border-gray-300 rounded px-2 py-1 bg-white text-gray-700 focus:ring-indigo-500 focus:border-indigo-500">
+      <option value="">Все категории</option>
+      {% for cat in categories %}
+      <option value="{{ cat.slug }}" {% if current_category == cat.slug %}selected{% endif %}>{{ cat.name }}</option>
+      {% endfor %}
+    </select>
+
+    <input type="text"
+           name="search"
+           value="{{ search_query }}"
+           placeholder="Поиск агентов..."
+           hx-get="/ui/agents/"
+           hx-target="#agents-grid"
+           hx-trigger="input changed delay:300ms"
+           hx-include="[name='category'],[name='favourite']"
+           class="text-sm border border-gray-300 rounded px-3 py-1.5 focus:ring-indigo-500 focus:border-indigo-500 min-w-48">
+
+    {% if favourite_mode %}
+    <input type="hidden" name="favourite" value="1">
+    <a href="/ui/agents/" class="text-sm text-indigo-600 hover:underline">Показать всех</a>
+    {% else %}
+    <a href="/ui/agents/?favourite=1" class="text-sm text-gray-500 hover:text-amber-500">★ Только избранные</a>
+    {% endif %}
+  </div>
+
+  <div id="agents-grid">
+    {% include "agents/_agent_card_grid.html" %}
+  </div>
+</div>
+{% endblock %}
