@@ -17,6 +17,7 @@ A team member or client can open the platform and immediately see the SEO health
 - Phase 27: Digest & Site Health — утренняя сводка (/m/digest) с 4 блоками + карточка здоровья (/m/health/{site_id}) с 6 метриками и 2 действиями
 - Phase 28: Positions & Traffic — /m/positions (проверка позиций, HTMX-поллинг, карточки ключей, табы Все/Просевшие) + /m/traffic (сравнение трафика Метрики за 3 пресета, задачи на просадки)
 - Phase 32: Telegram Bot — отдельный Docker-сервис (PTB 21, webhook), DevOps+SEO команды, Mini App кнопки, push критических уведомлений
+- Phase 33: Claude Code Agent (Spike) — /task команда бота запускает Claude CLI в изолированной ветке, собирает diff, approve/reject кнопки + WebApp diff viewer. Untested — требует ANTHROPIC_API_KEY
 
 **v3.1 SEO Tools — shipped 2026-04-10:**
 - Phase 24: Tools Infrastructure — shared TOOL_REGISTRY, Job-архитектура, 3 быстрых инструмента (коммерциализация, мета-теги, релевантный URL)
