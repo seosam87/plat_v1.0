@@ -11,7 +11,10 @@
       <h1 style="font-size:1.25rem;font-weight:600;color:#111827;margin:0 0 0.25rem 0;">QA Surface Matrix</h1>
       <p style="font-size:0.875rem;color:#6b7280;margin:0;">Feature coverage across Desktop, Mobile, and Telegram surfaces</p>
     </div>
-    <a href="/ui/qa/features/new" class="btn btn-primary" style="text-decoration:none;">Add User Flow</a>
+    <div style="display:flex;gap:0.5rem;">
+      <a href="/ui/qa/candidates" class="btn" style="text-decoration:none;">Discover Routes</a>
+      <a href="/ui/qa/features/new" class="btn btn-primary" style="text-decoration:none;">Add User Flow</a>
+    </div>
   </div>
 
   {# Matrix table or empty state #}
@@ -32,7 +35,7 @@
         {% for feature in features %}
         <tr id="feature-{{ feature.id }}" style="border-bottom:1px solid #f3f4f6;">
           <td style="padding:0.75rem 1rem;font-size:0.875rem;color:#111827;max-width:240px;">
-            <div style="font-weight:500;">{{ feature.name }}</div>
+            <div style="font-weight:500;"><a href="/ui/qa/features/{{ feature.id }}" style="color:#111827;text-decoration:none;" onmouseover="this.style.color='#4f46e5'" onmouseout="this.style.color='#111827'">{{ feature.name }}</a></div>
             {% if feature.description %}
             <div style="font-size:0.75rem;color:#9ca3af;margin-top:0.2rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ feature.description[:80] }}{% if feature.description|length > 80 %}…{% endif %}</div>
             {% endif %}
@@ -43,29 +46,9 @@
           {% for surface in surfaces %}
             {% set check = feature.checks | selectattr('surface', 'equalto', surface) | first %}
             {% if check %}
-            <td
-              id="check-{{ check.id }}"
-              style="padding:0;text-align:center;min-height:44px;cursor:pointer;background:{{ status_colors[check.status.value]['bg'] }};color:{{ status_colors[check.status.value]['text'] }};"
-              hx-get="/ui/qa/checks/{{ check.id }}/edit"
-              hx-target="#check-{{ check.id }}"
-              hx-swap="innerHTML"
-              title="Click to update status"
-            >
-              <div style="display:flex;align-items:center;justify-content:center;gap:0.25rem;min-height:44px;padding:0.75rem 0.5rem;font-size:0.8rem;font-weight:600;">
-                {% if check.status.value == 'needs_retest' %}
-                {# Clock icon #}
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;flex-shrink:0;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                {% elif check.status.value == 'failed' %}
-                {# X icon #}
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;flex-shrink:0;"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                {% endif %}
-                {% if check.status.value == 'not_tested' %}Not Tested
-                {% elif check.status.value == 'passed' %}Passed
-                {% elif check.status.value == 'failed' %}Failed
-                {% elif check.status.value == 'needs_retest' %}Needs Retest
-                {% else %}{{ check.status.value | title }}
-                {% endif %}
-              </div>
+            <td id="check-{{ check.id }}" style="padding:0;text-align:center;min-height:44px;">
+              {% set mode = "view" %}
+              {% include "qa/_check_cell.html" %}
             </td>
             {% else %}
             <td style="padding:0.75rem;text-align:center;font-size:0.75rem;color:#9ca3af;">—</td>

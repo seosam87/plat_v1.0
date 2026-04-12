@@ -169,14 +169,15 @@ async def mark_tested(
     request: Request,
     surface_check_id: uuid.UUID,
     status: str = Form(...),
+    tested_by: str = Form(""),
     notes: str = Form(""),
     db: AsyncSession = Depends(get_db),
     user=Depends(get_current_user),
 ) -> HTMLResponse:
     """Mark a surface check as tested and return updated cell partial."""
-    username = getattr(user, "username", None)
+    tester = tested_by or getattr(user, "username", None)
     updated_check = await svc.mark_check_tested(
-        db, surface_check_id, CheckStatus(status), notes or None, username
+        db, surface_check_id, CheckStatus(status), notes or None, tester
     )
     return templates.TemplateResponse(request, "qa/_check_cell.html", {
         "check": updated_check,
@@ -220,7 +221,13 @@ async def candidates_page(
     Per D-05 and RESEARCH.md pitfall #1: imports happen inside function body
     to avoid circular import with app.main at module level.
     """
+    import sys
+    import os
     from app.main import app as _app
+    # Ensure tests/ is importable (may not be on sys.path in production)
+    repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    if repo_root not in sys.path:
+        sys.path.insert(0, repo_root)
     from tests._smoke_helpers import discover_routes
     routes = discover_routes(_app)
     return templates.TemplateResponse(request, "qa/candidates.html", {
