@@ -177,10 +177,10 @@ Plans:
   2. Пользователь видит очередь ожидающих изменений WP Pipeline и одобряет или отклоняет каждое изменение через 2-tap confirmation
   3. Пользователь выбирает страницу и выполняет quick fix (обновить title/meta/schema/TOC) одной кнопкой — изменение отправляется в WP и подтверждается тостом
   4. Пользователь запускает массовую операцию (обновить Schema на всех статьях или добавить TOC) с экраном подтверждения и прогресс-индикатором
-**Plans:** 1/3 plans executed
+**Plans:** 2/3 plans executed
 Plans:
 - [x] 31-01-PLAN.md — Pages list: bottom nav, site dropdown, audit tabs, inline expand (PAG-01)
-- [ ] 31-02-PLAN.md — Pipeline approve queue + title/meta edit with SERP preview (PAG-02, PAG-03)
+- [x] 31-02-PLAN.md — Pipeline approve queue + title/meta edit with SERP preview (PAG-02, PAG-03)
 - [ ] 31-03-PLAN.md — Quick fix Celery tasks + bulk operations with progress (PAG-03, PAG-04)
 **UI hint**: yes
 
@@ -195,7 +195,7 @@ Plans:
   4. Telegram Bot работает как отдельный контейнер в docker-compose.yml и не падает при недоступности основного FastAPI сервиса
 **Plans:** 3 plans
 Plans:
-- [ ] 31-01-PLAN.md — Pages list: bottom nav, site dropdown, audit tabs, inline expand (PAG-01)
+- [x] 31-01-PLAN.md — Pages list: bottom nav, site dropdown, audit tabs, inline expand (PAG-01)
 - [ ] 31-02-PLAN.md — Pipeline approve queue + title/meta edit with SERP preview (PAG-02, PAG-03)
 - [ ] 31-03-PLAN.md — Quick fix Celery tasks + bulk operations with progress (PAG-03, PAG-04)
 
@@ -227,7 +227,7 @@ Plans:
 | 28 | v4.0 | 2/2 | Complete    | 2026-04-10 |
 | 29 | v4.0 | 3/3 | Complete    | 2026-04-11 |
 | 30 | v4.0 | 3/3 | Complete    | 2026-04-12 |
-| 31 | v4.0 | 1/3 | In Progress|  |
+| 31 | v4.0 | 2/3 | In Progress|  |
 | 32 | v4.0 | 0/? | Not started | - |
 | 33 | v4.0 | 0/? | Not started | - |
 
