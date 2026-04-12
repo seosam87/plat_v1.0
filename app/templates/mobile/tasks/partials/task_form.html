@@ -1,0 +1,44 @@
+<form hx-post="/m/tasks/new" hx-swap="innerHTML" hx-target="body">
+  <input type="hidden" name="mode" value="task">
+
+  <div class="mb-4">
+    <textarea name="text" required maxlength="2000"
+      class="w-full min-h-[120px] border border-gray-300 rounded-lg px-3 py-2 text-sm"
+      placeholder="Текст задачи..."></textarea>
+  </div>
+
+  <div class="mb-4">
+    <label class="text-xs text-gray-500 mb-1 block">Приоритет</label>
+    <div class="flex gap-3">
+      {% for p, label, color in [("p1","P1","red"),("p2","P2","orange"),("p3","P3","gray"),("p4","P4","blue")] %}
+      <label class="cursor-pointer">
+        <input type="radio" name="priority" value="{{ p }}" class="sr-only peer" {% if p == "p3" %}checked{% endif %}>
+        <span class="px-3 py-1 rounded-full text-xs font-semibold border-2 block
+          peer-checked:bg-{{ color }}-100 peer-checked:border-{{ color }}-500 peer-checked:text-{{ color }}-700
+          border-gray-200 text-gray-400">{{ label }}</span>
+      </label>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="mb-4">
+    <select name="project_id" required class="w-full min-h-[44px] border border-gray-300 rounded-lg px-3 py-2 text-sm">
+      <option value="">— Выберите проект —</option>
+      {% for project in projects %}
+      <option value="{{ project.id }}">{{ project.name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  {% if projects|length == 0 %}
+  <div class="bg-white rounded-lg p-4 text-sm text-gray-400 text-center mb-4">
+    Нет проектов. Создайте проект в полной версии платформы.
+  </div>
+  {% endif %}
+
+  <button type="submit"
+    class="w-full min-h-[44px] rounded-lg text-white font-semibold text-sm"
+    style="background:#4f46e5;">
+    Создать задачу
+  </button>
+</form>

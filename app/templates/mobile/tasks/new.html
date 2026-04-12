@@ -1,0 +1,59 @@
+{% extends "base_mobile.html" %}
+{% block title %}Новая задача{% endblock %}
+{% block content %}
+<div style="padding:16px;padding-bottom:64px;">
+  <h1 class="text-xl font-semibold mb-4">Новая задача</h1>
+
+  <!-- Mode toggle per D-12 -->
+  <div class="flex mb-4 gap-2">
+    <button
+      hx-get="/m/tasks/new/form?mode=task"
+      hx-target="#task-form"
+      hx-swap="innerHTML"
+      onclick="history.pushState({}, '', '/m/tasks/new?mode=task')"
+      class="flex-1 min-h-[44px] text-sm font-semibold rounded-lg {% if mode == 'task' %}text-white{% else %}bg-gray-100 text-gray-500{% endif %}"
+      {% if mode == 'task' %}style="background:#4f46e5;"{% endif %}>
+      Задача
+    </button>
+    <button
+      hx-get="/m/tasks/new/form?mode=brief"
+      hx-target="#task-form"
+      hx-swap="innerHTML"
+      onclick="history.pushState({}, '', '/m/tasks/new?mode=brief')"
+      class="flex-1 min-h-[44px] text-sm font-semibold rounded-lg {% if mode == 'brief' %}text-white{% else %}bg-gray-100 text-gray-500{% endif %}"
+      {% if mode == 'brief' %}style="background:#4f46e5;"{% endif %}>
+      ТЗ копирайтеру
+    </button>
+  </div>
+
+  <!-- Form area (HTMX swap target) -->
+  <div id="task-form">
+    {% if mode == 'brief' %}
+      {% include "mobile/tasks/partials/brief_form.html" %}
+    {% else %}
+      {% include "mobile/tasks/partials/task_form.html" %}
+    {% endif %}
+  </div>
+</div>
+
+<script>
+// Toggle active state styling after HTMX swap
+document.body.addEventListener('htmx:afterSwap', function(evt) {
+  if (evt.detail.target.id === 'task-form') {
+    const url = new URL(window.location.href);
+    const mode = url.searchParams.get('mode') || 'task';
+    const buttons = document.querySelectorAll('.flex.mb-4.gap-2 button');
+    buttons.forEach((btn, i) => {
+      const isActive = (i === 0 && mode === 'task') || (i === 1 && mode === 'brief');
+      if (isActive) {
+        btn.style.background = '#4f46e5';
+        btn.className = btn.className.replace('bg-gray-100 text-gray-500', 'text-white');
+      } else {
+        btn.style.background = '';
+        btn.className = btn.className.replace('text-white', 'bg-gray-100 text-gray-500');
+      }
+    });
+  }
+});
+</script>
+{% endblock %}

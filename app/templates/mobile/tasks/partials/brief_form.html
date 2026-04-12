@@ -1,0 +1,63 @@
+<form hx-post="/m/tasks/new" hx-swap="innerHTML" hx-target="body">
+  <input type="hidden" name="mode" value="brief">
+
+  <div class="mb-4">
+    <label class="text-xs text-gray-500 mb-1 block">Ключевые слова</label>
+    <textarea name="keywords" required
+      class="w-full min-h-[120px] border border-gray-300 rounded-lg px-3 py-2 text-sm"
+      placeholder="Ключевые слова (по одному на строку)"></textarea>
+  </div>
+
+  <div class="mb-4">
+    <label class="text-xs text-gray-500 mb-1 block">Tone of voice</label>
+    <select name="tone" class="w-full min-h-[44px] border border-gray-300 rounded-lg px-3 py-2 text-sm">
+      <option value="Информационный">Информационный</option>
+      <option value="Коммерческий">Коммерческий</option>
+      <option value="Экспертный">Экспертный</option>
+    </select>
+  </div>
+
+  <div class="mb-4">
+    <label class="text-xs text-gray-500 mb-1 block">Объём</label>
+    <select name="length" class="w-full min-h-[44px] border border-gray-300 rounded-lg px-3 py-2 text-sm">
+      <option value="1000">1000 слов</option>
+      <option value="2000" selected>2000 слов</option>
+      <option value="3000">3000 слов</option>
+      <option value="5000">5000 слов</option>
+    </select>
+  </div>
+
+  <div class="mb-4">
+    <select name="project_id" required class="w-full min-h-[44px] border border-gray-300 rounded-lg px-3 py-2 text-sm">
+      <option value="">— Выберите проект —</option>
+      {% for project in projects %}
+      <option value="{{ project.id }}">{{ project.name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div class="mb-4">
+    <select name="recipient_id" id="recipient-select" class="w-full min-h-[44px] border border-gray-300 rounded-lg px-3 py-2 text-sm"
+      onchange="document.getElementById('btn-send').disabled = !this.value; document.getElementById('btn-send').classList.toggle('opacity-50', !this.value);">
+      <option value="">— Клиент (необязательно) —</option>
+      {% for client in clients %}
+      <option value="{{ client.id }}">{{ client.name }} ({{ client.email }})</option>
+      {% endfor %}
+    </select>
+    {% if clients|length == 0 %}
+    <div class="text-xs text-gray-400 mt-1">Нет клиентов с контактами. Добавьте email клиентам в CRM.</div>
+    {% endif %}
+  </div>
+
+  <div class="space-y-2">
+    <button type="submit" name="action" value="send" id="btn-send" disabled
+      class="w-full min-h-[44px] rounded-lg text-white font-semibold text-sm opacity-50 cursor-not-allowed"
+      style="background:#4f46e5;">
+      Создать и отправить
+    </button>
+    <button type="submit" name="action" value="save"
+      class="w-full min-h-[44px] rounded-lg text-sm font-semibold text-gray-700 border border-gray-300 bg-white">
+      Только сохранить
+    </button>
+  </div>
+</form>
