@@ -195,6 +195,9 @@ app.include_router(channel_router)
 from app.routers.playbooks import router as playbooks_router
 app.include_router(playbooks_router)
 
+from app.routers.agents import router as agents_router
+app.include_router(agents_router)
+
 
 # ---- Site selector API endpoints for nav sidebar ----
 

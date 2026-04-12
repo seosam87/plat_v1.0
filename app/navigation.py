@@ -133,6 +133,17 @@ NAV_SECTIONS = [
         ],
     },
     {
+        "id": "agents",
+        "label": "AI-агенты",
+        "icon": "cpu-chip",
+        "url": None,
+        "admin_only": False,
+        "children": [
+            {"id": "agents-catalogue", "label": "Каталог", "url": "/ui/agents/"},
+            {"id": "agents-favourites", "label": "Избранное", "url": "/ui/agents/?favourite=1"},
+        ],
+    },
+    {
         "id": "settings",
         "label": "Настройки",
         "icon": "cog-6-tooth",
