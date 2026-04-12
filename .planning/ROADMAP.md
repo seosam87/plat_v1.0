@@ -130,8 +130,12 @@ Complete human-verify checkpoint deferred from Phase 16-04. Requires real Anthro
 
 ### Phase 999.9: Prompt Library — каркас AI-агентов через библиотеку промптов (BACKLOG)
 
-Каталог промптов с переменными, сгруппированных по ExpertSource и категориям. Средний приоритет.
-**Plans:** 0 plans
+Каталог AI-агентов (промптов с {{переменными}}), создание/редактирование, запуск через Celery + HTMX-поллинг, избранное и форки. Средний приоритет.
+**Plans:** 2 plans
+
+Plans:
+- [ ] 999.9-01-PLAN.md — Models, migration, service layer, Celery task, call_agent()
+- [ ] 999.9-02-PLAN.md — Router, 6 Jinja2 templates, sidebar navigation wiring
 
 ### Phase 999.10: QA Surface Tracker — десктоп, мобилка, Telegram (BACKLOG)
 
