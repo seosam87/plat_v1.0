@@ -1,6 +1,5 @@
 {% extends "base.html" %}
-
-{% block title %}Route Candidates — SEO Platform{% endblock %}
+{% block title %}Кандидаты маршрутов — SEO Platform{% endblock %}
 
 {% block content %}
 <div class="main-content">
@@ -8,10 +7,10 @@
   {# Page header #}
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
     <div>
-      <h1 style="font-size:1.25rem;font-weight:600;color:#111827;margin:0 0 0.25rem 0;">Route Candidates</h1>
-      <p style="font-size:0.875rem;color:#6b7280;margin:0;">Select routes that belong to the same user flow, enter a flow name, and save.</p>
+      <h1 style="font-size:1.25rem;font-weight:600;color:#111827;margin:0 0 0.25rem 0;">Кандидаты маршрутов</h1>
+      <p style="font-size:0.875rem;color:#6b7280;margin:0;">Выберите маршруты, относящиеся к одному сценарию, введите название и сохраните.</p>
     </div>
-    <a href="/ui/qa/" class="btn" style="text-decoration:none;">Back to Matrix</a>
+    <a href="/ui/qa/" class="btn" style="text-decoration:none;">Назад к матрице</a>
   </div>
 
   {% if routes %}
@@ -21,7 +20,7 @@
 
       {# Left panel — route checklist #}
       <div class="card" style="flex:1;min-width:300px;">
-        <h2 style="font-size:0.875rem;font-weight:600;color:#374151;margin:0 0 1rem 0;">Discovered Routes ({{ routes | length }})</h2>
+        <h2 style="font-size:0.875rem;font-weight:600;color:#374151;margin:0 0 1rem 0;">Обнаруженные маршруты ({{ routes | length }})</h2>
 
         {# Group routes by prefix #}
         {% set prefixes = ['/ui/', '/m/', '/analytics/', '/audit/', '/gap/', '/intent/', '/architecture/', '/bulk/', '/traffic-analysis/', '/monitoring/', '/notifications'] %}
@@ -33,15 +32,17 @@
           <div style="margin-bottom:1rem;">
             <div style="font-size:0.75rem;font-weight:600;color:#9ca3af;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.5rem;padding-bottom:0.25rem;border-bottom:1px solid #f3f4f6;">{{ prefix }}</div>
             {% for route in prefix_routes %}
-            <label style="display:flex;align-items:center;gap:0.5rem;padding:0.35rem 0;cursor:pointer;font-size:0.875rem;color:#374151;">
+            <label style="display:flex;align-items:flex-start;gap:0.5rem;padding:0.4rem 0;cursor:pointer;font-size:0.875rem;color:#374151;">
               <input
                 type="checkbox"
                 name="routes"
                 value="{{ route.path }}"
-                style="flex-shrink:0;"
+                style="flex-shrink:0;margin-top:0.2rem;"
               >
-              <span style="font-family:monospace;font-size:0.8rem;flex:1;">{{ route.path }}</span>
-              <span class="badge" style="font-size:0.7rem;background:#f3f4f6;color:#6b7280;flex-shrink:0;">{{ route.methods | list | join(', ') }}</span>
+              <span style="flex:1;min-width:0;">
+                <span style="display:block;font-size:0.8rem;color:#111827;font-weight:500;">{{ route.name | replace('_', ' ') | title }}</span>
+                <span style="display:block;font-family:monospace;font-size:0.7rem;color:#9ca3af;">{{ route.path }}</span>
+              </span>
             </label>
             {% endfor %}
           </div>
@@ -60,17 +61,19 @@
         {% endfor %}
         {% if other_routes %}
         <div style="margin-bottom:1rem;">
-          <div style="font-size:0.75rem;font-weight:600;color:#9ca3af;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.5rem;padding-bottom:0.25rem;border-bottom:1px solid #f3f4f6;">Other</div>
+          <div style="font-size:0.75rem;font-weight:600;color:#9ca3af;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.5rem;padding-bottom:0.25rem;border-bottom:1px solid #f3f4f6;">Прочие</div>
           {% for route in other_routes %}
-          <label style="display:flex;align-items:center;gap:0.5rem;padding:0.35rem 0;cursor:pointer;font-size:0.875rem;color:#374151;">
+          <label style="display:flex;align-items:flex-start;gap:0.5rem;padding:0.4rem 0;cursor:pointer;font-size:0.875rem;color:#374151;">
             <input
               type="checkbox"
               name="routes"
               value="{{ route.path }}"
-              style="flex-shrink:0;"
+              style="flex-shrink:0;margin-top:0.2rem;"
             >
-            <span style="font-family:monospace;font-size:0.8rem;flex:1;">{{ route.path }}</span>
-            <span class="badge" style="font-size:0.7rem;background:#f3f4f6;color:#6b7280;flex-shrink:0;">{{ route.methods | list | join(', ') }}</span>
+            <span style="flex:1;min-width:0;">
+              <span style="display:block;font-size:0.8rem;color:#111827;font-weight:500;">{{ route.name | replace('_', ' ') | title }}</span>
+              <span style="display:block;font-family:monospace;font-size:0.7rem;color:#9ca3af;">{{ route.path }}</span>
+            </span>
           </label>
           {% endfor %}
         </div>
@@ -80,19 +83,19 @@
 
       {# Right panel — flow definition form #}
       <div class="card" style="width:320px;flex-shrink:0;">
-        <h2 style="font-size:0.875rem;font-weight:600;color:#374151;margin:0 0 1rem 0;">Define User Flow</h2>
+        <h2 style="font-size:0.875rem;font-weight:600;color:#374151;margin:0 0 1rem 0;">Новый сценарий</h2>
 
         {# Name #}
         <div style="margin-bottom:1rem;">
           <label for="cand-name" style="display:block;font-size:0.875rem;font-weight:600;color:#374151;margin-bottom:0.4rem;">
-            Flow Name <span style="color:#991b1b;">*</span>
+            Название <span style="color:#991b1b;">*</span>
           </label>
           <input
             type="text"
             id="cand-name"
             name="name"
             required
-            placeholder="e.g. Run position check"
+            placeholder="напр. Проверка позиций"
             style="width:100%;box-sizing:border-box;padding:0.5rem 0.75rem;font-size:0.875rem;border:1px solid #d1d5db;border-radius:6px;color:#111827;"
           >
         </div>
@@ -107,26 +110,26 @@
             id="cand-slug"
             name="slug"
             required
-            placeholder="e.g. run-position-check"
+            placeholder="напр. proverka-pozitsiy"
             style="width:100%;box-sizing:border-box;padding:0.5rem 0.75rem;font-size:0.875rem;border:1px solid #d1d5db;border-radius:6px;color:#111827;font-family:monospace;"
           >
         </div>
 
         {# Description #}
         <div style="margin-bottom:1rem;">
-          <label for="cand-description" style="display:block;font-size:0.875rem;font-weight:600;color:#374151;margin-bottom:0.4rem;">Description</label>
+          <label for="cand-description" style="display:block;font-size:0.875rem;font-weight:600;color:#374151;margin-bottom:0.4rem;">Описание</label>
           <textarea
             id="cand-description"
             name="description"
             rows="3"
-            placeholder="Optional notes about this user flow"
+            placeholder="Заметки о сценарии"
             style="width:100%;box-sizing:border-box;padding:0.5rem 0.75rem;font-size:0.875rem;border:1px solid #d1d5db;border-radius:6px;color:#111827;resize:vertical;"
           ></textarea>
         </div>
 
         {# Retest days #}
         <div style="margin-bottom:1.5rem;">
-          <label for="cand-retest" style="display:block;font-size:0.875rem;font-weight:600;color:#374151;margin-bottom:0.4rem;">Retest every N days</label>
+          <label for="cand-retest" style="display:block;font-size:0.875rem;font-weight:600;color:#374151;margin-bottom:0.4rem;">Ретест каждые N дней</label>
           <input
             type="number"
             id="cand-retest"
@@ -137,7 +140,7 @@
           >
         </div>
 
-        <button type="submit" class="btn btn-primary" style="width:100%;">Add User Flow</button>
+        <button type="submit" class="btn btn-primary" style="width:100%;">Создать сценарий</button>
       </div>
 
     </div>
@@ -147,8 +150,8 @@
   {% else %}
   {# Empty state #}
   <div class="card" style="text-align:center;padding:3rem 2rem;">
-    <p style="font-size:0.875rem;color:#6b7280;margin:0 0 1rem 0;">No HTML routes discovered. Ensure the app is running.</p>
-    <a href="/ui/qa/" class="btn" style="text-decoration:none;">Back to Matrix</a>
+    <p style="font-size:0.875rem;color:#6b7280;margin:0 0 1rem 0;">HTML-маршруты не найдены. Убедитесь, что приложение запущено.</p>
+    <a href="/ui/qa/" class="btn" style="text-decoration:none;">Назад к матрице</a>
   </div>
   {% endif %}
 

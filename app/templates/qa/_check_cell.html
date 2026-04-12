@@ -1,5 +1,5 @@
 {% if mode == "edit" %}
-{# Edit mode — inline form for marking surface check #}
+{# Режим редактирования — инлайн-форма для отметки проверки #}
 <form
   hx-post="/ui/qa/checks/{{ check.id }}/mark-tested"
   hx-target="#check-{{ check.id }}"
@@ -7,61 +7,61 @@
   style="padding:0.5rem;display:flex;flex-direction:column;gap:0.4rem;min-width:160px;"
 >
 
-  {# Status dropdown #}
+  {# Статус #}
   <select
     name="status"
     style="font-size:0.75rem;padding:0.3rem 0.5rem;border:1px solid #d1d5db;border-radius:4px;color:#374151;background:white;width:100%;"
   >
     {% for s in statuses %}
     <option value="{{ s.value }}" {% if s == check.status %}selected{% endif %}>
-      {% if s.value == 'not_tested' %}Not Tested
-      {% elif s.value == 'passed' %}Passed
-      {% elif s.value == 'failed' %}Failed
-      {% elif s.value == 'needs_retest' %}Needs Retest
+      {% if s.value == 'not_tested' %}Не проверено
+      {% elif s.value == 'passed' %}Пройдено
+      {% elif s.value == 'failed' %}Провалено
+      {% elif s.value == 'needs_retest' %}Нужен ретест
       {% else %}{{ s.value | title }}
       {% endif %}
     </option>
     {% endfor %}
   </select>
 
-  {# Tested by #}
+  {# Кто проверил #}
   <input
     type="text"
     name="tested_by"
     value="{{ check.tested_by or '' }}"
-    placeholder="Tested by"
+    placeholder="Кто проверил"
     style="font-size:0.75rem;padding:0.3rem 0.5rem;border:1px solid #d1d5db;border-radius:4px;color:#374151;width:100%;box-sizing:border-box;"
   >
 
-  {# Notes textarea #}
+  {# Заметки #}
   <textarea
     name="notes"
     rows="2"
-    placeholder="Notes (optional)"
+    placeholder="Заметки (необязательно)"
     style="font-size:0.75rem;padding:0.3rem 0.5rem;border:1px solid #d1d5db;border-radius:4px;color:#374151;resize:none;width:100%;box-sizing:border-box;"
   >{{ check.notes or '' }}</textarea>
 
-  {# Actions #}
+  {# Действия #}
   <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
     <button
       type="submit"
       class="btn btn-primary btn-sm"
       hx-disabled-elt="this"
       style="font-size:0.75rem;padding:0.3rem 0.6rem;"
-    >Mark as Tested</button>
+    >Сохранить</button>
     <a
       href="javascript:void(0)"
       hx-get="/ui/qa/checks/{{ check.id }}"
       hx-target="#check-{{ check.id }}"
       hx-swap="innerHTML"
       style="font-size:0.75rem;color:#6b7280;text-decoration:none;cursor:pointer;"
-    >Cancel</a>
+    >Отмена</a>
   </div>
 
 </form>
 
 {% else %}
-{# View mode — clickable status badge #}
+{# Режим просмотра — кликабельный статус #}
 {% set bg = status_colors[check.status.value]['bg'] %}
 {% set color = status_colors[check.status.value]['text'] %}
 <div
@@ -69,17 +69,17 @@
   hx-get="/ui/qa/checks/{{ check.id }}/edit"
   hx-target="#check-{{ check.id }}"
   hx-swap="innerHTML"
-  title="Click to update status"
+  title="Нажмите для изменения статуса"
 >
   {% if check.status.value == 'needs_retest' %}
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;flex-shrink:0;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
   {% elif check.status.value == 'failed' %}
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;flex-shrink:0;"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
   {% endif %}
-  {% if check.status.value == 'not_tested' %}Not Tested
-  {% elif check.status.value == 'passed' %}Passed
-  {% elif check.status.value == 'failed' %}Failed
-  {% elif check.status.value == 'needs_retest' %}Needs Retest
+  {% if check.status.value == 'not_tested' %}Не проверено
+  {% elif check.status.value == 'passed' %}Пройдено
+  {% elif check.status.value == 'failed' %}Провалено
+  {% elif check.status.value == 'needs_retest' %}Ретест
   {% else %}{{ check.status.value | title }}
   {% endif %}
 </div>

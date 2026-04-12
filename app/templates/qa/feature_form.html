@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}{% if mode == "create" %}New User Flow{% else %}Edit User Flow{% endif %} — SEO Platform{% endblock %}
+{% block title %}{% if mode == "create" %}Новый сценарий{% else %}Редактирование сценария{% endif %} — SEO Platform{% endblock %}
 
 {% block content %}
 <div class="main-content">
@@ -8,7 +8,7 @@
   {# Page header #}
   <div style="margin-bottom:1.5rem;">
     <h1 style="font-size:1.25rem;font-weight:600;color:#111827;margin:0 0 0.25rem 0;">
-      {% if mode == "create" %}New User Flow{% else %}Edit User Flow{% endif %}
+      {% if mode == "create" %}Новый сценарий{% else %}Редактирование сценария{% endif %}
     </h1>
   </div>
 
@@ -24,7 +24,7 @@
       {# Name #}
       <div style="margin-bottom:1.25rem;">
         <label for="qa-name" style="display:block;font-size:0.875rem;font-weight:600;color:#374151;margin-bottom:0.4rem;">
-          Name <span style="color:#991b1b;">*</span>
+          Название <span style="color:#991b1b;">*</span>
         </label>
         <input
           type="text"
@@ -32,11 +32,11 @@
           name="name"
           required
           value="{{ feature.name if feature else '' }}"
-          placeholder="e.g. Run position check and see results"
+          placeholder="напр. Проверка позиций и просмотр результатов"
           style="width:100%;box-sizing:border-box;padding:0.5rem 0.75rem;font-size:0.875rem;border:1px solid #d1d5db;border-radius:6px;color:#111827;"
         >
         <p style="font-size:0.75rem;color:#9ca3af;margin:0.3rem 0 0 0;">
-          Flow name is required. Enter a short description of what the user does (e.g. 'Run position check and see results').
+          Краткое описание действия пользователя (напр. «Проверка позиций и просмотр результатов»).
         </p>
       </div>
 
@@ -51,24 +51,24 @@
           name="slug"
           required
           value="{{ feature.slug if feature else '' }}"
-          placeholder="e.g. position-check-flow"
+          placeholder="напр. proverka-pozitsiy"
           style="width:100%;box-sizing:border-box;padding:0.5rem 0.75rem;font-size:0.875rem;border:1px solid #d1d5db;border-radius:6px;color:#111827;font-family:monospace;"
         >
         <p style="font-size:0.75rem;color:#9ca3af;margin:0.3rem 0 0 0;">
-          Unique identifier (lowercase, hyphens only). Auto-generated from name if left blank.
+          Уникальный идентификатор (латиница, дефисы). Генерируется автоматически из названия.
         </p>
       </div>
 
       {# Description #}
       <div style="margin-bottom:1.25rem;">
         <label for="qa-description" style="display:block;font-size:0.875rem;font-weight:600;color:#374151;margin-bottom:0.4rem;">
-          Description
+          Описание
         </label>
         <textarea
           id="qa-description"
           name="description"
           rows="3"
-          placeholder="Optional — steps the user takes, routes involved, etc."
+          placeholder="Шаги пользователя, задействованные маршруты и т.д."
           style="width:100%;box-sizing:border-box;padding:0.5rem 0.75rem;font-size:0.875rem;border:1px solid #d1d5db;border-radius:6px;color:#111827;resize:vertical;"
         >{{ feature.description if feature and feature.description else '' }}</textarea>
       </div>
@@ -76,7 +76,7 @@
       {# Retest days #}
       <div style="margin-bottom:1.75rem;">
         <label for="qa-retest-days" style="display:block;font-size:0.875rem;font-weight:600;color:#374151;margin-bottom:0.4rem;">
-          Retest every N days
+          Ретест каждые N дней
         </label>
         <input
           type="number"
@@ -86,15 +86,15 @@
           value="{{ feature.retest_days if feature else 30 }}"
           style="width:120px;padding:0.5rem 0.75rem;font-size:0.875rem;border:1px solid #d1d5db;border-radius:6px;color:#111827;"
         >
-        <span style="font-size:0.875rem;color:#6b7280;margin-left:0.5rem;">days</span>
+        <span style="font-size:0.875rem;color:#6b7280;margin-left:0.5rem;">дн.</span>
       </div>
 
       {# Actions #}
       <div style="display:flex;align-items:center;gap:1rem;">
         <button type="submit" class="btn btn-primary">
-          {% if mode == "create" %}Create User Flow{% else %}Update User Flow{% endif %}
+          {% if mode == "create" %}Создать сценарий{% else %}Сохранить изменения{% endif %}
         </button>
-        <a href="/ui/qa/" style="font-size:0.875rem;color:#6b7280;text-decoration:none;">Back to Matrix</a>
+        <a href="/ui/qa/" style="font-size:0.875rem;color:#6b7280;text-decoration:none;">Назад к матрице</a>
       </div>
 
     </form>

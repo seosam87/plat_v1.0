@@ -150,7 +150,7 @@ NAV_SECTIONS = [
         "url": None,
         "admin_only": False,
         "children": [
-            {"id": "qa-surfaces", "label": "QA Surfaces", "url": "/ui/qa/", "admin_only": False},
+            {"id": "qa-surfaces", "label": "QA Покрытие", "url": "/ui/qa/", "admin_only": False},
             {"id": "users", "label": "Пользователи", "url": "/ui/admin/users", "admin_only": True},
             {"id": "groups", "label": "Группы", "url": "/ui/admin/groups", "admin_only": True},
             {"id": "datasources", "label": "Источники данных", "url": "/ui/datasources", "admin_only": False},
