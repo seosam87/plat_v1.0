@@ -955,6 +955,319 @@ async def mobile_tool_result(
     )
 
 
+# ---------------------------------------------------------------------------
+# /m/errors — Phase 30 Yandex Errors UI (ERR-01, ERR-02)
+# ---------------------------------------------------------------------------
+
+
+@router.get("/errors", response_class=HTMLResponse)
+async def mobile_errors(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+    site_id: str | None = None,
+):
+    """Errors page — 3 error sections (Indexing/Crawl/Sanctions) with site dropdown and sync."""
+    from app.models.yandex_errors import YandexErrorType
+    from app.services.site_service import get_sites
+    from app.services.yandex_errors_service import count_errors, last_fetched_at, list_errors
+
+    sites = await get_sites(db)
+
+    if not sites:
+        ctx = {
+            "request": request,
+            "user": user,
+            "active_tab": "errors",
+            "sites": [],
+            "has_sites": False,
+        }
+        return mobile_templates.TemplateResponse("mobile/errors/index.html", ctx)
+
+    # Determine selected site
+    if not site_id:
+        site_id = request.cookies.get("m_errors_site_id")
+    if not site_id or not any(str(s.id) == site_id for s in sites):
+        site_id = str(sites[0].id)
+
+    selected_uuid = uuid.UUID(site_id)
+    indexing_errors = await list_errors(db, selected_uuid, YandexErrorType.indexing, limit=5)
+    crawl_errors = await list_errors(db, selected_uuid, YandexErrorType.crawl, limit=5)
+    sanction_errors = await list_errors(db, selected_uuid, YandexErrorType.sanction, limit=5)
+    indexing_count = await count_errors(db, selected_uuid, YandexErrorType.indexing)
+    crawl_count = await count_errors(db, selected_uuid, YandexErrorType.crawl)
+    sanction_count = await count_errors(db, selected_uuid, YandexErrorType.sanction)
+    last_synced = await last_fetched_at(db, selected_uuid)
+
+    ctx = {
+        "request": request,
+        "user": user,
+        "active_tab": "errors",
+        "sites": sites,
+        "has_sites": True,
+        "selected_site_id": site_id,
+        "indexing_errors": indexing_errors,
+        "crawl_errors": crawl_errors,
+        "sanction_errors": sanction_errors,
+        "indexing_count": indexing_count,
+        "crawl_count": crawl_count,
+        "sanction_count": sanction_count,
+        "last_synced": last_synced,
+    }
+
+    response: Response
+    if request.headers.get("HX-Request"):
+        response = mobile_templates.TemplateResponse(
+            "mobile/errors/partials/errors_content.html", ctx
+        )
+    else:
+        response = mobile_templates.TemplateResponse("mobile/errors/index.html", ctx)
+
+    response.set_cookie(
+        key="m_errors_site_id",
+        value=site_id,
+        httponly=True,
+        samesite="lax",
+        max_age=86400 * 30,
+    )
+    return response
+
+
+@router.post("/errors/sync", response_class=HTMLResponse)
+async def mobile_errors_sync(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+    site_id: str = Form(...),
+):
+    """Trigger Celery sync task for Yandex Webmaster errors and return polling partial."""
+    from app.tasks.yandex_errors_tasks import sync_yandex_errors
+
+    result = sync_yandex_errors.delay(site_id)
+    return mobile_templates.TemplateResponse(
+        "mobile/errors/partials/sync_progress.html",
+        {
+            "request": request,
+            "task_id": result.id,
+            "site_id": site_id,
+            "sync_status": "running",
+        },
+    )
+
+
+@router.get("/errors/sync/status/{task_id}", response_class=HTMLResponse)
+async def mobile_errors_sync_status(
+    request: Request,
+    task_id: str,
+    site_id: str,
+    user: User = Depends(get_current_user),
+):
+    """HTMX polling endpoint — returns sync progress partial every 3s."""
+    import json as _json
+
+    import redis as redis_lib
+
+    sync_status = "running"
+    try:
+        r = redis_lib.from_url(settings.REDIS_URL, decode_responses=True)
+        raw = r.get(f"yandex_sync:{task_id}")
+        if raw:
+            data = _json.loads(raw)
+            sync_status = data.get("status", "running")
+        else:
+            from app.celery_app import celery_app
+
+            ar = celery_app.AsyncResult(task_id)
+            if ar.ready() and ar.successful():
+                sync_status = "done"
+            elif ar.failed():
+                sync_status = "error"
+    except Exception:
+        pass
+
+    return mobile_templates.TemplateResponse(
+        "mobile/errors/partials/sync_progress.html",
+        {
+            "request": request,
+            "task_id": task_id,
+            "site_id": site_id,
+            "sync_status": sync_status,
+        },
+    )
+
+
+@router.get("/errors/content", response_class=HTMLResponse)
+async def mobile_errors_content(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+    site_id: str = "",
+):
+    """Reload all 3 error sections after sync is complete."""
+    from app.models.yandex_errors import YandexErrorType
+    from app.services.yandex_errors_service import count_errors, last_fetched_at, list_errors
+
+    if not site_id:
+        site_id = request.cookies.get("m_errors_site_id", "")
+
+    ctx: dict = {"request": request}
+    if site_id:
+        selected_uuid = uuid.UUID(site_id)
+        ctx.update(
+            {
+                "selected_site_id": site_id,
+                "indexing_errors": await list_errors(db, selected_uuid, YandexErrorType.indexing, limit=5),
+                "crawl_errors": await list_errors(db, selected_uuid, YandexErrorType.crawl, limit=5),
+                "sanction_errors": await list_errors(db, selected_uuid, YandexErrorType.sanction, limit=5),
+                "indexing_count": await count_errors(db, selected_uuid, YandexErrorType.indexing),
+                "crawl_count": await count_errors(db, selected_uuid, YandexErrorType.crawl),
+                "sanction_count": await count_errors(db, selected_uuid, YandexErrorType.sanction),
+                "last_synced": await last_fetched_at(db, selected_uuid),
+            }
+        )
+
+    return mobile_templates.TemplateResponse(
+        "mobile/errors/partials/errors_content.html", ctx
+    )
+
+
+@router.get("/errors/{error_type}/all", response_class=HTMLResponse)
+async def mobile_errors_show_all(
+    request: Request,
+    error_type: str,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+    site_id: str = "",
+    page: int = 1,
+):
+    """Expand full error list for a given error_type with pagination."""
+    from app.models.yandex_errors import YandexErrorType
+    from app.services.yandex_errors_service import count_errors, list_errors
+
+    if error_type not in ("indexing", "crawl", "sanction"):
+        raise HTTPException(status_code=422, detail="Invalid error_type")
+
+    et = YandexErrorType(error_type)
+    page_size = 20
+    selected_uuid = uuid.UUID(site_id) if site_id else None
+
+    if not selected_uuid:
+        return mobile_templates.TemplateResponse(
+            "mobile/errors/partials/section.html",
+            {
+                "request": request,
+                "section_title": error_type,
+                "section_type": error_type,
+                "errors": [],
+                "count": 0,
+                "show_all": True,
+                "has_more": False,
+                "page": 1,
+                "selected_site_id": site_id,
+                "badge_class": "bg-gray-100 text-gray-700",
+                "section_icon": "",
+            },
+        )
+
+    errors = await list_errors(db, selected_uuid, et, limit=page_size, offset=(page - 1) * page_size)
+    total = await count_errors(db, selected_uuid, et)
+
+    section_map = {
+        "indexing": ("Ошибки индексации", "bg-blue-100 text-blue-700"),
+        "crawl": ("Ошибки краулинга", "bg-orange-100 text-orange-700"),
+        "sanction": ("Санкции", "bg-red-100 text-red-700"),
+    }
+    section_title, badge_class = section_map[error_type]
+
+    return mobile_templates.TemplateResponse(
+        "mobile/errors/partials/section.html",
+        {
+            "request": request,
+            "section_title": section_title,
+            "section_type": error_type,
+            "errors": errors,
+            "count": total,
+            "show_all": True,
+            "has_more": (page * page_size) < total,
+            "page": page,
+            "selected_site_id": site_id,
+            "badge_class": badge_class,
+            "section_icon": "",
+        },
+    )
+
+
+@router.get("/errors/{error_id}/brief/form", response_class=HTMLResponse)
+async def mobile_error_brief_form(
+    request: Request,
+    error_id: str,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Return inline brief form for a specific error row (HTMX outerHTML swap)."""
+    from app.services.project_service import get_accessible_projects
+    from app.services.yandex_errors_service import get_error
+
+    error = await get_error(db, uuid.UUID(error_id))
+    if not error:
+        raise HTTPException(status_code=404, detail="Ошибка не найдена")
+
+    projects = await get_accessible_projects(db, user)
+
+    return mobile_templates.TemplateResponse(
+        "mobile/errors/partials/brief_form.html",
+        {"request": request, "error": error, "projects": projects},
+    )
+
+
+@router.post("/errors/{error_id}/brief", response_class=HTMLResponse)
+async def mobile_error_brief_submit(
+    request: Request,
+    error_id: str,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+    description: str = Form(""),
+    priority: str = Form("p3"),
+    project_id: str | None = Form(None),
+):
+    """Create SeoTask from error row with source_error_id FK. Returns success confirmation."""
+    from app.models.task import SeoTask, TaskPriority, TaskStatus, TaskType
+    from app.models.yandex_errors import YandexErrorType
+    from app.services.yandex_errors_service import get_error
+
+    error = await get_error(db, uuid.UUID(error_id))
+    if not error:
+        raise HTTPException(status_code=404, detail="Ошибка не найдена")
+
+    # Map error_type to TaskType
+    type_map = {
+        YandexErrorType.indexing: TaskType.yandex_indexing,
+        YandexErrorType.crawl: TaskType.yandex_crawl,
+        YandexErrorType.sanction: TaskType.yandex_sanction,
+    }
+    task_type = type_map[error.error_type]
+
+    task = SeoTask(
+        site_id=error.site_id,
+        url=error.url or "",
+        title=error.title,
+        description=description or None,
+        task_type=task_type,
+        priority=TaskPriority(priority),
+        project_id=uuid.UUID(project_id) if project_id else None,
+        source_error_id=error.id,
+        status=TaskStatus.open,
+    )
+    db.add(task)
+    await db.flush()
+    await db.commit()
+
+    return mobile_templates.TemplateResponse(
+        "mobile/errors/partials/brief_result.html",
+        {"request": request, "task_id": task.id},
+    )
+
+
 @router.get("/tools/{slug}/jobs/{job_id}/all", response_class=HTMLResponse)
 async def mobile_tool_result_all(
     slug: str,
