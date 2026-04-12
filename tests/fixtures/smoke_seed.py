@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Any
-from uuid import UUID
+from uuid import UUID, uuid4
 
 import pytest_asyncio
 from sqlalchemy.ext.asyncio import (
@@ -78,6 +78,8 @@ SMOKE_IDS: dict[str, str] = {
     "template_id":    "e1e1e1e1-e1e1-e1e1-e1e1-e1e1e1e1e1e1",
     "tool_job_id":    "f1f1f1f1-f1f1-f1f1-f1f1-f1f1f1f1f1f1",
     "tool_slug":      "commercialization",
+    "feature_surface_id": "a1a1a1a1-a1a1-a1a1-a1a1-a1a1a1a1a1a1",
+    "surface_check_id":   "a2a2a2a2-a2a2-a2a2-a2a2-a2a2a2a2a2a2",
 }
 
 
@@ -423,6 +425,33 @@ async def seed_extended(session: AsyncSession) -> None:
             localized=False,
         )
     )
+    await session.flush()
+
+    # QA Surface Tracker seed (Phase 999.10)
+    from app.models.qa_surface import FeatureSurface, SurfaceCheck, Surface, CheckStatus
+
+    feature_surface = FeatureSurface(
+        id=_u("feature_surface_id"),
+        slug="smoke-test-flow",
+        name="Smoke Test Flow",
+        description="Seeded for smoke testing",
+        retest_days=30,
+        is_active=True,
+    )
+    session.add(feature_surface)
+    await session.flush()
+
+    # Create one SurfaceCheck for the smoke ID (desktop), plus the other two surfaces
+    for surface in Surface:
+        check_id = _u("surface_check_id") if surface == Surface.desktop else uuid4()
+        session.add(
+            SurfaceCheck(
+                id=check_id,
+                feature_id=_u("feature_surface_id"),
+                surface=surface,
+                status=CheckStatus.not_tested,
+            )
+        )
     await session.flush()
 
 

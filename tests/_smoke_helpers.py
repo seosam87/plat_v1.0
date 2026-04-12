@@ -65,6 +65,7 @@ UI_PREFIXES: tuple[str, ...] = (
     "/metrika/",
     "/profile/",
     "/notifications",  # Phase 17: in-app notifications (bell, dropdown, full page)
+    "/m/",  # Phase 999.10: mobile routes for QA surface coverage
 )
 
 # ---------------------------------------------------------------------------
