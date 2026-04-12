@@ -45,6 +45,7 @@ services:
       - ./alembic:/app/alembic
       - ./logs:/app/logs
       - uploads_data:/app/uploads
+      - agent_diffs:/tmp/agent_diffs
     depends_on:
       postgres:
         condition: service_healthy
@@ -126,6 +127,7 @@ services:
     env_file: .env
     environment:
       TELEGRAM_BOT_PORT: "8443"
+      ANTHROPIC_API_KEY: "${ANTHROPIC_API_KEY}"
     depends_on:
       postgres:
         condition: service_healthy
@@ -134,8 +136,12 @@ services:
     restart: unless-stopped
     networks:
       - default
+    volumes:
+      - .:/opt/app
+      - agent_diffs:/tmp/agent_diffs
 
 volumes:
   postgres_data:
   redis_data:
   uploads_data:
+  agent_diffs:
