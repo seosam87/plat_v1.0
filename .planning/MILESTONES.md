@@ -1,5 +1,44 @@
 # Milestones
 
+## v4.0 Mobile & Telegram (Shipped: 2026-04-12)
+
+**Phases completed:** 17 phases, 30 plans, 43 tasks
+
+**Key accomplishments:**
+
+- One-liner:
+- HMAC-SHA256 Telegram auth: WebApp initData validation issues JWT cookies for Mini App users; Login Widget on desktop profile links telegram_id to user accounts
+- PWA manifest, shell-only service worker with offline stub, and 192x512 icons enabling home screen installation at /m/
+- Async mobile digest service with 4-block /m/digest page (position changes, crawl errors, alerts, overdue tasks) plus site health query for Plan 02
+- Mobile health card page with 6 color-coded operational metrics, Celery crawl trigger, and inline HTMX task creation form
+- One-liner:
+- Service layer (`mobile_traffic_service.py`):
+- Mobile PDF report creation UI with Redis token-protected download, Telegram link delivery, and email attachment — covering REP-01 and REP-02 in 5 new endpoints
+- Mobile /m/tools UI layer: 4 endpoints + 3 templates + input parsing service — users can list and launch all 6 SEO tools from phone with HTMX 3s polling progress
+- 1. [Rule 1 - Bug] Wrong argument order for _result_to_row
+- YandexError model + migration 0055 + Webmaster API error functions + Celery sync task with upsert/soft-close + DB read service
+- One-liner:
+- 1. [Rule 1 - Bug] Site field is `url` not `domain`
+- One-liner:
+- One-liner:
+- Celery tasks for direct WP push of TOC/Schema with Redis-tracked bulk progress and HTMX polling.
+- Alembic migration 0056 adds tg_notifications_enabled to users; bot/ package provides BotSettings, async DB session, telegram_id allowlist auth, Celery dispatch client, shell runner, and HTML formatters — all importable without FastAPI startup.
+- Bot container (python:3.12-slim) with independent docker-compose service, Nginx proxying /webhook/tg to bot:8443, isolated from api service for graceful degradation
+- Full bot runtime: 8 command handlers (devops + SEO + miniapp), 60s confirmation flow, Celery dispatch, error push via Telegram DM, profile toggle UI
+- Claude Code agent handler with git branch isolation, asyncio.Lock mutex, subprocess CLI runner, and approve/reject inline keyboard wired into existing Telegram bot
+- Mobile WebApp diff viewer at /m/agent/diff/{task_id} with JS syntax coloring, reading from shared agent_diffs volume, plus SPIKE-REPORT.md documenting go/no-go recommendation for Claude Code agent production path
+- One-liner:
+- 1. [Verifier note] Dropped duplicate `noqa` re-import line in test additions
+- Added /profile/ and /notifications stub routes to test fixture, completing all 13 UI_PREFIX coverage
+- One-liner:
+- One-liner:
+- One-liner:
+- One-liner:
+- One-liner:
+- Commit:
+
+---
+
 ## v3.1 SEO Tools (Shipped: 2026-04-10)
 
 **Phases completed:** 45 phases, 137 plans, 234 tasks

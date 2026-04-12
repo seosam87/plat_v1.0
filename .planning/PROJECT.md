@@ -8,16 +8,20 @@ An internal SEO management platform for a team managing 20–100 WordPress sites
 
 A team member or client can open the platform and immediately see the SEO health of any site — positions, recent changes, pending tasks — without switching between GSC, spreadsheets, and WP admin.
 
-## Current State (v4.0 in progress — 2026-04-12)
+## Current State (v4.0 shipped — 2026-04-12)
 
-**5 milestones shipped, 48 phases, 144 plans.**
+**6 milestones shipped, 54 phases, 138 plans.**
 
-**v4.0 Mobile & Telegram — in progress:**
-- Phase 26: Mobile Foundation — base_mobile.html, /m/ routing, Telegram WebApp auth, PWA manifest
-- Phase 27: Digest & Site Health — утренняя сводка (/m/digest) с 4 блоками + карточка здоровья (/m/health/{site_id}) с 6 метриками и 2 действиями
-- Phase 28: Positions & Traffic — /m/positions (проверка позиций, HTMX-поллинг, карточки ключей, табы Все/Просевшие) + /m/traffic (сравнение трафика Метрики за 3 пресета, задачи на просадки)
-- Phase 32: Telegram Bot — отдельный Docker-сервис (PTB 21, webhook), DevOps+SEO команды, Mini App кнопки, push критических уведомлений
-- Phase 33: Claude Code Agent (Spike) — /task команда бота запускает Claude CLI в изолированной ветке, собирает diff, approve/reject кнопки + WebApp diff viewer. Untested — требует ANTHROPIC_API_KEY
+**v4.0 Mobile & Telegram — shipped 2026-04-12:**
+- Phase 26: Mobile Foundation — base_mobile.html, /m/ routing, Telegram WebApp HMAC auth, PWA manifest
+- Phase 27: Digest & Site Health — утренний дайджест (4 блока) + карточка здоровья (6 метрик, 2 действия)
+- Phase 28: Positions & Traffic — проверка позиций с HTMX-поллингом + сравнение трафика Метрики
+- Phase 29: Reports & Tools — PDF-отчёты с доставкой в TG/email + 6 SEO-инструментов с телефона
+- Phase 30: Errors & Quick Task — ошибки Yandex Webmaster + быстрые задачи и ТЗ копирайтеру
+- Phase 31: Pages App — approve queue, quick fix (TOC/Schema → WP), bulk operations
+- Phase 32: Telegram Bot — отдельный Docker-сервис (PTB 21, webhook), DevOps+SEO команды, Mini App
+- Phase 33: Claude Code Agent (Spike) — /task → Claude CLI → diff → approve/reject. Untested (ANTHROPIC_API_KEY)
+- Phase 33.1: Integration wiring — 6 gap fixes (routes, templates, toast, digest links)
 
 **v3.1 SEO Tools — shipped 2026-04-10:**
 - Phase 24: Tools Infrastructure — shared TOOL_REGISTRY, Job-архитектура, 3 быстрых инструмента (коммерциализация, мета-теги, релевантный URL)
@@ -45,6 +49,8 @@ A team member or client can open the platform and immediately see the SEO health
 - Formal migration audit (MIG-01/02/03) deferred
 - LLM API live verification deferred (backlog 999.6)
 - Deployment sync (backlog 999.5) — no automated git→production sync
+- Claude Code Agent spike untested (Phase 33 — requires ANTHROPIC_API_KEY)
+- Playbook Builder UAT incomplete (Phase 999.8 — 16 human_needed items)
 
 ## Requirements
 
