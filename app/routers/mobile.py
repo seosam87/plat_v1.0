@@ -2367,3 +2367,29 @@ async def mobile_bulk_progress(
         )
 
     return response
+
+
+# ---------------------------------------------------------------------------
+# Agent diff viewer (Claude Code agent spike — phase 33)
+# ---------------------------------------------------------------------------
+
+
+@router.get("/agent/diff/{task_id}", response_class=HTMLResponse)
+async def agent_diff_page(
+    request: Request,
+    task_id: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Show full diff from a Claude Code agent task (spike)."""
+    import pathlib
+    diff_file = pathlib.Path(f"/tmp/agent_diffs/{task_id}.txt")
+    diff_content = ""
+    if diff_file.exists():
+        diff_content = diff_file.read_text(errors="replace")
+    else:
+        diff_content = "Diff не найден. Возможно, задача ещё выполняется или уже удалена."
+    return mobile_templates.TemplateResponse(
+        "mobile/agent/diff.html",
+        {"request": request, "task_id": task_id, "diff": diff_content},
+    )

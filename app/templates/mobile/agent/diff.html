@@ -1,0 +1,37 @@
+{% extends "base_mobile.html" %}
+{% block title %}Diff: {{ task_id }}{% endblock %}
+{% block content %}
+<div style="padding: 12px;">
+  <h2 style="font-size: 1rem; font-weight: 600; margin-bottom: 8px; color: #1e1b4b;">
+    Diff задачи: {{ task_id }}
+  </h2>
+  <div id="diff-container"
+       style="font-family: 'Courier New', monospace; font-size: 0.7rem;
+              background: #1e1b4b; color: #e5e7eb; padding: 12px;
+              border-radius: 8px; overflow-x: auto; white-space: pre-wrap;
+              word-break: break-all; line-height: 1.4;">
+    {{ diff | e }}
+  </div>
+</div>
+<script>
+  // Basic diff syntax coloring
+  (function() {
+    var el = document.getElementById('diff-container');
+    var lines = el.textContent.split('\n');
+    var html = lines.map(function(line) {
+      var escaped = line.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      if (line.startsWith('+++') || line.startsWith('---')) {
+        return '<span style="color:#94a3b8;font-weight:bold">' + escaped + '</span>';
+      } else if (line.startsWith('+')) {
+        return '<span style="color:#22c55e">' + escaped + '</span>';
+      } else if (line.startsWith('-')) {
+        return '<span style="color:#ef4444">' + escaped + '</span>';
+      } else if (line.startsWith('@@')) {
+        return '<span style="color:#06b6d4">' + escaped + '</span>';
+      }
+      return escaped;
+    }).join('\n');
+    el.innerHTML = html;
+  })();
+</script>
+{% endblock %}
